@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>數學土味情話</title>
+    <title>數學土味情話 - 現代風格</title>
     <link rel="icon" href="img/math.ico" type="image/x-icon" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -599,74 +599,203 @@
         cardContainer.appendChild(card);
       });
 
-      function saveCardAsImage(card, index) {
-        // 創建一個新的 div 元素來包裝 card
-        const wrapper = document.createElement("div");
-        wrapper.style.position = "absolute";
-        wrapper.style.left = "-9999px";
-        wrapper.style.top = "-9999px";
+      function saveCardAsImage(card) {
+        // 獲取卡片內容和樣式
+        const title = card
+          .querySelector(".card-header span:first-child")
+          .textContent.trim();
+        const symbol = card
+          .querySelector(".card-header span:last-child")
+          .textContent.trim();
+        const content1 = card
+          .querySelector(".card-body p:first-child")
+          .textContent.trim();
+        const content2 = card
+          .querySelector(".card-body p:last-child")
+          .textContent.trim();
 
-        // 克隆原始的 card
-        const clonedCard = card.cloneNode(true);
-
-        // 移除標題中的編號（如果有的話）
-        const titleElement = clonedCard.querySelector(
-          ".card-header span:first-child"
+        // 獲取計算後的樣式
+        const styles = window.getComputedStyle(card);
+        const headerStyles = window.getComputedStyle(
+          card.querySelector(".card-header")
         );
-        if (titleElement) {
-          titleElement.textContent = titleElement.textContent.replace(
-            /^\d+\.\s*/,
-            ""
-          );
-        }
+        const bodyStyles = window.getComputedStyle(
+          card.querySelector(".card-body")
+        );
 
-        // 移除保存按鈕
-        const saveBtn = clonedCard.querySelector(".save-btn");
-        if (saveBtn) {
-          saveBtn.remove();
-        }
+        // 設置 SVG 尺寸和樣式
+        const width = parseInt(styles.width);
+        const height = parseInt(styles.height);
+        const borderRadius = styles.borderRadius;
+        const backgroundColor = styles.backgroundColor;
+        const headerBackgroundColor = headerStyles.backgroundColor;
+        const textColor = styles.color;
+        const fontFamily = styles.fontFamily;
 
-        // 設置克隆 card 的樣式以確保正確渲染
-        clonedCard.style.position = "static";
-        clonedCard.style.transform = "none";
-        clonedCard.style.margin = "0";
-        clonedCard.style.boxShadow = "none";
-        clonedCard.style.width = "300px"; // 設置固定寬度
+        // 創建 SVG
+        const svg = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg"
+        );
+        svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        svg.setAttribute("width", width);
+        svg.setAttribute("height", height);
 
-        // 將克隆的 card 添加到包裝器中
-        wrapper.appendChild(clonedCard);
+        // 添加背景和圓角
+        const background = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect"
+        );
+        background.setAttribute("width", "100%");
+        background.setAttribute("height", "100%");
+        background.setAttribute("fill", backgroundColor);
+        background.setAttribute("rx", borderRadius);
+        svg.appendChild(background);
 
-        // 將包裝器添加到 body
-        document.body.appendChild(wrapper);
+        // 添加標題背景
+        const titleHeight = parseInt(headerStyles.height);
+        const titleBackground = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect"
+        );
+        titleBackground.setAttribute("width", "100%");
+        titleBackground.setAttribute("height", titleHeight);
+        titleBackground.setAttribute("fill", headerBackgroundColor);
+        titleBackground.setAttribute("rx", borderRadius);
+        svg.appendChild(titleBackground);
 
-        // 使用 html2canvas 來捕獲完整渲染的 card
-        html2canvas(clonedCard, {
-          scale: 2, // 提高圖片質量
-          backgroundColor: null, // 保持背景透明
-        })
-          .then((canvas) => {
-            // 轉換 canvas 為圖片 URL
-            const imgData = canvas.toDataURL("image/png");
+        // 添加標題
+        const titleText = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text"
+        );
+        titleText.setAttribute("x", "20");
+        titleText.setAttribute("y", titleHeight / 2 + 5);
+        titleText.setAttribute("fill", textColor);
+        titleText.setAttribute("font-size", headerStyles.fontSize);
+        titleText.setAttribute("font-weight", headerStyles.fontWeight);
+        titleText.setAttribute("font-family", fontFamily);
+        titleText.textContent = title;
+        svg.appendChild(titleText);
 
-            // 創建下載鏈接
+        // 添加符號
+        const symbolText = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text"
+        );
+        symbolText.setAttribute("x", width - 20);
+        symbolText.setAttribute("y", titleHeight / 2 + 5);
+        symbolText.setAttribute("fill", textColor);
+        symbolText.setAttribute("font-size", headerStyles.fontSize);
+        symbolText.setAttribute("text-anchor", "end");
+        symbolText.setAttribute("font-family", fontFamily);
+        symbolText.textContent = symbol;
+        svg.appendChild(symbolText);
+
+        // 添加內容
+        const contentFontSize = bodyStyles.fontSize;
+        const contentText1 = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text"
+        );
+        contentText1.setAttribute("x", "20");
+        contentText1.setAttribute("y", titleHeight + 30);
+        contentText1.setAttribute("fill", textColor);
+        contentText1.setAttribute("font-size", contentFontSize);
+        contentText1.setAttribute("font-family", fontFamily);
+        contentText1.innerHTML = wrapText(content1, width - 40, contentFontSize)
+          .map(
+            (line, index) =>
+              `<tspan x="20" dy="${index === 0 ? 0 : "1.2em"}">${line}</tspan>`
+          )
+          .join("");
+        svg.appendChild(contentText1);
+
+        const contentText2 = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text"
+        );
+        contentText2.setAttribute("x", "20");
+        contentText2.setAttribute("y", titleHeight + 120);
+        contentText2.setAttribute("fill", textColor);
+        contentText2.setAttribute("font-size", contentFontSize);
+        contentText2.setAttribute("font-family", fontFamily);
+        contentText2.innerHTML = wrapText(content2, width - 40, contentFontSize)
+          .map(
+            (line, index) =>
+              `<tspan x="20" dy="${index === 0 ? 0 : "1.2em"}">${line}</tspan>`
+          )
+          .join("");
+        svg.appendChild(contentText2);
+
+        // 將 SVG 轉換為 PNG
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const img = new Image();
+        img.onload = function () {
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+
+          // 將 canvas 轉換為 PNG 並下載
+          canvas.toBlob(function (blob) {
+            const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
-            link.href = imgData;
-            link.download = `math-pickup-line-${index + 1}.png`;
-            link.click();
+            link.href = url;
+            link.download = `數學情話-${title}.png`;
 
-            // 清理：移除臨時創建的元素
-            document.body.removeChild(wrapper);
-          })
-          .catch((error) => {
-            console.error("保存圖片時出錯:", error);
-          });
+            // 觸發下載
+            if (
+              /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+                navigator.userAgent
+              )
+            ) {
+              window.open(url, "_blank");
+            } else {
+              link.click();
+            }
+
+            // 清理
+            URL.revokeObjectURL(url);
+          }, "image/png");
+        };
+        img.src =
+          "data:image/svg+xml;base64," +
+          btoa(unescape(encodeURIComponent(svgData)));
+      }
+
+      // 輔助函數：根據容器寬度和字體大小換行文字
+      function wrapText(text, maxWidth, fontSize) {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        context.font =
+          fontSize + " " + window.getComputedStyle(document.body).fontFamily;
+
+        const words = text.split(" ");
+        const lines = [];
+        let currentLine = words[0];
+
+        for (let i = 1; i < words.length; i++) {
+          const word = words[i];
+          const width = context.measureText(currentLine + " " + word).width;
+          if (width < maxWidth) {
+            currentLine += " " + word;
+          } else {
+            lines.push(currentLine);
+            currentLine = word;
+          }
+        }
+        lines.push(currentLine);
+        return lines;
       }
 
       // 更新事件監聽器
-      document.querySelectorAll(".save-btn").forEach((btn, index) => {
-        btn.addEventListener("click", () => {
+      document.querySelectorAll(".save-btn").forEach((btn) => {
+        btn.addEventListener("click", (event) => {
+          event.stopPropagation(); // 防止卡片翻轉
           const card = btn.closest(".card");
-          saveCardAsImage(card, index);
+          saveCardAsImage(card);
         });
       });
     </script>
