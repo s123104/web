@@ -3,11 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>數學土味情話</title>
-
-    <!-- 引入 .ico 作為網站圖標 -->
+    <title>數學土味情話 - 現代風格</title>
     <link rel="icon" href="img/math.ico" type="image/x-icon" />
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap");
 
@@ -46,11 +44,7 @@
       }
 
       h1 {
-        font-size: clamp(
-          18px,
-          3vw,
-          36px
-        ); /* 字體大小在18px到36px之間動態調整 */
+        font-size: 3vw;
         color: var(--highlight-color);
         text-align: center;
         margin-top: 20px;
@@ -59,17 +53,6 @@
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
         animation: titleFloat 3s ease-in-out infinite;
         position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        min-height: 50px;
-      }
-
-      /* 設置標題前的圖標大小 */
-      h1 img {
-        width: 40px; /* 根據需要調整大小 */
-        height: 40px;
       }
 
       h1::before,
@@ -171,15 +154,19 @@
         opacity: 0.8;
       }
 
+      .save-btn {
+        cursor: pointer;
+      }
+
       @media (max-width: 768px) {
         h1 {
-          font-size: 5vw;
+          font-size: 8vw;
         }
       }
 
       @media (max-width: 480px) {
         h1 {
-          font-size: 4vw;
+          font-size: 6vw;
         }
       }
 
@@ -582,7 +569,6 @@
         const cardHeader = document.createElement("div");
         cardHeader.classList.add("card-header");
 
-        // Remove the numbering from the title
         const title = document.createElement("span");
         title.textContent = `${line.title}`;
 
@@ -610,34 +596,79 @@
         card.appendChild(cardHeader);
         card.appendChild(cardBody);
 
-        // Click symbol to save card as image
-        symbol.addEventListener("click", () => saveCardAsImage(card, index));
-
         cardContainer.appendChild(card);
       });
 
       function saveCardAsImage(card, index) {
+        // 創建一個新的 div 元素來包裝 card
+        const wrapper = document.createElement("div");
+        wrapper.style.position = "absolute";
+        wrapper.style.left = "-9999px";
+        wrapper.style.top = "-9999px";
+
+        // 克隆原始的 card
         const clonedCard = card.cloneNode(true);
+
+        // 移除標題中的編號（如果有的話）
         const titleElement = clonedCard.querySelector(
           ".card-header span:first-child"
         );
-        titleElement.textContent = titleElement.textContent.replace(
-          /^\d+\.\s*/,
-          ""
-        );
+        if (titleElement) {
+          titleElement.textContent = titleElement.textContent.replace(
+            /^\d+\.\s*/,
+            ""
+          );
+        }
 
-        htmlToImage
-          .toPng(clonedCard)
-          .then((dataUrl) => {
+        // 移除保存按鈕
+        const saveBtn = clonedCard.querySelector(".save-btn");
+        if (saveBtn) {
+          saveBtn.remove();
+        }
+
+        // 設置克隆 card 的樣式以確保正確渲染
+        clonedCard.style.position = "static";
+        clonedCard.style.transform = "none";
+        clonedCard.style.margin = "0";
+        clonedCard.style.boxShadow = "none";
+        clonedCard.style.width = "300px"; // 設置固定寬度
+
+        // 將克隆的 card 添加到包裝器中
+        wrapper.appendChild(clonedCard);
+
+        // 將包裝器添加到 body
+        document.body.appendChild(wrapper);
+
+        // 使用 html2canvas 來捕獲完整渲染的 card
+        html2canvas(clonedCard, {
+          scale: 2, // 提高圖片質量
+          backgroundColor: null, // 保持背景透明
+        })
+          .then((canvas) => {
+            // 轉換 canvas 為圖片 URL
+            const imgData = canvas.toDataURL("image/png");
+
+            // 創建下載鏈接
             const link = document.createElement("a");
-            link.href = dataUrl;
-            link.download = `card-${index + 1}.png`;
+            link.href = imgData;
+            link.download = `math-pickup-line-${index + 1}.png`;
             link.click();
+
+            // 清理：移除臨時創建的元素
+            document.body.removeChild(wrapper);
           })
           .catch((error) => {
-            console.error("oops, something went wrong!", error);
+            console.error("保存圖片時出錯:", error);
           });
       }
+
+      // 更新事件監聽器
+      document.querySelectorAll(".save-btn").forEach((btn, index) => {
+        btn.addEventListener("click", () => {
+          const card = btn.closest(".card");
+          saveCardAsImage(card, index);
+        });
+      });
     </script>
   </body>
 </html>
