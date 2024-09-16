@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tesseract OCR 自動化訓練教學</title>
+    <style>
+      /* 基本樣式 */
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        line-height: 1.6;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        transition: background-color 0.3s, color 0.3s;
+      }
+      .container {
+        max-width: 1200px;
+        margin: auto;
+        padding: 20px;
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        color: var(--heading-color);
+      }
+      pre {
+        background: var(--code-bg);
+        color: var(--code-text);
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        position: relative;
+      }
+      code {
+        font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+      }
+      a {
+        color: #1e90ff;
+      }
+      .file-structure {
+        background: #e8e8e8;
+        padding: 15px;
+        border-radius: 5px;
+        font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+        white-space: pre;
+        overflow-x: auto;
+      }
+      .note {
+        background: #fff3cd;
+        color: #856404;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+      /* 深淺色模式變數 */
+      :root {
+        --bg-color: #ffffff;
+        --text-color: #000000;
+        --heading-color: #333333;
+        --code-bg: #272822;
+        --code-text: #f8f8f2;
+        --button-bg: #ffffff;
+        --button-text: #000000;
+        --highlight-bg: #ffff00;
+      }
+      [data-theme="dark"] {
+        --bg-color: #1e1e1e;
+        --text-color: #d4d4d4;
+        --heading-color: #ffffff;
+        --code-bg: #2d2d2d;
+        --code-text: #f8f8f2;
+        --button-bg: #3c3c3c;
+        --button-text: #ffffff;
+        --highlight-bg: #ffeb3b;
+      }
+      /* 複製按鈕樣式 */
+      .copy-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: var(--button-bg);
+        color: var(--button-text);
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .copy-btn:hover {
+        background: #007bff;
+        color: #ffffff;
+      }
+      /* 深淺色切換按鈕 */
+      .theme-toggle {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--button-bg);
+        color: var(--button-text);
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        transition: background-color 0.3s, color 0.3s;
+      }
+      .theme-toggle:hover {
+        background: #007bff;
+        color: #ffffff;
+      }
+      /* 螢光筆標記 */
+      mark {
+        background-color: var(--highlight-bg);
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <button class="theme-toggle" onclick="toggleTheme()">切換深淺色模式</button>
+    <div class="container">
+      <h1>Tesseract OCR 自動化訓練教學</h1>
+      <p>
+        本教學將指導您如何自動化訓練Tesseract OCR，並結合Google Cloud Vision
+        API與Microsoft Azure OCR
+        API來提升辨識精準度。以下內容涵蓋環境設置、數據準備、OCR辨識、結果對比、限制API使用次數以及模型訓練的完整步驟。
+      </p>
+
+      <div class="section" id="1-environment-setup">
+        <h2>1. 環境設置</h2>
+
+        <h3>1.1 安裝必要的軟體和庫</h3>
+        <p>首先，確保您的系統上已安裝以下軟體：</p>
+        <ul>
+          <li>
+            <strong>Tesseract OCR</strong>：
+            <ul>
+              <li>
+                <strong>Windows</strong>：下載安裝包
+                <a
+                  href="https://github.com/UB-Mannheim/tesseract/wiki"
+                  target="_blank"
+                  >Tesseract at UB Mannheim</a
+                >
+              </li>
+              <li>
+                <strong>macOS</strong>：使用Homebrew安裝
+                <code>brew install tesseract</code>
+              </li>
+              <li>
+                <strong>Linux</strong>：使用包管理器安裝，例如
+                <code>sudo apt-get install tesseract-ocr</code>
+              </li>
+            </ul>
+          </li>
+          <li><strong>Python</strong>（建議3.7以上版本）</li>
+        </ul>
+
+        <p>安裝所需的Python庫：</p>
+        <pre>
+                <code class="code-block">
+pip install pytesseract opencv-python Pillow requests google-cloud-vision azure-cognitiveservices-vision-computervision pandas
+                </code>
+                <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </pre>
+
+        <h3>1.2 配置Google和Microsoft API</h3>
+
+        <h4>Google Cloud Vision API</h4>
+        <ol>
+          <li>
+            前往
+            <a href="https://console.cloud.google.com/" target="_blank"
+              >Google Cloud Console</a
+            >，創建一個新項目。
+          </li>
+          <li>啟用Vision API。</li>
+          <li>創建服務帳戶並下載JSON格式的認證密鑰。</li>
+          <li>
+            設定環境變量以指向認證密鑰：
+            <pre>
+                        <code class="code-block">
+export GOOGLE_APPLICATION_CREDENTIALS="path/to/your/credentials.json"
+                        </code>
+                        <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    </pre>
+          </li>
+        </ol>
+
+        <h4>Microsoft Azure OCR API</h4>
+        <ol>
+          <li>
+            前往
+            <a href="https://portal.azure.com/" target="_blank">Azure Portal</a
+            >，創建一個新的Cognitive Services資源。
+          </li>
+          <li>獲取API密鑰和端點URL。</li>
+          <li>記下這些資訊以供後續使用。</li>
+        </ol>
+      </div>
+
+      <div class="section" id="2-data-collection">
+        <h2>2. 數據收集與準備</h2>
+
+        <h3>2.1 收集樣本圖像</h3>
+        <p>
+          收集包含電腦遊戲中文字的截圖，確保涵蓋各種字體、大小、顏色和背景。將這些圖像組織在一個目錄中，例如
+          <code>data/raw_images/</code>。
+        </p>
+
+        <h3>2.2 圖像預處理</h3>
+        <p>
+          使用OpenCV和Pillow進行圖像預處理，以提升OCR的準確度。以下是預處理的Python程式碼：
+        </p>
+        <pre>
+                <code class="code-block">
+import cv2
+import os
+from PIL import Image
+
+def preprocess_image(image_path, output_path):
+    # 讀取圖像
+    img = cv2.imread(image_path)
+    # 灰階轉換
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # 去噪
+    gray = cv2.medianBlur(gray, 3)
+    # 二值化
+    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # 保存預處理後的圖像
+    cv2.imwrite(output_path, binary)
+
+input_dir = 'data/raw_images/'
+output_dir = 'data/preprocessed_images/'
+
+os.makedirs(output_dir, exist_ok=True)
+
+for filename in os.listdir(input_dir):
+    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+        preprocess_image(os.path.join(input_dir, filename), os.path.join(output_dir, filename))
+                </code>
+                <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </pre>
+
+        <h3>2.3 標註數據</h3>
+        <p>
+          對預處理後的圖像進行標註，這一步對於自訂訓練至關重要。可以使用工具如
+          <a href="https://github.com/tzutalin/labelImg" target="_blank"
+            >LabelImg</a
+          >
+          來標註文字位置和內容，生成Tesseract所需的訓練文件（如
+          <code>.box</code> 文件）。
+        </p>
+      </div>
+
+      <div class="section" id="3-initial-ocr">
+        <h2>3. 初始Tesseract OCR辨識</h2>
+        <p>使用預處理後的圖像進行初步的OCR辨識，作為基準。</p>
+        <pre>
+                <code class="code-block">
+import pytesseract
+from PIL import Image
+
+def ocr_tesseract(image_path):
+    text = pytesseract.image_to_string(Image.open(image_path), lang='chi_tra+eng')
+    return text
+
+preprocessed_dir = 'data/preprocessed_images/'
+tesseract_results = {}
+
+for filename in os.listdir(preprocessed_dir):
+    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+        text = ocr_tesseract(os.path.join(preprocessed_dir, filename))
+        tesseract_results[filename] = text
+                </code>
+                <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </pre>
+      </div>
+
+      <div class="section" id="4-ocr-apis">
+        <h2>4. 調用Google和Microsoft OCR API</h2>
+
+        <h3>4.1 Google Cloud Vision OCR</h3>
+        <pre>
+                <code class="code-block">
+from google.cloud import vision
+
+def ocr_google(image_path):
+    client = vision.ImageAnnotatorClient()
+    with open(image_path, 'rb') as image_file:
+        content = image_file.read()
+    image = vision.Image(content=content)
+    response = client.text_detection(image=image)
+    texts = response.text_annotations
+    if texts:
+        return texts[0].description
+    return ""
+
+# 示例用法
+# google_text = ocr_google('path/to/image.png')
+                </code>
+                <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </pre>
+
+        <h3>4.2 Microsoft Azure OCR</h3>
+        <pre>
+                <code class="code-block">
+from azure.cognitiveservices.vision.computervision import ComputerVisionClient
+from msrest.authentication import CognitiveServicesCredentials
+
+def ocr_azure(image_path, subscription_key, endpoint):
+    client = ComputerVisionClient(endpoint, CognitiveServicesCredentials(subscription_key))
+    with open(image_path, 'rb') as image_stream:
+        result = client.recognize_printed_text_in_stream(image=image_stream, language="zh-Hant")
+    text = ""
+    for region in result.regions:
+        for line in region.lines:
+            for word in line.words:
+                text += word.text + " "
+            text += "\n"
+    return text.strip()
+
+# 示例用法
+# azure_text = ocr_azure('path/to/image.png', 'your_subscription_key', 'your_endpoint')
+                </code>
+                <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </pre>
+      </div>
+
+      <div class="section" id="5-compare-correct">
+        <h2>5. 比較和校正辨識結果</h2>
+        <p>
+          將Tesseract的結果與Google和Microsoft的結果進行對比，識別出差異並用於調整訓練數據。
+        </p>
+
+        <h3>5.1 結果對比</h3>
+        <pre>
+                <code class="code-block">
+import difflib
+import pandas as pd
+
+def compare_texts(tess_text, google_text, azure_text):
+    # 這裡採用簡單的多數表決策略，您也可以根據需要實現更複雜的邏輯
+    texts = [tess_text, google_text, azure_text]
+    # 計算出現最多的文字
+    most_common = max(set(texts), key=texts.count)
+    return most_common
+
+comparison_results = []
+
+for filename in os.listdir(preprocessed_dir):
+    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+        tess_text = tesseract_results.get(filename, "")
+        google_text = ocr_google(os.path.join(preprocessed_dir, filename))
+        azure_text = ocr_azure(os.path.join(preprocessed_dir, filename), 'your_subscription_key', 'your_endpoint')
+        final_text = compare_texts(tess_text, google_text, azure_text)
+        comparison_results.append({
+            'filename': filename,
+            'tesseract': tess_text,
+            'google': google_text,
+            'azure': azure_text,
+            'final': final_text
+        })
+
+# 保存比較結果
+df = pd.DataFrame(comparison_results)
+df.to_csv('data/comparison_results.csv', index=False)
+                </code>
+                <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </pre>
+
+        <h3>5.2 識別差異並生成訓練數據</h3>
+        <pre>
+                <code class="code-block">
+import csv
+import os
+
+def generate_training_data(comparison_csv, training_output_dir):
+    with open(comparison_csv, 'r', encoding='utf-8') as csvfile:
+        reader = pd.read_csv(csvfile)
+        for index, row in reader.iterrows():
+            filename = row['filename']
+            final_text = row['final']
+            image_path = os.path.join(preprocessed_dir, filename)
+            box_filename = os.path.splitext(filename)[0] + '.box'
+            with open(os.path.join(training_output_dir, box_filename), 'w', encoding='utf-8') as boxfile:
+                original_box_path = os.path.join('data/box_files/', box_filename)
+                if os.path.exists(original_box_path):
+                    with open(original_box_path, 'r', encoding='utf-8') as orig_box:
+                        lines = orig_box.readlines()
+                    # 假設final_text中的字符順序與box文件一致
+                    if len(final_text) == len(lines):
+                        for i, char in enumerate(final_text):
+                            parts = lines[i].strip().split(' ')
+                            # 替換字符部分
+                            parts[0] = char
+                            boxfile.write(' '.join(parts) + '\n')
+                else:
+                    # 如果沒有原始box文件，可能需要手動標註
+                    pass
+
+generate_training_data('data/comparison_results.csv', 'data/training_data/')
+                </code>
+                <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </pre>
+      </div>
+
+      <div class="section" id="6-train-tesseract">
+        <h2>6. 自訂訓練Tesseract</h2>
+
+        <h3>6.1 安裝Tesseract訓練工具</h3>
+        <p>
+          確保您的Tesseract版本支持訓練（建議使用最新版本）。可以參考
+          <a
+            href="https://tesseract-ocr.github.io/tessdoc/Training-Tesseract.html"
+            target="_blank"
+            >Tesseract官方訓練指南</a
+          >。
+        </p>
+
+        <h3>6.2 準備訓練數據</h3>
+        <p>
+          將生成的訓練數據放置在指定目錄，例如
+          <code>data/training_data/</code>。確保每個圖像都有對應的box文件。
+        </p>
+
+        <h3>6.3 訓練步驟</h3>
+        <ol>
+          <li>
+            <strong>生成字型文件</strong
+            >：如果使用自訂字體，需生成字型文件。這步驟可能需要使用專門的工具，具體取決於您的需求。
+          </li>
+          <li>
+            <strong>提取特徵和創建訓練文件</strong>：使用Tesseract的
+            <code>text2image</code> 工具來生成需要的訓練文件。
+            <pre>
+                        <code class="code-block">
+tesseract path/to/image.png path/to/output -l chi_tra+eng box.train
+                        </code>
+                        <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    </pre>
+          </li>
+          <li>
+            <strong>進行訓練</strong>：使用Tesseract的訓練工具進行訓練。
+            <pre>
+                        <code class="code-block">
+combine_tessdata -e chi_tra.traineddata chi_tra.lstm
+
+lstmtraining \
+  --model_output output/base \
+  --continue_from output/chi_tra.lstm \
+  --traineddata data/training_data/chi_tra.traineddata \
+  --train_listfile data/training_data/train.list \
+  --max_iterations 1000
+                        </code>
+                        <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    </pre>
+          </li>
+          <li>
+            <strong>生成新的訓練數據文件</strong>：
+            <pre>
+                        <code class="code-block">
+lstmtraining \
+  --stop_training \
+  --continue_from output/base_checkpoint \
+  --traineddata data/training_data/chi_tra.traineddata \
+  --model_output output/chi_tra_final.traineddata
+                        </code>
+                        <button class="copy-btn" onclick="copyCode(this)">複製</button>
+                    </pre>
+          </li>
+          <li>
+            <strong>替換或新增訓練數據</strong>：將生成的
+            <code>chi_tra_final.traineddata</code> 放置在Tesseract的
+            <code>tessdata</code> 目錄下，並在使用時指定使用這個新模型。
+          </li>
+        </ol>
+
+        <h3>6.4 自動化訓練流程</h3>
+        <p>使用Python腳本來自動化上述訓練命令的執行。以下是一個簡化的示例：</p>
+        <pre>
+                <code class="code-block">
+import subprocess
+
+def run_command(command):
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+    if process.returncode != 0:
+        print(f"Error executing command: {command}")
+        print(stderr.decode())
+    else:
+        print(stdout.decode())
+
+# 示例：合併Tesseract訓練數據
+run_command("combine_tessdata -e chi_tra.traineddata chi_tra.lstm")
+
+# 示例：進行訓練
+train_command = """
+lstmtraining \
+  --model_output output/base \
+  --continue_from chi_tra.lstm \
+  --traineddata data/training_data/chi_tra.traineddata \
+  --train_listfile data/training_data/train.list \
+  --max_iterations 1000
+"""
+run_command(train_command)
+
+# 示例：停止訓練並生成最終模型
+stop_command = """
+lstmtraining \
+  --stop_training \
+  --continue_from output/base_checkpoint \
+  --traineddata data/training_data/chi_tra.traineddata \
+  --model_output output/chi_tra_final.traineddata
+"""
+run_command(stop_command)
+                </code>
+                <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </pre>
+        <p>
+          <strong>注意</strong
+          >：訓練過程可能需要調整參數和步驟，具體取決於您的數據和需求。建議參考
+          <a
+            href="https://tesseract-ocr.github.io/tessdoc/Training-Tesseract.html"
+            target="_blank"
+            >Tesseract訓練文檔</a
+          >
+          以獲取詳細資訊。
+        </p>
+      </div>
+
+      <div class="section" id="7-automation">
+        <h2>7. 自動化整個流程</h2>
+        <p>
+          將上述步驟整合到一個自動化管道中，使用Python腳本來控制數據收集、預處理、OCR辨識、結果比較和模型訓練。
+        </p>
+
+        <h3>7.1 完整自動化腳本</h3>
+        <pre>
+                <code class="code-block">
+import os
+import cv2
+from PIL import Image
+import pytesseract
+from google.cloud import vision
+from azure.cognitiveservices.vision.computervision import ComputerVisionClient
+from msrest.authentication import CognitiveServicesCredentials
+import difflib
+import pandas as pd
+import subprocess
+
+# 設定路徑和API憑證
+preprocessed_dir = 'data/preprocessed_images/'
+raw_dir = 'data/raw_images/'
+training_output_dir = 'data/training_data/'
+box_dir = 'data/box_files/'
+
+google_credentials = 'path/to/google/credentials.json'
+azure_subscription_key = 'your_azure_subscription_key'
+azure_endpoint = 'your_azure_endpoint'
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_credentials
+
+# 初始化API客戶端
+google_client = vision.ImageAnnotatorClient()
+azure_client = ComputerVisionClient(azure_endpoint, CognitiveServicesCredentials(azure_subscription_key))
+
+# 預處理圖像
+def preprocess_image(image_path, output_path):
+    img = cv2.imread(image_path)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.medianBlur(gray, 3)
+    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    cv2.imwrite(output_path, binary)
+
+os.makedirs(preprocessed_dir, exist_ok=True)
+for filename in os.listdir(raw_dir):
+    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+        preprocess_image(os.path.join(raw_dir, filename), os.path.join(preprocessed_dir, filename))
+
+# 定義OCR函數
+def ocr_tesseract(image_path):
+    return pytesseract.image_to_string(Image.open(image_path), lang='chi_tra+eng')
+
+def ocr_google(image_path):
+    with open(image_path, 'rb') as image_file:
+        content = image_file.read()
+    image = vision.Image(content=content)
+    response = google_client.text_detection(image=image)
+    texts = response.text_annotations
+    if texts:
+        return texts[0].description
+    return ""
+
+def ocr_azure(image_path):
+    with open(image_path, 'rb') as image_stream:
+        result = azure_client.recognize_printed_text_in_stream(image=image_stream, language="zh-Hant")
+    text = ""
+    for region in result.regions:
+        for line in region.lines:
+            for word in line.words:
+                text += word.text + " "
+            text += "\n"
+    return text.strip()
+
+# 定義比較函數
+def compare_texts(tess_text, google_text, azure_text):
+    # 多數表決策略
+    texts = [tess_text, google_text, azure_text]
+    most_common = max(set(texts), key=texts.count)
+    return most_common
+
+# 執行OCR並比較結果
+comparison_results = []
+
+for filename in os.listdir(preprocessed_dir):
+    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+        image_path = os.path.join(preprocessed_dir, filename)
+        tess_text = ocr_tesseract(image_path)
+        google_text = ocr_google(image_path)
+        azure_text = ocr_azure(image_path)
+        final_text = compare_texts(tess_text, google_text, azure_text)
+        comparison_results.append({
+            'filename': filename,
+            'tesseract': tess_text,
+            'google': google_text,
+            'azure': azure_text,
+            'final': final_text
+        })
+
+# 保存比較結果
+df = pd.DataFrame(comparison_results)
+df.to_csv('data/comparison_results.csv', index=False)
+
+# 生成訓練數據
+def generate_training_data(comparison_csv, training_output_dir):
+    with open(comparison_csv, 'r', encoding='utf-8') as csvfile:
+        reader = pd.read_csv(csvfile)
+        for index, row in reader.iterrows():
+            filename = row['filename']
+            final_text = row['final']
+            image_path = os.path.join(preprocessed_dir, filename)
+            box_filename = os.path.splitext(filename)[0] + '.box'
+            with open(os.path.join(training_output_dir, box_filename), 'w', encoding='utf-8') as boxfile:
+                original_box_path = os.path.join(box_dir, box_filename)
+                if os.path.exists(original_box_path):
+                    with open(original_box_path, 'r', encoding='utf-8') as orig_box:
+                        lines = orig_box.readlines()
+                    if len(final_text) == len(lines):
+                        for i, char in enumerate(final_text):
+                            parts = lines[i].strip().split(' ')
+                            parts[0] = char
+                            boxfile.write(' '.join(parts) + '\n')
+
+generate_training_data('data/comparison_results.csv', training_output_dir)
+
+# 執行Tesseract訓練
+def run_training():
+    # 合併訓練數據
+    combine_command = "combine_tessdata -e chi_tra.traineddata chi_tra.lstm"
+    subprocess.run(combine_command, shell=True, check=True)
+
+    # 執行訓練
+    train_command = """
+lstmtraining \
+  --model_output output/base \
+  --continue_from chi_tra.lstm \
+  --traineddata data/training_data/chi_tra.traineddata \
+  --train_listfile data/training_data/train.list \
+  --max_iterations 1000
+    """
+    subprocess.run(train_command, shell=True, check=True)
+
+    # 停止訓練並生成最終模型
+    stop_command = """
+lstmtraining \
+  --stop_training \
+  --continue_from output/base_checkpoint \
+  --traineddata data/training_data/chi_tra.traineddata \
+  --model_output output/chi_tra_final.traineddata
+    """
+    subprocess.run(stop_command, shell=True, check=True)
+
+# 執行訓練
+run_training()
+                </code>
+                <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </pre>
+      </div>
+
+      <div class="section" id="8-advanced-optimization">
+        <h2>8. 進階優化</h2>
+
+        <h3>8.1 圖像增強</h3>
+        <p>
+          在預處理階段，進一步應用圖像增強技術，如旋轉校正、透視變換、多尺度處理等，以應對遊戲截圖中可能出現的各種變化。
+        </p>
+
+        <h3>8.2 多階段辨識</h3>
+        <p>
+          先使用文字檢測模型（如EAST或CRAFT）來定位文字區域，然後針對這些區域進行OCR辨識，可以提升整體辨識的準確度。
+        </p>
+
+        <h3>8.3 使用深度學習模型</h3>
+        <p>
+          考慮使用基於深度學習的OCR模型，如Tesseract 4的LSTM模型，或其他如
+          <a href="https://arxiv.org/abs/1507.05717" target="_blank">CRNN</a>
+          模型，進一步提升辨識效果。
+        </p>
+
+        <h3>8.4 定期重新訓練</h3>
+        <p>
+          隨著新遊戲版本或字體的出現，定期收集新數據並重新訓練模型，以保持高準確度。
+        </p>
+      </div>
+
+      <div class="section" id="9-troubleshooting">
+        <h2>9. 可能遇到的問題及解決方案</h2>
+        <ul>
+          <li>
+            <strong>API 超出免費額度</strong>：
+            <p class="note">
+              如果您在調用Google或Microsoft的OCR
+              API時超出了免費額度，您需要等待一段時間（通常是一個月）才能重置免費額度，或者考慮購買額外的使用量。
+            </p>
+          </li>
+          <li>
+            <strong>Tesseract 訓練失敗</strong>：
+            <p class="note">
+              確保您使用的Tesseract版本支持訓練功能，並且所有訓練數據格式正確。參考Tesseract官方訓練指南以確認步驟無誤。
+            </p>
+          </li>
+          <li>
+            <strong>OCR 辨識精準度低</strong>：
+            <p class="note">
+              檢查圖像預處理步驟是否正確，確保圖像清晰且文字與背景對比度足夠。考慮增加訓練數據量或進行更進一步的圖像增強。
+            </p>
+          </li>
+          <li>
+            <strong>API 認證錯誤</strong>：
+            <p class="note">
+              確保您正確設置了Google和Microsoft的API憑證，並且API密鑰和端點URL無誤。
+            </p>
+          </li>
+          <li>
+            <strong>程式碼錯誤</strong>：
+            <p class="note">
+              檢查Python腳本中的路徑是否正確，並確保所有依賴庫已正確安裝。使用者可以參考錯誤訊息進行調試。
+            </p>
+          </li>
+        </ul>
+      </div>
+
+      <div class="section" id="10-conclusion">
+        <h2>10. 結論</h2>
+        <p>
+          透過結合Tesseract OCR、自動化訓練流程以及Google和Microsoft的OCR
+          API進行結果校正，您可以顯著提升在電腦遊戲文字辨識中的精準度。這一自動化流程涵蓋了數據收集、預處理、OCR辨識、結果比較和模型訓練的各個步驟。根據具體需求，您可以進一步優化和擴展這一流程，以實現更高效和準確的辨識效果。
+        </p>
+        <p>如果在實施過程中遇到具體問題，歡迎隨時提問，我將樂於協助！</p>
+      </div>
+    </div>
+
+    <script>
+      // 複製程式碼功能
+      function copyCode(button) {
+        const code = button.previousElementSibling.textContent;
+        navigator.clipboard
+          .writeText(code)
+          .then(() => {
+            button.textContent = "已複製";
+            setTimeout(() => {
+              button.textContent = "複製";
+            }, 2000);
+          })
+          .catch((err) => {
+            console.error("複製失敗: ", err);
+          });
+      }
+
+      // 深淺色切換功能
+      function toggleTheme() {
+        const currentTheme =
+          document.documentElement.getAttribute("data-theme");
+        if (currentTheme === "dark") {
+          document.documentElement.setAttribute("data-theme", "light");
+          localStorage.setItem("theme", "light");
+        } else {
+          document.documentElement.setAttribute("data-theme", "dark");
+          localStorage.setItem("theme", "dark");
+        }
+      }
+
+      // 設定初始主題
+      document.addEventListener("DOMContentLoaded", () => {
+        const savedTheme = localStorage.getItem("theme") || "light";
+        document.documentElement.setAttribute("data-theme", savedTheme);
+      });
+    </script>
+  </body>
+</html>
