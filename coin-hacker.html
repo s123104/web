@@ -22,7 +22,7 @@
             padding: 0;
             color: var(--text-color);
             line-height: 1.6;
-            overflow: hidden; /* 防止背景動畫產生滾動條 */
+            overflow-x: hidden; /* 防止背景動畫產生水平滾動條 */
             position: relative;
         }
         /* 程式碼雨背景 */
@@ -87,7 +87,6 @@
             background-color: inherit;
             width: calc(50% - 40px);
             box-sizing: border-box;
-            opacity: 0; /* 初始隱藏，AOS 控制顯示 */
         }
         .event-left {
             left: 0;
@@ -126,8 +125,9 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            text-align: center;
-            line-height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             font-size: 18px;
             z-index: 2;
             top: 50%;
@@ -175,7 +175,7 @@
                 right: auto;
             }
             .event-left .event-icon, .event-right .event-icon {
-                left: 1px;
+                left: -60px;
                 right: auto;
                 top: 50%;
                 transform: translateY(-50%);
@@ -207,13 +207,55 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
     <script>
-        // 初始化 AOS
-        document.addEventListener('DOMContentLoaded', function() {
-            AOS.init({
-                duration: 1000,
-                once: true
-            });
+        // 程式碼雨動畫
+        const canvas = document.getElementById('codeRainCanvas');
+        const ctx = canvas.getContext('2d');
 
+        function setCanvasSize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        setCanvasSize();
+
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%^&*()*&^%+-/~{[|`]}';
+        const fontSize = 16;
+        let columns = Math.floor(canvas.width / fontSize);
+        const drops = [];
+        for (let x = 0; x < columns; x++) {
+            drops[x] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = characters.charAt(Math.floor(Math.random() * characters.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 33);
+
+        window.addEventListener('resize', () => {
+            setCanvasSize();
+            columns = Math.floor(canvas.width / fontSize);
+            drops.length = 0;
+            for (let x = 0; x < columns; x++) {
+                drops[x] = 1;
+            }
+        });
+
+        // 動態生成時間線事件
+        document.addEventListener('DOMContentLoaded', function() {
             const timelineData = {
               "events": [
                 {
@@ -307,18 +349,21 @@
                 eventDiv.classList.add(index % 2 === 0 ? 'event-left' : 'event-right');
                 eventDiv.setAttribute('data-aos', index % 2 === 0 ? 'fade-right' : 'fade-left');
 
-                const icon = document.createElement('i');
+                const icon = document.createElement('div');
+                icon.classList.add('event-icon');
+                const iconElement = document.createElement('i');
                 // 確認 icon 類別是否正確，若不存在則使用預設圖示
                 const validIcons = [
-                    "fa-bitcoin", "fa-shield-alt", "fa-exclamation-triangle", 
-                    "fa-bug", "fa-user-shield", "fa-lock", 
+                    "fa-bitcoin", "fa-shield-alt", "fa-exclamation-triangle",
+                    "fa-bug", "fa-user-shield", "fa-lock",
                     "fa-network-wired", "fa-shield-virus", "fa-user-lock", "fa-project-diagram"
                 ];
                 if (!validIcons.includes(event.icon)) {
-                    icon.classList.add('fas', 'fa-question-circle', 'event-icon');
+                    iconElement.classList.add('fas', 'fa-question-circle');
                 } else {
-                    icon.classList.add('fas', event.icon, 'event-icon');
+                    iconElement.classList.add('fas', event.icon);
                 }
+                icon.appendChild(iconElement);
                 eventDiv.appendChild(icon);
 
                 const content = document.createElement('div');
@@ -354,59 +399,11 @@
                 timeline.appendChild(eventDiv);
             });
 
-            // 刷新 AOS 以應用新添加的元素
-            AOS.refresh();
-        });
-
-        // 程式碼雨動畫
-        const canvas = document.getElementById('codeRainCanvas');
-        const ctx = canvas.getContext('2d');
-
-        // 設定畫布大小
-        function setCanvasSize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        setCanvasSize();
-
-        // 程式碼字符集
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%^&*()*&^%+-/~{[|`]}';
-        const fontSize = 16;
-        const columns = Math.floor(canvas.width / fontSize); // 每列的字符數
-        const drops = [];
-        for(let x = 0; x < columns; x++) {
-            drops[x] = 1;
-        }
-
-        function draw() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = '#00ff00'; // 綠色字符
-            ctx.font = fontSize + 'px monospace';
-
-            for(let i = 0; i < drops.length; i++) {
-                const text = characters.charAt(Math.floor(Math.random() * characters.length));
-                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-                if(drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                    drops[i] = 0;
-                }
-                drops[i]++;
-            }
-        }
-
-        setInterval(draw, 33); // 約30fps
-
-        // 重新調整畫布大小
-        window.addEventListener('resize', () => {
-            setCanvasSize();
-            // 重新計算列數
-            const newColumns = Math.floor(canvas.width / fontSize);
-            drops.length = 0;
-            for(let x = 0; x < newColumns; x++) {
-                drops[x] = 1;
-            }
+            // 在所有元素添加到 DOM 後再初始化 AOS
+            AOS.init({
+                duration: 1000,
+                once: true
+            });
         });
     </script>
 </body>
