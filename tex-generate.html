@@ -4,11 +4,16 @@
     <meta charset="UTF-8" />
     <title>TeX 檔案生成器</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- 引入 Google 字體 -->
+    <!-- 引入 Google 字體、Font Awesome 和 MathJax -->
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap"
       rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
       /* 全域樣式 */
       body {
@@ -22,11 +27,23 @@
       :root {
         --bg-color: #ffffff;
         --text-color: #000000;
-        --block-bg-color: #f5f5f5;
-        --block-border-color: #cccccc;
+        --block-bg-color: #f9f9f9;
+        --block-border-color: #dddddd;
         --button-bg-color: #007bff;
         --button-text-color: #ffffff;
         --button-hover-bg-color: #0056b3;
+        --input-border-color: #cccccc;
+        --input-focus-border-color: #007bff;
+        --shadow-color: rgba(0, 0, 0, 0.1);
+        --copy-button-bg-color: #007bff;
+        --copy-button-text-color: #ffffff;
+        --copy-button-hover-bg-color: #0056b3;
+        --tooltip-bg-color: #333333;
+        --tooltip-text-color: #ffffff;
+        --code-bg-color: #f5f5f5;
+        --code-border-color: #e0e0e0;
+        --toast-bg-color: rgba(0, 0, 0, 0.7);
+        --toast-text-color: #ffffff;
       }
       [data-theme="dark"] {
         --bg-color: #121212;
@@ -36,10 +53,22 @@
         --button-bg-color: #1a73e8;
         --button-text-color: #ffffff;
         --button-hover-bg-color: #185abc;
+        --input-border-color: #555555;
+        --input-focus-border-color: #1a73e8;
+        --shadow-color: rgba(255, 255, 255, 0.1);
+        --copy-button-bg-color: #1a73e8;
+        --copy-button-text-color: #ffffff;
+        --copy-button-hover-bg-color: #185abc;
+        --tooltip-bg-color: #ffffff;
+        --tooltip-text-color: #000000;
+        --code-bg-color: #2d2d2d;
+        --code-border-color: #444444;
+        --toast-bg-color: rgba(255, 255, 255, 0.9);
+        --toast-text-color: #000000;
       }
       /* 版面配置 */
       .container {
-        max-width: 800px;
+        max-width: 900px;
         margin: 0 auto;
         padding: 20px;
       }
@@ -47,6 +76,7 @@
       h1,
       h2 {
         text-align: center;
+        margin-bottom: 20px;
       }
       /* 按鈕樣式 */
       .btn {
@@ -54,15 +84,38 @@
         color: var(--button-text-color);
         border: none;
         padding: 10px 15px;
-        margin: 5px 5px 5px 0;
+        margin: 5px 0;
         cursor: pointer;
         border-radius: 5px;
         font-size: 16px;
         transition: background-color 0.3s;
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
       .btn:hover {
         background-color: var(--button-hover-bg-color);
+      }
+      /* 輸入框樣式 */
+      input[type="text"],
+      textarea,
+      select {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid var(--input-border-color);
+        border-radius: 5px;
+        background-color: var(--block-bg-color);
+        color: var(--text-color);
+        transition: border-color 0.3s;
+        font-size: 16px;
+      }
+      input[type="text"]:focus,
+      textarea:focus,
+      select:focus {
+        border-color: var(--input-focus-border-color);
+        outline: none;
       }
       /* 區塊樣式 */
       .block {
@@ -71,48 +124,150 @@
         padding: 15px;
         margin-bottom: 20px;
         border-radius: 5px;
+        box-shadow: 0 4px 6px var(--shadow-color);
+        position: relative;
+        transition: box-shadow 0.3s;
       }
-      .block label {
+      .block:hover {
+        box-shadow: 0 6px 10px var(--shadow-color);
+      }
+      .block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: move; /* 表示可拖動 */
+      }
+      .block-header label {
         font-weight: bold;
-        display: block;
-        margin-bottom: 5px;
+        margin: 0;
       }
-      .block select,
       .block textarea {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 8px;
-        margin-bottom: 10px;
-        border: 1px solid var(--block-border-color);
-        border-radius: 5px;
-        background-color: var(--bg-color);
+        height: auto;
+        min-height: 100px;
+        overflow: hidden;
+      }
+      .math-preview {
+        border-top: 1px solid var(--block-border-color);
+        padding-top: 10px;
+        margin-top: 10px;
         color: var(--text-color);
+        white-space: pre-wrap; /* 保留換行 */
+        line-height: 1.6; /* 增加行距 */
       }
-      .block textarea {
-        height: 100px;
-        resize: vertical;
+      /* 移除區塊按鈕 */
+      .remove-block {
+        background: transparent;
+        border: none;
+        color: var(--text-color);
+        font-size: 20px;
+        cursor: pointer;
+        padding: 5px;
+        transition: color 0.3s;
+      }
+      .remove-block:hover {
+        color: var(--button-hover-bg-color);
+      }
+      /* 複製按鈕 */
+      .copy-button-container {
+        position: relative;
+      }
+      #copy-tex {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: var(--copy-button-bg-color);
+        border: none;
+        color: var(--copy-button-text-color);
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        border-radius: 5px;
+        transition: background-color 0.3s, transform 0.2s;
+        z-index: 10;
+      }
+      #copy-tex:hover {
+        background-color: var(--copy-button-hover-bg-color);
+        transform: scale(1.05);
+      }
+      #copy-tex .copy-icon {
+        margin-right: 5px;
+      }
+      /* 懸浮工具提示 */
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: max-content;
+        background-color: var(--tooltip-bg-color);
+        color: var(--tooltip-text-color);
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%; /* 上方 */
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.3s;
+        white-space: pre-wrap;
+      }
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
       }
       /* 切換模式按鈕 */
       #toggle-theme {
-        float: right;
+        position: absolute;
+        top: 20px;
+        right: 20px;
         background-color: transparent;
         color: var(--text-color);
         border: none;
         cursor: pointer;
         font-size: 24px;
-        margin-top: -50px;
+        transition: color 0.3s;
+      }
+      #toggle-theme:hover {
+        color: var(--button-hover-bg-color);
       }
       /* 生成的 TeX 內容 */
-      #tex-output {
-        width: 100%;
-        height: 300px;
-        padding: 10px;
-        box-sizing: border-box;
-        border: 1px solid var(--block-border-color);
+      #tex-output-container {
+        position: relative;
+        margin-bottom: 20px;
+      }
+      #tex-output-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+      #tex-filename {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid var(--input-border-color);
         border-radius: 5px;
         background-color: var(--block-bg-color);
         color: var(--text-color);
-        resize: vertical;
+        font-size: 16px;
+      }
+      /* 程式碼區塊樣式 */
+      pre {
+        background-color: var(--code-bg-color);
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid var(--code-border-color);
+        overflow-x: auto;
+        font-size: 14px;
+        position: relative;
+      }
+      code {
+        font-family: Consolas, "Courier New", monospace;
+        white-space: pre;
+        color: var(--text-color);
       }
       /* 解釋區塊樣式 */
       #explanation {
@@ -121,21 +276,116 @@
         padding: 15px;
         border-radius: 5px;
         margin-bottom: 20px;
+        box-shadow: 0 4px 6px var(--shadow-color);
       }
       #explanation h3 {
         margin-top: 0;
       }
+      /* 元資料樣式 */
+      #metadata {
+        background-color: var(--block-bg-color);
+        border: 1px solid var(--block-border-color);
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px var(--shadow-color);
+      }
+      #metadata label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+      }
+      /* 新增區塊按鈕 */
+      #add-block {
+        background-color: #28a745;
+        color: #ffffff;
+        border: none;
+        padding: 12px 0;
+        cursor: pointer;
+        border-radius: 5px;
+        font-size: 16px;
+        transition: background-color 0.3s;
+        width: 100%;
+        margin-bottom: 20px;
+      }
+      #add-block:hover {
+        background-color: #218838;
+      }
+      /* 下載按鈕樣式 */
+      #download-tex {
+        background-color: #17a2b8;
+        color: #ffffff;
+        border: none;
+        padding: 12px;
+        cursor: pointer;
+        border-radius: 5px;
+        font-size: 16px;
+        transition: background-color 0.3s;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #download-tex:hover {
+        background-color: #117a8b;
+      }
       /* 響應式設計 */
       @media screen and (max-width: 600px) {
-        .btn {
-          width: 100%;
-          margin-bottom: 10px;
-        }
         #toggle-theme {
-          float: none;
+          position: static;
           display: block;
           text-align: right;
-          margin-top: -30px;
+          margin-bottom: 10px;
+        }
+        #copy-tex {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          /* Ensure it's above other elements */
+          z-index: 10;
+        }
+        #tex-filename {
+          font-size: 14px;
+        }
+      }
+      /* Toast 應用樣式 */
+      #toast {
+        visibility: hidden;
+        min-width: 250px;
+        background-color: var(--toast-bg-color);
+        color: var(--toast-text-color);
+        text-align: center;
+        border-radius: 5px;
+        padding: 16px;
+        position: fixed;
+        z-index: 100;
+        left: 50%;
+        bottom: 30px;
+        transform: translateX(-50%);
+        font-size: 17px;
+      }
+      #toast.show {
+        visibility: visible;
+        animation: fadein 0.5s, fadeout 0.5s 2.5s;
+      }
+      @keyframes fadein {
+        from {
+          bottom: 0;
+          opacity: 0;
+        }
+        to {
+          bottom: 30px;
+          opacity: 1;
+        }
+      }
+      @keyframes fadeout {
+        from {
+          bottom: 30px;
+          opacity: 1;
+        }
+        to {
+          bottom: 0;
+          opacity: 0;
         }
       }
     </style>
@@ -143,7 +393,10 @@
   <body>
     <div class="container">
       <h1>TeX 檔案生成器</h1>
-      <button id="toggle-theme">🌙</button>
+      <button id="toggle-theme" class="tooltip" aria-label="切換深淺模式">
+        <i class="fas fa-moon"></i>
+        <span class="tooltiptext">切換深淺模式</span>
+      </button>
 
       <!-- 解釋區塊 -->
       <div id="explanation">
@@ -157,12 +410,12 @@
           <code>\\begin{Answer}</code> 和 <code>\\end{Answer}</code> 環境中。
         </p>
         <p>
-          <strong>節 (Section)：</strong> 用於建立新的章節，對應到
-          <code>\\section{...}</code>。
+          <strong>節 (Section)：</strong> 用於建立新的章節，請輸入類似
+          <code>2. 二次導數測試</code> 的格式。
         </p>
         <p>
-          <strong>小節 (Subsection)：</strong> 用於建立新的小節，對應到
-          <code>\\subsection{...}</code>。
+          <strong>小節 (Subsection)：</strong> 用於建立新的小節，請輸入類似
+          <code>2.1 小節標題</code> 的格式。
         </p>
         <p>
           <strong>其他 (Other)：</strong>
@@ -171,20 +424,97 @@
         </p>
       </div>
 
+      <!-- 元資料區塊 -->
+      <div id="metadata">
+        <h3>文件元資料</h3>
+        <label for="title">標題 (Title)：</label>
+        <input type="text" id="title" placeholder="例如：線性代數習題解答" />
+        <label for="author">作者 (Author)：</label>
+        <input type="text" id="author" placeholder="例如：林小明" />
+        <label for="email">電子郵件 (Email)：</label>
+        <input
+          type="text"
+          id="email"
+          placeholder="例如：linxiaoming@example.com"
+        />
+        <label for="affiliation">單位 (Affiliation)：</label>
+        <input
+          type="text"
+          id="affiliation"
+          value="東海數學系"
+          placeholder="例如：東海數學系"
+        />
+        <label for="date">日期 (Date)：</label>
+        <input
+          type="text"
+          id="date"
+          value="\\today"
+          placeholder="例如：2024年4月27日 或 \\today"
+        />
+      </div>
+
+      <!-- 區塊列表 -->
       <div id="blocks">
         <!-- 區塊將被添加到這裡 -->
       </div>
 
-      <button id="add-block" class="btn">➕ 新增區塊</button>
-      <button id="generate-tex" class="btn">📄 生成 TeX 檔案</button>
-      <button id="download-tex" class="btn">💾 下載 TeX 檔案</button>
+      <!-- 新增區塊按鈕 -->
+      <button id="add-block" class="btn tooltip" aria-label="新增區塊">
+        ➕ 新增區塊
+        <span class="tooltiptext">點擊新增一個新的區塊</span>
+      </button>
 
+      <!-- 生成的 TeX 內容 -->
       <h2>生成的 TeX 內容：</h2>
-      <textarea id="tex-output" readonly></textarea>
+      <div id="tex-output-container">
+        <!-- 標頭欄位 -->
+        <div id="tex-output-header">
+          <input type="text" id="tex-filename" placeholder="例如：題目.tex" />
+        </div>
+        <!-- 程式碼區塊 -->
+        <div class="copy-button-container">
+          <pre><code id="tex-output" class="language-tex" readonly></code></pre>
+          <!-- 複製按鈕 -->
+          <button id="copy-tex" class="tooltip" aria-label="複製 TeX 內容">
+            <i class="fas fa-copy copy-icon"></i>
+            <span class="copy-text">複製</span>
+            <span class="tooltiptext">將 TeX 內容複製到剪貼簿</span>
+          </button>
+        </div>
+      </div>
+      <!-- 下載 TeX 檔案按鈕 -->
+      <button id="download-tex" class="btn tooltip" aria-label="下載 TeX 檔案">
+        💾 下載 TeX 檔案
+        <span class="tooltiptext">將生成的 TeX 內容下載為 TeX 檔案</span>
+      </button>
     </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast">已複製到剪貼簿</div>
 
     <script>
       let blockCount = 0;
+      let draggedBlock = null;
+      let placeholderExamples = {
+        Example: "請輸入題目，例如：\n\n求微分方程 \\( y' = y \\) 的通解。",
+        Answer:
+          "請輸入解答，例如：\n\n通解為 \\( y = Ce^{x} \\)，其中 \\( C \\) 為任意常數。",
+        Section: "請輸入章節標題，例如：2. 二次導數測試",
+        Subsection: "請輸入小節標題，例如：2.1 小節標題",
+        Other: "請輸入其他內容，您可以輸入任何 LaTeX 代碼。",
+      };
+
+      // Function to escape TeX special characters
+      function escapeTeX(str) {
+        return str.replace(/([#\$%&_\{\}~^\\])/g, "\\$1");
+      }
+
+      // Function to sanitize input (basic)
+      function sanitizeInput(str) {
+        const temp = document.createElement("div");
+        temp.textContent = str;
+        return temp.innerHTML;
+      }
 
       function addBlock() {
         blockCount++;
@@ -193,38 +523,174 @@
         blockDiv.className = "block";
         blockDiv.id = "block-" + blockCount;
 
+        // 標題列
+        const topRow = document.createElement("div");
+        topRow.className = "block-header";
+        topRow.setAttribute("draggable", true);
+
+        // 標籤
         const label = document.createElement("label");
         label.textContent = "區塊 " + blockCount + ":";
 
-        const select = document.createElement("select");
-        select.innerHTML =
-          '<option value="Example">題目 (Example)</option><option value="Answer">解答 (Answer)</option><option value="Section">節 (Section)</option><option value="Subsection">小節 (Subsection)</option><option value="Other">其他 (Other)</option>';
-
-        const textarea = document.createElement("textarea");
-        textarea.placeholder = "在此輸入內容...";
-
-        const buttonContainer = document.createElement("div");
-
+        // 移除區塊按鈕
         const removeButton = document.createElement("button");
-        removeButton.textContent = "🗑️ 移除區塊";
-        removeButton.className = "btn";
+        removeButton.className = "remove-block tooltip";
+        removeButton.setAttribute("aria-label", "移除區塊");
+        removeButton.innerHTML = "✖";
+        const removeTooltip = document.createElement("span");
+        removeTooltip.className = "tooltiptext";
+        removeTooltip.innerText = "移除此區塊";
+        removeButton.appendChild(removeTooltip);
         removeButton.onclick = function () {
           document.getElementById("blocks").removeChild(blockDiv);
+          updateBlockLabels();
+          updateTeX();
         };
 
-        buttonContainer.appendChild(removeButton);
+        // 組裝標題列
+        topRow.appendChild(label);
+        topRow.appendChild(removeButton);
 
-        blockDiv.appendChild(label);
+        // 選擇框
+        const select = document.createElement("select");
+        select.innerHTML = `
+                  <option value="Example">題目 (Example)</option>
+                  <option value="Answer">解答 (Answer)</option>
+                  <option value="Section">節 (Section)</option>
+                  <option value="Subsection">小節 (Subsection)</option>
+                  <option value="Other">其他 (Other)</option>
+              `;
+        select.onchange = function () {
+          const currentValue = select.value;
+          textarea.readOnly = false;
+          if (currentValue === "Section") {
+            textarea.placeholder = "例如：2. 二次導數測試";
+          } else if (currentValue === "Subsection") {
+            textarea.placeholder = "例如：2.1 小節標題";
+          } else {
+            textarea.placeholder = placeholderExamples[currentValue];
+          }
+          updateTeX();
+          updateMathPreview(textarea.value, mathPreview);
+        };
+
+        // 文字輸入框
+        const textarea = document.createElement("textarea");
+        textarea.placeholder = placeholderExamples[select.value];
+        textarea.addEventListener("input", autoResize, false);
+
+        // 數學預覽區
+        const mathPreview = document.createElement("div");
+        mathPreview.className = "math-preview";
+
+        // 內容輸入時更新 TeX 和數學預覽
+        textarea.addEventListener("input", function () {
+          updateTeX();
+          updateMathPreview(textarea.value, mathPreview);
+        });
+
+        // 組裝區塊
+        blockDiv.appendChild(topRow);
         blockDiv.appendChild(select);
         blockDiv.appendChild(textarea);
-        blockDiv.appendChild(buttonContainer);
+        blockDiv.appendChild(mathPreview);
 
+        // 加入拖放事件到 topRow
+        topRow.addEventListener("dragstart", function (e) {
+          draggedBlock = blockDiv;
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", blockDiv.id);
+        });
+
+        blockDiv.addEventListener("dragover", function (e) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          blockDiv.style.boxShadow = "0 0 10px var(--button-bg-color)";
+        });
+
+        blockDiv.addEventListener("dragleave", function (e) {
+          blockDiv.style.boxShadow = "none";
+        });
+
+        blockDiv.addEventListener("drop", function (e) {
+          e.preventDefault();
+          blockDiv.style.boxShadow = "none";
+
+          const draggedId = e.dataTransfer.getData("text/plain");
+          const draggedBlock = document.getElementById(draggedId);
+
+          if (draggedBlock && draggedBlock !== blockDiv) {
+            const blocksContainer = document.getElementById("blocks");
+            blocksContainer.insertBefore(draggedBlock, blockDiv);
+            updateBlockLabels();
+            updateTeX();
+          }
+
+          draggedBlock = null;
+        });
+
+        // 添加到區塊容器
         document.getElementById("blocks").appendChild(blockDiv);
+
+        updateBlockLabels();
+        updateTeX();
       }
 
-      document.getElementById("add-block").onclick = addBlock;
+      function getSectionNumber() {
+        const sections = document.querySelectorAll("select");
+        let count = 0;
+        sections.forEach((sel) => {
+          if (sel.value === "Section") count++;
+        });
+        return count;
+      }
 
-      function generateTeX() {
+      function getSubsectionNumber() {
+        const subsections = document.querySelectorAll("select");
+        let count = 0;
+        subsections.forEach((sel) => {
+          if (sel.value === "Subsection") count++;
+        });
+        return count;
+      }
+
+      function updateBlockLabels() {
+        const blocks = document.getElementById("blocks").children;
+        blockCount = blocks.length;
+        for (let i = 0; i < blocks.length; i++) {
+          const label = blocks[i].querySelector(".block-header label");
+          label.textContent = "區塊 " + (i + 1) + ":";
+
+          const select = blocks[i].getElementsByTagName("select")[0];
+          const textarea = blocks[i].getElementsByTagName("textarea")[0];
+
+          textarea.readOnly = false;
+          if (select.value === "Section") {
+            textarea.placeholder = "例如：2. 二次導數測試";
+          } else if (select.value === "Subsection") {
+            textarea.placeholder = "例如：2.1 小節標題";
+          } else {
+            textarea.placeholder = placeholderExamples[select.value];
+          }
+        }
+      }
+
+      function updateTeX() {
+        // 取得檔名
+        let texFilename = document.getElementById("tex-filename").value.trim();
+        if (!isFilenameManuallyEdited) {
+          texFilename =
+            document.getElementById("title").value.trim() !== ""
+              ? document.getElementById("title").value.trim()
+              : "output";
+          document.getElementById("tex-filename").value = texFilename;
+        }
+
+        // 確保檔名以 .tex 結尾
+        if (!texFilename.toLowerCase().endsWith(".tex")) {
+          texFilename += ".tex";
+        }
+
         // TeX 模板的開頭
         let texContent = `% !Mode:: "TeX:UTF-8"
 \\documentclass[12pt]{article}
@@ -276,11 +742,15 @@
 \\newcolumntype{a}{>{\\columncolor{Gray}}c}
 \\newcolumntype{b}{>{\\columncolor{white}}c}
 
-\\title{微積分解答}
-\\author{陳宏銘\\\\
-    東海數學系.\\\\
+\\title{${escapeTeX(document.getElementById("title").value.trim())}}
+\\author{${escapeTeX(
+          document.getElementById("author").value.trim()
+        )}\\footnote{${escapeTeX(
+          document.getElementById("email").value.trim()
+        )}}\\\\
+    ${escapeTeX(document.getElementById("affiliation").value.trim())}\\\\
 }
-\\date{\\today}
+\\date{${escapeTeX(document.getElementById("date").value.trim())}}
 
 \\renewcommand{\\theExercise}{\\arabic{Exercise}}
 \\renewcommand{\\AnswerHeader}{\\medskip\\noindent\\textcolor{red}{\\textbf{SOLUTION}}\\;}
@@ -305,10 +775,10 @@
           const textarea = blocks[i].getElementsByTagName("textarea")[0];
 
           const blockType = select.value;
-          const content = textarea.value;
+          const content = sanitizeInput(textarea.value.trim());
 
           // 處理特殊字符
-          const escapedContent = content.replace(/%/g, "\\%");
+          const escapedContent = escapeTeX(content);
 
           if (blockType === "Example") {
             texContent += `
@@ -324,11 +794,11 @@ ${escapedContent}
 `;
           } else if (blockType === "Section") {
             texContent += `
-\\section{${escapedContent}}
+\\section*{${escapedContent}}
 `;
           } else if (blockType === "Subsection") {
             texContent += `
-\\subsection{${escapedContent}}
+\\subsection*{${escapedContent}}
 `;
           } else {
             // 其他自定義內容
@@ -345,39 +815,160 @@ ${escapedContent}
 `;
 
         // 顯示生成的 TeX 內容
-        document.getElementById("tex-output").value = texContent;
+        document.getElementById("tex-output").textContent = texContent;
       }
 
-      document.getElementById("generate-tex").onclick = generateTeX;
+      function updateMathPreview(content, previewElement) {
+        // 使用正則表達式過濾出數學式，並使用 MathJax 渲染
+        const mathRegex =
+          /\$[^$]+\$|\\\[([\\\s\S]+?)\\\]|\\\(([\\\s\S]+?)\\\)/g;
+        let matches = content.match(mathRegex);
 
+        // 轉義 HTML 特殊字符
+        content = content.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+        // 保留換行符號
+        content = content.replace(/\n/g, "<br>");
+
+        // 將數學式替換為渲染用的 span
+        let renderedContent = content.replace(mathRegex, function (match) {
+          return `<span class="math-inline">${match}</span>`;
+        });
+
+        // 將渲染內容設置到預覽區域
+        previewElement.innerHTML = renderedContent;
+        MathJax.typesetPromise([previewElement]);
+      }
+
+      // 自動調整 textarea 高度
+      function autoResize() {
+        this.style.height = "auto";
+        this.style.height = this.scrollHeight + "px";
+      }
+
+      // 顯示 Toast 通知
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.className = "show";
+        setTimeout(() => {
+          toast.className = toast.className.replace("show", "");
+        }, 3000);
+      }
+
+      // 當元資料變化時，更新 TeX
+      const metadataInputs = document.querySelectorAll("#metadata input");
+      let isFilenameManuallyEdited = false;
+
+      document
+        .getElementById("tex-filename")
+        .addEventListener("input", function () {
+          isFilenameManuallyEdited = true;
+        });
+
+      metadataInputs.forEach((input) => {
+        input.addEventListener("input", function () {
+          if (!isFilenameManuallyEdited) {
+            let titleValue = document.getElementById("title").value.trim();
+            let filename = titleValue !== "" ? titleValue : "output";
+            document.getElementById("tex-filename").value = filename;
+          }
+          updateTeX();
+        });
+      });
+
+      // 新增區塊按鈕
+      document
+        .getElementById("add-block")
+        .addEventListener("click", function () {
+          addBlock();
+        });
+
+      // 初始新增一個區塊
+      addBlock();
+
+      // 實時更新 TeX 內容
+      document.getElementById("blocks").addEventListener("input", updateTeX);
+
+      // 複製 TeX 內容
+      document
+        .getElementById("copy-tex")
+        .addEventListener("click", function () {
+          const texContent = document.getElementById("tex-output").textContent;
+          navigator.clipboard.writeText(texContent).then(
+            function () {
+              showToast("TeX 內容已複製到剪貼簿");
+            },
+            function (err) {
+              showToast("複製失敗，請手動複製");
+            }
+          );
+        });
+
+      // 下載 TeX 檔案
       function downloadTeX() {
-        generateTeX(); // 確保內容是最新的
-        const texContent = document.getElementById("tex-output").value;
+        updateTeX(); // 確保內容是最新的
+        const texContent = document.getElementById("tex-output").textContent;
+        let filename = document.getElementById("tex-filename").value.trim();
+        if (!filename.toLowerCase().endsWith(".tex")) {
+          filename += ".tex";
+        }
         const blob = new Blob([texContent], {
           type: "text/plain;charset=utf-8",
         });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = "output.tex";
+        link.download = filename;
         link.click();
       }
 
-      document.getElementById("download-tex").onclick = downloadTeX;
-
-      // 預設新增一個區塊
-      addBlock();
+      document
+        .getElementById("download-tex")
+        .addEventListener("click", downloadTeX);
 
       // 切換深淺模式
       const toggleThemeButton = document.getElementById("toggle-theme");
-      toggleThemeButton.onclick = function () {
+      toggleThemeButton.addEventListener("click", function () {
         if (document.documentElement.getAttribute("data-theme") === "dark") {
           document.documentElement.removeAttribute("data-theme");
-          toggleThemeButton.textContent = "🌙";
+          toggleThemeButton.innerHTML = '<i class="fas fa-moon"></i>';
         } else {
           document.documentElement.setAttribute("data-theme", "dark");
-          toggleThemeButton.textContent = "☀️";
+          toggleThemeButton.innerHTML = '<i class="fas fa-sun"></i>';
         }
-      };
+      });
+
+      // 自動根據系統設定切換深淺模式
+      const prefersDarkScheme = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      );
+
+      function applyTheme(e) {
+        if (e.matches) {
+          document.documentElement.setAttribute("data-theme", "dark");
+          toggleThemeButton.innerHTML = '<i class="fas fa-sun"></i>';
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+          toggleThemeButton.innerHTML = '<i class="fas fa-moon"></i>';
+        }
+      }
+
+      prefersDarkScheme.addEventListener("change", applyTheme);
+
+      // 初始應用主題
+      applyTheme(prefersDarkScheme);
+
+      // Escape TeX special characters
+      function escapeTeX(str) {
+        return str.replace(/([#\$%&_\{\}~^\\])/g, "\\$1");
+      }
+
+      // Sanitize input to prevent XSS
+      function sanitizeInput(str) {
+        const temp = document.createElement("div");
+        temp.textContent = str;
+        return temp.innerHTML;
+      }
     </script>
   </body>
 </html>
