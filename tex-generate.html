@@ -153,6 +153,11 @@
         color: var(--text-color);
         white-space: pre-wrap; /* 保留換行 */
         line-height: 1.6; /* 增加行距 */
+        font-size: 16px; /* 調整字體大小 */
+      }
+      /* 調整 MathJax 渲染的字體 */
+      .mjx-chtml {
+        font-size: 1em !important;
       }
       /* 移除區塊按鈕 */
       .remove-block {
@@ -554,12 +559,12 @@
         // 選擇框
         const select = document.createElement("select");
         select.innerHTML = `
-                  <option value="Example">題目 (Example)</option>
-                  <option value="Answer">解答 (Answer)</option>
-                  <option value="Section">節 (Section)</option>
-                  <option value="Subsection">小節 (Subsection)</option>
-                  <option value="Other">其他 (Other)</option>
-              `;
+                    <option value="Example">題目 (Example)</option>
+                    <option value="Answer">解答 (Answer)</option>
+                    <option value="Section">節 (Section)</option>
+                    <option value="Subsection">小節 (Subsection)</option>
+                    <option value="Other">其他 (Other)</option>
+                `;
         select.onchange = function () {
           const currentValue = select.value;
           textarea.readOnly = false;
@@ -636,24 +641,6 @@
         updateTeX();
       }
 
-      function getSectionNumber() {
-        const sections = document.querySelectorAll("select");
-        let count = 0;
-        sections.forEach((sel) => {
-          if (sel.value === "Section") count++;
-        });
-        return count;
-      }
-
-      function getSubsectionNumber() {
-        const subsections = document.querySelectorAll("select");
-        let count = 0;
-        subsections.forEach((sel) => {
-          if (sel.value === "Subsection") count++;
-        });
-        return count;
-      }
-
       function updateBlockLabels() {
         const blocks = document.getElementById("blocks").children;
         blockCount = blocks.length;
@@ -691,7 +678,7 @@
           texFilename += ".tex";
         }
 
-        // TeX 模板的開頭
+        // TeX 模板的開頭（使用您提供的模板）
         let texContent = `% !Mode:: "TeX:UTF-8"
 \\documentclass[12pt]{article}
 \\usepackage{amsmath}%數學符號1
@@ -717,15 +704,18 @@
 \\usepackage{dcolumn}%讓表格小數點對齊
 \\usepackage{caption}
 
+%\\usepackage[table]{xcolor}
+
 \\newcommand{\\gfcb}[1]{%
-    \\fcolorbox{white}{gray!10!}{\\quad\\strut #1\\quad}
+	\\fcolorbox{white}{gray!10!}{\\quad\\strut #1\\quad}
 } % gfcb := gray fcolorbox
 \\newcommand{\\cop}[1]{%
-    \\gfcb{\\texttt{\\detokenize{#1}}} 
-    \\ensuremath{\\quad\\longrightarrow\\quad #1}
+	\\gfcb{\\texttt{\\detokenize{#1}}} 
+	\\ensuremath{\\quad\\longrightarrow\\quad #1}
 } % cop := code output
 
 \\tcbset{arc=0mm,boxrule=1pt,colback=white,colframe=cyan,leftrule=3mm}
+%\\usetikzlibrary{decorations.pathreplacing}
 \\usepackage{float}
 \\newtheorem{example}{Example}[subsection]
 \\newtheorem{defin}{Definition}
@@ -733,6 +723,8 @@
 \\renewcommand{\\figurename}{圖}
 \\renewcommand{\\tablename}{表}
 \\renewcommand\\refname{參考文獻}
+%\\linespread{1.5}
+%\\setcounter{section}{12}
 \\renewcommand{\\abstractname}{摘要}
 \\definecolor{bisque}{rgb}{.996,.891,.755}
 \\definecolor{mypink}{cmyk}{.1,.8,.4,.1}  % cmyk 模型的例子 
@@ -741,15 +733,20 @@
 
 \\newcolumntype{a}{>{\\columncolor{Gray}}c}
 \\newcolumntype{b}{>{\\columncolor{white}}c}
+%=============================================================================
 
-\\title{${escapeTeX(document.getElementById("title").value.trim())}}
+\\title{${escapeTeX(document.getElementById("title").value.trim())}}%{}
+
 \\author{${escapeTeX(
           document.getElementById("author").value.trim()
         )}\\footnote{${escapeTeX(
           document.getElementById("email").value.trim()
         )}}\\\\
-    ${escapeTeX(document.getElementById("affiliation").value.trim())}\\\\
+	${escapeTeX(document.getElementById("affiliation").value.trim())}.\\\\
+	%, 姓名\\footnote{連絡資訊與研究單位}
+	%研究單位.\\\\
 }
+
 \\date{${escapeTeX(document.getElementById("date").value.trim())}}
 
 \\renewcommand{\\theExercise}{\\arabic{Exercise}}
@@ -761,11 +758,12 @@
 \\newcommand\\independent{\\protect\\mathpalette{\\protect\\independenT}{\\perp}}
 \\def\\independenT#1#2{\\mathrel{\\rlap{$#1#2$}\\mkern2mu{#1#2}}}
 \\begin{document}
-    \\begin{CJK}{UTF8}{bsmi}
-        
-        \\maketitle
-
-        \\setstretch{1.5}
+	\\begin{CJK}{UTF8}{bsmi}
+		
+		\\maketitle
+		
+		
+		\\setstretch{1.5}
 `;
 
         // 取得所有區塊
@@ -775,13 +773,17 @@
           const textarea = blocks[i].getElementsByTagName("textarea")[0];
 
           const blockType = select.value;
-          const content = sanitizeInput(textarea.value.trim());
+          const content = textarea.value.trim();
 
           // 處理特殊字符
           const escapedContent = escapeTeX(content);
 
+          // 添加每個區塊的 TeX 內容
           if (blockType === "Example") {
             texContent += `
+%=============第 ${
+              i + 1
+            } 題 =====================================================
 \\begin{Example}
 ${escapedContent}
 \\end{Example}
@@ -810,8 +812,8 @@ ${escapedContent}
 
         // TeX 模板的結尾
         texContent += `
-    \\end{CJK}
-\\end{document}
+	\\end{CJK}
+\\end{document} 
 `;
 
         // 顯示生成的 TeX 內容
@@ -822,16 +824,15 @@ ${escapedContent}
         // 使用正則表達式過濾出數學式，並使用 MathJax 渲染
         const mathRegex =
           /\$[^$]+\$|\\\[([\\\s\S]+?)\\\]|\\\(([\\\s\S]+?)\\\)/g;
-        let matches = content.match(mathRegex);
 
         // 轉義 HTML 特殊字符
-        content = content.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+        let safeContent = content.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
         // 保留換行符號
-        content = content.replace(/\n/g, "<br>");
+        safeContent = safeContent.replace(/\n/g, "<br>");
 
         // 將數學式替換為渲染用的 span
-        let renderedContent = content.replace(mathRegex, function (match) {
+        let renderedContent = safeContent.replace(mathRegex, function (match) {
           return `<span class="math-inline">${match}</span>`;
         });
 
