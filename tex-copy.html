@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LaTeX 符號複製工具</title>
+    <!-- 引入 FontAwesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- 引入 MathJax -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+      async
+    ></script>
+    <style>
+      :root {
+        --bg-color: #ffffff;
+        --text-color: #333333;
+        --card-bg-color: #f7f7f7;
+        --card-hover-bg-color: #eaeaea;
+        --header-color: #007bff;
+        --toast-bg-color: rgba(0, 123, 255, 0.9);
+        /* 移除全局 h2 背景色變數 */
+      }
+
+      [data-theme="dark"] {
+        --bg-color: #1a1a1a;
+        --text-color: #e0e0e0;
+        --card-bg-color: #2a2a2a;
+        --card-hover-bg-color: #3a3a3a;
+        --header-color: #4da3ff;
+        --toast-bg-color: rgba(77, 163, 255, 0.9);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        line-height: 1.6;
+        transition: background-color 0.3s, color 0.3s;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        color: var(--header-color);
+        margin-bottom: 30px;
+        font-size: 2.5rem;
+      }
+
+      .search-box {
+        max-width: 600px;
+        margin: 0 auto 30px auto;
+        position: relative;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 15px 50px 15px 20px;
+        font-size: 1.2em;
+        border: 1px solid var(--card-bg-color);
+        border-radius: 25px;
+        background-color: var(--card-bg-color);
+        color: var(--text-color);
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      .search-box input::placeholder {
+        color: var(--text-color);
+        opacity: 0.7;
+      }
+
+      .search-box i {
+        position: absolute;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        color: var(--text-color);
+        font-size: 1.5em;
+        opacity: 0.7;
+      }
+
+      .category {
+        margin-bottom: 40px;
+      }
+
+      .category h2 {
+        padding: 10px 15px;
+        border-radius: 5px;
+        /* 背景色將由 JavaScript 動態設置 */
+        color: #ffffff;
+        margin-bottom: 20px;
+        display: inline-block;
+        font-size: 1.5rem;
+      }
+
+      .symbol-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+      }
+
+      .symbol-item {
+        background-color: var(--card-bg-color);
+        border-radius: 10px;
+        padding: 15px;
+        cursor: pointer;
+        transition: transform 0.3s, background-color 0.3s, box-shadow 0.3s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center; /* 垂直居中 */
+        min-height: 150px;
+        text-align: center;
+        position: relative;
+      }
+
+      .symbol-item:hover {
+        transform: translateY(-5px);
+        background-color: var(--card-hover-bg-color);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .symbol-item .rendered-math {
+        font-size: 1em; /* 減小符號大小 */
+        color: var(--text-color);
+
+        padding: 10px 10px;
+        margin-bottom: 10px;
+        flex: none;
+        height: 10em;
+        max-width: 100%;
+        word-wrap: break-word;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .symbol-item .description {
+        font-size: 1em;
+        color: var(--text-color);
+        flex-grow: 1;
+        text-align: center;
+      }
+
+      .toast {
+        visibility: hidden;
+        min-width: 250px;
+        margin-left: -125px;
+        background-color: var(--toast-bg-color);
+        color: #fff;
+        text-align: center;
+        border-radius: 25px;
+        padding: 16px;
+        position: fixed;
+        z-index: 1000;
+        left: 50%;
+        bottom: 30px;
+        font-size: 17px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        transition: opacity 0.5s;
+      }
+
+      .toast.show {
+        visibility: visible;
+        opacity: 1;
+        animation: fadeout 3s forwards;
+      }
+
+      @keyframes fadeout {
+        0% {
+          opacity: 1;
+        }
+        80% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      .theme-switch {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1001;
+      }
+
+      .theme-switch input {
+        display: none;
+      }
+
+      .theme-switch label {
+        cursor: pointer;
+        padding: 10px;
+        background-color: var(--card-bg-color);
+        border-radius: 50%;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: background-color 0.3s;
+      }
+
+      .theme-switch label:hover {
+        background-color: var(--card-hover-bg-color);
+      }
+
+      .theme-switch i {
+        color: var(--text-color);
+        font-size: 1.5em;
+        transition: color 0.3s;
+      }
+
+      @media (max-width: 768px) {
+        .symbol-container {
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+
+        .symbol-item {
+          min-height: 120px;
+          padding: 10px;
+        }
+
+        .symbol-item .rendered-math {
+          font-size: 0.8em; /* 進一步減小符號大小 */
+          margin-bottom: 8px;
+        }
+
+        .symbol-item .description {
+          font-size: 0.9em;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        .category h2 {
+          font-size: 1.2rem;
+        }
+      }
+
+      footer {
+        text-align: center;
+        margin-top: 40px;
+        padding: 20px;
+        background-color: var(--card-bg-color);
+        border-radius: 10px;
+      }
+
+      footer a {
+        color: var(--header-color);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+      }
+
+      .explanation {
+        margin-top: 40px;
+        padding: 20px;
+        background-color: var(--card-bg-color);
+        border-radius: 10px;
+      }
+
+      .explanation h3 {
+        margin-bottom: 10px;
+        color: var(--header-color);
+      }
+
+      .explanation hr {
+        border: none;
+        border-top: 2px solid var(--header-color);
+        margin: 10px 0 20px 0;
+      }
+
+      .explanation-content {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .explanation-content .rendered-math {
+        font-size: 1.5em; /* 減小符號大小 */
+        margin-right: 15px;
+        flex: none;
+        max-width: 100%;
+        justify-content: center;
+        display: flex;
+      }
+
+      .explanation-content .description {
+        font-size: 1em;
+        color: var(--text-color);
+        text-align: center;
+        flex: 1 1 100%;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="theme-switch">
+      <input type="checkbox" id="theme-toggle" />
+      <label for="theme-toggle">
+        <i class="fas fa-sun"></i>
+      </label>
+    </div>
+
+    <div class="container">
+      <h1>LaTeX 符號複製工具</h1>
+
+      <!-- 搜尋框 -->
+      <div class="search-box">
+        <input
+          type="text"
+          id="search-input"
+          placeholder="搜尋 LaTeX 或中文描述"
+        />
+        <i class="fas fa-search"></i>
+      </div>
+
+      <!-- Categories -->
+      <div class="category common-math">
+        <h2>常用LaTeX 數學符號命令與公式</h2>
+        <div class="symbol-container" id="common-math-container"></div>
+      </div>
+
+      <div class="category relation-symbols">
+        <h2>關係符號</h2>
+        <div class="symbol-container" id="relation-symbols-container"></div>
+      </div>
+
+      <div class="category geometry-symbols">
+        <h2>幾何符號</h2>
+        <div class="symbol-container" id="geometry-symbols-container"></div>
+      </div>
+
+      <div class="category function-symbols">
+        <h2>函數符號</h2>
+        <div class="symbol-container" id="function-symbols-container"></div>
+      </div>
+
+      <div class="category set-symbols">
+        <h2>集合符號</h2>
+        <div class="symbol-container" id="set-symbols-container"></div>
+      </div>
+
+      <div class="category logic-arrows">
+        <h2>邏輯與箭頭</h2>
+        <div class="symbol-container" id="logic-arrows-container"></div>
+      </div>
+
+      <div class="category brackets">
+        <h2>括號</h2>
+        <div class="symbol-container" id="brackets-container"></div>
+      </div>
+
+      <div class="category fractions-matrices">
+        <h2>分數、矩陣、多行列式</h2>
+        <div class="symbol-container" id="fractions-matrices-container"></div>
+      </div>
+
+      <div class="category greek-letters">
+        <h2>希臘字母</h2>
+        <div class="symbol-container" id="greek-letters-container"></div>
+      </div>
+
+      <div class="category special-symbols">
+        <h2>特殊符號</h2>
+        <div class="symbol-container" id="special-symbols-container"></div>
+      </div>
+
+      <footer>
+        <p>
+          參考網站：
+          <a href="https://gitmind.com/tw/faq/formula-list.html" target="_blank"
+            >GitMind LaTeX 符號列表</a
+          >
+        </p>
+      </footer>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+      // 分類對應的容器ID
+      const categoryContainers = {
+        "common-math": {
+          id: "common-math-container",
+          element: null,
+          header: null,
+        },
+        "relation-symbols": {
+          id: "relation-symbols-container",
+          element: null,
+          header: null,
+        },
+        "geometry-symbols": {
+          id: "geometry-symbols-container",
+          element: null,
+          header: null,
+        },
+        "function-symbols": {
+          id: "function-symbols-container",
+          element: null,
+          header: null,
+        },
+        "set-symbols": {
+          id: "set-symbols-container",
+          element: null,
+          header: null,
+        },
+        "logic-arrows": {
+          id: "logic-arrows-container",
+          element: null,
+          header: null,
+        },
+        brackets: {
+          id: "brackets-container",
+          element: null,
+          header: null,
+        },
+        "fractions-matrices": {
+          id: "fractions-matrices-container",
+          element: null,
+          header: null,
+        },
+        "greek-letters": {
+          id: "greek-letters-container",
+          element: null,
+          header: null,
+        },
+        "special-symbols": {
+          id: "special-symbols-container",
+          element: null,
+          header: null,
+        },
+      };
+
+      const symbolDivs = [];
+
+      // 複製到剪貼簿
+      function copyToClipboard(text, category, element) {
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            showToast("已複製 LaTeX 代碼：" + text, category);
+            changeSymbolItemColor(element, category);
+          })
+          .catch(() => {
+            showToast("無法複製", "special-symbols");
+          });
+      }
+
+      // 顯示吐司通知
+      function showToast(message, category) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+
+        let bgColor = getCategoryColor(category);
+        toast.style.backgroundColor = bgColor;
+
+        toast.className = "toast show";
+        setTimeout(() => {
+          toast.className = toast.className.replace("show", "");
+        }, 3000);
+      }
+
+      // 取得分類顏色
+      function getCategoryColor(category) {
+        let bgColor = "rgba(0, 123, 255, 0.9)"; // 預設顏色
+        switch (category) {
+          case "common-math":
+            bgColor = "rgba(26, 188, 156, 0.9)"; // #1abc9c
+            break;
+          case "relation-symbols":
+            bgColor = "rgba(52, 152, 219, 0.9)"; // #3498db
+            break;
+          case "geometry-symbols":
+            bgColor = "rgba(155, 89, 182, 0.9)"; // #9b59b6
+            break;
+          case "function-symbols":
+            bgColor = "rgba(46, 204, 113, 0.9)"; // #2ecc71
+            break;
+          case "set-symbols":
+            bgColor = "rgba(230, 126, 34, 0.9)"; // #e67e22
+            break;
+          case "logic-arrows":
+            bgColor = "rgba(231, 76, 60, 0.9)"; // #e74c3c
+            break;
+          case "brackets":
+            bgColor = "rgba(241, 196, 15, 0.9)"; // #f1c40f
+            break;
+          case "fractions-matrices":
+            bgColor = "rgba(211, 84, 0, 0.9)"; // #d35400
+            break;
+          case "greek-letters":
+            bgColor = "rgba(142, 68, 173, 0.9)"; // #8e44ad
+            break;
+          case "special-symbols":
+          default:
+            bgColor = "rgba(127, 140, 141, 0.9)"; // #7f8c8d
+        }
+        return bgColor;
+      }
+
+      // 改變符號項目的背景色
+      function changeSymbolItemColor(element, category) {
+        let bgColor = getCategoryColor(category);
+        element.style.backgroundColor = bgColor;
+        setTimeout(() => {
+          element.style.backgroundColor = "";
+        }, 3000);
+      }
+
+      // 初始化主題切換
+      function initThemeToggle() {
+        const themeToggle = document.getElementById("theme-toggle");
+        const themeIcon = document.querySelector(".theme-switch i");
+
+        function setTheme(isDark) {
+          if (isDark) {
+            document.body.setAttribute("data-theme", "dark");
+            themeIcon.classList.remove("fa-sun");
+            themeIcon.classList.add("fa-moon");
+          } else {
+            document.body.setAttribute("data-theme", "light");
+            themeIcon.classList.remove("fa-moon");
+            themeIcon.classList.add("fa-sun");
+          }
+          localStorage.setItem("theme", isDark ? "dark" : "light");
+        }
+
+        themeToggle.addEventListener("change", (e) => {
+          setTheme(e.target.checked);
+          updateCategoryHeaders();
+        });
+
+        // 檢查本地存儲的主題設定
+        const savedTheme = localStorage.getItem("theme");
+        if (savedTheme) {
+          setTheme(savedTheme === "dark");
+          themeToggle.checked = savedTheme === "dark";
+        } else {
+          // 根據使用者系統設定
+          const prefersDark =
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          setTheme(prefersDark);
+          themeToggle.checked = prefersDark;
+        }
+      }
+
+      // 更新分類標題的顏色以對應主題色
+      function updateCategoryHeaders() {
+        for (const category in categoryContainers) {
+          const containerData = categoryContainers[category];
+          if (containerData.header) {
+            const bgColor = getCategoryColor(category);
+            containerData.header.style.backgroundColor = bgColor;
+          }
+        }
+      }
+
+      // 搜尋功能
+      document
+        .getElementById("search-input")
+        .addEventListener("input", function (e) {
+          const query = e.target.value.trim().toLowerCase();
+          filterSymbols(query);
+        });
+
+      function filterSymbols(query) {
+        if (!query) {
+          // 顯示所有符號
+          symbolDivs.forEach((item) => {
+            item.element.style.display = "";
+          });
+          // 顯示所有分類
+          for (const category in categoryContainers) {
+            const containerData = categoryContainers[category];
+            if (containerData.element && containerData.header) {
+              containerData.element.style.display = "";
+              containerData.header.style.display = "";
+            }
+          }
+        } else {
+          // 保留有可見符號的分類
+          const visibleCategories = {};
+
+          symbolDivs.forEach((item) => {
+            const latex = item.latex.toLowerCase();
+            const description = item.description.toLowerCase();
+
+            if (latex.includes(query) || description.includes(query)) {
+              item.element.style.display = "";
+              visibleCategories[item.category] = true;
+            } else {
+              item.element.style.display = "none";
+            }
+          });
+
+          // 顯示/隱藏分類
+          for (const category in categoryContainers) {
+            const containerData = categoryContainers[category];
+            if (containerData.element && containerData.header) {
+              if (visibleCategories[category]) {
+                containerData.element.style.display = "";
+                containerData.header.style.display = "";
+              } else {
+                containerData.element.style.display = "none";
+                containerData.header.style.display = "none";
+              }
+            }
+          }
+        }
+      }
+
+      // 載入符號資料
+      function loadSymbols() {
+        fetch("symbols.json")
+          .then((response) => response.json())
+          .then((data) => {
+            const symbols = data;
+            renderSymbols(symbols);
+            updateCategoryHeaders(); // 初始載入後設置分類標題顏色
+          })
+          .catch((error) => {
+            console.error("Error loading symbols:", error);
+          });
+      }
+
+      // 渲染符號
+      function renderSymbols(symbols) {
+        // 分類中獲取符號
+        const categories = symbols.reduce((acc, symbol) => {
+          if (!acc[symbol.category]) {
+            acc[symbol.category] = [];
+          }
+          acc[symbol.category].push(symbol);
+          return acc;
+        }, {});
+
+        // 遍歷每個分類
+        for (const [category, symbolsList] of Object.entries(categories)) {
+          const containerData = categoryContainers[category];
+          const container = document.getElementById(containerData.id);
+          if (container) {
+            containerData.element = container;
+            // 獲取分類標題
+            const categoryHeader = container.previousElementSibling; // 假設 h2 在 container 之前
+            containerData.header = categoryHeader;
+
+            symbolsList.forEach((symbol) => {
+              const symbolDiv = document.createElement("div");
+              symbolDiv.className = "symbol-item";
+              symbolDiv.onclick = () =>
+                copyToClipboard(symbol.latex, symbol.category, symbolDiv);
+
+              const mathDiv = document.createElement("div");
+              mathDiv.className = "rendered-math";
+              mathDiv.innerHTML = `\\(${symbol.latex}\\)`; // 使用\\( \\) 以便 MathJax 渲染
+
+              const descDiv = document.createElement("div");
+              descDiv.className = "description";
+              descDiv.textContent = symbol.description;
+
+              symbolDiv.appendChild(mathDiv);
+              symbolDiv.appendChild(descDiv);
+
+              container.appendChild(symbolDiv);
+
+              symbolDivs.push({
+                element: symbolDiv,
+                latex: symbol.latex,
+                description: symbol.description,
+                category: symbol.category,
+              });
+            });
+          }
+        }
+
+        // 在所有符號渲染後啟動 MathJax
+        if (window.MathJax) {
+          MathJax.typesetPromise();
+        }
+      }
+
+      window.onload = () => {
+        initThemeToggle();
+        loadSymbols();
+      };
+    </script>
+  </body>
+</html>
