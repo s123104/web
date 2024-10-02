@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智能座位表生成器</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪑</text></svg>"
+    />
+    <!-- 引入XLSX和FileSaver.js庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --secondary-color: #f39c12;
+        --background-color: #f5f7fa;
+        --text-color: #333;
+        --border-color: #e0e0e0;
+        --disabled-color: #ccc;
+        --seat-height: 80px; /* 調整座位高度 */
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #ffffff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        text-align: center;
+        color: var(--primary-color);
+        margin-bottom: 30px;
+      }
+
+      .header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .header input {
+        padding: 8px;
+        font-size: 16px;
+        width: 200px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+      }
+
+      .podium {
+        text-align: center;
+        margin: 20px 0;
+        padding: 15px;
+        background-color: var(--secondary-color);
+        color: white;
+        font-weight: bold;
+        border-radius: 4px;
+      }
+
+      .seating-chart-container {
+        overflow-x: auto;
+        outline: none; /* 移除焦點邊框 */
+      }
+
+      .seating-chart {
+        display: grid;
+        gap: 2px;
+        justify-content: center;
+        margin-bottom: 20px;
+        outline: none; /* 移除焦點邊框 */
+      }
+
+      .seating-chart .label-row {
+        display: contents;
+      }
+
+      .seating-chart .label-cell {
+        background-color: #f0f0f0;
+        text-align: center;
+        font-weight: bold;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        min-width: 60px;
+      }
+
+      .seating-chart .seat {
+        width: 100%;
+        height: var(--seat-height);
+        padding: 5px;
+        text-align: center;
+        background-color: #fff;
+        border: 1px solid var(--border-color);
+        cursor: grab;
+        user-select: none;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        font-size: 14px;
+        box-sizing: border-box;
+        position: relative;
+      }
+
+      .seating-chart .seat:active {
+        cursor: grabbing;
+      }
+
+      .seat:hover {
+        background-color: #e0f7fa;
+      }
+
+      .seat.disabled {
+        background-color: var(--disabled-color) !important;
+        cursor: not-allowed !important;
+      }
+
+      .seat .seat-id,
+      .seat .seat-name {
+        flex: 1;
+        padding: 2px 0;
+        border: none;
+        background: transparent;
+        text-align: center;
+        outline: none;
+      }
+
+      .seat .seat-id[contenteditable="true"],
+      .seat .seat-name[contenteditable="true"] {
+        border-bottom: 1px dashed #4a90e2;
+      }
+
+      .seat .disable-symbol {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: 16px;
+        color: red;
+        cursor: pointer;
+        display: none;
+      }
+
+      .seat.disabled .disable-symbol {
+        display: block;
+      }
+
+      .button-group {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .button {
+        padding: 10px 20px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        font-size: 16px;
+        border-radius: 4px;
+      }
+
+      .button:hover {
+        background-color: #3476c5;
+      }
+
+      #message {
+        text-align: center;
+        margin-top: 20px;
+        padding: 10px;
+        border-radius: 5px;
+        display: none;
+      }
+
+      #message.success {
+        background-color: #d4edda;
+        color: #155724;
+      }
+
+      #message.error {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+
+      /* Modal Styles */
+      .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1000; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0, 0, 0, 0.5); /* Black w/ opacity */
+      }
+
+      .modal-content {
+        background-color: #fefefe;
+        margin: 10% auto; /* 10% from the top and centered */
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%; /* Could be more or less, depending on screen size */
+        max-width: 500px;
+        border-radius: 8px;
+      }
+
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .close:hover,
+      .close:focus {
+        color: black;
+        text-decoration: none;
+      }
+
+      .saved-list {
+        list-style-type: none;
+        padding: 0;
+      }
+
+      .saved-list li {
+        padding: 10px;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+      }
+
+      .saved-list li:hover {
+        background-color: #f0f0f0;
+      }
+
+      @media (max-width: 768px) {
+        .seat {
+          height: 60px;
+          font-size: 12px;
+        }
+
+        .header input {
+          width: 150px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>智能座位表生成器</h1>
+
+      <div class="header">
+        <input type="text" id="className" placeholder="請輸入班級名稱" />
+        <div>
+          <label for="rows">排數：</label>
+          <input type="number" id="rows" min="1" value="8" />
+          <label for="columns">行數：</label>
+          <input type="number" id="columns" min="1" value="10" />
+        </div>
+      </div>
+
+      <div class="podium">講台</div>
+
+      <div
+        class="seating-chart-container"
+        tabindex="0"
+        id="seatingChartContainer"
+      >
+        <div class="seating-chart" id="seatingChart"></div>
+      </div>
+
+      <div class="button-group">
+        <button class="button" onclick="randomlyArrangeSeats()">
+          隨機排座
+        </button>
+        <button class="button" onclick="exportToExcel()">匯出 Excel</button>
+        <button class="button" onclick="exportToWord()">匯出 Word</button>
+        <button class="button" onclick="saveStudentList()">儲存學生名單</button>
+        <button class="button" onclick="openLoadModal()">載入學生名單</button>
+      </div>
+
+      <div id="message"></div>
+    </div>
+
+    <!-- Load Modal -->
+    <div id="loadModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeLoadModal()">&times;</span>
+        <h2>載入學生名單</h2>
+        <ul class="saved-list" id="savedList"></ul>
+      </div>
+    </div>
+
+    <script>
+      let students = [];
+      let disabledSeats = new Set();
+      let rows = 8; // 將預設排數改為8
+      let columns = 10; // 預設行數保持10
+
+      // 將數字轉為國字
+      function numberToChinese(number) {
+        const mapping = [
+          "一",
+          "二",
+          "三",
+          "四",
+          "五",
+          "六",
+          "七",
+          "八",
+          "九",
+          "十",
+          "十一",
+          "十二",
+          "十三",
+          "十四",
+          "十五",
+          "十六",
+          "十七",
+          "十八",
+          "十九",
+          "二十",
+        ];
+        return mapping[number - 1] || number;
+      }
+
+      // 顯示訊息
+      function showMessage(text, type) {
+        const messageElement = document.getElementById("message");
+        messageElement.textContent = text;
+        messageElement.className = type;
+        messageElement.style.display = "block";
+        setTimeout(() => {
+          messageElement.style.display = "none";
+        }, 3000);
+      }
+
+      // 生成座位表
+      function generateSeatingChart() {
+        const rowsInput = document.getElementById("rows");
+        const columnsInput = document.getElementById("columns");
+
+        rows = parseInt(rowsInput.value) || 8; // 使用8作為預設值
+        columns = parseInt(columnsInput.value) || 10;
+
+        const seatingChart = document.getElementById("seatingChart");
+        seatingChart.innerHTML = "";
+        seatingChart.style.gridTemplateColumns = `60px repeat(${columns}, 1fr)`; // 調整第一列為標籤列
+
+        // 添加上方列標籤（第幾列）
+        const labelRow = document.createElement("div");
+        labelRow.classList.add("label-row");
+
+        // 左上角空白
+        const emptyLabel = document.createElement("div");
+        emptyLabel.classList.add("label-cell");
+        labelRow.appendChild(emptyLabel);
+
+        for (let c = 1; c <= columns; c++) {
+          const colLabel = document.createElement("div");
+          colLabel.classList.add("label-cell");
+          colLabel.textContent = numberToChinese(c);
+          labelRow.appendChild(colLabel);
+        }
+        seatingChart.appendChild(labelRow);
+
+        // 添加座位和行標籤（第幾排）
+        for (let r = 1; r <= rows; r++) {
+          // 行容器
+          const rowDiv = document.createElement("div");
+          rowDiv.classList.add("label-row");
+
+          // 行標籤
+          const rowLabel = document.createElement("div");
+          rowLabel.classList.add("label-cell");
+          rowLabel.textContent = numberToChinese(r);
+          // 右鍵禁用整排
+          rowLabel.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            toggleRowDisabled(r);
+          });
+          rowDiv.appendChild(rowLabel);
+
+          // 座位
+          for (let c = 1; c <= columns; c++) {
+            const seat = document.createElement("div");
+            seat.classList.add("seat");
+            seat.dataset.row = r;
+            seat.dataset.column = c;
+            seat.dataset.index = (r - 1) * columns + c;
+
+            // 初始顯示
+            seat.innerHTML = `
+                      <div class="seat-id" contenteditable="true">座號</div>
+                      <div class="seat-name" contenteditable="true">姓名</div>
+                      <div class="disable-symbol" onclick="toggleSeatDisabled(event)">❌</div>
+                  `;
+            rowDiv.appendChild(seat);
+
+            // 添加拖曳事件
+            seat.setAttribute("draggable", "true");
+            seat.addEventListener("dragstart", handleDragStart);
+            seat.addEventListener("dragover", handleDragOver);
+            seat.addEventListener("drop", handleDrop);
+            seat.addEventListener("dragend", handleDragEnd);
+          }
+
+          seatingChart.appendChild(rowDiv);
+        }
+
+        // 不再自動加載已保存的資料
+        // 如果需要，可以手動加載特定名單
+      }
+
+      // 禁用或啟用整排座位
+      function toggleRowDisabled(rowNumber) {
+        for (let c = 1; c <= columns; c++) {
+          const index = (rowNumber - 1) * columns + c;
+          const seat = document.querySelector(`.seat[data-index='${index}']`);
+          if (disabledSeats.has(index)) {
+            disabledSeats.delete(index);
+            seat.classList.remove("disabled");
+          } else {
+            disabledSeats.add(index);
+            seat.classList.add("disabled");
+            // 清除該座位的學生
+            seat.querySelector(".seat-id").textContent = "座號";
+            seat.querySelector(".seat-name").textContent = "姓名";
+            students = students.filter((student) => student.position != index);
+          }
+        }
+        showMessage(
+          `第${numberToChinese(rowNumber)}排已${
+            disabledSeats.has(rowNumber) ? "禁用" : "啟用"
+          }`,
+          "success"
+        );
+      }
+
+      // 禁用或啟用單一座位
+      function toggleSeatDisabled(event) {
+        event.stopPropagation();
+        const seat = event.currentTarget.parentElement;
+        const index = seat.dataset.index;
+        if (disabledSeats.has(index)) {
+          disabledSeats.delete(index);
+          seat.classList.remove("disabled");
+        } else {
+          disabledSeats.add(index);
+          seat.classList.add("disabled");
+          // 清除該座位的學生
+          seat.querySelector(".seat-id").textContent = "座號";
+          seat.querySelector(".seat-name").textContent = "姓名";
+          students = students.filter((student) => student.position != index);
+        }
+        showMessage(
+          `座位已${disabledSeats.has(index) ? "禁用" : "啟用"}`,
+          "success"
+        );
+      }
+
+      // 拖曳交換座位
+      let draggedSeat = null;
+
+      function handleDragStart(e) {
+        if (this.classList.contains("disabled")) {
+          e.preventDefault();
+          return;
+        }
+        draggedSeat = this;
+        e.dataTransfer.setData("text/plain", this.dataset.index);
+        setTimeout(() => {
+          this.classList.add("dragging");
+        }, 0);
+      }
+
+      function handleDragOver(e) {
+        e.preventDefault();
+        if (this.classList.contains("disabled") || this === draggedSeat) return;
+        this.classList.add("highlight");
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        this.classList.remove("highlight");
+        const fromIndex = e.dataTransfer.getData("text/plain");
+        const toIndex = this.dataset.index;
+
+        if (fromIndex === toIndex) return;
+
+        const fromSeat = document.querySelector(
+          `.seat[data-index='${fromIndex}']`
+        );
+        const toSeat = document.querySelector(`.seat[data-index='${toIndex}']`);
+
+        // 交換座位內容
+        const tempId = fromSeat.querySelector(".seat-id").textContent;
+        const tempName = fromSeat.querySelector(".seat-name").textContent;
+
+        fromSeat.querySelector(".seat-id").textContent =
+          toSeat.querySelector(".seat-id").textContent;
+        fromSeat.querySelector(".seat-name").textContent =
+          toSeat.querySelector(".seat-name").textContent;
+
+        toSeat.querySelector(".seat-id").textContent = tempId;
+        toSeat.querySelector(".seat-name").textContent = tempName;
+
+        // 更新學生位置
+        updateStudentPosition(fromIndex, toIndex);
+
+        // 添加交換動畫
+        fromSeat.classList.add("swapping");
+        toSeat.classList.add("swapping");
+        setTimeout(() => {
+          fromSeat.classList.remove("swapping");
+          toSeat.classList.remove("swapping");
+        }, 500);
+
+        showMessage("座位已交換", "success");
+      }
+
+      function handleDragEnd(e) {
+        this.classList.remove("dragging");
+        document
+          .querySelectorAll(".seat")
+          .forEach((seat) => seat.classList.remove("highlight"));
+      }
+
+      // 更新學生座位位置
+      function updateStudentPosition(fromIndex, toIndex) {
+        const fromStudent = students.find(
+          (student) => student.position == fromIndex
+        );
+        const toStudent = students.find(
+          (student) => student.position == toIndex
+        );
+
+        if (fromStudent) {
+          fromStudent.position = toIndex;
+        }
+
+        if (toStudent) {
+          toStudent.position = fromIndex;
+        }
+      }
+
+      // 隨機排座
+      function randomlyArrangeSeats() {
+        const seatingChart = document.getElementById("seatingChart");
+        const seats = Array.from(seatingChart.querySelectorAll(".seat")).filter(
+          (seat) =>
+            !disabledSeats.has(seat.dataset.index) &&
+            seat.querySelector(".seat-name").textContent !== "姓名"
+        );
+
+        const availableSeats = seats.length;
+        const shuffledStudents = [...students].filter(
+          (student) => !disabledSeats.has(student.position)
+        );
+
+        // 打亂學生順序
+        for (let i = shuffledStudents.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffledStudents[i], shuffledStudents[j]] = [
+            shuffledStudents[j],
+            shuffledStudents[i],
+          ];
+        }
+
+        // 清除座位
+        seats.forEach((seat) => {
+          seat.querySelector(".seat-id").textContent = "座號";
+          seat.querySelector(".seat-name").textContent = "姓名";
+        });
+
+        // 分配座位
+        shuffledStudents.forEach((student, index) => {
+          if (index < availableSeats) {
+            const seat = seats[index];
+            seat.querySelector(".seat-id").textContent = student.id;
+            seat.querySelector(".seat-name").textContent = student.name;
+            student.position = seat.dataset.index;
+          }
+        });
+
+        showMessage("座位已隨機排列", "success");
+      }
+
+      // 匯出為 Excel
+      function exportToExcel() {
+        const className = document.getElementById("className").value || "班級";
+        const timestamp = getFormattedTimestamp();
+        const seatingChart = document.getElementById("seatingChart");
+        const seats = seatingChart.querySelectorAll(".seat");
+
+        const data = [];
+
+        // 添加標題行
+        const headerRow = ["行\\列"];
+        for (let c = 1; c <= columns; c++) {
+          headerRow.push(numberToChinese(c));
+        }
+        data.push(headerRow);
+
+        // 添加每一排
+        for (let r = 1; r <= rows; r++) {
+          const row = [numberToChinese(r)];
+          for (let c = 1; c <= columns; c++) {
+            const index = (r - 1) * columns + c;
+            const seat = seatingChart.querySelector(
+              `.seat[data-index='${index}']`
+            );
+            if (seat) {
+              const id = seat.querySelector(".seat-id").textContent;
+              const name = seat.querySelector(".seat-name").textContent;
+              row.push(`${id}\n${name}`);
+            } else {
+              row.push("");
+            }
+          }
+          data.push(row);
+        }
+
+        const worksheet = XLSX.utils.aoa_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, `${className}座位表`);
+
+        XLSX.writeFile(workbook, `${className}座位表_${timestamp}.xlsx`);
+        showMessage("Excel 檔案已匯出", "success");
+      }
+
+      // 匯出為 Word
+      function exportToWord() {
+        const className = document.getElementById("className").value || "班級";
+        const timestamp = getFormattedTimestamp();
+        const seatingChart = document.getElementById("seatingChart");
+        const seats = seatingChart.querySelectorAll(".seat");
+
+        let docContent = `<h1>${className}座位表</h1>`;
+        docContent +=
+          '<table border="1" style="border-collapse:collapse;width:100%;">';
+
+        // 添加標題行
+        docContent += "<tr><th>行\\列</th>";
+        for (let c = 1; c <= columns; c++) {
+          docContent += `<th>${numberToChinese(c)}</th>`;
+        }
+        docContent += "</tr>";
+
+        // 添加每一排
+        for (let r = 1; r <= rows; r++) {
+          docContent += `<tr><td>${numberToChinese(r)}</td>`;
+          for (let c = 1; c <= columns; c++) {
+            const index = (r - 1) * columns + c;
+            const seat = seatingChart.querySelector(
+              `.seat[data-index='${index}']`
+            );
+            if (seat) {
+              const id = seat.querySelector(".seat-id").textContent;
+              const name = seat.querySelector(".seat-name").textContent;
+              docContent += `<td>${id}<br>${name}</td>`;
+            } else {
+              docContent += "<td></td>";
+            }
+          }
+          docContent += "</tr>";
+        }
+
+        docContent += "</table>";
+
+        const blob = new Blob(["\ufeff", docContent], {
+          type: "application/msword",
+        });
+        saveAs(blob, `${className}座位表_${timestamp}.doc`);
+        showMessage("Word 檔案已匯出", "success");
+      }
+
+      // 儲存學生名單到 LocalStorage
+      function saveStudentList() {
+        const className = document.getElementById("className").value || "班級";
+        const timestamp = getFormattedTimestamp();
+        const listName = prompt(
+          "請輸入學生名單名稱：",
+          `${className}_${timestamp}`
+        );
+        if (!listName) {
+          showMessage("未輸入名單名稱，取消保存。", "error");
+          return;
+        }
+
+        const data = {
+          className: className,
+          timestamp: timestamp,
+          rows: rows,
+          columns: columns,
+          students: students,
+          disabledSeats: Array.from(disabledSeats),
+        };
+
+        // 獲取已保存的名單
+        let savedLists =
+          JSON.parse(localStorage.getItem("seatChartSavedLists")) || [];
+
+        // 檢查是否已有相同名稱的名單
+        if (savedLists.find((list) => list.listName === listName)) {
+          if (!confirm("已存在相同名稱的名單，是否要覆蓋？")) {
+            showMessage("取消保存。", "error");
+            return;
+          }
+          // 覆蓋已有名單
+          savedLists = savedLists.filter((list) => list.listName !== listName);
+        }
+
+        // 添加新的名單
+        savedLists.push({ listName: listName, data: data });
+
+        // 儲存回 LocalStorage
+        localStorage.setItem("seatChartSavedLists", JSON.stringify(savedLists));
+        showMessage("學生名單已保存", "success");
+      }
+
+      // 打開載入模態窗口
+      function openLoadModal() {
+        const modal = document.getElementById("loadModal");
+        const savedListContainer = document.getElementById("savedList");
+        savedListContainer.innerHTML = "";
+
+        const savedLists =
+          JSON.parse(localStorage.getItem("seatChartSavedLists")) || [];
+
+        if (savedLists.length === 0) {
+          savedListContainer.innerHTML = "<li>沒有已保存的學生名單。</li>";
+        } else {
+          savedLists.forEach((list, index) => {
+            const li = document.createElement("li");
+            li.textContent = list.listName;
+            li.onclick = () => {
+              loadStudentListByName(list.listName);
+              closeLoadModal();
+            };
+            savedListContainer.appendChild(li);
+          });
+        }
+
+        modal.style.display = "block";
+      }
+
+      // 關閉載入模態窗口
+      function closeLoadModal() {
+        const modal = document.getElementById("loadModal");
+        modal.style.display = "none";
+      }
+
+      // 點擊模態窗口外部關閉
+      window.onclick = function (event) {
+        const modal = document.getElementById("loadModal");
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      };
+
+      // 載入特定名稱的學生名單
+      function loadStudentListByName(listName) {
+        const savedLists =
+          JSON.parse(localStorage.getItem("seatChartSavedLists")) || [];
+        const list = savedLists.find((item) => item.listName === listName);
+        if (!list) {
+          showMessage("找不到選定的學生名單。", "error");
+          return;
+        }
+
+        const data = list.data;
+        document.getElementById("className").value = data.className || "";
+        document.getElementById("rows").value = data.rows || 8;
+        document.getElementById("columns").value = data.columns || 10;
+        rows = data.rows || 8;
+        columns = data.columns || 10;
+        students = data.students || [];
+        disabledSeats = new Set(data.disabledSeats || []);
+
+        generateSeatingChart();
+
+        // 更新座位狀態
+        document.querySelectorAll(".seat").forEach((seat) => {
+          const index = seat.dataset.index;
+          if (disabledSeats.has(index)) {
+            seat.classList.add("disabled");
+            seat.querySelector(".seat-id").textContent = "座號";
+            seat.querySelector(".seat-name").textContent = "姓名";
+          } else {
+            seat.classList.remove("disabled");
+          }
+        });
+
+        // 分配學生
+        students.forEach((student) => {
+          const seat = document.querySelector(
+            `.seat[data-index='${student.position}']`
+          );
+          if (seat && !disabledSeats.has(student.position)) {
+            seat.querySelector(".seat-id").textContent = student.id;
+            seat.querySelector(".seat-name").textContent = student.name;
+          }
+        });
+
+        showMessage(`已載入學生名單：「${listName}」`, "success");
+      }
+
+      // 不再使用原有的載入 JSON 功能
+
+      // 保存到 LocalStorage 的功能已被移除
+      // 只保留 saveStudentList 和 loadStudentListByName
+
+      // 處理貼上事件
+      function handlePaste(e) {
+        e.preventDefault();
+        const clipboardData = e.clipboardData || window.clipboardData;
+        const pastedData = clipboardData.getData("Text");
+
+        const lines = pastedData.trim().split("\n");
+        const newStudents = [];
+        lines.forEach((line) => {
+          const [id, name] = line.trim().split("\t");
+          if (id && name) {
+            newStudents.push({ name: name.trim(), id: id.trim() });
+          }
+        });
+
+        // 分配學生到座位
+        distributeStudents(newStudents);
+        showMessage("學生資料已貼上", "success");
+      }
+
+      // 分配學生到座位
+      function distributeStudents(newStudents) {
+        const seatingChart = document.getElementById("seatingChart");
+        const seats = Array.from(seatingChart.querySelectorAll(".seat")).filter(
+          (seat) =>
+            !disabledSeats.has(seat.dataset.index) &&
+            seat.querySelector(".seat-name").textContent === "姓名"
+        );
+
+        newStudents.forEach((student, index) => {
+          if (index < seats.length) {
+            const seat = seats[index];
+            seat.querySelector(".seat-id").textContent = student.id;
+            seat.querySelector(".seat-name").textContent = student.name;
+            seat.dataset.studentId = student.id || "";
+            students.push({
+              name: student.name,
+              id: student.id,
+              position: seat.dataset.index,
+            });
+          }
+        });
+      }
+
+      // 事件綁定
+      document
+        .getElementById("seatingChartContainer")
+        .addEventListener("paste", handlePaste);
+
+      // 當排數或行數改變時自動生成座位表
+      document
+        .getElementById("rows")
+        .addEventListener("change", generateSeatingChart);
+      document
+        .getElementById("columns")
+        .addEventListener("change", generateSeatingChart);
+      document.getElementById("className").addEventListener("input", () => {
+        // 不再自動保存
+      });
+
+      // 允許直接編輯座號和姓名
+      document.addEventListener("input", function (e) {
+        if (
+          e.target.classList.contains("seat-id") ||
+          e.target.classList.contains("seat-name")
+        ) {
+          const seat = e.target.parentElement;
+          const id = seat.querySelector(".seat-id").textContent;
+          const name = seat.querySelector(".seat-name").textContent;
+          const index = seat.dataset.index;
+
+          // 更新學生資料
+          const student = students.find((s) => s.position == index);
+          if (student) {
+            student.id = id;
+            student.name = name;
+          } else {
+            if (name !== "姓名" && id !== "座號") {
+              students.push({ id: id, name: name, position: index });
+            }
+          }
+          // 不再自動保存
+        }
+      });
+
+      // 初始化座位表
+      window.onload = function () {
+        generateSeatingChart();
+        document.getElementById("seatingChartContainer").focus();
+      };
+
+      // 格式化時間戳，避免文件名中出現不允許的字符
+      function getFormattedTimestamp() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const day = String(now.getDate()).padStart(2, "0");
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        const seconds = String(now.getSeconds()).padStart(2, "0");
+        return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+      }
+    </script>
+  </body>
+</html>
