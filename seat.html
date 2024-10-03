@@ -123,9 +123,37 @@
         background-color: #e0f7fa;
       }
 
+      /* 禁用座位的覆蓋樣式 */
       .seat.disabled {
+        position: relative;
         background-color: var(--disabled-color) !important;
         cursor: not-allowed !important;
+      }
+
+      /* 精美的禁用符號覆蓋層 */
+      .seat.disabled .disabled-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(78, 78, 78, 0.5); /* 半透明黑色背景 */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+        z-index: 10; /* 保證它在座位之上 */
+        pointer-events: none; /* 禁止互動 */
+      }
+
+      /* 禁用符號樣式，可以使用不同的符號來設計 */
+      .seat.disabled .disabled-overlay::before {
+        content: ""; /* 或者使用更美觀的符號，如 ❌ */
+        font-size: 40px; /* 調整符號大小 */
+        color: white;
+        opacity: 0.7; /* 調整透明度 */
       }
 
       .seat .seat-id,
@@ -504,8 +532,10 @@
           seat.classList.remove("disabled");
           seat.querySelector(".seat-id").contentEditable = "true"; // 恢復可編輯
           seat.querySelector(".seat-name").contentEditable = "true"; // 恢復可編輯
-          seat.querySelector(".seat-id").textContent = ""; // 清空顯示的斜線
-          seat.querySelector(".seat-name").textContent = "";
+          const overlay = seat.querySelector(".disabled-overlay");
+          if (overlay) {
+            seat.removeChild(overlay); // 移除禁用覆蓋層
+          }
           showMessage("座位已啟用", "success");
         } else {
           // 禁用座位
@@ -531,13 +561,19 @@
             }
           }
 
-          // 將座位設為禁用狀態並顯示斜線
+          // 禁用座位，顯示覆蓋層
           disabledSeats.add(index);
           seat.classList.add("disabled");
           seat.querySelector(".seat-id").contentEditable = "false"; // 禁止編輯
           seat.querySelector(".seat-name").contentEditable = "false"; // 禁止編輯
-          seat.querySelector(".seat-id").textContent = "／"; // 顯示斜線
+          seat.querySelector(".seat-id").textContent = ""; // 清空顯示內容
           seat.querySelector(".seat-name").textContent = "";
+
+          // 添加禁用覆蓋層
+          const overlay = document.createElement("div");
+          overlay.classList.add("disabled-overlay");
+          seat.appendChild(overlay);
+
           showMessage("座位已禁用", "success");
         }
       }
