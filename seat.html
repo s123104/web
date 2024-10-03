@@ -398,14 +398,14 @@
         const rowsInput = document.getElementById("rows");
         const columnsInput = document.getElementById("columns");
 
-        rows = parseInt(rowsInput.value) || 8; // 使用8作為預設值
-        columns = parseInt(columnsInput.value) || 10;
+        rows = parseInt(rowsInput.value) || 8; // 預設8排
+        columns = parseInt(columnsInput.value) || 10; // 預設10列
 
         const seatingChart = document.getElementById("seatingChart");
         seatingChart.innerHTML = "";
         seatingChart.style.gridTemplateColumns = `60px repeat(${columns}, 1fr)`; // 調整第一列為標籤列
 
-        // 添加上方列標籤（第幾列）
+        // 添加上方列標籤（從右到左排列）
         const labelRow = document.createElement("div");
         labelRow.classList.add("label-row");
 
@@ -414,44 +414,46 @@
         emptyLabel.classList.add("label-cell");
         labelRow.appendChild(emptyLabel);
 
-        for (let c = 1; c <= columns; c++) {
+        for (let c = columns; c >= 1; c--) {
           const colLabel = document.createElement("div");
           colLabel.classList.add("label-cell");
-          colLabel.textContent = numberToChinese(c);
+          colLabel.textContent = numberToChinese(c); // 右到左顯示列標籤
+          colLabel.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            toggleColumnDisabled(c); // 右鍵禁用整列
+          });
           labelRow.appendChild(colLabel);
         }
         seatingChart.appendChild(labelRow);
 
-        // 添加座位和行標籤（第幾排）
+        // 添加座位和行標籤（從右到左排列）
         for (let r = 1; r <= rows; r++) {
-          // 行容器
           const rowDiv = document.createElement("div");
           rowDiv.classList.add("label-row");
 
           // 行標籤
           const rowLabel = document.createElement("div");
           rowLabel.classList.add("label-cell");
-          rowLabel.textContent = numberToChinese(r);
-          // 右鍵禁用整排
+          rowLabel.textContent = numberToChinese(r); // 顯示行標籤
           rowLabel.addEventListener("contextmenu", (e) => {
             e.preventDefault();
-            toggleRowDisabled(r);
+            toggleRowDisabled(r); // 右鍵禁用整排
           });
           rowDiv.appendChild(rowLabel);
 
-          // 座位
-          for (let c = 1; c <= columns; c++) {
+          // 添加座位，從右到左排列
+          for (let c = columns; c >= 1; c--) {
             const seat = document.createElement("div");
             seat.classList.add("seat");
             seat.dataset.row = r;
             seat.dataset.column = c;
-            seat.dataset.index = (r - 1) * columns + c;
+            seat.dataset.index = (r - 1) * columns + c; // 以右到左的方式給座位編號
 
             // 初始顯示
             seat.innerHTML = `
-              <div class="seat-id" contenteditable="true" data-placeholder="座號"></div>
-              <div class="seat-name" contenteditable="true" data-placeholder="姓名"></div>
-            `;
+        <div class="seat-id" contenteditable="true" data-placeholder="座號"></div>
+        <div class="seat-name" contenteditable="true" data-placeholder="姓名"></div>
+      `;
             rowDiv.appendChild(seat);
 
             // 添加拖曳事件
@@ -475,11 +477,57 @@
         updateSeatingChartState();
       }
 
+      // 禁用或啟用整列座位
+      function toggleColumnDisabled(colNumber) {
+        let action = "";
+        for (let r = 1; r <= rows; r++) {
+          const index = (r - 1) * columns + colNumber; // 右到左計算每個座位的索引
+          const seat = document.querySelector(`.seat[data-index='${index}']`);
+          if (disabledSeats.has(index)) {
+            disabledSeats.delete(index);
+            seat.classList.remove("disabled");
+            action = "啟用";
+          } else {
+            // 禁用座位前檢查是否有學生
+            const seatId = seat.querySelector(".seat-id").textContent.trim();
+            const seatName = seat
+              .querySelector(".seat-name")
+              .textContent.trim();
+            if (seatId !== "" && seatName !== "") {
+              const student = students.find(
+                (s) => s.position === index.toString()
+              );
+              if (student) {
+                const newSeat = findNextAvailableSeat();
+                if (newSeat) {
+                  // 移動學生到新座位
+                  newSeat.querySelector(".seat-id").textContent = student.id;
+                  newSeat.querySelector(".seat-name").textContent =
+                    student.name;
+                  student.position = newSeat.dataset.index;
+                } else {
+                  showMessage(
+                    `沒有足夠的可用座位來移動學生 "${student.name}"`,
+                    "error"
+                  );
+                }
+              }
+            }
+            disabledSeats.add(index);
+            seat.classList.add("disabled");
+            seat.querySelector(".seat-id").textContent = "";
+            seat.querySelector(".seat-name").textContent = "";
+            action = "禁用";
+          }
+        }
+        showMessage(`第${numberToChinese(colNumber)}列已${action}`, "success");
+      }
+
       // 禁用或啟用整排座位
       function toggleRowDisabled(rowNumber) {
         let action = "";
-        for (let c = 1; c <= columns; c++) {
-          const index = (rowNumber - 1) * columns + c;
+        for (let c = columns; c >= 1; c--) {
+          const index = (rowNumber - 1) * columns + c; // 右到左計算每個座位的索引
           const seat = document.querySelector(`.seat[data-index='${index}']`);
           if (disabledSeats.has(index)) {
             disabledSeats.delete(index);
@@ -731,30 +779,30 @@
         const className = document.getElementById("className").value || "班級";
         const timestamp = getFormattedTimestamp();
         const seatingChart = document.getElementById("seatingChart");
-        const seats = seatingChart.querySelectorAll(".seat");
 
         const data = [];
 
-        // 添加標題行，只顯示列的標籤，不添加多餘空白
+        // 添加標題行，顯示列標籤（從右到左）
         const headerRow = ["行\\列"];
-        for (let c = 1; c <= columns; c++) {
-          headerRow.push(numberToChinese(c)); // 列標籤只添加一次，不留空格
+        for (let c = columns; c >= 1; c--) {
+          headerRow.push(numberToChinese(c)); // 右到左顯示列標籤
         }
         data.push(headerRow);
 
-        // 添加每一排座位的座號和姓名，行標籤合併儲存格
+        // 添加每一排座位的座號和姓名，行標籤顯示並從右到左
         for (let r = 1; r <= rows; r++) {
-          const seatRow = [numberToChinese(r)]; // 第幾行標籤
-          const seatNameRow = [""]; // 空白儲存格，因為行標籤合併儲存格
+          const seatRow = [numberToChinese(r)]; // 行標籤
+          const seatNameRow = [""]; // 空白，對應姓名行
 
-          for (let c = 1; c <= columns; c++) {
+          for (let c = columns; c >= 1; c--) {
+            // 從右到左遍歷每一列
             const index = (r - 1) * columns + c;
             const seat = seatingChart.querySelector(
               `.seat[data-index='${index}']`
             );
             if (seat) {
               if (disabledSeats.has(index.toString())) {
-                seatRow.push(""); // 禁用座位時不顯示任何內容
+                seatRow.push(""); // 禁用座位時不顯示內容
                 seatNameRow.push(""); // 禁用座位時姓名部分也空白
               } else {
                 const id = seat.querySelector(".seat-id").textContent.trim();
@@ -765,8 +813,8 @@
                 seatNameRow.push(name); // 顯示姓名
               }
             } else {
-              seatRow.push(""); // 座號部分
-              seatNameRow.push(""); // 姓名部分
+              seatRow.push(""); // 空白座位
+              seatNameRow.push(""); // 空白姓名
             }
           }
 
@@ -798,46 +846,50 @@
         const className = document.getElementById("className").value || "班級";
         const timestamp = getFormattedTimestamp();
         const seatingChart = document.getElementById("seatingChart");
-        const seats = seatingChart.querySelectorAll(".seat");
 
         let docContent = `<h1>${className}座位表</h1>`;
         docContent +=
           '<table border="1" style="border-collapse:collapse;width:100%;">';
 
-        // 添加標題行
+        // 添加標題行，列標籤從右到左
         docContent += "<tr><th>行\\列</th>";
-        for (let c = 1; c <= columns; c++) {
+        for (let c = columns; c >= 1; c--) {
+          // 列標籤從右到左顯示
           docContent += `<th>${numberToChinese(c)}</th>`;
         }
         docContent += "</tr>";
 
-        // 添加每一排
+        // 添加每一排的座位和行標籤，從右到左
         for (let r = 1; r <= rows; r++) {
-          docContent += `<tr><td>${numberToChinese(r)}</td>`;
-          for (let c = 1; c <= columns; c++) {
+          docContent += `<tr><td>${numberToChinese(r)}</td>`; // 行標籤
+
+          for (let c = columns; c >= 1; c--) {
+            // 從右到左顯示座位
             const index = (r - 1) * columns + c;
             const seat = seatingChart.querySelector(
               `.seat[data-index='${index}']`
             );
             if (seat) {
               if (disabledSeats.has(index.toString())) {
-                docContent += `<td></td>`;
+                docContent += `<td></td>`; // 禁用座位不顯示內容
               } else {
                 const id = seat.querySelector(".seat-id").textContent.trim();
                 const name = seat
                   .querySelector(".seat-name")
                   .textContent.trim();
-                docContent += `<td>${id}<br>${name}</td>`;
+                docContent += `<td>${id}<br>${name}</td>`; // 顯示座號和姓名
               }
             } else {
-              docContent += "<td></td>";
+              docContent += "<td></td>"; // 空白座位
             }
           }
+
           docContent += "</tr>";
         }
 
         docContent += "</table>";
 
+        // 匯出 Word 文件
         const blob = new Blob(["\ufeff", docContent], {
           type: "application/msword",
         });
