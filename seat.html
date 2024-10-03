@@ -56,7 +56,7 @@
       .header input {
         padding: 8px;
         font-size: 16px;
-        width: 200px;
+        width: 300px;
         border: 1px solid var(--border-color);
         border-radius: 4px;
       }
@@ -497,37 +497,46 @@
       function toggleSeatDisabled(event) {
         const seat = event.currentTarget;
         const index = seat.dataset.index;
+
         if (disabledSeats.has(index)) {
+          // 啟用座位
           disabledSeats.delete(index);
           seat.classList.remove("disabled");
+          seat.querySelector(".seat-id").contentEditable = "true"; // 恢復可編輯
+          seat.querySelector(".seat-name").contentEditable = "true"; // 恢復可編輯
+          seat.querySelector(".seat-id").textContent = ""; // 清空顯示的斜線
+          seat.querySelector(".seat-name").textContent = "";
           showMessage("座位已啟用", "success");
         } else {
-          // 禁用座位前檢查是否有學生
+          // 禁用座位
           const seatId = seat.querySelector(".seat-id").textContent.trim();
           const seatName = seat.querySelector(".seat-name").textContent.trim();
+
+          // 如果有學生在該座位上，將其移動到下一個可用座位
           if (seatId !== "" && seatName !== "") {
-            const student = students.find(
-              (s) => s.position === index.toString()
-            );
-            if (student) {
-              const newSeat = findNextAvailableSeat();
-              if (newSeat) {
-                // 移動學生到新座位
-                newSeat.querySelector(".seat-id").textContent = student.id;
-                newSeat.querySelector(".seat-name").textContent = student.name;
-                student.position = newSeat.dataset.index;
-              } else {
-                showMessage(
-                  `沒有足夠的可用座位來移動學生 "${student.name}"`,
-                  "error"
-                );
-                return;
-              }
+            const student = { id: seatId, name: seatName, position: index };
+            const newSeat = findNextAvailableSeat();
+
+            if (newSeat) {
+              // 移動學生到新的座位
+              newSeat.querySelector(".seat-id").textContent = student.id;
+              newSeat.querySelector(".seat-name").textContent = student.name;
+              student.position = newSeat.dataset.index; // 更新學生位置
+            } else {
+              showMessage(
+                `沒有足夠的可用座位來移動學生 "${student.name}"`,
+                "error"
+              );
+              return;
             }
           }
+
+          // 將座位設為禁用狀態並顯示斜線
           disabledSeats.add(index);
           seat.classList.add("disabled");
-          seat.querySelector(".seat-id").textContent = "";
+          seat.querySelector(".seat-id").contentEditable = "false"; // 禁止編輯
+          seat.querySelector(".seat-name").contentEditable = "false"; // 禁止編輯
+          seat.querySelector(".seat-id").textContent = "／"; // 顯示斜線
           seat.querySelector(".seat-name").textContent = "";
           showMessage("座位已禁用", "success");
         }
@@ -536,12 +545,15 @@
       // 查找下一個可用座位
       function findNextAvailableSeat() {
         const seatingChart = document.getElementById("seatingChart");
-        const seats = Array.from(seatingChart.querySelectorAll(".seat")).filter(
+        const availableSeats = Array.from(
+          seatingChart.querySelectorAll(".seat")
+        ).filter(
           (seat) =>
-            !disabledSeats.has(seat.dataset.index) &&
-            seat.querySelector(".seat-name").textContent.trim() === ""
+            !disabledSeats.has(seat.dataset.index) && // 不是禁用狀態
+            seat.querySelector(".seat-name").textContent.trim() === "" // 座位空白
         );
-        return seats.length > 0 ? seats[0] : null;
+
+        return availableSeats.length > 0 ? availableSeats[0] : null;
       }
 
       // 拖曳交換座位
@@ -687,16 +699,18 @@
 
         const data = [];
 
-        // 添加標題行
+        // 添加標題行，只顯示列的標籤，不添加多餘空白
         const headerRow = ["行\\列"];
         for (let c = 1; c <= columns; c++) {
-          headerRow.push(numberToChinese(c));
+          headerRow.push(numberToChinese(c)); // 列標籤只添加一次，不留空格
         }
         data.push(headerRow);
 
-        // 添加每一排
+        // 添加每一排座位的座號和姓名，行標籤合併儲存格
         for (let r = 1; r <= rows; r++) {
-          const row = [numberToChinese(r)];
+          const seatRow = [numberToChinese(r)]; // 第幾行標籤
+          const seatNameRow = [""]; // 空白儲存格，因為行標籤合併儲存格
+
           for (let c = 1; c <= columns; c++) {
             const index = (r - 1) * columns + c;
             const seat = seatingChart.querySelector(
@@ -704,25 +718,41 @@
             );
             if (seat) {
               if (disabledSeats.has(index.toString())) {
-                row.push("");
+                seatRow.push(""); // 禁用座位時不顯示任何內容
+                seatNameRow.push(""); // 禁用座位時姓名部分也空白
               } else {
                 const id = seat.querySelector(".seat-id").textContent.trim();
                 const name = seat
                   .querySelector(".seat-name")
                   .textContent.trim();
-                row.push(`${id}\n${name}`);
+                seatRow.push(id); // 顯示座號
+                seatNameRow.push(name); // 顯示姓名
               }
             } else {
-              row.push("");
+              seatRow.push(""); // 座號部分
+              seatNameRow.push(""); // 姓名部分
             }
           }
-          data.push(row);
+
+          // 將座號和姓名行加入data
+          data.push(seatRow);
+          data.push(seatNameRow);
         }
 
         const worksheet = XLSX.utils.aoa_to_sheet(data);
+
+        // 合併儲存格：行標籤 (行的座號和姓名)
+        for (let i = 0; i < rows; i++) {
+          const mergeRange = {
+            s: { r: 2 * i + 1, c: 0 },
+            e: { r: 2 * i + 2, c: 0 },
+          };
+          if (!worksheet["!merges"]) worksheet["!merges"] = [];
+          worksheet["!merges"].push(mergeRange);
+        }
+
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, `${className}座位表`);
-
         XLSX.writeFile(workbook, `${className}座位表_${timestamp}.xlsx`);
         showMessage("Excel 檔案已匯出", "success");
       }
@@ -915,6 +945,18 @@
         });
       }
 
+      // 檢測是否為姓名（全中文）
+      function isChineseName(str) {
+        const chineseRegex = /^[\u4e00-\u9fa5]+$/;
+        return chineseRegex.test(str);
+      }
+
+      // 檢測是否為座號或學號（包含數字或英文字符）
+      function isStudentId(str) {
+        const idRegex = /^[A-Za-z0-9]+$/; // 僅數字或英數混合
+        return idRegex.test(str) || /[A-Za-z0-9]/.test(str);
+      }
+
       // 處理貼上事件
       function handlePaste(e) {
         e.preventDefault();
@@ -927,18 +969,26 @@
         let duplicates = false;
 
         lines.forEach((line, lineNumber) => {
-          const [id, name] = line.trim().split("\t");
-          if (id && name) {
-            const trimmedId = id.trim();
-            const trimmedName = name.trim();
+          const fields = line.trim().split("\t");
 
-            // 檢查重複座號或姓名
+          let id = "";
+          let name = "";
+
+          // 根據內容進行判斷：有英文或數字的為座號，純中文的為姓名
+          fields.forEach((field) => {
+            if (isChineseName(field)) {
+              name = field.trim(); // 判定為姓名
+            } else if (isStudentId(field)) {
+              id = field.trim(); // 判定為座號
+            }
+          });
+
+          // 驗證是否重複
+          if (id && name) {
             if (
-              students.some(
-                (s) => s.id === trimmedId || s.name === trimmedName
-              ) ||
-              duplicateCheck.has(trimmedId) ||
-              duplicateCheck.has(trimmedName)
+              students.some((s) => s.id === id || s.name === name) ||
+              duplicateCheck.has(id) ||
+              duplicateCheck.has(name)
             ) {
               duplicates = true;
               showMessage(
@@ -948,10 +998,10 @@
               return;
             }
 
-            duplicateCheck.add(trimmedId);
-            duplicateCheck.add(trimmedName);
+            duplicateCheck.add(id);
+            duplicateCheck.add(name);
 
-            newStudents.push({ name: trimmedName, id: trimmedId });
+            newStudents.push({ name: name, id: id });
           }
         });
 
