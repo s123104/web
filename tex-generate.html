@@ -14,7 +14,6 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <link rel="stylesheet" href="css/styles.css" />
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>
       window.MathJax = {
         tex: {
@@ -28,6 +27,7 @@
             ["\\[", "\\]"],
           ],
           processEnvironments: true,
+          ignoreUnknownCommands: true, // 忽略未知命令，防止顯示 "Unknown environment"
         },
         loader: { load: ["[tex]/ams"] },
         options: {
@@ -143,6 +143,7 @@
     <script>
       let blockCount = 0;
       let draggedBlock = null;
+      let placeholder = null; // 用於插入指示器
       let placeholderExamples = {
         Example: "請輸入題目，例如：\n\n求微分方程 \\( y' = y \\) 的通解。",
         Answer:
@@ -258,13 +259,10 @@
         select.onchange = function () {
           const currentValue = select.value;
           textarea.readOnly = false;
-          // 無論區塊類型，都顯示環境按鈕
+          // 顯示環境按鈕
           textarea.placeholder = placeholderExamples[currentValue];
-          envButtonsDiv.style.display = ["Section", "Subsection"].includes(
-            currentValue
-          )
-            ? "block"
-            : "block";
+          envButtonsDiv.style.display =
+            currentValue !== "Other" ? "flex" : "none";
           updateTeX();
           updateMathPreview(textarea.value, mathPreview);
           saveToLocalStorage();
@@ -273,86 +271,162 @@
         // 環境按鈕容器
         const envButtonsDiv = document.createElement("div");
         envButtonsDiv.className = "env-buttons";
+        envButtonsDiv.style.display = type !== "Other" ? "flex" : "none";
 
-        // 創建環境按鈕，將 Section 和 Subsection 放在最前面
+        // 創建環境按鈕，按照分類排列
         const environments = [
-          { name: "section", label: "節 (section)", type: "command" },
-          { name: "subsection", label: "小節 (subsection)", type: "command" },
-          { name: "align", label: "對齊 (align)", type: "environment" },
           {
-            name: "description",
-            label: "描述 (description)",
-            type: "environment",
+            category: "章節",
+            items: [
+              {
+                name: "section",
+                label: "節 (section)",
+                type: "command",
+                description: "插入章節標題",
+              },
+              {
+                name: "subsection",
+                label: "小節 (subsection)",
+                type: "command",
+                description: "插入小節標題",
+              },
+            ],
           },
-          { name: "itemize", label: "項目符號 (itemize)", type: "environment" },
           {
-            name: "enumerate",
-            label: "編號列表 (enumerate)",
-            type: "environment",
+            category: "數學環境",
+            items: [
+              {
+                name: "equation",
+                label: "公式 (equation)",
+                type: "environment",
+                description: "插入單個公式環境",
+              },
+              {
+                name: "align",
+                label: "對齊 (align)",
+                type: "environment",
+                description: "插入對齊公式環境",
+              },
+              {
+                name: "eqnarray",
+                label: "公式陣列 (eqnarray)",
+                type: "environment",
+                description: "插入公式陣列環境",
+              },
+            ],
+          },
+          {
+            category: "文本樣式",
+            items: [
+              {
+                name: "textbf",
+                label: "粗體字 (\\textbf{})",
+                type: "command",
+                description: "插入粗體字命令",
+              },
+              {
+                name: "mathbf",
+                label: "數學粗體 (\\mathbf{})",
+                type: "command",
+                description: "插入數學粗體字母",
+              },
+            ],
+          },
+          {
+            category: "列表環境",
+            items: [
+              {
+                name: "itemize",
+                label: "項目符號 (itemize)",
+                type: "environment",
+                description: "插入項目符號列表",
+              },
+              {
+                name: "enumerate",
+                label: "編號列表 (enumerate)",
+                type: "environment",
+                description: "插入編號列表",
+              },
+              {
+                name: "description",
+                label: "描述 (description)",
+                type: "environment",
+                description: "插入描述列表",
+              },
+            ],
           },
         ];
 
-        environments.forEach((env) => {
-          const button = document.createElement("button");
-          button.className = "env-button tooltip";
-          button.textContent = env.label;
-          button.draggable = true; // 允許拖動
-          button.dataset.envName = env.name;
-          button.dataset.envType = env.type;
+        environments.forEach((group) => {
+          // // 分類標題
+          // const categoryTitle = document.createElement("div");
+          // categoryTitle.className = "env-category-title";
+          // categoryTitle.textContent = group.category;
+          // envButtonsDiv.appendChild(categoryTitle);
 
-          button.onclick = function () {
-            if (env.type === "environment") {
-              insertEnvironment(textarea, env.name);
-            } else if (env.type === "command") {
-              insertCommand(textarea, env.name);
-            }
-          };
+          group.items.forEach((env) => {
+            const button = document.createElement("button");
+            button.className = "env-button tooltip";
+            button.textContent = env.label;
+            button.draggable = true; // 允許拖動
+            button.dataset.envName = env.name;
+            button.dataset.envType = env.type;
 
-          // 拖動事件
-          button.addEventListener("dragstart", function (e) {
-            e.dataTransfer.setData("application/json", JSON.stringify(env));
-            button.classList.add("dragging");
+            button.onclick = function () {
+              if (env.type === "environment") {
+                insertEnvironment(textarea, env.name);
+              } else if (env.type === "command") {
+                insertCommand(textarea, env.name);
+              }
+            };
+
+            // 拖動事件
+            button.addEventListener("dragstart", function (e) {
+              e.dataTransfer.setData("application/json", JSON.stringify(env));
+              button.classList.add("dragging");
+            });
+
+            button.addEventListener("dragend", function (e) {
+              button.classList.remove("dragging");
+            });
+
+            // 工具提示
+            const tooltip = document.createElement("span");
+            tooltip.className = "tooltiptext";
+            tooltip.innerText = env.description;
+            button.appendChild(tooltip);
+            envButtonsDiv.appendChild(button);
           });
-
-          button.addEventListener("dragend", function (e) {
-            button.classList.remove("dragging");
-          });
-
-          // 工具提示
-          const tooltip = document.createElement("span");
-          tooltip.className = "tooltiptext";
-          if (env.type === "environment") {
-            tooltip.innerText = `插入 \\begin{${env.name}}...\\end{${env.name}} 環境`;
-          } else if (env.type === "command") {
-            tooltip.innerText = `插入 \\${env.name}{...} 指令`;
-          }
-          button.appendChild(tooltip);
-          envButtonsDiv.appendChild(button);
         });
 
         // 文字輸入框
         const textarea = document.createElement("textarea");
         textarea.placeholder = placeholderExamples[select.value];
         textarea.value = content;
-        textarea.classList.add("collapsed"); // 初始化為收折狀態
         textarea.addEventListener("input", autoResize, false);
-
-        // 收折功能
-        textarea.addEventListener("focus", function () {
-          // 展開
-          textarea.classList.remove("collapsed");
-        });
-        textarea.addEventListener("blur", function () {
-          // 收折並自動格式化
-          textarea.classList.add("collapsed");
-          formatLaTeXCode(textarea);
-        });
 
         // 監聽 Ctrl+S 或 Command+S 快捷鍵進行自動格式化
         textarea.addEventListener("keydown", function (e) {
           if ((e.ctrlKey || e.metaKey) && e.key === "s") {
             e.preventDefault(); // 阻止預設的儲存網頁行為
             formatLaTeXCode(textarea);
+          }
+          // 自動縮排功能：當按下 Tab 鍵時插入空格
+          if (e.key === "Tab") {
+            e.preventDefault();
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            // 插入四個空格
+            const spaces = "    ";
+            textarea.value =
+              textarea.value.substring(0, start) +
+              spaces +
+              textarea.value.substring(end);
+            textarea.selectionStart = textarea.selectionEnd =
+              start + spaces.length;
+            updateTeX();
+            updateMathPreview(textarea.value, mathPreview);
+            saveToLocalStorage();
           }
         });
 
@@ -392,40 +466,58 @@
         blockDiv.appendChild(textarea);
         blockDiv.appendChild(mathPreview);
 
-        // 加入拖放事件到 topRow
+        // 添加拖放事件到 blockDiv
         topRow.addEventListener("dragstart", function (e) {
           draggedBlock = blockDiv;
           e.dataTransfer.effectAllowed = "move";
           e.dataTransfer.setData("text/plain", blockDiv.id);
+          blockDiv.classList.add("dragging");
         });
 
         blockDiv.addEventListener("dragover", function (e) {
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
-          blockDiv.style.boxShadow = "0 0 10px var(--button-bg-color)";
+          const blocksContainer = document.getElementById("blocks");
+          const bounding = blockDiv.getBoundingClientRect();
+          const offset = bounding.y + bounding.height / 2;
+          if (e.clientY - offset > 0) {
+            blocksContainer.insertBefore(placeholder, blockDiv.nextSibling);
+          } else {
+            blocksContainer.insertBefore(placeholder, blockDiv);
+          }
         });
 
         blockDiv.addEventListener("dragleave", function (e) {
-          blockDiv.style.boxShadow = "none";
+          const blocksContainer = document.getElementById("blocks");
+          if (blocksContainer.contains(placeholder)) {
+            blocksContainer.removeChild(placeholder);
+          }
+        });
+
+        blockDiv.addEventListener("dragend", function (e) {
+          blockDiv.classList.remove("dragging");
+          const blocksContainer = document.getElementById("blocks");
+          if (blocksContainer.contains(placeholder)) {
+            blocksContainer.removeChild(placeholder);
+          }
         });
 
         blockDiv.addEventListener("drop", function (e) {
           e.preventDefault();
-          blockDiv.style.boxShadow = "none";
-
-          const draggedId = e.dataTransfer.getData("text/plain");
-          const draggedBlock = document.getElementById(draggedId);
-
-          if (draggedBlock && draggedBlock !== blockDiv) {
-            const blocksContainer = document.getElementById("blocks");
-            blocksContainer.insertBefore(draggedBlock, blockDiv);
+          const blocksContainer = document.getElementById("blocks");
+          if (blocksContainer.contains(placeholder)) {
+            blocksContainer.insertBefore(draggedBlock, placeholder);
+            blocksContainer.removeChild(placeholder);
             updateBlockLabels();
             updateTeX();
             saveToLocalStorage();
           }
-
           draggedBlock = null;
         });
+
+        // 添加插入位置指示器
+        placeholder = document.createElement("div");
+        placeholder.className = "drop-placeholder";
 
         // 添加到區塊容器
         document.getElementById("blocks").appendChild(blockDiv);
@@ -445,7 +537,7 @@
         const needsNewLine =
           beforeText.length === 0 || beforeText[beforeText.length - 1] !== "\n";
 
-        const newBeforeText = needsNewLine ? beforeText + "\n" : beforeText;
+        const newBeforeText = needsNewLine ? beforeText + "" : beforeText;
 
         const startTag = `\\begin{${envName}}\n  \n\\end{${envName}}\n`;
         const newCursorPosition =
@@ -465,6 +557,9 @@
         updateTeX();
         updateMathPreview(textarea.value, textarea.nextSibling);
         saveToLocalStorage();
+
+        // 滾動到插入位置
+        textarea.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
       // 插入指令函數（如 \section{}）
@@ -478,7 +573,7 @@
         const needsNewLine =
           beforeText.length === 0 || beforeText[beforeText.length - 1] !== "\n";
 
-        const newBeforeText = needsNewLine ? beforeText + "\n" : beforeText;
+        const newBeforeText = needsNewLine ? beforeText + "" : beforeText;
 
         const newCursorPosition =
           newBeforeText.length + insertText.indexOf("{") + 1; // 光標定位在花括號內
@@ -497,6 +592,9 @@
         updateTeX();
         updateMathPreview(textarea.value, textarea.nextSibling);
         saveToLocalStorage();
+
+        // 滾動到插入位置
+        textarea.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
       // 格式化 LaTeX 代碼函數
@@ -514,20 +612,23 @@
         const lines = code.split("\n");
         let formattedLines = [];
         let indentLevel = 0;
-        const indentString = "  "; // 兩個空格縮排
+        const indentString = "    "; // 四個空格縮排
+
+        const beginRegex = /^\\begin\{.*\}/;
+        const endRegex = /^\\end\{.*\}/;
 
         lines.forEach((line) => {
           let trimmedLine = line.trim();
 
           // 調整縮排級別
-          if (trimmedLine.match(/^\\end\{/)) {
+          if (endRegex.test(trimmedLine)) {
             indentLevel = Math.max(indentLevel - 1, 0);
           }
 
           const indentedLine = indentString.repeat(indentLevel) + trimmedLine;
           formattedLines.push(indentedLine);
 
-          if (trimmedLine.match(/^\\begin\{/)) {
+          if (beginRegex.test(trimmedLine)) {
             indentLevel++;
           }
         });
@@ -548,12 +649,9 @@
             blocks[i].getElementsByClassName("env-buttons")[0];
 
           textarea.readOnly = false;
-          // 根據區塊類型顯示或隱藏環境按鈕
-          if (["Section", "Subsection"].includes(select.value)) {
-            envButtonsDiv.style.display = "block";
-          } else {
-            envButtonsDiv.style.display = "block";
-          }
+          // 顯示環境按鈕
+          envButtonsDiv.style.display =
+            select.value !== "Other" ? "flex" : "none";
           textarea.placeholder = placeholderExamples[select.value];
         }
       }
@@ -576,90 +674,88 @@
 
         // TeX 模板的開頭
         let texContent = `% !Mode:: "TeX:UTF-8"
-    \\documentclass[12pt]{article}
-    \\usepackage{amsmath}%數學符號1
-    \\usepackage{CJKutf8}%中文表格
-    \\usepackage{amssymb}%數學符號2
-    \\usepackage{lmodern}%字型大小
-    \\usepackage{amsfonts}%數學字型
-    \\usepackage{natbib}%參考文獻
-    \\usepackage{graphics}%圖型
-    \\usepackage{epsfig}%EPS圖型
-    \\usepackage{subfigure}
-    \\usepackage{graphicx}
-    \\usepackage{fancybox}
-    \\usepackage{url}%輸入網址
-    \\usepackage{tikz}
-    \\usepackage[lastexercise]{exercise}
-    \\usepackage{chngcntr}
-    \\usepackage{tcolorbox}
-    \\usepackage{listings}
-    \\usepackage{multirow}%多列表格
-    \\usepackage[para,online,flushleft]{threeparttable}%表格註解
-    \\usepackage{rotating}%表格旋轉
-    \\usepackage{dcolumn}%讓表格小數點對齊
-    \\usepackage{caption}
-    
-    %\\usepackage[table]{xcolor}
-    
-    \\newcommand{\\gfcb}[1]{%
-    \\fcolorbox{white}{gray!10!}{\\quad\\strut #1\\quad}
-    } % gfcb := gray fcolorbox
-    \\newcommand{\\cop}[1]{%
-    \\gfcb{\\texttt{\\detokenize{#1}}} 
-    \\ensuremath{\\quad\\longrightarrow\\quad #1}
-    } % cop := code output
-    
-    \\tcbset{arc=0mm,boxrule=1pt,colback=white,colframe=cyan,leftrule=3mm}
-    %\\usetikzlibrary{decorations.pathreplacing}
-    \\usepackage{float}
-    \\newtheorem{example}{Example}[subsection]
-    \\newtheorem{defin}{Definition}
-    \\usepackage{setspace} 
-    \\renewcommand{\\figurename}{圖}
-    \\renewcommand{\\tablename}{表}
-    \\renewcommand\\refname{參考文獻}
-    %\\linespread{1.5}
-    %\\setcounter{section}{12}
-    \\renewcommand{\\abstractname}{摘要}
-    \\definecolor{bisque}{rgb}{.996,.891,.755}
-    \\definecolor{mypink}{cmyk}{.1,.8,.4,.1}  % cmyk 模型的例子 
-    \\definecolor{Gray}{gray}{0.85}
-    \\definecolor{LightCyan}{rgb}{0.88,1,1}
-    
-    \\newcolumntype{a}{>{\\columncolor{Gray}}c}
-    \\newcolumntype{b}{>{\\columncolor{white}}c}
-    %=============================================================================
-    
-    \\title{${document.getElementById("title").value.trim()}}
-    
-    \\author{${document
-      .getElementById("author")
-      .value.trim()}\\footnote{${document
+\\documentclass[12pt]{article}
+\\usepackage{amsmath}%數學符號1
+\\usepackage{CJKutf8}%中文表格
+\\usepackage{amssymb}%數學符號2
+\\usepackage{lmodern}%字型大小
+\\usepackage{amsfonts}%數學字型
+\\usepackage{natbib}%參考文獻
+\\usepackage{graphics}%圖型
+\\usepackage{epsfig}%EPS圖型
+\\usepackage{subfigure}
+\\usepackage{graphicx}
+\\usepackage{fancybox}
+\\usepackage{url}%輸入網址
+\\usepackage{tikz}
+\\usepackage[lastexercise]{exercise}
+\\usepackage{chngcntr}
+\\usepackage{tcolorbox}
+\\usepackage{listings}
+\\usepackage{multirow}%多列表格
+\\usepackage[para,online,flushleft]{threeparttable}%表格註解
+\\usepackage{rotating}%表格旋轉
+\\usepackage{dcolumn}%讓表格小數點對齊
+\\usepackage{caption}
+
+%\\usepackage[table]{xcolor}
+
+\\newcommand{\\gfcb}[1]{%
+\\fcolorbox{white}{gray!10!}{\\quad\\strut #1\\quad}
+} % gfcb := gray fcolorbox
+\\newcommand{\\cop}[1]{%
+\\gfcb{\\texttt{\\detokenize{#1}}} 
+\\ensuremath{\\quad\\longrightarrow\\quad #1}
+} % cop := code output
+
+\\tcbset{arc=0mm,boxrule=1pt,colback=white,colframe=cyan,leftrule=3mm}
+%\\usetikzlibrary{decorations.pathreplacing}
+\\usepackage{float}
+\\newtheorem{example}{Example}[subsection]
+\\newtheorem{defin}{Definition}
+\\usepackage{setspace} 
+\\renewcommand{\\figurename}{圖}
+\\renewcommand{\\tablename}{表}
+\\renewcommand\\refname{參考文獻}
+%\\linespread{1.5}
+%\\setcounter{section}{12}
+\\renewcommand{\\abstractname}{摘要}
+\\definecolor{bisque}{rgb}{.996,.891,.755}
+\\definecolor{mypink}{cmyk}{.1,.8,.4,.1}  % cmyk 模型的例子 
+\\definecolor{Gray}{gray}{0.85}
+\\definecolor{LightCyan}{rgb}{0.88,1,1}
+
+\\newcolumntype{a}{>{\\columncolor{Gray}}c}
+\\newcolumntype{b}{>{\\columncolor{white}}c}
+%=============================================================================
+
+\\title{${document.getElementById("title").value.trim()}}
+
+\\author{${document.getElementById("author").value.trim()}\\footnote{${document
           .getElementById("email")
           .value.trim()}}\\\\
-    ${document.getElementById("affiliation").value.trim()}.\\\\
-    %, 姓名\\footnote{連絡資訊與研究單位}
-    %, 研究單位.\\\\
-    }
-    
-    \\date{${document.getElementById("date").value.trim()}}
-    
-    \\renewcommand{\\theExercise}{\\arabic{Exercise}}
-    \\renewcommand{\\AnswerHeader}{\\medskip\\noindent\\textcolor{red}{\\textbf{SOLUTION}}\\;}
-    \\renewcommand{\\ExerciseName}{EXAMPLE}
-    \\renewcommand{\\ExerciseHeader}{\\noindent\\textbf{\\ExerciseName\\;\\ExerciseHeaderNB}}
-    \\newenvironment{Example}{\\begin{tcolorbox}\\begin{Exercise}}{\\end{Exercise}\\end{tcolorbox}}
-    \\setlength{\\ExerciseSkipBefore}{0pt}
-    \\newcommand\\independent{\\protect\\mathpalette{\\protect\\independenT}{\\perp}}
-    \\def\\independenT#1#2{\\mathrel{\\rlap{$#1#2$}\\mkern2mu{#1#2}}}
-    
-    \\begin{document}
-    \\begin{CJK}{UTF8}{bsmi}
-    
-    \\maketitle
-    
-    \\setstretch{1.5}`;
+${document.getElementById("affiliation").value.trim()}.\\\\
+%, 姓名\\footnote{連絡資訊與研究單位}
+%, 研究單位.\\\\
+}
+
+\\date{${document.getElementById("date").value.trim()}}
+
+\\renewcommand{\\theExercise}{\\arabic{Exercise}}
+\\renewcommand{\\AnswerHeader}{\\medskip\\noindent\\textcolor{red}{\\textbf{SOLUTION}}\\;}
+\\renewcommand{\\ExerciseName}{EXAMPLE}
+\\renewcommand{\\ExerciseHeader}{\\noindent\\textbf{\\ExerciseName\\;\\ExerciseHeaderNB}}
+\\newenvironment{Example}{\\begin{tcolorbox}\\begin{Exercise}}{\\end{Exercise}\\end{tcolorbox}}
+\\setlength{\\ExerciseSkipBefore}{0pt}
+\\newcommand\\independent{\\protect\\mathpalette{\\protect\\independenT}{\\perp}}
+\\def\\independenT#1#2{\\mathrel{\\rlap{$#1#2$}\\mkern2mu{#1#2}}}
+
+\\begin{document}
+\\begin{CJK}{UTF8}{bsmi}
+
+\\maketitle
+
+\\setstretch{1.5}`;
 
         // 取得所有區塊
         const blocks = document.getElementsByClassName("block");
@@ -676,34 +772,34 @@
           // 添加每個區塊的 TeX 內容（不添加額外的換行）
           if (blockType === "Example") {
             texContent += `
-    %=============第 ${
-      i + 1
-    } 題 =====================================================
-    \\begin{Example}
-    ${userContent}
-    \\end{Example}`;
+%=============第 ${
+              i + 1
+            } 題 =====================================================
+\\begin{Example}
+${userContent}
+\\end{Example}`;
           } else if (blockType === "Answer") {
             texContent += `
-    \\begin{Answer}
-    ${userContent}
-    \\end{Answer}`;
+\\begin{Answer}
+${userContent}
+\\end{Answer}`;
           } else if (blockType === "Section") {
             texContent += `
-    \\section*{${userContent}}`;
+\\section*{${userContent}}`;
           } else if (blockType === "Subsection") {
             texContent += `
-    \\subsection*{${userContent}}`;
+\\subsection*{${userContent}}`;
           } else {
             // 其他自定義內容
             texContent += `
-    ${userContent}`;
+${userContent}`;
           }
         }
 
         // TeX 模板的結尾
         texContent += `
-    \\end{CJK}
-    \\end{document}`;
+\\end{CJK}
+\\end{document}`;
 
         // 格式化 TeX 內容
         texContent = formatTeXContent(texContent);
@@ -716,27 +812,24 @@
         const lines = texContent.split("\n");
         let formattedLines = [];
         let indentLevel = 0;
-        const indentString = "  "; // 兩個空格作為縮排
+        const indentString = "    "; // 四個空格作為縮排
 
-        const beginRegex = /\\begin\{[^\}]+\}/g;
-        const endRegex = /\\end\{[^\}]+\}/g;
+        const beginRegex = /^\\begin\{.*\}/;
+        const endRegex = /^\\end\{.*\}/;
 
         for (let line of lines) {
           let trimmedLine = line.trim();
 
           // 調整縮排級別
-          let endMatches = trimmedLine.match(endRegex);
-          if (endMatches) {
-            indentLevel -= endMatches.length;
+          if (endRegex.test(trimmedLine)) {
+            indentLevel = Math.max(indentLevel - 1, 0);
           }
-          indentLevel = Math.max(indentLevel, 0);
 
           const indentedLine = indentString.repeat(indentLevel) + trimmedLine;
           formattedLines.push(indentedLine);
 
-          let beginMatches = trimmedLine.match(beginRegex);
-          if (beginMatches) {
-            indentLevel += beginMatches.length;
+          if (beginRegex.test(trimmedLine)) {
+            indentLevel++;
           }
         }
 
@@ -744,34 +837,23 @@
       }
 
       function updateMathPreview(content, previewElement) {
-        // 處理文本環境
-        let renderedContent = renderLaTeXEnvironment(content);
-
-        // 渲染數學公式
-        previewElement.innerHTML = renderedContent;
+        // 保留原始 LaTeX 代碼，避免 Unknown environment 的錯誤
+        let escapedContent = escapeHTML(content);
+        previewElement.innerHTML = escapedContent;
         MathJax.typesetPromise([previewElement]);
       }
 
-      function renderLaTeXEnvironment(content) {
-        // 簡單替換常見的文本環境為 HTML，僅供預覽使用
-        let renderedContent = content
-          .replace(/\\begin{itemize}/g, "<ul>")
-          .replace(/\\end{itemize}/g, "</ul>")
-          .replace(/\\begin{enumerate}/g, "<ol>")
-          .replace(/\\end{enumerate}/g, "</ol>")
-          .replace(/\\begin{description}/g, "<dl>")
-          .replace(/\\end{description}/g, "</dl>")
-          .replace(/\\item\[(.*?)\]/g, "<dt>$1</dt><dd>")
-          .replace(/\\item/g, "<li>")
-          .replace(/<\/li>\s*<li>/g, "</li><li>") // 移除多餘的空格
-          .replace(/<\/dd>\s*<dt>/g, "</dd><dt>")
-          .replace(/\\section\{(.*?)\}/g, "<h2>$1</h2>")
-          .replace(/\\subsection\{(.*?)\}/g, "<h3>$1</h3>");
-
-        // 保留換行符號
-        renderedContent = renderedContent.replace(/\n/g, "<br>");
-
-        return renderedContent;
+      function escapeHTML(text) {
+        const map = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        };
+        return text.replace(/[&<>"']/g, function (m) {
+          return map[m];
+        });
       }
 
       // 自動調整 textarea 高度
