@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <title>考卷內容複製工具</title>
+    <!-- 引入 MathJax 以渲染 LaTeX 數學符號 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    ></script>
+    <style>
+      /* 基本樣式 */
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        height: 100vh;
+        background-color: #f0f2f5;
+      }
+      .container {
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+      /* 左側輸入區塊 */
+      .input-section,
+      .output-section {
+        padding: 20px;
+        overflow-y: auto;
+        box-sizing: border-box;
+      }
+      .input-section {
+        width: 40%;
+        border-right: 1px solid #ddd;
+        background-color: #ffffff;
+        position: relative;
+      }
+      /* 右側輸出區塊 */
+      .output-section {
+        width: 60%;
+        background-color: #ffffff;
+        position: relative;
+      }
+      /* 文本區域樣式 */
+      textarea {
+        width: 100%;
+        height: calc(100% - 40px); /* 留出字數顯示區域 */
+        resize: none;
+        padding: 10px;
+        font-size: 14px;
+        font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      /* 總字數顯示樣式 */
+      .word-count {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        font-size: 14px;
+        color: #666;
+      }
+      /* 題目區塊樣式 */
+      .section {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      /* 區塊標題樣式 */
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .section-header h3 {
+        margin: 0;
+        font-size: 18px;
+        color: #333;
+      }
+      /* 複製按鈕樣式 */
+      .copy-btn {
+        background-color: #0078d4; /* Windows 主題藍色 */
+        border: none;
+        color: white;
+        padding: 6px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: background-color 0.3s, transform 0.2s;
+        width: 80px;
+        text-align: center;
+      }
+      .copy-btn:hover {
+        background-color: #005a9e;
+      }
+      .copy-btn:active {
+        transform: scale(0.95);
+      }
+      /* 內容區塊樣式 */
+      .content-block {
+        margin-bottom: 15px;
+        padding: 10px;
+        border-left: 4px solid #0078d4;
+        background-color: #fff;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
+        border-radius: 3px;
+      }
+      .content-block h4 {
+        margin: 0 0 5px 0;
+        font-size: 16px;
+        color: #555;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .content-block h4 .copy-btn {
+        padding: 4px 8px;
+        font-size: 12px;
+        width: 60px;
+      }
+      .content-block p {
+        margin: 5px 0;
+        line-height: 1.6;
+      }
+      /* 分隔線樣式 */
+      .divider {
+        border-top: 2px solid #ddd;
+        margin: 20px 0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+      /* Toast Notification */
+      .toast {
+        visibility: hidden;
+        min-width: 250px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 4px;
+        padding: 10px;
+        position: fixed;
+        z-index: 1000;
+        right: 30px;
+        bottom: 30px;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.5s;
+      }
+
+      .toast.show {
+        visibility: visible;
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- 左側輸入區塊 -->
+      <div class="input-section">
+        <h2>輸入考卷內容</h2>
+        <textarea
+          id="inputText"
+          placeholder="請在此處輸入或粘貼考卷內容"
+        ></textarea>
+        <div class="word-count" id="inputWordCount">總字數: 0</div>
+      </div>
+
+      <!-- 右側輸出區塊 -->
+      <div class="output-section">
+        <h2>生成的內容</h2>
+        <div id="outputContent">
+          <!-- 動態生成的內容將顯示在這裡 -->
+        </div>
+        <div class="word-count" id="outputWordCount">總字數: 0</div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">已複製</div>
+
+    <script>
+      // 防抖函數，避免過於頻繁的處理
+      function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+      }
+
+      // 當用戶輸入時即時處理
+      document
+        .getElementById("inputText")
+        .addEventListener("input", debounce(processInput, 500));
+
+      function processInput() {
+        const input = document.getElementById("inputText").value;
+        const output = document.getElementById("outputContent");
+        output.innerHTML = ""; // 清空之前的內容
+
+        // 更新總字數
+        const inputWordCount = countWords(input);
+        document.getElementById(
+          "inputWordCount"
+        ).textContent = `總字數: ${inputWordCount}`;
+
+        // 使用正則表達式匹配主題
+        const mainTitleMatch = input.match(/資訊工程學系\s+微積分考卷\s+解答/i);
+        const subjectMatch = input.match(/主題：\s*(.+)/i);
+        const mainTitle = mainTitleMatch ? mainTitleMatch[0] : "";
+        const subject = subjectMatch ? subjectMatch[1].trim() : "";
+
+        // 顯示主題
+        if (mainTitle || subject) {
+          const mainSection = document.createElement("div");
+          mainSection.className = "section";
+
+          // 區塊標題
+          const sectionHeader = document.createElement("div");
+          sectionHeader.className = "section-header";
+
+          if (mainTitle) {
+            const headerTitle = document.createElement("h3");
+            headerTitle.textContent = mainTitle;
+            sectionHeader.appendChild(headerTitle);
+
+            const copyButton = document.createElement("button");
+            copyButton.className = "copy-btn";
+            copyButton.textContent = "複製";
+            copyButton.onclick = () => {
+              copyToClipboard(mainTitle, "主題區");
+            };
+            sectionHeader.appendChild(copyButton);
+          }
+
+          if (subject) {
+            const subjectHeader = document.createElement("h3");
+            subjectHeader.textContent = `主題：${subject}`;
+            sectionHeader.appendChild(subjectHeader);
+
+            const copyButton = document.createElement("button");
+            copyButton.className = "copy-btn";
+            copyButton.textContent = "複製";
+            copyButton.onclick = () => {
+              copyToClipboard(`主題：${subject}`, "主題區");
+            };
+            sectionHeader.appendChild(copyButton);
+          }
+
+          mainSection.appendChild(sectionHeader);
+          output.appendChild(mainSection);
+        }
+
+        // 使用正則表達式匹配每個題目
+        const sectionRegex = /^([一二三四五六七八九十]+)、\[(.*?)\]\s*(.*)$/gm;
+        let match;
+        let lastIndex = 0;
+        const sections = [];
+
+        while ((match = sectionRegex.exec(input)) !== null) {
+          if (match.index > lastIndex && sections.length > 0) {
+            // 捕捉前一個段落的內容
+            sections[sections.length - 1].content += input
+              .substring(lastIndex, match.index)
+              .trim();
+          }
+          // 新增一個新的段落
+          sections.push({
+            number: match[1],
+            chapter: match[2],
+            title: match[3],
+            content: "",
+          });
+          lastIndex = sectionRegex.lastIndex;
+        }
+
+        // 添加最後一個段落的內容
+        if (lastIndex < input.length && sections.length > 0) {
+          sections[sections.length - 1].content += input
+            .substring(lastIndex)
+            .trim();
+        }
+
+        // 遍歷每個段落，生成HTML內容
+        sections.forEach((section, index) => {
+          // 創建題目區塊
+          const sectionDiv = document.createElement("div");
+          sectionDiv.className = "section";
+
+          // 區塊標題
+          const sectionHeader = document.createElement("div");
+          sectionHeader.className = "section-header";
+
+          const headerTitle = document.createElement("h3");
+          headerTitle.textContent = `${section.number}、[${section.chapter}] ${section.title}`;
+          sectionHeader.appendChild(headerTitle);
+
+          const copyButton = document.createElement("button");
+          copyButton.className = "copy-btn";
+          copyButton.textContent = "複製";
+          copyButton.onclick = () => {
+            copyToClipboard(
+              headerTitle.textContent,
+              `第 ${index + 1} 題 標題區`
+            );
+          };
+          sectionHeader.appendChild(copyButton);
+
+          sectionDiv.appendChild(sectionHeader);
+
+          // 分析內容，尋找「題目：」和「解答：」等標籤
+          const parts = section.content.split(/(?=題目：|解答：)/g);
+          parts.forEach((part) => {
+            // 判斷是「題目：」還是「解答：」
+            let labelMatch = part.match(/^(題目：|解答：)/);
+            if (labelMatch) {
+              const label = labelMatch[1];
+              const contentText = part.replace(label, "").trim();
+
+              const contentDiv = document.createElement("div");
+              contentDiv.className = "content-block";
+
+              const subHeader = document.createElement("h4");
+              subHeader.textContent = label;
+
+              // 添加複製按鈕到子標題
+              const subCopyBtn = document.createElement("button");
+              subCopyBtn.className = "copy-btn";
+              subCopyBtn.textContent = "複製";
+              subCopyBtn.onclick = () => {
+                copyToClipboard(contentText, `第 ${index + 1} 題 ${label}區`);
+              };
+              subHeader.appendChild(subCopyBtn);
+
+              contentDiv.appendChild(subHeader);
+
+              const paragraph = document.createElement("p");
+              // 將 LaTeX 數學符號包裹在 \( \)
+              const formattedText = contentText.replace(
+                /\\\[(.*?)\\\]/g,
+                "\\($1\\)"
+              );
+              paragraph.innerHTML = formattedText.replace(/\n/g, "<br>");
+              contentDiv.appendChild(paragraph);
+
+              sectionDiv.appendChild(contentDiv);
+            }
+          });
+
+          output.appendChild(sectionDiv);
+        });
+
+        // 更新右側總字數
+        const outputText = output.innerText;
+        const outputWordCount = countWords(outputText);
+        document.getElementById(
+          "outputWordCount"
+        ).textContent = `總字數: ${outputWordCount}`;
+
+        // 重新渲染 MathJax
+        if (window.MathJax) {
+          MathJax.typesetPromise();
+        }
+      }
+
+      function countWords(text) {
+        // 去除多餘的空白字符，然後分割
+        return text.trim().split(/\s+/).length;
+      }
+
+      function copyToClipboard(text, sectionName) {
+        navigator.clipboard.writeText(text).then(
+          function () {
+            showToast(`已複製 ${sectionName} 的內容`);
+            // 更改按鈕文字為「已複製」並在3秒後恢復
+            // 查找最後被點擊的按鈕並更改文字
+            // 這裡假設每個按鈕點擊時觸發此函數
+            // 所以需要傳遞按鈕元素或改進函數
+          },
+          function (err) {
+            alert("複製失敗，請手動複製。");
+          }
+        );
+      }
+
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.className = "toast show";
+        setTimeout(function () {
+          toast.className = toast.className.replace("show", "");
+        }, 3000);
+      }
+    </script>
+  </body>
+</html>
