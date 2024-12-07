@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>財務追蹤儀表板</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Data Labels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <!-- PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+      :root {
+        --transition-all: all 0.4s ease;
+        --main-color: #3b82f6; /* Blue-500 */
+        --main-color-light: #93c5fd; /* Blue-300 */
+        --main-color-dark: #1e40af; /* Blue-800 */
+      }
+      body {
+        font-family: "Inter", "Noto Sans TC", sans-serif;
+        background-color: #f9fafb; /* Gray-50 */
+        color: #1a202c; /* Gray-900 */
+        transition: var(--transition-all);
+      }
+      .dark body {
+        background-color: #1a202c; /* Gray-900 */
+        color: #cbd5e0; /* Gray-300 */
+      }
+      .card {
+        background: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: var(--transition-all);
+        overflow: hidden;
+      }
+      .dark .card {
+        background: #2d3748; /* Gray-800 */
+        color: #cbd5e0; /* Gray-300 */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.7);
+      }
+      .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      }
+      .icon-badge {
+        background-color: var(--main-color);
+        border-radius: 50%;
+        padding: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.75rem;
+        transition: var(--transition-all);
+      }
+      .dark .icon-badge {
+        background-color: var(--main-color-dark);
+      }
+      .file-drop-zone {
+        border: 2px dashed var(--main-color-light);
+        transition: var(--transition-all);
+        background: rgba(59, 130, 246, 0.05); /* Blue-500 with opacity */
+      }
+      .dark .file-drop-zone {
+        border-color: var(--main-color-dark);
+        background: rgba(30, 64, 175, 0.1); /* Blue-800 with opacity */
+      }
+      .file-drop-zone:hover {
+        background: rgba(59, 130, 246, 0.1);
+      }
+      .animate-float {
+        animation: float 3s ease-in-out infinite;
+      }
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+      .chart-type-btn.active {
+        border-bottom: 2px solid var(--main-color);
+      }
+      /* 通知樣式 */
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.5rem;
+        display: none;
+        align-items: center;
+        gap: 0.5rem;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .notification.show {
+        display: flex;
+      }
+      .notification.success {
+        background-color: #38bdf8; /* Blue-400 */
+        color: white;
+      }
+      .notification.error {
+        background-color: #f56565; /* Red-400 */
+        color: white;
+      }
+      /* 圖表容器固定高度 */
+      .chart-container {
+        position: relative;
+        width: 100%;
+        height: 400px; /* 固定高度，根據需要調整 */
+      }
+      /* 表格樣式優化 */
+      table th,
+      table td {
+        padding: 0.75rem;
+      }
+      table th {
+        background-color: rgba(59, 130, 246, 0.1); /* Blue-500 with opacity */
+        cursor: pointer;
+        position: relative;
+      }
+      .dark table th {
+        background-color: rgba(30, 64, 175, 0.1); /* Blue-800 with opacity */
+      }
+      table th i {
+        margin-left: 0.25rem;
+        font-size: 0.75rem;
+      }
+      /* 確保文字在表格中可見 */
+      table th,
+      table td {
+        color: inherit;
+      }
+      /* 年度統整金額樣式 */
+      .annual-summary {
+        margin-top: 1rem;
+        text-align: center;
+      }
+      .annual-summary h4 {
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+      }
+      .annual-summary p {
+        font-size: 1.25rem;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex flex-col transition-all duration-500">
+    <!-- 通知訊息 -->
+    <div
+      id="notification"
+      class="notification"
+      role="alert"
+      aria-live="assertive"
+    >
+      <span id="notificationMessage"></span>
+    </div>
+
+    <header
+      class="bg-white dark:bg-gray-800 dark:text-gray-100 shadow-md py-6 transition-all"
+    >
+      <div class="container mx-auto px-4 flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="icon-badge">
+            <i class="fas fa-chart-line text-lg"></i>
+          </div>
+          <h1 class="text-xl font-bold">財務追蹤儀表板</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <button
+            id="toggleDarkMode"
+            aria-label="切換暗黑模式"
+            class="px-4 py-2 rounded-full bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 transition"
+          >
+            <i class="fas fa-adjust"></i>
+          </button>
+          <button
+            id="resetBtn"
+            aria-label="重置數據"
+            class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full flex items-center transition"
+          >
+            <i class="fas fa-sync-alt mr-2"></i>重置數據
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="card p-6 bg-gray-50 dark:bg-gray-700">
+          <h2 class="text-lg font-semibold mb-4 flex items-center">
+            <div class="icon-badge">
+              <i class="fas fa-cloud-upload-alt text-lg"></i>
+            </div>
+            上傳入金 CSV
+          </h2>
+          <div
+            id="incomeDropZone"
+            class="file-drop-zone rounded-lg p-6 text-center cursor-pointer"
+          >
+            <input
+              type="file"
+              id="incomeFileInput"
+              accept=".csv"
+              class="hidden"
+              multiple
+            />
+            <label for="incomeFileInput" class="cursor-pointer">
+              <i
+                class="fas fa-file-import text-4xl text-gray-500 mb-4 block animate-float"
+              ></i>
+              <p class="text-gray-500">點擊或拖曳上傳入金 CSV 文件</p>
+            </label>
+          </div>
+        </div>
+
+        <div class="card p-6 bg-gray-50 dark:bg-gray-700">
+          <h2 class="text-lg font-semibold mb-4 flex items-center">
+            <div class="icon-badge">
+              <i class="fas fa-cloud-download-alt text-lg"></i>
+            </div>
+            上傳出金 CSV
+          </h2>
+          <div
+            id="expenseDropZone"
+            class="file-drop-zone rounded-lg p-6 text-center cursor-pointer"
+          >
+            <input
+              type="file"
+              id="expenseFileInput"
+              accept=".csv"
+              class="hidden"
+              multiple
+            />
+            <label for="expenseFileInput" class="cursor-pointer">
+              <i
+                class="fas fa-file-export text-4xl text-gray-500 mb-4 block animate-float"
+              ></i>
+              <p class="text-gray-500">點擊或拖曳上傳出金 CSV 文件</p>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div id="uploadedFilesList" class="mt-6 grid md:grid-cols-2 gap-4"></div>
+
+      <!-- 圖表切換 -->
+      <div class="mt-8 hidden transition-all duration-500" id="analysisSection">
+        <div class="flex space-x-4 mb-4 justify-end">
+          <button
+            class="chart-type-btn py-2 px-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 transition"
+            data-chart-type="bar"
+            aria-label="選擇柱狀圖"
+          >
+            <i class="fas fa-chart-bar mr-2"></i>Bar
+          </button>
+          <button
+            class="chart-type-btn py-2 px-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 transition"
+            data-chart-type="line"
+            aria-label="選擇折線圖"
+          >
+            <i class="fas fa-chart-line mr-2"></i>Line
+          </button>
+          <button
+            class="chart-type-btn py-2 px-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 transition"
+            data-chart-type="pie"
+            aria-label="選擇圓餅圖"
+          >
+            <i class="fas fa-chart-pie mr-2"></i>Pie
+          </button>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+          <div class="card p-6 bg-gray-50 dark:bg-gray-700">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+              <div class="icon-badge">
+                <i class="fas fa-dollar-sign text-lg"></i>
+              </div>
+              年度入金分析
+            </h3>
+            <div class="chart-container">
+              <canvas id="incomeChart"></canvas>
+            </div>
+            <!-- 年度統整金額 -->
+            <div class="annual-summary">
+              <h4>年度總入金</h4>
+              <p
+                id="annualIncomeTotal"
+                class="text-gray-800 dark:text-gray-200"
+              >
+                NT$ 0
+              </p>
+            </div>
+          </div>
+          <div class="card p-6 bg-gray-50 dark:bg-gray-700">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+              <div class="icon-badge">
+                <i class="fas fa-credit-card text-lg"></i>
+              </div>
+              年度出金分析
+            </h3>
+            <div class="chart-container">
+              <canvas id="expenseChart"></canvas>
+            </div>
+            <!-- 年度統整金額 -->
+            <div class="annual-summary">
+              <h4>年度總出金</h4>
+              <p
+                id="annualExpenseTotal"
+                class="text-gray-800 dark:text-gray-200"
+              >
+                NT$ 0
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-6 mt-8 bg-gray-100 dark:bg-gray-800">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <div class="icon-badge">
+              <i class="fas fa-file-invoice-dollar text-lg"></i>
+            </div>
+            年度財務總結
+          </h3>
+          <div
+            id="summaryText"
+            class="grid md:grid-cols-3 gap-4 text-gray-800 dark:text-gray-200"
+          ></div>
+        </div>
+
+        <div
+          class="card p-6 mt-8 bg-white dark:bg-gray-700 dark:text-gray-200 overflow-auto"
+        >
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <div class="icon-badge bg-gray-500">
+              <i class="fas fa-table text-lg"></i>
+            </div>
+            原始資料表格 (可排序/過濾)
+          </h3>
+          <div class="flex flex-col md:flex-row justify-between mb-4">
+            <input
+              type="text"
+              id="tableSearch"
+              placeholder="輸入關鍵字過濾..."
+              class="p-2 rounded border dark:bg-gray-600 dark:border-gray-500 dark:text-white mb-4 md:mb-0"
+              aria-label="表格搜尋"
+            />
+            <select
+              id="yearFilter"
+              class="p-2 rounded border dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+              aria-label="篩選年度"
+            >
+              <option value="">篩選年度</option>
+            </select>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-gray-300 dark:border-gray-600">
+                  <th
+                    class="p-2 cursor-pointer sort-header"
+                    data-field="Date"
+                    scope="col"
+                  >
+                    日期 <i class="fas fa-sort"></i>
+                  </th>
+                  <th
+                    class="p-2 cursor-pointer sort-header"
+                    data-field="Currency"
+                    scope="col"
+                  >
+                    貨幣 <i class="fas fa-sort"></i>
+                  </th>
+                  <th
+                    class="p-2 cursor-pointer sort-header"
+                    data-field="Amount"
+                    scope="col"
+                  >
+                    金額 <i class="fas fa-sort"></i>
+                  </th>
+                  <th
+                    class="p-2 cursor-pointer sort-header"
+                    data-field="Status"
+                    scope="col"
+                  >
+                    狀態 <i class="fas fa-sort"></i>
+                  </th>
+                  <th class="p-2" scope="col">類型</th>
+                </tr>
+              </thead>
+              <tbody id="dataTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // 以下是主要功能的實現，包括文件上傳、數據解析和圖表渲染
+
+      // 元素選取
+      const incomeFileInput = document.getElementById("incomeFileInput");
+      const expenseFileInput = document.getElementById("expenseFileInput");
+      const incomeDropZone = document.getElementById("incomeDropZone");
+      const expenseDropZone = document.getElementById("expenseDropZone");
+      const uploadedFilesList = document.getElementById("uploadedFilesList");
+      const analysisSection = document.getElementById("analysisSection");
+      const summaryTextContainer = document.getElementById("summaryText");
+      const dataTableBody = document.getElementById("dataTableBody");
+      const yearFilter = document.getElementById("yearFilter");
+      const tableSearch = document.getElementById("tableSearch");
+      const resetBtn = document.getElementById("resetBtn");
+      const toggleDarkModeBtn = document.getElementById("toggleDarkMode");
+      const notification = document.getElementById("notification");
+      const notificationMessage = document.getElementById(
+        "notificationMessage"
+      );
+      const annualIncomeTotal = document.getElementById("annualIncomeTotal");
+      const annualExpenseTotal = document.getElementById("annualExpenseTotal");
+
+      // 圖表實例
+      let incomeChartInstance = null;
+      let expenseChartInstance = null;
+      let currentChartType = "bar";
+
+      // 數據存儲
+      let incomeData = [];
+      let expenseData = [];
+      let combinedData = [];
+
+      // 全局變量存儲處理後的數據
+      let years = [];
+      let incomeYearlyTotals = {};
+      let expenseYearlyTotals = {};
+
+      // 排序方向
+      let sortDirections = {};
+
+      // 顯示通知
+      function showNotification(message, type = "success") {
+        notificationMessage.textContent = message;
+        notification.className = `notification ${type} show`;
+        setTimeout(() => {
+          notification.classList.remove("show");
+        }, 3000);
+      }
+
+      // 切換暗黑模式
+      toggleDarkModeBtn.addEventListener("click", () => {
+        document.documentElement.classList.toggle("dark");
+        showNotification("已切換暗黑模式", "success");
+        updateChartColors();
+      });
+
+      // 圖表類型切換
+      document.querySelectorAll(".chart-type-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".chart-type-btn")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentChartType = btn.getAttribute("data-chart-type");
+          renderCharts();
+          showNotification(`圖表類型已切換為 ${currentChartType}`, "success");
+        });
+      });
+
+      // 處理拖曳功能
+      [incomeDropZone, expenseDropZone].forEach((zone) => {
+        zone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          zone.classList.add("bg-gray-100");
+        });
+        zone.addEventListener("dragleave", () => {
+          zone.classList.remove("bg-gray-100");
+        });
+        zone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          zone.classList.remove("bg-gray-100");
+          const files = e.dataTransfer.files;
+          if (zone.id === "incomeDropZone") {
+            handleFiles(files, "income");
+          } else {
+            handleFiles(files, "expense");
+          }
+        });
+      });
+
+      // 文件選擇
+      incomeFileInput.addEventListener("change", (e) => {
+        handleFiles(e.target.files, "income");
+      });
+
+      expenseFileInput.addEventListener("change", (e) => {
+        handleFiles(e.target.files, "expense");
+      });
+
+      // 重置按鈕
+      resetBtn.addEventListener("click", () => {
+        if (confirm("您確定要重置所有數據嗎？此操作無法復原。")) {
+          // 清除數據
+          incomeData = [];
+          expenseData = [];
+          combinedData = [];
+
+          // 重置圖表
+          if (incomeChartInstance) {
+            incomeChartInstance.destroy();
+            incomeChartInstance = null;
+          }
+          if (expenseChartInstance) {
+            expenseChartInstance.destroy();
+            expenseChartInstance = null;
+          }
+
+          // 重置全局變量
+          years = [];
+          incomeYearlyTotals = {};
+          expenseYearlyTotals = {};
+
+          // 更新界面
+          renderFileList();
+          analysisSection.classList.add("hidden");
+          summaryTextContainer.innerHTML = "";
+          dataTableBody.innerHTML = "";
+          yearFilter.innerHTML = `<option value="">篩選年度</option>`;
+          tableSearch.value = "";
+          annualIncomeTotal.textContent = "NT$ 0";
+          annualExpenseTotal.textContent = "NT$ 0";
+          showNotification("數據已重置", "success");
+        }
+      });
+
+      // 篩選和搜尋
+      tableSearch.addEventListener("input", debounce(filterTable, 300));
+      yearFilter.addEventListener("change", debounce(filterTable, 300));
+
+      // 文件處理
+      function handleFiles(files, type) {
+        for (let file of files) {
+          // 檢查文件大小和類型
+          if (file.size > 5 * 1024 * 1024) {
+            // 5MB 限制
+            showNotification(`文件 ${file.name} 大小超過限制 (5MB)`, "error");
+            continue;
+          }
+          if (!file.name.toLowerCase().endsWith(".csv")) {
+            showNotification(`僅支持CSV文件：${file.name}`, "error");
+            continue;
+          }
+
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function (results) {
+              if (!results.data || results.data.length === 0) {
+                showNotification(`文件 ${file.name} 無有效數據`, "error");
+                return;
+              }
+
+              const parsedData = results.data.map((row) => ({
+                ...row,
+                Amount: parseFloat(row.Amount) || 0,
+                Type: type === "income" ? "入金" : "出金",
+              }));
+
+              // 檢查必需欄位
+              const requiredFields = ["Date", "Currency", "Amount", "Status"];
+              const missingFields = requiredFields.filter(
+                (field) => !(field in parsedData[0])
+              );
+              if (missingFields.length > 0) {
+                showNotification(
+                  `文件 ${file.name} 缺少欄位: ${missingFields.join(", ")}`,
+                  "error"
+                );
+                return;
+              }
+
+              // 檢查日期格式
+              const invalidDates = parsedData.filter((d) =>
+                isNaN(new Date(d.Date))
+              );
+              if (invalidDates.length > 0) {
+                showNotification(`文件 ${file.name} 包含無效日期格式`, "error");
+                return;
+              }
+
+              if (type === "income") {
+                incomeData = incomeData.concat(parsedData);
+              } else {
+                expenseData = expenseData.concat(parsedData);
+              }
+
+              combinedData = incomeData.concat(expenseData);
+              renderFileList();
+              processFinancialData();
+              showNotification(`文件 ${file.name} 上傳成功`, "success");
+            },
+            error: function (error) {
+              showNotification(`文件解析失敗: ${error.message}`, "error");
+            },
+          });
+        }
+      }
+
+      // 渲染已上傳文件列表
+      function renderFileList() {
+        uploadedFilesList.innerHTML = "";
+        if (incomeData.length > 0) {
+          const card = document.createElement("div");
+          card.className =
+            "card p-4 bg-gray-100 dark:bg-gray-600 dark:text-white flex items-center justify-between";
+          card.innerHTML = `
+            <h3 class="font-semibold">已上傳入金檔案 (${incomeData.length} 筆資料)</h3>
+            <i class="fas fa-file-csv text-2xl text-gray-500 dark:text-gray-300"></i>
+          `;
+          uploadedFilesList.appendChild(card);
+        }
+        if (expenseData.length > 0) {
+          const card = document.createElement("div");
+          card.className =
+            "card p-4 bg-gray-100 dark:bg-gray-600 dark:text-white flex items-center justify-between";
+          card.innerHTML = `
+            <h3 class="font-semibold">已上傳出金檔案 (${expenseData.length} 筆資料)</h3>
+            <i class="fas fa-file-csv text-2xl text-gray-500 dark:text-gray-300"></i>
+          `;
+          uploadedFilesList.appendChild(card);
+        }
+      }
+
+      // 處理財務數據
+      function processFinancialData() {
+        if (incomeData.length === 0 && expenseData.length === 0) return;
+
+        analysisSection.classList.remove("hidden");
+
+        // 年度入金和出金計算
+        incomeYearlyTotals = {};
+        expenseYearlyTotals = {};
+        const yearsSet = new Set();
+
+        incomeData.forEach((d) => {
+          const date = new Date(d.Date);
+          if (isNaN(date)) {
+            showNotification(`無效日期格式: ${d.Date}`, "error");
+            return;
+          }
+          const year = date.getFullYear();
+          yearsSet.add(year);
+          incomeYearlyTotals[year] = (incomeYearlyTotals[year] || 0) + d.Amount;
+        });
+
+        expenseData.forEach((d) => {
+          const date = new Date(d.Date);
+          if (isNaN(date)) {
+            showNotification(`無效日期格式: ${d.Date}`, "error");
+            return;
+          }
+          const year = date.getFullYear();
+          yearsSet.add(year);
+          expenseYearlyTotals[year] =
+            (expenseYearlyTotals[year] || 0) + d.Amount;
+        });
+
+        years = Array.from(yearsSet).sort((a, b) => a - b);
+
+        renderSummary(years, incomeYearlyTotals, expenseYearlyTotals);
+        renderCharts();
+        renderTable(combinedData);
+        renderYearFilter(years);
+      }
+
+      // 渲染年度財務總結
+      function renderSummary(years, incomeYearlyTotals, expenseYearlyTotals) {
+        // 計算總入金和總出金
+        const totalIncome = Object.values(incomeYearlyTotals).reduce(
+          (a, b) => a + b,
+          0
+        );
+        const totalExpense = Object.values(expenseYearlyTotals).reduce(
+          (a, b) => a + b,
+          0
+        );
+        const balance = totalExpense - totalIncome;
+
+        const summaryText = `
+          <div class="w-full flex flex-col items-center">
+              <h4 class="font-bold text-lg mb-2">總入金</h4>
+              <p class="text-gray-800 dark:text-gray-200 text-2xl">NT$ ${totalIncome.toLocaleString()}</p>
+          </div>
+          <div class="w-full flex flex-col items-center">
+              <h4 class="font-bold text-lg mb-2">總出金</h4>
+              <p class="text-gray-800 dark:text-gray-200 text-2xl">NT$ ${totalExpense.toLocaleString()}</p>
+          </div>
+          <div class="w-full flex flex-col items-center">
+              <h4 class="font-bold text-lg mb-2">結餘</h4>
+              <p class="font-bold ${
+                balance >= 0 ? "text-green-500" : "text-red-500"
+              } text-2xl">NT$ ${balance.toLocaleString()}</p>
+          </div>
+        `;
+
+        summaryTextContainer.innerHTML = summaryText;
+
+        // 更新年度統整金額
+        annualIncomeTotal.textContent = `NT$ ${totalIncome.toLocaleString()}`;
+        annualExpenseTotal.textContent = `NT$ ${totalExpense.toLocaleString()}`;
+      }
+
+      // 渲染圖表
+      function renderCharts() {
+        if (years.length === 0) {
+          showNotification("沒有可顯示的數據", "error");
+          return;
+        }
+
+        const incomeValues = years.map((y) => incomeYearlyTotals[y] || 0);
+        const expenseValues = years.map((y) => expenseYearlyTotals[y] || 0);
+
+        // 清除現有圖表
+        if (incomeChartInstance) {
+          incomeChartInstance.destroy();
+          incomeChartInstance = null;
+        }
+        if (expenseChartInstance) {
+          expenseChartInstance.destroy();
+          expenseChartInstance = null;
+        }
+
+        const incomeCtx = document
+          .getElementById("incomeChart")
+          .getContext("2d");
+        const expenseCtx = document
+          .getElementById("expenseChart")
+          .getContext("2d");
+
+        const commonOptions = {
+          responsive: true,
+          maintainAspectRatio: true, // 保持寬高比
+          aspectRatio: 2, // 設定寬高比
+          plugins: {
+            legend: {
+              display: currentChartType === "pie",
+              position: "top",
+              labels: {
+                color: document.documentElement.classList.contains("dark")
+                  ? "#cbd5e0"
+                  : "#1a202c",
+              },
+            },
+            tooltip: {
+              enabled: true,
+              callbacks: {
+                label: function (context) {
+                  let label = context.dataset.label || "";
+                  if (label) {
+                    label += ": ";
+                  }
+                  if (context.parsed !== null) {
+                    label += "NT$ " + context.parsed.toLocaleString();
+                  }
+                  return label;
+                },
+              },
+            },
+            datalabels: {
+              display: true,
+              align: "end",
+              anchor: "end",
+              formatter: function (value, context) {
+                return "NT$ " + value.toLocaleString();
+              },
+              color: document.documentElement.classList.contains("dark")
+                ? "#cbd5e0"
+                : "#1a202c",
+              font: {
+                weight: "bold",
+              },
+            },
+          },
+          scales:
+            currentChartType !== "pie"
+              ? {
+                  y: {
+                    beginAtZero: true,
+                    ticks: {
+                      color: document.documentElement.classList.contains("dark")
+                        ? "#cbd5e0"
+                        : "#1a202c",
+                      callback: function (value) {
+                        return "NT$ " + value.toLocaleString();
+                      },
+                    },
+                    grid: {
+                      color: document.documentElement.classList.contains("dark")
+                        ? "#4a5568"
+                        : "#e2e8f0",
+                    },
+                  },
+                  x: {
+                    ticks: {
+                      color: document.documentElement.classList.contains("dark")
+                        ? "#cbd5e0"
+                        : "#1a202c",
+                    },
+                    grid: {
+                      color: "transparent",
+                    },
+                  },
+                }
+              : {},
+        };
+
+        const incomeDataChart = {
+          labels: years,
+          datasets: [
+            {
+              label: "年度入金",
+              data: incomeValues,
+              backgroundColor:
+                currentChartType === "pie"
+                  ? getColorArray(years.length)
+                  : "rgba(59, 130, 246, 0.6)", // Blue-500 with opacity
+              borderColor: "rgba(59, 130, 246, 1)", // Blue-500
+              borderWidth: 1,
+              fill: currentChartType !== "pie",
+            },
+          ],
+        };
+
+        const expenseDataChart = {
+          labels: years,
+          datasets: [
+            {
+              label: "年度出金",
+              data: expenseValues,
+              backgroundColor:
+                currentChartType === "pie"
+                  ? getColorArray(years.length)
+                  : "rgba(220, 38, 38, 0.6)", // Red-600 with opacity
+              borderColor: "rgba(220, 38, 38, 1)", // Red-600
+              borderWidth: 1,
+              fill: currentChartType !== "pie",
+            },
+          ],
+        };
+
+        incomeChartInstance = new Chart(incomeCtx, {
+          type: currentChartType,
+          data: incomeDataChart,
+          options: commonOptions,
+          plugins: [ChartDataLabels],
+        });
+
+        expenseChartInstance = new Chart(expenseCtx, {
+          type: currentChartType,
+          data: expenseDataChart,
+          options: commonOptions,
+          plugins: [ChartDataLabels],
+        });
+      }
+
+      // 顏色陣列
+      function getColorArray(length) {
+        const colors = [
+          "#3b82f6", // Blue-500
+          "#60a5fa", // Blue-400
+          "#93c5fd", // Blue-300
+          "#bfdbfe", // Blue-200
+          "#e0f2fe", // Blue-100
+        ];
+        let arr = [];
+        for (let i = 0; i < length; i++) {
+          arr.push(colors[i % colors.length]);
+        }
+        return arr;
+      }
+
+      // 渲染表格
+      function renderTable(data) {
+        dataTableBody.innerHTML = "";
+        data.forEach((d) => {
+          const tr = document.createElement("tr");
+          tr.className =
+            "border-b border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition";
+          tr.innerHTML = `
+            <td class="p-2">${sanitizeHTML(d.Date)}</td>
+            <td class="p-2">${sanitizeHTML(d.Currency)}</td>
+            <td class="p-2">${sanitizeHTML(d.Amount.toLocaleString())}</td>
+            <td class="p-2">${sanitizeHTML(d.Status)}</td>
+            <td class="p-2">${sanitizeHTML(d.Type)}</td>
+          `;
+          dataTableBody.appendChild(tr);
+        });
+      }
+
+      // 渲染年度篩選
+      function renderYearFilter(years) {
+        yearFilter.innerHTML = `<option value="">篩選年度</option>`;
+        years.forEach((year) => {
+          const option = document.createElement("option");
+          option.value = year;
+          option.textContent = year;
+          yearFilter.appendChild(option);
+        });
+      }
+
+      // 表格篩選
+      function filterTable() {
+        const keyword = tableSearch.value.toLowerCase();
+        const yearSelected = yearFilter.value;
+        const rows = dataTableBody.querySelectorAll("tr");
+        rows.forEach((row) => {
+          const cells = row.querySelectorAll("td");
+          const dateText = cells[0].innerText.toLowerCase();
+          const currencyText = cells[1].innerText.toLowerCase();
+          const amountText = cells[2].innerText.toLowerCase();
+          const statusText = cells[3].innerText.toLowerCase();
+          const typeText = cells[4].innerText.toLowerCase();
+          const rowYear = new Date(cells[0].innerText).getFullYear().toString();
+
+          let visible =
+            (!yearSelected || rowYear === yearSelected) &&
+            (dateText.includes(keyword) ||
+              currencyText.includes(keyword) ||
+              amountText.includes(keyword) ||
+              statusText.includes(keyword) ||
+              typeText.includes(keyword));
+
+          row.style.display = visible ? "" : "none";
+        });
+      }
+
+      // 防抖函數
+      function debounce(func, delay) {
+        let timeout;
+        return function (...args) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+      }
+
+      // 表格排序
+      document.querySelectorAll(".sort-header").forEach((header) => {
+        header.addEventListener("click", () => {
+          const field = header.getAttribute("data-field");
+          sortDirections[field] = !sortDirections[field];
+          sortTable(field, sortDirections[field]);
+          updateSortIcons(field, sortDirections[field]);
+        });
+      });
+
+      function sortTable(field, asc) {
+        let rows = Array.from(dataTableBody.querySelectorAll("tr"));
+        const fieldIndex = { Date: 0, Currency: 1, Amount: 2, Status: 3 }[
+          field
+        ];
+        rows.sort((a, b) => {
+          let aText = a.querySelectorAll("td")[fieldIndex].innerText;
+          let bText = b.querySelectorAll("td")[fieldIndex].innerText;
+          if (field === "Amount") {
+            return asc
+              ? parseFloat(aText.replace(/,/g, "")) -
+                  parseFloat(bText.replace(/,/g, ""))
+              : parseFloat(bText.replace(/,/g, "")) -
+                  parseFloat(aText.replace(/,/g, ""));
+          } else if (field === "Date") {
+            return asc
+              ? new Date(aText) - new Date(bText)
+              : new Date(bText) - new Date(aText);
+          } else {
+            return asc
+              ? aText.localeCompare(bText)
+              : bText.localeCompare(aText);
+          }
+        });
+        dataTableBody.innerHTML = "";
+        rows.forEach((row) => dataTableBody.appendChild(row));
+      }
+
+      // 更新排序圖示
+      function updateSortIcons(field, asc) {
+        document.querySelectorAll(".sort-header").forEach((header) => {
+          const icon = header.querySelector("i");
+          if (header.getAttribute("data-field") === field) {
+            icon.classList.remove("fa-sort", "fa-sort-up", "fa-sort-down");
+            icon.classList.add(asc ? "fa-sort-up" : "fa-sort-down");
+          } else {
+            icon.classList.remove("fa-sort-up", "fa-sort-down");
+            icon.classList.add("fa-sort");
+          }
+        });
+      }
+
+      // 安全處理輸入，防止 XSS
+      function sanitizeHTML(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      // 更新圖表顏色以適應暗黑模式
+      function updateChartColors() {
+        if (incomeChartInstance) {
+          incomeChartInstance.options.plugins.legend.labels.color =
+            document.documentElement.classList.contains("dark")
+              ? "#cbd5e0"
+              : "#1a202c";
+          incomeChartInstance.options.plugins.datalabels.color =
+            document.documentElement.classList.contains("dark")
+              ? "#cbd5e0"
+              : "#1a202c";
+          incomeChartInstance.update();
+        }
+        if (expenseChartInstance) {
+          expenseChartInstance.options.plugins.legend.labels.color =
+            document.documentElement.classList.contains("dark")
+              ? "#cbd5e0"
+              : "#1a202c";
+          expenseChartInstance.options.plugins.datalabels.color =
+            document.documentElement.classList.contains("dark")
+              ? "#cbd5e0"
+              : "#1a202c";
+          expenseChartInstance.update();
+        }
+      }
+
+      // 初始化
+      function init() {
+        // 預設選中柱狀圖
+        const defaultChartBtn = document.querySelector(
+          '.chart-type-btn[data-chart-type="bar"]'
+        );
+        if (defaultChartBtn) {
+          defaultChartBtn.classList.add("active");
+        }
+
+        // 確保文字顏色在淺色模式下可見
+        document.documentElement.classList.add(
+          "transition-colors",
+          "duration-500"
+        );
+      }
+
+      // 執行初始化
+      init();
+    </script>
+  </body>
+</html>
