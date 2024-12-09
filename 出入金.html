@@ -300,8 +300,6 @@
             <h4 id="incomeSummaryTitle">年度總入金</h4>
             <p id="annualIncomeTotal">NT$ 0</p>
           </div>
-          <ul id="annualIncomeList" class="mt-4 text-left"></ul>
-          <ul id="monthlyIncomeList" class="mt-4 text-left hidden"></ul>
         </div>
 
         <h2 class="text-2xl font-bold my-4">出金分析</h2>
@@ -317,8 +315,6 @@
             <h4 id="expenseSummaryTitle">年度總出金</h4>
             <p id="annualExpenseTotal">NT$ 0</p>
           </div>
-          <ul id="annualExpenseList" class="mt-4 text-left"></ul>
-          <ul id="monthlyExpenseList" class="mt-4 text-left hidden"></ul>
         </div>
 
         <h2 id="yearlyTableTitle" class="text-2xl font-bold my-4 hidden">
@@ -478,22 +474,10 @@
       );
       const annualIncomeTotal = document.getElementById("annualIncomeTotal");
       const annualExpenseTotal = document.getElementById("annualExpenseTotal");
-      const annualIncomeList = document.getElementById("annualIncomeList");
-      const annualExpenseList = document.getElementById("annualExpenseList");
-      const monthlyIncomeList = document.getElementById("monthlyIncomeList");
-      const monthlyExpenseList = document.getElementById("monthlyExpenseList");
-      const monthlyTableTitle = document.getElementById("monthlyTableTitle");
-      const monthlyTableContainer = document.getElementById(
-        "monthlyTableContainer"
-      );
+      const yearlyTableWrapper = document.getElementById("yearlyTableWrapper");
       const monthlyTableWrapper = document.getElementById(
         "monthlyTableWrapper"
       );
-      const yearlyTableTitle = document.getElementById("yearlyTableTitle");
-      const yearlyTableContainer = document.getElementById(
-        "yearlyTableContainer"
-      );
-      const yearlyTableWrapper = document.getElementById("yearlyTableWrapper");
       const modeYearlyBtn = document.getElementById("modeYearly");
       const modeMonthlyBtn = document.getElementById("modeMonthly");
       const incomeChartTitle = document.getElementById("incomeChartTitle");
@@ -597,12 +581,8 @@
           tableSearch.value = "";
           annualIncomeTotal.textContent = "NT$ 0";
           annualExpenseTotal.textContent = "NT$ 0";
-          annualIncomeList.innerHTML = "";
-          annualExpenseList.innerHTML = "";
-          monthlyIncomeList.innerHTML = "";
-          monthlyExpenseList.innerHTML = "";
-          monthlyTableContainer.classList.add("hidden");
-          yearlyTableContainer.classList.add("hidden");
+          yearlyTableWrapper.innerHTML = "";
+          monthlyTableWrapper.innerHTML = "";
           finalAnalysisContent.innerHTML = "";
           showNotification("數據已重置", "success");
         }
@@ -634,14 +614,13 @@
               const parsedData = results.data.map((row) => {
                 let dateStr = row.Date;
                 if (dateStr && dateStr.includes("+0800")) {
-                  dateStr = dateStr
-                    .replace(" +0800", "+08:00")
-                    .replace(" ", "T");
+                  dateStr = dateStr.replace(" +0800", "").replace(" ", "T");
                 }
                 return {
                   ...row,
-                  Date: dateStr,
+                  Date: formatDate(new Date(dateStr)),
                   Amount: parseFloat(row.Amount) || 0,
+                  Status: translateStatus(row.Status),
                   Type: type === "income" ? "入金" : "出金",
                 };
               });
@@ -658,9 +637,7 @@
                 return;
               }
 
-              const invalidDates = parsedData.filter((d) =>
-                isNaN(new Date(d.Date))
-              );
+              const invalidDates = parsedData.filter((d) => !d.Date);
               if (invalidDates.length > 0) {
                 showNotification(`文件 ${file.name} 有無效日期格式`, "error");
                 return;
@@ -734,8 +711,6 @@
         years = Array.from(yearsSet).sort((a, b) => a - b);
 
         renderSummary(years, incomeYearlyTotals, expenseYearlyTotals);
-        renderAnnualLists(years, incomeYearlyTotals, expenseYearlyTotals);
-        renderMonthlyLists(years, incomeMonthlyTotals, expenseMonthlyTotals);
         renderCharts(
           years,
           incomeYearlyTotals,
@@ -756,27 +731,29 @@
           expenseChartTitle.textContent = "年度出金分析";
           incomeSummaryTitle.textContent = "年度總入金";
           expenseSummaryTitle.textContent = "年度總出金";
-          annualIncomeList.classList.remove("hidden");
-          annualExpenseList.classList.remove("hidden");
-          monthlyIncomeList.classList.add("hidden");
-          monthlyExpenseList.classList.add("hidden");
-          monthlyTableTitle.classList.add("hidden");
-          monthlyTableContainer.classList.add("hidden");
-          yearlyTableTitle.classList.remove("hidden");
-          yearlyTableContainer.classList.remove("hidden");
+          yearlyTableWrapper.classList.remove("hidden");
+          monthlyTableWrapper.classList.add("hidden");
+          document
+            .getElementById("yearlyTableTitle")
+            .classList.remove("hidden");
+          document.getElementById("monthlyTableTitle").classList.add("hidden");
+          document
+            .getElementById("monthlyTableContainer")
+            .classList.add("hidden");
         } else {
           incomeChartTitle.textContent = "月度入金分析";
           expenseChartTitle.textContent = "月度出金分析";
           incomeSummaryTitle.textContent = "月度總入金";
           expenseSummaryTitle.textContent = "月度總出金";
-          annualIncomeList.classList.add("hidden");
-          annualExpenseList.classList.add("hidden");
-          monthlyIncomeList.classList.remove("hidden");
-          monthlyExpenseList.classList.remove("hidden");
-          monthlyTableTitle.classList.remove("hidden");
-          monthlyTableContainer.classList.remove("hidden");
-          yearlyTableTitle.classList.add("hidden");
-          yearlyTableContainer.classList.add("hidden");
+          yearlyTableWrapper.classList.add("hidden");
+          monthlyTableWrapper.classList.remove("hidden");
+          document.getElementById("yearlyTableTitle").classList.add("hidden");
+          document
+            .getElementById("monthlyTableTitle")
+            .classList.remove("hidden");
+          document
+            .getElementById("monthlyTableContainer")
+            .classList.remove("hidden");
         }
         renderCharts(
           years,
@@ -791,31 +768,86 @@
 
       function renderAnalysisTables() {
         if (years.length === 0) {
-          monthlyTableContainer.classList.add("hidden");
-          yearlyTableContainer.classList.add("hidden");
+          document
+            .getElementById("monthlyTableContainer")
+            .classList.add("hidden");
+          document
+            .getElementById("yearlyTableContainer")
+            .classList.add("hidden");
           return;
         }
 
-        if (currentMode === "monthly") {
-          monthlyTableContainer.classList.remove("hidden");
-          yearlyTableContainer.classList.add("hidden");
+        if (currentMode === "yearly") {
+          document
+            .getElementById("yearlyTableContainer")
+            .classList.remove("hidden");
+          document
+            .getElementById("monthlyTableContainer")
+            .classList.add("hidden");
 
-          let maxIncomeVal = 0,
-            maxExpenseVal = 0;
+          let maxIncomeVal = Math.max(...Object.values(incomeYearlyTotals), 0);
+          let maxExpenseVal = Math.max(
+            ...Object.values(expenseYearlyTotals),
+            0
+          );
+          let html = `
+        <div class="scrollable-table-container">
+          <table class="min-w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-gray-600">
+                <th class="p-2">年度</th>
+                <th class="p-2">入金(NT$)</th>
+                <th class="p-2">出金(NT$)</th>
+                <th class="p-2">入金佔比</th>
+                <th class="p-2">出金佔比</th>
+                <th class="p-2">結餘(NT$)</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
           years.forEach((y) => {
-            if (incomeMonthlyTotals[y]) {
-              for (let m in incomeMonthlyTotals[y]) {
-                if (incomeMonthlyTotals[y][m] > maxIncomeVal)
-                  maxIncomeVal = incomeMonthlyTotals[y][m];
-              }
-            }
-            if (expenseMonthlyTotals[y]) {
-              for (let m in expenseMonthlyTotals[y]) {
-                if (expenseMonthlyTotals[y][m] > maxExpenseVal)
-                  maxExpenseVal = expenseMonthlyTotals[y][m];
-              }
-            }
+            let inc = incomeYearlyTotals[y] || 0;
+            let exp = expenseYearlyTotals[y] || 0;
+            let incRatio = maxIncomeVal > 0 ? (inc / maxIncomeVal) * 100 : 0;
+            let expRatio = maxExpenseVal > 0 ? (exp / maxExpenseVal) * 100 : 0;
+            let balance = inc - exp;
+            html += `
+          <tr class="border-b border-gray-600 hover:bg-gray-700 transition">
+            <td class="p-2">${y}</td>
+            <td class="p-2">${inc.toLocaleString()}</td>
+            <td class="p-2">${exp.toLocaleString()}</td>
+            <td class="p-2"><div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${incRatio}%"></div></div></td>
+            <td class="p-2"><div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${expRatio}%"></div></div></td>
+            <td class="p-2">${balance.toLocaleString()}</td>
+          </tr>
+        `;
           });
+          html += `</tbody></table></div>`;
+          yearlyTableWrapper.innerHTML = html;
+        } else {
+          document
+            .getElementById("monthlyTableContainer")
+            .classList.remove("hidden");
+          document
+            .getElementById("yearlyTableContainer")
+            .classList.add("hidden");
+
+          let maxIncomeVal = Math.max(
+            ...years.flatMap((y) =>
+              incomeMonthlyTotals[y]
+                ? Object.values(incomeMonthlyTotals[y])
+                : []
+            ),
+            0
+          );
+          let maxExpenseVal = Math.max(
+            ...years.flatMap((y) =>
+              expenseMonthlyTotals[y]
+                ? Object.values(expenseMonthlyTotals[y])
+                : []
+            ),
+            0
+          );
           let html = `
         <div class="scrollable-table-container">
           <table class="min-w-full text-left border-collapse">
@@ -827,6 +859,7 @@
                 <th class="p-2">出金(NT$)</th>
                 <th class="p-2">入金佔比</th>
                 <th class="p-2">出金佔比</th>
+                <th class="p-2">結餘(NT$)</th>
               </tr>
             </thead>
             <tbody>
@@ -848,6 +881,7 @@
                   maxIncomeVal > 0 ? (inc / maxIncomeVal) * 100 : 0;
                 let expRatio =
                   maxExpenseVal > 0 ? (exp / maxExpenseVal) * 100 : 0;
+                let balance = inc - exp;
                 html += `
               <tr class="border-b border-gray-600 hover:bg-gray-700 transition">
                 <td class="p-2">${y}</td>
@@ -856,6 +890,7 @@
                 <td class="p-2">${exp.toLocaleString()}</td>
                 <td class="p-2"><div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${incRatio}%"></div></div></td>
                 <td class="p-2"><div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${expRatio}%"></div></div></td>
+                <td class="p-2">${balance.toLocaleString()}</td>
               </tr>
             `;
               }
@@ -863,401 +898,473 @@
           });
           html += `</tbody></table></div>`;
           monthlyTableWrapper.innerHTML = html;
-        } else {
-          yearlyTableContainer.classList.remove("hidden");
-          monthlyTableContainer.classList.add("hidden");
+        }
+      }
 
-          let maxIncomeVal = Math.max(...Object.values(incomeYearlyTotals), 0);
-          let maxExpenseVal = Math.max(
-            ...Object.values(expenseYearlyTotals),
-            0
+      function renderFinalAnalysis() {
+        finalAnalysisContent.innerHTML = "";
+        if (years.length === 0) {
+          finalAnalysisContent.innerHTML = "<p>無數據可分析</p>";
+          return;
+        }
+        let maxIncomeYear = null,
+          maxIncomeValue = -Infinity;
+        let maxExpenseYear = null,
+          maxExpenseValue = -Infinity;
+        for (let y of years) {
+          if (incomeYearlyTotals[y] > maxIncomeValue) {
+            maxIncomeValue = incomeYearlyTotals[y];
+            maxIncomeYear = y;
+          }
+          if (expenseYearlyTotals[y] > maxExpenseValue) {
+            maxExpenseValue = expenseYearlyTotals[y];
+            maxExpenseYear = y;
+          }
+        }
+
+        let analysisText = "";
+        analysisText += `<p class="mb-2">最高年度入金：${maxIncomeYear} 年，NT$ ${maxIncomeValue.toLocaleString()}</p>`;
+        analysisText += `<p class="mb-2">最高年度出金：${maxExpenseYear} 年，NT$ ${maxExpenseValue.toLocaleString()}</p>`;
+
+        const totalIncome = Object.values(incomeYearlyTotals).reduce(
+          (a, b) => a + b,
+          0
+        );
+        const totalExpense = Object.values(expenseYearlyTotals).reduce(
+          (a, b) => a + b,
+          0
+        );
+
+        if (Object.keys(incomeMonthlyTotals).length > 0) {
+          let maxMonthIncomeVal = -Infinity,
+            maxMonthIncomeYear = null,
+            maxMonthIncomeMonth = null;
+          let maxMonthExpenseVal = -Infinity,
+            maxMonthExpenseYear = null,
+            maxMonthExpenseMonth = null;
+
+          for (let y of years) {
+            if (incomeMonthlyTotals[y]) {
+              for (let m in incomeMonthlyTotals[y]) {
+                if (incomeMonthlyTotals[y][m] > maxMonthIncomeVal) {
+                  maxMonthIncomeVal = incomeMonthlyTotals[y][m];
+                  maxMonthIncomeYear = y;
+                  maxMonthIncomeMonth = m;
+                }
+              }
+            }
+            if (expenseMonthlyTotals[y]) {
+              for (let m in expenseMonthlyTotals[y]) {
+                if (expenseMonthlyTotals[y][m] > maxMonthExpenseVal) {
+                  maxMonthExpenseVal = expenseMonthlyTotals[y][m];
+                  maxMonthExpenseYear = y;
+                  maxMonthExpenseMonth = m;
+                }
+              }
+            }
+          }
+          analysisText += `<p class="mb-2">最高月度入金：${maxMonthIncomeYear}年${maxMonthIncomeMonth}月，NT$ ${maxMonthIncomeVal.toLocaleString()}</p>`;
+          analysisText += `<p class="mb-2">最高月度出金：${maxMonthExpenseYear}年${maxMonthExpenseMonth}月，NT$ ${maxMonthExpenseVal.toLocaleString()}</p>`;
+        }
+
+        analysisText += `<p class="mb-2 font-bold">整體分析：</p>`;
+        if (totalExpense > totalIncome) {
+          analysisText += `<p class="mb-2">出金 > 入金，建議控制成本或增加收入。</p>`;
+        } else {
+          analysisText += `<p class="mb-2">入金 > 出金，盈餘良好，可考慮擴大投資或提升預備金。</p>`;
+        }
+
+        finalAnalysisContent.innerHTML = analysisText;
+      }
+
+      function filterTable() {
+        const keyword = tableSearch.value.toLowerCase();
+        const yearSelected = yearFilter.value;
+        const rows = dataTableBody.querySelectorAll("tr");
+        rows.forEach((row) => {
+          const cells = row.querySelectorAll("td");
+          const dateText = cells[0].innerText.toLowerCase();
+          const currencyText = cells[1].innerText.toLowerCase();
+          const amountText = cells[2].innerText.toLowerCase();
+          const statusText = cells[3].innerText.toLowerCase();
+          const typeText = cells[4].innerText.toLowerCase();
+          const rowYear = new Date(cells[0].innerText).getFullYear().toString();
+
+          let visible =
+            (!yearSelected || rowYear === yearSelected) &&
+            (dateText.includes(keyword) ||
+              currencyText.includes(keyword) ||
+              amountText.includes(keyword) ||
+              statusText.includes(keyword) ||
+              typeText.includes(keyword));
+          row.style.display = visible ? "" : "none";
+        });
+      }
+
+      function debounce(func, delay) {
+        let timeout;
+        return function (...args) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+      }
+
+      document.querySelectorAll(".sort-header").forEach((header) => {
+        header.addEventListener("click", () => {
+          const field = header.getAttribute("data-field");
+          sortDirections[field] = !sortDirections[field];
+          sortTable(field, sortDirections[field]);
+          updateSortIcons(field, sortDirections[field]);
+        });
+      });
+
+      function sortTable(field, asc) {
+        let rows = Array.from(dataTableBody.querySelectorAll("tr"));
+        const fieldIndex = { Date: 0, Currency: 1, Amount: 2, Status: 3 }[
+          field
+        ];
+        rows.sort((a, b) => {
+          let aText = a.querySelectorAll("td")[fieldIndex].innerText;
+          let bText = b.querySelectorAll("td")[fieldIndex].innerText;
+          if (field === "Amount") {
+            return asc
+              ? parseFloat(aText.replace(/,/g, "")) -
+                  parseFloat(bText.replace(/,/g, ""))
+              : parseFloat(bText.replace(/,/g, "")) -
+                  parseFloat(aText.replace(/,/g, ""));
+          } else if (field === "Date") {
+            return asc
+              ? new Date(aText) - new Date(bText)
+              : new Date(bText) - new Date(aText);
+          } else {
+            return asc
+              ? aText.localeCompare(bText)
+              : bText.localeCompare(aText);
+          }
+        });
+        dataTableBody.innerHTML = "";
+        rows.forEach((row) => dataTableBody.appendChild(row));
+      }
+
+      function updateSortIcons(field, asc) {
+        document.querySelectorAll(".sort-header").forEach((header) => {
+          const icon = header.querySelector("i");
+          if (header.getAttribute("data-field") === field) {
+            icon.classList.remove("fa-sort", "fa-sort-up", "fa-sort-down");
+            icon.classList.add(asc ? "fa-sort-up" : "fa-sort-down");
+          } else {
+            icon.classList.remove("fa-sort-up", "fa-sort-down");
+            icon.classList.add("fa-sort");
+          }
+        });
+      }
+
+      function sanitizeHTML(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function translateStatus(status) {
+        const statusMap = {
+          Pending: "待處理",
+          Completed: "已完成",
+          Failed: "失敗",
+          // Add more mappings as needed
+        };
+        return statusMap[status] || status;
+      }
+
+      function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function renderCharts(
+        years,
+        incomeYearlyTotals,
+        expenseYearlyTotals,
+        incomeMonthlyTotals,
+        expenseMonthlyTotals
+      ) {
+        if (years.length === 0) return;
+
+        if (currentMode === "yearly") {
+          const incomeValues = years.map((y) =>
+            incomeYearlyTotals[y] > 0 ? incomeYearlyTotals[y] : null
           );
-          let html = `
-        <div class="scrollable-table-container">
-          <table class="min-w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-gray-600">
-                <th class="p-2">年度</th>
-                <th class="p-2">入金(NT$)</th>
-                <th class="p-2">出金(NT$)</th>
-                <th class="p-2">入金佔比</th>
-                <th class="p-2">出金佔比</th>
-              </tr>
-            </thead>
-            <tbody>
-        `;
-          years.forEach((y) => {
-            let inc = incomeYearlyTotals[y] || 0;
-            let exp = expenseYearlyTotals[y] || 0;
-            let incRatio = maxIncomeVal > 0 ? (inc / maxIncomeVal) * 100 : 0;
-            let expRatio = maxExpenseVal > 0 ? (exp / maxExpenseVal) * 100 : 0;
-            html += `
-          <tr class="border-b border-gray-600 hover:bg-gray-700 transition">
-            <td class="p-2">${y}</td>
-            <td class="p-2">${inc.toLocaleString()}</td>
-            <td class="p-2">${exp.toLocaleString()}</td>
-            <td class="p-2"><div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${incRatio}%"></div></div></td>
-            <td class="p-2"><div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${expRatio}%"></div></div></td>
-          </tr>
-        `;
+          const expenseValues = years.map((y) =>
+            expenseYearlyTotals[y] > 0 ? expenseYearlyTotals[y] : null
+          );
+
+          if (incomeChartInstance) incomeChartInstance.destroy();
+          if (expenseChartInstance) expenseChartInstance.destroy();
+
+          const incomeCtx = document
+            .getElementById("incomeChart")
+            .getContext("2d");
+          const expenseCtx = document
+            .getElementById("expenseChart")
+            .getContext("2d");
+
+          const isPie = currentChartType === "pie";
+
+          const scalesConfig = isPie
+            ? {}
+            : {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: "#cbd5e0",
+                    callback: function (value) {
+                      return "NT$ " + value.toLocaleString();
+                    },
+                  },
+                  grid: {
+                    color: "#4a5568",
+                  },
+                },
+                x: {
+                  ticks: {
+                    color: "#cbd5e0",
+                  },
+                  grid: { color: "transparent" },
+                },
+              };
+
+          const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: "top",
+                labels: {
+                  color: "#cbd5e0",
+                },
+              },
+              tooltip: {
+                enabled: true,
+                callbacks: {
+                  label: function (context) {
+                    let label = context.dataset.label || "";
+                    if (label) label += ": ";
+                    if (context.parsed !== null) {
+                      label += "NT$ " + context.parsed.toLocaleString();
+                    }
+                    return label;
+                  },
+                },
+              },
+              datalabels: {
+                display: true,
+                formatter: function (value) {
+                  return value !== null ? "NT$ " + value.toLocaleString() : "";
+                },
+                color: "#cbd5e0",
+                font: { weight: "bold" },
+                align: isPie ? "center" : "end",
+                anchor: isPie ? "center" : "end",
+              },
+            },
+            scales: scalesConfig,
+          };
+
+          const incomeDataChart = {
+            labels: years,
+            datasets: [
+              {
+                label: "年度入金",
+                data: incomeValues,
+                backgroundColor: isPie
+                  ? getColorArray(years.length)
+                  : "rgba(59,130,246,0.6)",
+                borderColor: "rgba(59,130,246,1)",
+                borderWidth: 1,
+                fill: !isPie,
+                tension: currentChartType === "line" ? 0.3 : 0,
+              },
+            ],
+          };
+
+          const expenseDataChart = {
+            labels: years,
+            datasets: [
+              {
+                label: "年度出金",
+                data: expenseValues,
+                backgroundColor: isPie
+                  ? getColorArray(years.length)
+                  : "rgba(220,38,38,0.6)",
+                borderColor: "rgba(220,38,38,1)",
+                borderWidth: 1,
+                fill: !isPie,
+                tension: currentChartType === "line" ? 0.3 : 0,
+              },
+            ],
+          };
+
+          incomeChartInstance = new Chart(incomeCtx, {
+            type: currentChartType,
+            data: incomeDataChart,
+            options: commonOptions,
+            plugins: [ChartDataLabels],
           });
-          html += `</tbody></table></div>`;
-          yearlyTableWrapper.innerHTML = html;
-        }
-      }
 
-      function renderFinalAnalysis() {
-        finalAnalysisContent.innerHTML = "";
-        if (years.length === 0) {
-          finalAnalysisContent.innerHTML = "<p>無數據可分析</p>";
-          return;
-        }
-        let maxIncomeYear = null,
-          maxIncomeValue = -Infinity;
-        let maxExpenseYear = null,
-          maxExpenseValue = -Infinity;
-        for (let y of years) {
-          if (incomeYearlyTotals[y] > maxIncomeValue) {
-            maxIncomeValue = incomeYearlyTotals[y];
-            maxIncomeYear = y;
-          }
-          if (expenseYearlyTotals[y] > maxExpenseValue) {
-            maxExpenseValue = expenseYearlyTotals[y];
-            maxExpenseYear = y;
-          }
-        }
-
-        let analysisText = "";
-        analysisText += `<p class="mb-2">最高年度入金：${maxIncomeYear} 年，NT$ ${maxIncomeValue.toLocaleString()}</p>`;
-        analysisText += `<p class="mb-2">最高年度出金：${maxExpenseYear} 年，NT$ ${maxExpenseValue.toLocaleString()}</p>`;
-
-        const totalIncome = Object.values(incomeYearlyTotals).reduce(
-          (a, b) => a + b,
-          0
-        );
-        const totalExpense = Object.values(expenseYearlyTotals).reduce(
-          (a, b) => a + b,
-          0
-        );
-
-        if (Object.keys(incomeMonthlyTotals).length > 0) {
-          let maxMonthIncomeVal = -Infinity,
-            maxMonthIncomeYear = null,
-            maxMonthIncomeMonth = null;
-          let maxMonthExpenseVal = -Infinity,
-            maxMonthExpenseYear = null,
-            maxMonthExpenseMonth = null;
-
-          for (let y of years) {
-            if (incomeMonthlyTotals[y]) {
-              for (let m in incomeMonthlyTotals[y]) {
-                if (incomeMonthlyTotals[y][m] > maxMonthIncomeVal) {
-                  maxMonthIncomeVal = incomeMonthlyTotals[y][m];
-                  maxMonthIncomeYear = y;
-                  maxMonthIncomeMonth = m;
-                }
-              }
-            }
-            if (expenseMonthlyTotals[y]) {
-              for (let m in expenseMonthlyTotals[y]) {
-                if (expenseMonthlyTotals[y][m] > maxMonthExpenseVal) {
-                  maxMonthExpenseVal = expenseMonthlyTotals[y][m];
-                  maxMonthExpenseYear = y;
-                  maxMonthExpenseMonth = m;
-                }
-              }
-            }
-          }
-          analysisText += `<p class="mb-2">最高月度入金：${maxMonthIncomeYear}年${maxMonthIncomeMonth}月，NT$ ${maxMonthIncomeVal.toLocaleString()}</p>`;
-          analysisText += `<p class="mb-2">最高月度出金：${maxMonthExpenseYear}年${maxMonthExpenseMonth}月，NT$ ${maxMonthExpenseVal.toLocaleString()}</p>`;
-        }
-
-        analysisText += `<p class="mb-2 font-bold">整體分析：</p>`;
-        if (totalExpense > totalIncome) {
-          analysisText += `<p class="mb-2">出金 > 入金，建議控制成本或增加收入。</p>`;
+          expenseChartInstance = new Chart(expenseCtx, {
+            type: currentChartType,
+            data: expenseDataChart,
+            options: commonOptions,
+            plugins: [ChartDataLabels],
+          });
         } else {
-          analysisText += `<p class="mb-2">入金 > 出金，盈餘良好，可考慮擴大投資或提升預備金。</p>`;
-        }
+          // Monthly Mode
+          const allMonths = [];
+          years.forEach((y) => {
+            for (let m = 1; m <= 12; m++) {
+              allMonths.push(`${y}-${m.toString().padStart(2, "0")}`);
+            }
+          });
 
-        finalAnalysisContent.innerHTML = analysisText;
-      }
+          const incomeMonthlyValues = allMonths.map((ym) => {
+            const [y, m] = ym.split("-");
+            return (incomeMonthlyTotals[y] && incomeMonthlyTotals[y][m]) > 0
+              ? incomeMonthlyTotals[y][m]
+              : null;
+          });
+          const expenseMonthlyValues = allMonths.map((ym) => {
+            const [y, m] = ym.split("-");
+            return (expenseMonthlyTotals[y] && expenseMonthlyTotals[y][m]) > 0
+              ? expenseMonthlyTotals[y][m]
+              : null;
+          });
 
-      function filterTable() {
-        const keyword = tableSearch.value.toLowerCase();
-        const yearSelected = yearFilter.value;
-        const rows = dataTableBody.querySelectorAll("tr");
-        rows.forEach((row) => {
-          const cells = row.querySelectorAll("td");
-          const dateText = cells[0].innerText.toLowerCase();
-          const currencyText = cells[1].innerText.toLowerCase();
-          const amountText = cells[2].innerText.toLowerCase();
-          const statusText = cells[3].innerText.toLowerCase();
-          const typeText = cells[4].innerText.toLowerCase();
-          const rowYear = new Date(cells[0].innerText).getFullYear().toString();
+          if (incomeChartInstance) incomeChartInstance.destroy();
+          if (expenseChartInstance) expenseChartInstance.destroy();
 
-          let visible =
-            (!yearSelected || rowYear === yearSelected) &&
-            (dateText.includes(keyword) ||
-              currencyText.includes(keyword) ||
-              amountText.includes(keyword) ||
-              statusText.includes(keyword) ||
-              typeText.includes(keyword));
-          row.style.display = visible ? "" : "none";
-        });
-      }
+          const incomeCtx = document
+            .getElementById("incomeChart")
+            .getContext("2d");
+          const expenseCtx = document
+            .getElementById("expenseChart")
+            .getContext("2d");
 
-      function debounce(func, delay) {
-        let timeout;
-        return function (...args) {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => func.apply(this, args), delay);
-        };
-      }
+          const isPie = currentChartType === "pie";
 
-      document.querySelectorAll(".sort-header").forEach((header) => {
-        header.addEventListener("click", () => {
-          const field = header.getAttribute("data-field");
-          sortDirections[field] = !sortDirections[field];
-          sortTable(field, sortDirections[field]);
-          updateSortIcons(field, sortDirections[field]);
-        });
-      });
-
-      function sortTable(field, asc) {
-        let rows = Array.from(dataTableBody.querySelectorAll("tr"));
-        const fieldIndex = { Date: 0, Currency: 1, Amount: 2, Status: 3 }[
-          field
-        ];
-        rows.sort((a, b) => {
-          let aText = a.querySelectorAll("td")[fieldIndex].innerText;
-          let bText = b.querySelectorAll("td")[fieldIndex].innerText;
-          if (field === "Amount") {
-            return asc
-              ? parseFloat(aText.replace(/,/g, "")) -
-                  parseFloat(bText.replace(/,/g, ""))
-              : parseFloat(bText.replace(/,/g, "")) -
-                  parseFloat(aText.replace(/,/g, ""));
-          } else if (field === "Date") {
-            return asc
-              ? new Date(aText) - new Date(bText)
-              : new Date(bText) - new Date(aText);
-          } else {
-            return asc
-              ? aText.localeCompare(bText)
-              : bText.localeCompare(aText);
-          }
-        });
-        dataTableBody.innerHTML = "";
-        rows.forEach((row) => dataTableBody.appendChild(row));
-      }
-
-      function updateSortIcons(field, asc) {
-        document.querySelectorAll(".sort-header").forEach((header) => {
-          const icon = header.querySelector("i");
-          if (header.getAttribute("data-field") === field) {
-            icon.classList.remove("fa-sort", "fa-sort-up", "fa-sort-down");
-            icon.classList.add(asc ? "fa-sort-up" : "fa-sort-down");
-          } else {
-            icon.classList.remove("fa-sort-up", "fa-sort-down");
-            icon.classList.add("fa-sort");
-          }
-        });
-      }
-
-      function sanitizeHTML(str) {
-        return str
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
-
-      function updateChartColors() {
-        [incomeChartInstance, expenseChartInstance].forEach((instance) => {
-          if (instance) {
-            instance.options.plugins.legend.labels.color = "#cbd5e0";
-            instance.options.plugins.datalabels.color = "#cbd5e0";
-            instance.update();
-          }
-        });
-      }
-
-      function renderYearFilter(years) {
-        yearFilter.innerHTML = `<option value="">篩選年度</option>`;
-        years.forEach((year) => {
-          const option = document.createElement("option");
-          option.value = year;
-          option.textContent = year;
-          yearFilter.appendChild(option);
-        });
-      }
-
-      function getMonthlyLabels(years) {
-        const labels = [];
-        for (let month = 1; month <= 12; month++) {
-          labels.push(`${month}月`);
-        }
-        return labels;
-      }
-
-      function renderCharts(
-        years,
-        incomeYearlyTotals,
-        expenseYearlyTotals,
-        incomeMonthlyTotals,
-        expenseMonthlyTotals
-      ) {
-        if (years.length === 0) return;
-
-        const incomeValues = years.map((y) => incomeYearlyTotals[y] || 0);
-        const expenseValues = years.map((y) => expenseYearlyTotals[y] || 0);
-
-        if (incomeChartInstance) incomeChartInstance.destroy();
-        if (expenseChartInstance) expenseChartInstance.destroy();
-
-        const incomeCtx = document
-          .getElementById("incomeChart")
-          .getContext("2d");
-        const expenseCtx = document
-          .getElementById("expenseChart")
-          .getContext("2d");
-
-        const incomeColorArray = [
-          "rgba(59,130,246,0.6)",
-          "rgba(99,102,241,0.6)",
-          "rgba(139,92,246,0.6)",
-          "rgba(167,139,250,0.6)",
-          "rgba(192,132,252,0.6)",
-          "rgba(225, 29, 72, 0.6)",
-          "rgba(234, 179, 8, 0.6)",
-          "rgba(34, 197, 94, 0.6)",
-          "rgba(14, 165, 233, 0.6)",
-          "rgba(124, 58, 237, 0.6)",
-        ];
-        const expenseColorArray = [
-          "rgba(220,38,38,0.6)",
-          "rgba(248,113,113,0.6)",
-          "rgba(239,68,68,0.6)",
-          "rgba(244,114,182,0.6)",
-          "rgba(249,115,22,0.6)",
-          "rgba(74, 222, 128, 0.6)",
-          "rgba(251, 191, 36, 0.6)",
-          "rgba(124, 58, 237, 0.6)",
-          "rgba(14, 165, 233, 0.6)",
-          "rgba(6, 182, 212, 0.6)",
-        ];
-
-        const isPie = currentChartType === "pie";
-
-        const scalesConfig = isPie
-          ? {}
-          : {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  color: "#cbd5e0",
-                  callback: function (value) {
-                    return "NT$ " + value.toLocaleString();
+          const scalesConfig = isPie
+            ? {}
+            : {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: "#cbd5e0",
+                    callback: function (value) {
+                      return "NT$ " + value.toLocaleString();
+                    },
+                  },
+                  grid: {
+                    color: "#4a5568",
                   },
                 },
-                grid: {
-                  color: "#4a5568",
+                x: {
+                  ticks: {
+                    color: "#cbd5e0",
+                  },
+                  grid: { color: "transparent" },
                 },
-              },
-              x: {
-                ticks: {
+              };
+
+          const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: "top",
+                labels: {
                   color: "#cbd5e0",
                 },
-                grid: { color: "transparent" },
               },
-            };
-
-        const commonOptions = {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: true,
-              position: "top",
-              labels: {
-                color: "#cbd5e0",
-              },
-            },
-            tooltip: {
-              enabled: true,
-              callbacks: {
-                label: function (context) {
-                  let label = context.dataset.label || "";
-                  if (label) label += ": ";
-                  if (context.parsed !== null) {
-                    label += "NT$ " + context.parsed.toLocaleString();
-                  }
-                  return label;
+              tooltip: {
+                enabled: true,
+                callbacks: {
+                  label: function (context) {
+                    let label = context.dataset.label || "";
+                    if (label) label += ": ";
+                    if (context.parsed !== null) {
+                      label += "NT$ " + context.parsed.toLocaleString();
+                    }
+                    return label;
+                  },
                 },
               },
-            },
-            datalabels: {
-              display: true,
-              formatter: function (value) {
-                return "NT$ " + value.toLocaleString();
+              datalabels: {
+                display: true,
+                formatter: function (value) {
+                  return value !== null ? "NT$ " + value.toLocaleString() : "";
+                },
+                color: "#cbd5e0",
+                font: { weight: "bold" },
+                align: isPie ? "center" : "end",
+                anchor: isPie ? "center" : "end",
               },
-              color: "#cbd5e0",
-              font: { weight: "bold" },
-              align: isPie ? "center" : "end",
-              anchor: isPie ? "center" : "end",
             },
-          },
-          scales: scalesConfig,
-        };
+            scales: scalesConfig,
+          };
 
-        const incomeDataChart = {
-          labels: years,
-          datasets: [
-            {
-              label: "年度入金",
-              data: incomeValues,
-              backgroundColor: isPie
-                ? incomeColorArray.slice(0, years.length)
-                : "rgba(59,130,246,0.6)",
-              borderColor: "rgba(59,130,246,1)",
-              borderWidth: 1,
-              fill: !isPie,
-              tension: currentChartType === "line" ? 0.3 : 0,
-            },
-          ],
-        };
+          const incomeDataChart = {
+            labels: allMonths,
+            datasets: [
+              {
+                label: "月度入金",
+                data: incomeMonthlyValues,
+                backgroundColor: isPie
+                  ? getColorArray(allMonths.length)
+                  : "rgba(59,130,246,0.6)",
+                borderColor: "rgba(59,130,246,1)",
+                borderWidth: 1,
+                fill: !isPie,
+                tension: currentChartType === "line" ? 0.3 : 0,
+              },
+            ],
+          };
 
-        const expenseDataChart = {
-          labels: years,
-          datasets: [
-            {
-              label: "年度出金",
-              data: expenseValues,
-              backgroundColor: isPie
-                ? expenseColorArray.slice(0, years.length)
-                : "rgba(220,38,38,0.6)",
-              borderColor: "rgba(220,38,38,1)",
-              borderWidth: 1,
-              fill: !isPie,
-              tension: currentChartType === "line" ? 0.3 : 0,
-            },
-          ],
-        };
+          const expenseDataChart = {
+            labels: allMonths,
+            datasets: [
+              {
+                label: "月度出金",
+                data: expenseMonthlyValues,
+                backgroundColor: isPie
+                  ? getColorArray(allMonths.length)
+                  : "rgba(220,38,38,0.6)",
+                borderColor: "rgba(220,38,38,1)",
+                borderWidth: 1,
+                fill: !isPie,
+                tension: currentChartType === "line" ? 0.3 : 0,
+              },
+            ],
+          };
 
-        incomeChartInstance = new Chart(incomeCtx, {
-          type: currentChartType,
-          data: incomeDataChart,
-          options: commonOptions,
-          plugins: [ChartDataLabels],
-        });
+          incomeChartInstance = new Chart(incomeCtx, {
+            type: currentChartType,
+            data: incomeDataChart,
+            options: commonOptions,
+            plugins: [ChartDataLabels],
+          });
 
-        expenseChartInstance = new Chart(expenseCtx, {
-          type: currentChartType,
-          data: expenseDataChart,
-          options: commonOptions,
-          plugins: [ChartDataLabels],
-        });
+          expenseChartInstance = new Chart(expenseCtx, {
+            type: currentChartType,
+            data: expenseDataChart,
+            options: commonOptions,
+            plugins: [ChartDataLabels],
+          });
+        }
       }
 
       function getColorArray(length) {
@@ -1316,7 +1423,7 @@
           (a, b) => a + b,
           0
         );
-        const balance = totalExpense - totalIncome;
+        const balance = totalIncome - totalExpense;
         const summaryText = `
       <div class="w-full flex flex-col items-center">
           <h4 class="font-bold text-lg mb-2">總入金</h4>
@@ -1335,746 +1442,6 @@
         summaryTextContainer.innerHTML = summaryText;
         annualIncomeTotal.textContent = `NT$ ${totalIncome.toLocaleString()}`;
         annualExpenseTotal.textContent = `NT$ ${totalExpense.toLocaleString()}`;
-      }
-
-      function renderAnnualLists(
-        years,
-        incomeYearlyTotals,
-        expenseYearlyTotals
-      ) {
-        annualIncomeList.innerHTML =
-          "<li class='mb-2 font-bold'>各年度入金：</li>";
-        years.forEach((y) => {
-          const li = document.createElement("li");
-          li.textContent = `${y} 年：NT$ ${incomeYearlyTotals[
-            y
-          ].toLocaleString()}`;
-          annualIncomeList.appendChild(li);
-        });
-
-        annualExpenseList.innerHTML =
-          "<li class='mb-2 font-bold'>各年度出金：</li>";
-        years.forEach((y) => {
-          const li = document.createElement("li");
-          li.textContent = `${y} 年：NT$ ${expenseYearlyTotals[
-            y
-          ].toLocaleString()}`;
-          annualExpenseList.appendChild(li);
-        });
-      }
-
-      function renderMonthlyLists(
-        years,
-        incomeMonthlyTotals,
-        expenseMonthlyTotals
-      ) {
-        monthlyIncomeList.innerHTML =
-          "<li class='mb-2 font-bold'>各年度各月份入金：</li>";
-        monthlyExpenseList.innerHTML =
-          "<li class='mb-2 font-bold'>各年度各月份出金：</li>";
-
-        years.forEach((y) => {
-          if (incomeMonthlyTotals[y]) {
-            Object.keys(incomeMonthlyTotals[y])
-              .sort((a, b) => a - b)
-              .forEach((m) => {
-                const val = incomeMonthlyTotals[y][m];
-                if (val > 0) {
-                  // 只有入金金額大於0的月份才顯示
-                  const li = document.createElement("li");
-                  li.textContent = `${y}年${m}月：NT$ ${val.toLocaleString()}`;
-                  monthlyIncomeList.appendChild(li);
-                }
-              });
-          }
-          if (expenseMonthlyTotals[y]) {
-            Object.keys(expenseMonthlyTotals[y])
-              .sort((a, b) => a - b)
-              .forEach((m) => {
-                const val = expenseMonthlyTotals[y][m];
-                if (val > 0) {
-                  // 只有出金金額大於0的月份才顯示
-                  const li = document.createElement("li");
-                  li.textContent = `${y}年${m}月：NT$ ${val.toLocaleString()}`;
-                  monthlyExpenseList.appendChild(li);
-                }
-              });
-          }
-        });
-      }
-
-      function renderFinalAnalysis() {
-        finalAnalysisContent.innerHTML = "";
-        if (years.length === 0) {
-          finalAnalysisContent.innerHTML = "<p>無數據可分析</p>";
-          return;
-        }
-        let maxIncomeYear = null,
-          maxIncomeValue = -Infinity;
-        let maxExpenseYear = null,
-          maxExpenseValue = -Infinity;
-        for (let y of years) {
-          if (incomeYearlyTotals[y] > maxIncomeValue) {
-            maxIncomeValue = incomeYearlyTotals[y];
-            maxIncomeYear = y;
-          }
-          if (expenseYearlyTotals[y] > maxExpenseValue) {
-            maxExpenseValue = expenseYearlyTotals[y];
-            maxExpenseYear = y;
-          }
-        }
-
-        let analysisText = "";
-        analysisText += `<p class="mb-2">最高年度入金：${maxIncomeYear} 年，NT$ ${maxIncomeValue.toLocaleString()}</p>`;
-        analysisText += `<p class="mb-2">最高年度出金：${maxExpenseYear} 年，NT$ ${maxExpenseValue.toLocaleString()}</p>`;
-
-        const totalIncome = Object.values(incomeYearlyTotals).reduce(
-          (a, b) => a + b,
-          0
-        );
-        const totalExpense = Object.values(expenseYearlyTotals).reduce(
-          (a, b) => a + b,
-          0
-        );
-
-        if (Object.keys(incomeMonthlyTotals).length > 0) {
-          let maxMonthIncomeVal = -Infinity,
-            maxMonthIncomeYear = null,
-            maxMonthIncomeMonth = null;
-          let maxMonthExpenseVal = -Infinity,
-            maxMonthExpenseYear = null,
-            maxMonthExpenseMonth = null;
-
-          for (let y of years) {
-            if (incomeMonthlyTotals[y]) {
-              for (let m in incomeMonthlyTotals[y]) {
-                if (incomeMonthlyTotals[y][m] > maxMonthIncomeVal) {
-                  maxMonthIncomeVal = incomeMonthlyTotals[y][m];
-                  maxMonthIncomeYear = y;
-                  maxMonthIncomeMonth = m;
-                }
-              }
-            }
-            if (expenseMonthlyTotals[y]) {
-              for (let m in expenseMonthlyTotals[y]) {
-                if (expenseMonthlyTotals[y][m] > maxMonthExpenseVal) {
-                  maxMonthExpenseVal = expenseMonthlyTotals[y][m];
-                  maxMonthExpenseYear = y;
-                  maxMonthExpenseMonth = m;
-                }
-              }
-            }
-          }
-          analysisText += `<p class="mb-2">最高月度入金：${maxMonthIncomeYear}年${maxMonthIncomeMonth}月，NT$ ${maxMonthIncomeVal.toLocaleString()}</p>`;
-          analysisText += `<p class="mb-2">最高月度出金：${maxMonthExpenseYear}年${maxMonthExpenseMonth}月，NT$ ${maxMonthExpenseVal.toLocaleString()}</p>`;
-        }
-
-        analysisText += `<p class="mb-2 font-bold">整體分析：</p>`;
-        if (totalExpense > totalIncome) {
-          analysisText += `<p class="mb-2">出金 > 入金，建議控制成本或增加收入。</p>`;
-        } else {
-          analysisText += `<p class="mb-2">入金 > 出金，盈餘良好，可考慮擴大投資或提升預備金。</p>`;
-        }
-
-        finalAnalysisContent.innerHTML = analysisText;
-      }
-
-      function filterTable() {
-        const keyword = tableSearch.value.toLowerCase();
-        const yearSelected = yearFilter.value;
-        const rows = dataTableBody.querySelectorAll("tr");
-        rows.forEach((row) => {
-          const cells = row.querySelectorAll("td");
-          const dateText = cells[0].innerText.toLowerCase();
-          const currencyText = cells[1].innerText.toLowerCase();
-          const amountText = cells[2].innerText.toLowerCase();
-          const statusText = cells[3].innerText.toLowerCase();
-          const typeText = cells[4].innerText.toLowerCase();
-          const rowYear = new Date(cells[0].innerText).getFullYear().toString();
-
-          let visible =
-            (!yearSelected || rowYear === yearSelected) &&
-            (dateText.includes(keyword) ||
-              currencyText.includes(keyword) ||
-              amountText.includes(keyword) ||
-              statusText.includes(keyword) ||
-              typeText.includes(keyword));
-          row.style.display = visible ? "" : "none";
-        });
-      }
-
-      function debounce(func, delay) {
-        let timeout;
-        return function (...args) {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => func.apply(this, args), delay);
-        };
-      }
-
-      document.querySelectorAll(".sort-header").forEach((header) => {
-        header.addEventListener("click", () => {
-          const field = header.getAttribute("data-field");
-          sortDirections[field] = !sortDirections[field];
-          sortTable(field, sortDirections[field]);
-          updateSortIcons(field, sortDirections[field]);
-        });
-      });
-
-      function sortTable(field, asc) {
-        let rows = Array.from(dataTableBody.querySelectorAll("tr"));
-        const fieldIndex = { Date: 0, Currency: 1, Amount: 2, Status: 3 }[
-          field
-        ];
-        rows.sort((a, b) => {
-          let aText = a.querySelectorAll("td")[fieldIndex].innerText;
-          let bText = b.querySelectorAll("td")[fieldIndex].innerText;
-          if (field === "Amount") {
-            return asc
-              ? parseFloat(aText.replace(/,/g, "")) -
-                  parseFloat(bText.replace(/,/g, ""))
-              : parseFloat(bText.replace(/,/g, "")) -
-                  parseFloat(aText.replace(/,/g, ""));
-          } else if (field === "Date") {
-            return asc
-              ? new Date(aText) - new Date(bText)
-              : new Date(bText) - new Date(aText);
-          } else {
-            return asc
-              ? aText.localeCompare(bText)
-              : bText.localeCompare(aText);
-          }
-        });
-        dataTableBody.innerHTML = "";
-        rows.forEach((row) => dataTableBody.appendChild(row));
-      }
-
-      function updateSortIcons(field, asc) {
-        document.querySelectorAll(".sort-header").forEach((header) => {
-          const icon = header.querySelector("i");
-          if (header.getAttribute("data-field") === field) {
-            icon.classList.remove("fa-sort", "fa-sort-up", "fa-sort-down");
-            icon.classList.add(asc ? "fa-sort-up" : "fa-sort-down");
-          } else {
-            icon.classList.remove("fa-sort-up", "fa-sort-down");
-            icon.classList.add("fa-sort");
-          }
-        });
-      }
-
-      function sanitizeHTML(str) {
-        return str
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
-
-      function updateChartColors() {
-        [incomeChartInstance, expenseChartInstance].forEach((instance) => {
-          if (instance) {
-            instance.options.plugins.legend.labels.color = "#cbd5e0";
-            instance.options.plugins.datalabels.color = "#cbd5e0";
-            instance.update();
-          }
-        });
-      }
-
-      function renderYearFilter(years) {
-        yearFilter.innerHTML = `<option value="">篩選年度</option>`;
-        years.forEach((year) => {
-          const option = document.createElement("option");
-          option.value = year;
-          option.textContent = year;
-          yearFilter.appendChild(option);
-        });
-      }
-
-      function getMonthlyLabels(years) {
-        const labels = [];
-        for (let month = 1; month <= 12; month++) {
-          labels.push(`${month}月`);
-        }
-        return labels;
-      }
-
-      function renderCharts(
-        years,
-        incomeYearlyTotals,
-        expenseYearlyTotals,
-        incomeMonthlyTotals,
-        expenseMonthlyTotals
-      ) {
-        if (years.length === 0) return;
-
-        const incomeValues = years.map((y) => incomeYearlyTotals[y] || 0);
-        const expenseValues = years.map((y) => expenseYearlyTotals[y] || 0);
-
-        if (incomeChartInstance) incomeChartInstance.destroy();
-        if (expenseChartInstance) expenseChartInstance.destroy();
-
-        const incomeCtx = document
-          .getElementById("incomeChart")
-          .getContext("2d");
-        const expenseCtx = document
-          .getElementById("expenseChart")
-          .getContext("2d");
-
-        const incomeColorArray = [
-          "rgba(59,130,246,0.6)",
-          "rgba(99,102,241,0.6)",
-          "rgba(139,92,246,0.6)",
-          "rgba(167,139,250,0.6)",
-          "rgba(192,132,252,0.6)",
-          "rgba(225, 29, 72, 0.6)",
-          "rgba(234, 179, 8, 0.6)",
-          "rgba(34, 197, 94, 0.6)",
-          "rgba(14, 165, 233, 0.6)",
-          "rgba(124, 58, 237, 0.6)",
-        ];
-        const expenseColorArray = [
-          "rgba(220,38,38,0.6)",
-          "rgba(248,113,113,0.6)",
-          "rgba(239,68,68,0.6)",
-          "rgba(244,114,182,0.6)",
-          "rgba(249,115,22,0.6)",
-          "rgba(74, 222, 128, 0.6)",
-          "rgba(251, 191, 36, 0.6)",
-          "rgba(124, 58, 237, 0.6)",
-          "rgba(14, 165, 233, 0.6)",
-          "rgba(6, 182, 212, 0.6)",
-        ];
-
-        const isPie = currentChartType === "pie";
-
-        const scalesConfig = isPie
-          ? {}
-          : {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  color: "#cbd5e0",
-                  callback: function (value) {
-                    return "NT$ " + value.toLocaleString();
-                  },
-                },
-                grid: {
-                  color: "#4a5568",
-                },
-              },
-              x: {
-                ticks: {
-                  color: "#cbd5e0",
-                },
-                grid: { color: "transparent" },
-              },
-            };
-
-        const commonOptions = {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: true,
-              position: "top",
-              labels: {
-                color: "#cbd5e0",
-              },
-            },
-            tooltip: {
-              enabled: true,
-              callbacks: {
-                label: function (context) {
-                  let label = context.dataset.label || "";
-                  if (label) label += ": ";
-                  if (context.parsed !== null) {
-                    label += "NT$ " + context.parsed.toLocaleString();
-                  }
-                  return label;
-                },
-              },
-            },
-            datalabels: {
-              display: true,
-              formatter: function (value) {
-                return "NT$ " + value.toLocaleString();
-              },
-              color: "#cbd5e0",
-              font: { weight: "bold" },
-              align: isPie ? "center" : "end",
-              anchor: isPie ? "center" : "end",
-            },
-          },
-          scales: scalesConfig,
-        };
-
-        const incomeDataChart = {
-          labels: years,
-          datasets: [
-            {
-              label: "年度入金",
-              data: incomeValues,
-              backgroundColor: isPie
-                ? incomeColorArray.slice(0, years.length)
-                : "rgba(59,130,246,0.6)",
-              borderColor: "rgba(59,130,246,1)",
-              borderWidth: 1,
-              fill: !isPie,
-              tension: currentChartType === "line" ? 0.3 : 0,
-            },
-          ],
-        };
-
-        const expenseDataChart = {
-          labels: years,
-          datasets: [
-            {
-              label: "年度出金",
-              data: expenseValues,
-              backgroundColor: isPie
-                ? expenseColorArray.slice(0, years.length)
-                : "rgba(220,38,38,0.6)",
-              borderColor: "rgba(220,38,38,1)",
-              borderWidth: 1,
-              fill: !isPie,
-              tension: currentChartType === "line" ? 0.3 : 0,
-            },
-          ],
-        };
-
-        incomeChartInstance = new Chart(incomeCtx, {
-          type: currentChartType,
-          data: incomeDataChart,
-          options: commonOptions,
-          plugins: [ChartDataLabels],
-        });
-
-        expenseChartInstance = new Chart(expenseCtx, {
-          type: currentChartType,
-          data: expenseDataChart,
-          options: commonOptions,
-          plugins: [ChartDataLabels],
-        });
-      }
-
-      function getColorArray(length) {
-        const colors = [
-          "#3b82f6",
-          "#60a5fa",
-          "#93c5fd",
-          "#bfdbfe",
-          "#e0f2fe",
-          "#ec4899",
-          "#f472b6",
-          "#34d399",
-          "#10b981",
-          "#a855f7",
-        ];
-        let arr = [];
-        for (let i = 0; i < length; i++) {
-          arr.push(colors[i % colors.length]);
-        }
-        return arr;
-      }
-
-      function renderTable(data) {
-        dataTableBody.innerHTML = "";
-        data.forEach((d) => {
-          const tr = document.createElement("tr");
-          tr.className =
-            "border-b border-gray-600 hover:bg-gray-700 transition";
-          tr.innerHTML = `
-        <td class="p-2">${sanitizeHTML(d.Date)}</td>
-        <td class="p-2">${sanitizeHTML(d.Currency)}</td>
-        <td class="p-2">${sanitizeHTML(d.Amount.toLocaleString())}</td>
-        <td class="p-2">${sanitizeHTML(d.Status)}</td>
-        <td class="p-2">${sanitizeHTML(d.Type)}</td>
-      `;
-          dataTableBody.appendChild(tr);
-        });
-      }
-
-      function renderYearFilter(years) {
-        yearFilter.innerHTML = `<option value="">篩選年度</option>`;
-        years.forEach((year) => {
-          const option = document.createElement("option");
-          option.value = year;
-          option.textContent = year;
-          yearFilter.appendChild(option);
-        });
-      }
-
-      function renderSummary(years, incomeYearlyTotals, expenseYearlyTotals) {
-        const totalIncome = Object.values(incomeYearlyTotals).reduce(
-          (a, b) => a + b,
-          0
-        );
-        const totalExpense = Object.values(expenseYearlyTotals).reduce(
-          (a, b) => a + b,
-          0
-        );
-        const balance = totalExpense - totalIncome;
-        const summaryText = `
-      <div class="w-full flex flex-col items-center">
-          <h4 class="font-bold text-lg mb-2">總入金</h4>
-          <p class="text-gray-200 text-2xl">NT$ ${totalIncome.toLocaleString()}</p>
-      </div>
-      <div class="w-full flex flex-col items-center">
-          <h4 class="font-bold text-lg mb-2">總出金</h4>
-          <p class="text-gray-200 text-2xl">NT$ ${totalExpense.toLocaleString()}</p>
-      </div>
-      <div class="w-full flex flex-col items-center">
-          <h4 class="font-bold text-lg mb-2">結餘</h4>
-          <p class="font-bold ${
-            balance >= 0 ? "text-green-500" : "text-red-500"
-          } text-2xl">NT$ ${balance.toLocaleString()}</p>
-      </div>`;
-        summaryTextContainer.innerHTML = summaryText;
-        annualIncomeTotal.textContent = `NT$ ${totalIncome.toLocaleString()}`;
-        annualExpenseTotal.textContent = `NT$ ${totalExpense.toLocaleString()}`;
-      }
-
-      function renderAnnualLists(
-        years,
-        incomeYearlyTotals,
-        expenseYearlyTotals
-      ) {
-        annualIncomeList.innerHTML =
-          "<li class='mb-2 font-bold'>各年度入金：</li>";
-        years.forEach((y) => {
-          const li = document.createElement("li");
-          li.textContent = `${y} 年：NT$ ${incomeYearlyTotals[
-            y
-          ].toLocaleString()}`;
-          annualIncomeList.appendChild(li);
-        });
-
-        annualExpenseList.innerHTML =
-          "<li class='mb-2 font-bold'>各年度出金：</li>";
-        years.forEach((y) => {
-          const li = document.createElement("li");
-          li.textContent = `${y} 年：NT$ ${expenseYearlyTotals[
-            y
-          ].toLocaleString()}`;
-          annualExpenseList.appendChild(li);
-        });
-      }
-
-      function renderMonthlyLists(
-        years,
-        incomeMonthlyTotals,
-        expenseMonthlyTotals
-      ) {
-        monthlyIncomeList.innerHTML =
-          "<li class='mb-2 font-bold'>各年度各月份入金：</li>";
-        monthlyExpenseList.innerHTML =
-          "<li class='mb-2 font-bold'>各年度各月份出金：</li>";
-
-        years.forEach((y) => {
-          if (incomeMonthlyTotals[y]) {
-            Object.keys(incomeMonthlyTotals[y])
-              .sort((a, b) => a - b)
-              .forEach((m) => {
-                const val = incomeMonthlyTotals[y][m];
-                if (val > 0) {
-                  // 只有入金金額大於0的月份才顯示
-                  const li = document.createElement("li");
-                  li.textContent = `${y}年${m}月：NT$ ${val.toLocaleString()}`;
-                  monthlyIncomeList.appendChild(li);
-                }
-              });
-          }
-          if (expenseMonthlyTotals[y]) {
-            Object.keys(expenseMonthlyTotals[y])
-              .sort((a, b) => a - b)
-              .forEach((m) => {
-                const val = expenseMonthlyTotals[y][m];
-                if (val > 0) {
-                  // 只有出金金額大於0的月份才顯示
-                  const li = document.createElement("li");
-                  li.textContent = `${y}年${m}月：NT$ ${val.toLocaleString()}`;
-                  monthlyExpenseList.appendChild(li);
-                }
-              });
-          }
-        });
-      }
-
-      function renderFinalAnalysis() {
-        finalAnalysisContent.innerHTML = "";
-        if (years.length === 0) {
-          finalAnalysisContent.innerHTML = "<p>無數據可分析</p>";
-          return;
-        }
-        let maxIncomeYear = null,
-          maxIncomeValue = -Infinity;
-        let maxExpenseYear = null,
-          maxExpenseValue = -Infinity;
-        for (let y of years) {
-          if (incomeYearlyTotals[y] > maxIncomeValue) {
-            maxIncomeValue = incomeYearlyTotals[y];
-            maxIncomeYear = y;
-          }
-          if (expenseYearlyTotals[y] > maxExpenseValue) {
-            maxExpenseValue = expenseYearlyTotals[y];
-            maxExpenseYear = y;
-          }
-        }
-
-        let analysisText = "";
-        analysisText += `<p class="mb-2">最高年度入金：${maxIncomeYear} 年，NT$ ${maxIncomeValue.toLocaleString()}</p>`;
-        analysisText += `<p class="mb-2">最高年度出金：${maxExpenseYear} 年，NT$ ${maxExpenseValue.toLocaleString()}</p>`;
-
-        const totalIncome = Object.values(incomeYearlyTotals).reduce(
-          (a, b) => a + b,
-          0
-        );
-        const totalExpense = Object.values(expenseYearlyTotals).reduce(
-          (a, b) => a + b,
-          0
-        );
-
-        if (Object.keys(incomeMonthlyTotals).length > 0) {
-          let maxMonthIncomeVal = -Infinity,
-            maxMonthIncomeYear = null,
-            maxMonthIncomeMonth = null;
-          let maxMonthExpenseVal = -Infinity,
-            maxMonthExpenseYear = null,
-            maxMonthExpenseMonth = null;
-
-          for (let y of years) {
-            if (incomeMonthlyTotals[y]) {
-              for (let m in incomeMonthlyTotals[y]) {
-                if (incomeMonthlyTotals[y][m] > maxMonthIncomeVal) {
-                  maxMonthIncomeVal = incomeMonthlyTotals[y][m];
-                  maxMonthIncomeYear = y;
-                  maxMonthIncomeMonth = m;
-                }
-              }
-            }
-            if (expenseMonthlyTotals[y]) {
-              for (let m in expenseMonthlyTotals[y]) {
-                if (expenseMonthlyTotals[y][m] > maxMonthExpenseVal) {
-                  maxMonthExpenseVal = expenseMonthlyTotals[y][m];
-                  maxMonthExpenseYear = y;
-                  maxMonthExpenseMonth = m;
-                }
-              }
-            }
-          }
-          analysisText += `<p class="mb-2">最高月度入金：${maxMonthIncomeYear}年${maxMonthIncomeMonth}月，NT$ ${maxMonthIncomeVal.toLocaleString()}</p>`;
-          analysisText += `<p class="mb-2">最高月度出金：${maxMonthExpenseYear}年${maxMonthExpenseMonth}月，NT$ ${maxMonthExpenseVal.toLocaleString()}</p>`;
-        }
-
-        analysisText += `<p class="mb-2 font-bold">整體分析：</p>`;
-        if (totalExpense > totalIncome) {
-          analysisText += `<p class="mb-2">出金 > 入金，建議控制成本或增加收入。</p>`;
-        } else {
-          analysisText += `<p class="mb-2">入金 > 出金，盈餘良好，可考慮擴大投資或提升預備金。</p>`;
-        }
-
-        finalAnalysisContent.innerHTML = analysisText;
-      }
-
-      function filterTable() {
-        const keyword = tableSearch.value.toLowerCase();
-        const yearSelected = yearFilter.value;
-        const rows = dataTableBody.querySelectorAll("tr");
-        rows.forEach((row) => {
-          const cells = row.querySelectorAll("td");
-          const dateText = cells[0].innerText.toLowerCase();
-          const currencyText = cells[1].innerText.toLowerCase();
-          const amountText = cells[2].innerText.toLowerCase();
-          const statusText = cells[3].innerText.toLowerCase();
-          const typeText = cells[4].innerText.toLowerCase();
-          const rowYear = new Date(cells[0].innerText).getFullYear().toString();
-
-          let visible =
-            (!yearSelected || rowYear === yearSelected) &&
-            (dateText.includes(keyword) ||
-              currencyText.includes(keyword) ||
-              amountText.includes(keyword) ||
-              statusText.includes(keyword) ||
-              typeText.includes(keyword));
-          row.style.display = visible ? "" : "none";
-        });
-      }
-
-      function debounce(func, delay) {
-        let timeout;
-        return function (...args) {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => func.apply(this, args), delay);
-        };
-      }
-
-      document.querySelectorAll(".sort-header").forEach((header) => {
-        header.addEventListener("click", () => {
-          const field = header.getAttribute("data-field");
-          sortDirections[field] = !sortDirections[field];
-          sortTable(field, sortDirections[field]);
-          updateSortIcons(field, sortDirections[field]);
-        });
-      });
-
-      function sortTable(field, asc) {
-        let rows = Array.from(dataTableBody.querySelectorAll("tr"));
-        const fieldIndex = { Date: 0, Currency: 1, Amount: 2, Status: 3 }[
-          field
-        ];
-        rows.sort((a, b) => {
-          let aText = a.querySelectorAll("td")[fieldIndex].innerText;
-          let bText = b.querySelectorAll("td")[fieldIndex].innerText;
-          if (field === "Amount") {
-            return asc
-              ? parseFloat(aText.replace(/,/g, "")) -
-                  parseFloat(bText.replace(/,/g, ""))
-              : parseFloat(bText.replace(/,/g, "")) -
-                  parseFloat(aText.replace(/,/g, ""));
-          } else if (field === "Date") {
-            return asc
-              ? new Date(aText) - new Date(bText)
-              : new Date(bText) - new Date(aText);
-          } else {
-            return asc
-              ? aText.localeCompare(bText)
-              : bText.localeCompare(aText);
-          }
-        });
-        dataTableBody.innerHTML = "";
-        rows.forEach((row) => dataTableBody.appendChild(row));
-      }
-
-      function updateSortIcons(field, asc) {
-        document.querySelectorAll(".sort-header").forEach((header) => {
-          const icon = header.querySelector("i");
-          if (header.getAttribute("data-field") === field) {
-            icon.classList.remove("fa-sort", "fa-sort-up", "fa-sort-down");
-            icon.classList.add(asc ? "fa-sort-up" : "fa-sort-down");
-          } else {
-            icon.classList.remove("fa-sort-up", "fa-sort-down");
-            icon.classList.add("fa-sort");
-          }
-        });
-      }
-
-      function sanitizeHTML(str) {
-        return str
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
-
-      function updateChartColors() {
-        [incomeChartInstance, expenseChartInstance].forEach((instance) => {
-          if (instance) {
-            instance.options.plugins.legend.labels.color = "#cbd5e0";
-            instance.options.plugins.datalabels.color = "#cbd5e0";
-            instance.update();
-          }
-        });
       }
 
       function init() {
