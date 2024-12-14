@@ -1051,67 +1051,149 @@
       }
 
       function exportToExcel() {
-        const className = document.getElementById("className").value || "班級";
-        const examSubject = document.getElementById("examSubject").value || "";
-        const examType = document.getElementById("examType").value || "";
-        const examTime = document.getElementById("examTime").value || "";
-        const timestamp = getFormattedTimestamp();
+        const workbook = XLSX.utils.book_new();
 
-        const data = [];
-        data.push([`${className}座位表`]);
-        data.push([
-          `考試科目：${examSubject}`,
-          `考試類型：${examType}`,
-          `考試時間：${examTime}`,
-        ]);
-        data.push([]);
+        // 動態獲取使用者輸入資訊
+        const className =
+          document.getElementById("className").value || "未指定班級";
+        const examSubject =
+          document.getElementById("examSubject").value || "未指定科目";
+        const examType =
+          document.getElementById("examType").value || "未指定類型";
+        const examTimeInput = document.getElementById("examTime").value || ""; // 考試時間
+        const examTime = examTimeInput
+          ? formatDate(examTimeInput)
+          : "未指定日期";
+        const studentsCount = students.length;
 
-        const columnOrder = horizontalReverse
-          ? [...Array(columns).keys()].map((i) => columns - i)
-          : [...Array(columns).keys()].map((i) => i + 1);
+        // 表頭資訊
+        const headerRows = [
+          [
+            `科目： ${examSubject}`,
+            "",
+            "",
+            className,
+            "",
+            "",
+            "",
+            `日期： ${examTime}`,
+          ],
+          [
+            `應考人數： ${studentsCount}`,
+            "",
+            "",
+            "講    台",
+            "",
+            "",
+            "",
+            `${examType}`,
+          ],
+          [`實到人數：`, "", "", "", "", "", "", ""],
+          [],
+        ];
+
+        // 生成座位表內容
+        const seatingData = [...headerRows];
+        const columnHeaders = [
+          "",
+          ...Array.from({ length: columns }, (_, i) => numberToChinese(i + 1)),
+        ];
+        const firstRowEntrance = horizontalReverse ? "入口" : ""; // 第一排時的入口方向
+        const lastRowEntrance = horizontalReverse ? "" : "入口"; // 最後一排時的入口方向
+        columnHeaders.push(firstRowEntrance || lastRowEntrance); // 根據順序添加入口
+
+        seatingData.push(columnHeaders);
 
         const rowOrder = verticalReverse
-          ? [...Array(rows).keys()].map((i) => rows - i)
+          ? [...Array(rows).keys()].map((i) => rows - i) // 反轉行數
           : [...Array(rows).keys()].map((i) => i + 1);
-
-        const headerRow = ["行\\列"];
-        columnOrder.forEach((c) => {
-          headerRow.push(numberToChinese(c));
-        });
-        data.push(headerRow);
 
         for (let r of rowOrder) {
           const seatRow = [numberToChinese(r)];
-          const seatNameRow = [""];
-
-          for (let c of columnOrder) {
+          const nameRow = [""];
+          for (let c = 1; c <= columns; c++) {
             const index = (r - 1) * columns + c;
             const seat = document.querySelector(`.seat[data-index='${index}']`);
-
-            if (seat && !disabledSeats.has(index.toString())) {
-              const id = seat.querySelector(".seat-id").textContent.trim();
-              const name = seat.querySelector(".seat-name").textContent.trim();
-              seatRow.push(id);
-              seatNameRow.push(name);
-            } else {
-              seatRow.push("");
-              seatNameRow.push("");
-            }
+            const id = seat?.querySelector(".seat-id").textContent.trim() || "";
+            const name =
+              seat?.querySelector(".seat-name").textContent.trim() || "";
+            seatRow.push(id);
+            nameRow.push(name);
           }
-
-          data.push(seatRow);
-          data.push(seatNameRow);
+          seatRow.push(
+            r === 1 ? firstRowEntrance : r === rows ? lastRowEntrance : ""
+          );
+          nameRow.push("");
+          seatingData.push(seatRow, nameRow);
         }
 
-        const worksheet = XLSX.utils.aoa_to_sheet(data);
-        worksheet["!merges"] = worksheet["!merges"] || [];
-        worksheet["!merges"].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } });
-        worksheet["!merges"].push({ s: { r: 1, c: 0 }, e: { r: 1, c: 1 } });
+        // 添加簽到表
+        const signInData = JSON.parse(JSON.stringify(seatingData)); // 複製座位表內容
+        signInData[1][3] = "簽    到    表"; // 修改標題為簽到表
+        seatingData.push([], ...signInData); // 簽到表直接接續座位表
 
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, `${className}座位表`);
-        XLSX.writeFile(workbook, `${className}座位表_${timestamp}.xlsx`);
-        showMessage("Excel 檔案已匯出", "success");
+        // 生成 Sheet
+        const worksheet = XLSX.utils.aoa_to_sheet(seatingData);
+
+        // 格式化：框線樣式和合併單元格
+        formatWorksheet(worksheet, seatingData.length);
+
+        // 添加 Sheet 至 Workbook
+        XLSX.utils.book_append_sheet(
+          workbook,
+          worksheet,
+          `${className} 座位表`
+        );
+
+        // 檔案名稱
+        const timestamp = getFormattedTimestamp();
+        const fileName = `${className}_${examSubject}_${examType}_${timestamp}.xlsx`;
+
+        // 匯出
+        XLSX.writeFile(workbook, fileName);
+        showMessage("Excel 匯出成功", "success");
+      }
+
+      // 格式化 Worksheet，設置框線、樣式等
+      function formatWorksheet(worksheet, totalRows) {
+        for (let R = 0; R < totalRows; R++) {
+          for (let C = 0; C <= columns + 1; C++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+            const cell = worksheet[cellAddress] || {};
+            cell.s = {
+              border: {
+                top: { style: "thin" },
+                bottom: { style: "thin" },
+                left: { style: "thin" },
+                right: { style: "thin" },
+              },
+              alignment: { vertical: "center", horizontal: "center" },
+              font: { name: "Microsoft JhengHei", sz: 10 },
+            };
+            worksheet[cellAddress] = cell;
+          }
+        }
+        worksheet["!cols"] = Array(columns + 2).fill({ wch: 10 }); // 欄寬
+      }
+
+      // 日期格式化函式
+      function formatDate(input) {
+        const date = new Date(input);
+        const year = date.getFullYear() - 1911; // 民國年
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}.${month}.${day}`;
+      }
+
+      // 時間戳格式化
+      function getFormattedTimestamp() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const day = String(now.getDate()).padStart(2, "0");
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        return `${year}${month}${day}_${hours}${minutes}`;
       }
 
       function exportToWord() {
