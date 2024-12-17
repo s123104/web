@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>行程表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+<style>
+    body {
+        margin: 0;
+        font-family: 'Noto Sans TC', sans-serif;
+        background: #f9f9f9;
+        color: #333;
+    }
+
+    .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .control-panel {
+        margin-bottom:20px;
+        background:#fff;
+        padding:20px;
+        border-radius:8px;
+        box-shadow:0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .control-panel textarea {
+        width:100%;
+        height:200px;
+        box-sizing:border-box;
+        border:1px solid #ccc;
+        border-radius:4px;
+        padding:10px;
+    }
+
+    .control-panel button {
+        background: #3e3e3e;
+        color:#fff;
+        border:none;
+        padding:10px 15px;
+        border-radius:4px;
+        cursor:pointer;
+        margin-top:10px;
+    }
+
+    .schedule-day {
+        background: #fff;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        margin-bottom: 40px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .schedule-day-header {
+        background: #3e3e3e;
+        color: #fff;
+        padding: 15px 20px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .schedule-day-header .icon {
+        margin-right: 10px;
+    }
+
+    .add-event-btn {
+        background: #555;
+        border: none;
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .schedule-list {
+        list-style: none;
+        margin: 0;
+        padding: 20px;
+        counter-reset: event-counter;
+    }
+
+    .schedule-list li {
+        margin-bottom: 15px;
+        background: #fdfdfd;
+        padding: 10px;
+        border-radius: 5px;
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .schedule-list li.dragging {
+        opacity: 0.5;
+        border: 2px dashed #ccc;
+    }
+
+    .schedule-list li .time {
+        font-weight: 600;
+        color: #555;
+        margin-right: 5px;
+    }
+
+    .schedule-list li i {
+        color: #777;
+        margin-right: 8px;
+    }
+
+    .schedule-list li .location {
+        display: inline-block;
+        margin-left: 22px;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .delete-btn {
+        color: #cc0000;
+        margin-left: auto;
+        cursor: pointer;
+    }
+
+    /* RWD */
+    @media(max-width:600px) {
+        .schedule-day-header {
+            font-size: 1rem;
+        }
+    }
+
+    .footer-note {
+        text-align: center;
+        margin-top: 50px;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top:0;left:0;right:0;bottom:0;
+        background: rgba(0,0,0,0.4);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index:9999;
+    }
+
+    .modal {
+        background: #fff;
+        border-radius: 8px;
+        padding: 20px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+
+    .modal h2 {
+        margin-top:0;
+        margin-bottom:20px;
+    }
+
+    .modal label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+    }
+
+    .modal input[type="text"] {
+        width: 100%;
+        padding: 8px;
+        margin-bottom:15px;
+        box-sizing:border-box;
+        border:1px solid #ccc;
+        border-radius:4px;
+    }
+
+    .modal .modal-btns {
+        text-align: right;
+    }
+
+    .modal-btns button {
+        background: #3e3e3e;
+        color:#fff;
+        border: none;
+        padding: 8px 12px;
+        border-radius:4px;
+        cursor: pointer;
+        margin-left:10px;
+    }
+
+    .modal-btns .cancel {
+        background:#aaa;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="control-panel">
+        <h3>貼上你的行程文本然後匯入</h3>
+        <textarea id="batch-input"></textarea>
+        <br>
+        <button id="import-btn">匯入行程</button>
+    </div>
+
+    <div class="schedule-container">
+        <!-- 行程會透過JS動態插入在這裡 -->
+    </div>
+
+    <div class="footer-note">
+        © 幹你家行程表超長不耐煩有限公司 | 不要鬧欸😏🥵🤡
+    </div>
+</div>
+
+<div class="modal-overlay">
+    <div class="modal">
+        <h2>新增行程</h2>
+        <label>時間（選填）</label>
+        <input type="text" id="new-time" placeholder="例如：10:00 AM">
+        <label>描述（必填）</label>
+        <input type="text" id="new-desc" placeholder="行程描述">
+        <label>地點（選填）</label>
+        <input type="text" id="new-location" placeholder="地點">
+        <div class="modal-btns">
+            <button class="cancel">取消</button>
+            <button class="confirm">新增</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // 原有拖曳、刪除、新增功能封裝
+    function enableInteractions() {
+        const draggables = document.querySelectorAll('.schedule-list li');
+        const lists = document.querySelectorAll('.schedule-list');
+
+        draggables.forEach(li => {
+            li.addEventListener('dragstart', () => {
+                li.classList.add('dragging');
+            });
+            li.addEventListener('dragend', () => {
+                li.classList.remove('dragging');
+            });
+        });
+
+        lists.forEach(list => {
+            list.addEventListener('dragover', e => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(list, e.clientY);
+                const dragging = document.querySelector('.dragging');
+                if (afterElement == null) {
+                    list.appendChild(dragging);
+                } else {
+                    list.insertBefore(dragging, afterElement);
+                }
+            });
+        });
+
+        function getDragAfterElement(list, y) {
+            const draggableElements = [...list.querySelectorAll('li:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height/2;
+                if(offset < 0 && offset > closest.offset) {
+                    return {offset:offset, element:child}
+                } else {
+                    return closest
+                }
+            }, {offset: Number.NEGATIVE_INFINITY}).element
+        }
+
+        // 刪除功能
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const li = btn.closest('li');
+                li.parentNode.removeChild(li);
+            });
+        });
+    }
+
+    function bindNewEventButtons() {
+        const addButtons = document.querySelectorAll('.add-event-btn');
+        addButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentDate = btn.getAttribute('data-date');
+                const parentDay = btn.closest('.schedule-day');
+                currentList = parentDay.querySelector('.schedule-list');
+                showModal();
+            });
+        });
+    }
+
+    // 新增行程彈窗
+    const modalOverlay = document.querySelector('.modal-overlay');
+    const modal = document.querySelector('.modal');
+    const cancelBtn = document.querySelector('.cancel');
+    const confirmBtn = document.querySelector('.confirm');
+
+    let currentDate = '';
+    let currentList = null;
+
+    cancelBtn.addEventListener('click', () => {
+        hideModal();
+    });
+
+    confirmBtn.addEventListener('click', () => {
+        const time = document.getElementById('new-time').value.trim();
+        const desc = document.getElementById('new-desc').value.trim();
+        const loc = document.getElementById('new-location').value.trim();
+
+        if (!desc) {
+            alert('描述必填，北七哦！');
+            return;
+        }
+
+        // 建立新行程元素
+        const li = document.createElement('li');
+        li.setAttribute('draggable', 'true');
+        let html = '';
+        if (time) html += `<span class="time">${time}</span><i class="fas fa-info-circle"></i>`;
+        html += desc;
+        if (loc) html += `<div class="location"><i class="fas fa-map-marker-alt"></i>${loc}</div>`;
+        html += `<span class="delete-btn"><i class="fas fa-trash"></i></span>`;
+        li.innerHTML = html;
+
+        currentList.appendChild(li);
+
+        // 重新綁定事件
+        enableInteractions();
+
+        hideModal();
+    });
+
+    function showModal() {
+        modalOverlay.style.display = 'flex';
+        document.getElementById('new-time').value = '';
+        document.getElementById('new-desc').value = '';
+        document.getElementById('new-location').value = '';
+    }
+
+    function hideModal() {
+        modalOverlay.style.display = 'none';
+    }
+
+
+    // 以下是批量匯入的邏輯
+    // 解析文本，創建對應的 DOM
+    function loadScheduleFromText(text) {
+        const lines = text.split('\n').map(l => l.trim()).filter(l=>l);
+
+        const container = document.querySelector('.schedule-container');
+        container.innerHTML = '';
+
+        let currentDay = null;
+        let currentDate = '';
+        let listEl = null;
+
+        const timePattern = /^(\d{1,2}:\d{2}\s?(AM|PM)?)(：|:)/i;
+
+        lines.forEach(line => {
+            // 判斷是不是日期行，格式像 "12/26" 或 "1/2"
+            const dayMatch = line.match(/^(\d{1,2}\/\d{1,2})$/);
+            if (dayMatch) {
+                // 新的一天
+                currentDate = dayMatch[1];
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'schedule-day';
+                dayDiv.setAttribute('data-date', currentDate);
+
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'schedule-day-header';
+                dayHeader.innerHTML = `<div><i class="fas fa-calendar-day icon"></i>${currentDate}</div><button class="add-event-btn" data-date="${currentDate}">＋新增行程</button>`;
+
+                const ul = document.createElement('ul');
+                ul.className = 'schedule-list';
+
+                dayDiv.appendChild(dayHeader);
+                dayDiv.appendChild(ul);
+                container.appendChild(dayDiv);
+
+                currentDay = dayDiv;
+                listEl = ul;
+            } else {
+                // 行程內容
+                if (!currentDay) return; // 沒有日期就跳過
+                
+                // 檢查是不是 "地點：" 開頭
+                // 如果行程有地點行，則應該將地點補入上一行的li
+                // 因為原文本中"地點:"是在下一行顯示的
+                const locationMatch = line.match(/^地點：(.*)/);
+                if (locationMatch) {
+                    // 把地點加入上一個li的location
+                    const lastLi = listEl.querySelector('li:last-child');
+                    if (lastLi) {
+                        const locDiv = document.createElement('div');
+                        locDiv.className = 'location';
+                        locDiv.innerHTML = `<i class="fas fa-map-marker-alt"></i>${locationMatch[1].trim()}`;
+                        lastLi.appendChild(locDiv);
+                    }
+                } else {
+                    // 一般行程描述
+                    const li = document.createElement('li');
+                    li.setAttribute('draggable', 'true');
+
+                    let timeStr = '';
+                    let desc = line;
+
+                    const matchTime = desc.match(timePattern);
+                    if (matchTime) {
+                        timeStr = matchTime[1];
+                        // 移除時間部分
+                        desc = desc.replace(timePattern, '').trim();
+                    }
+
+                    let html = '';
+                    if (timeStr) {
+                        html += `<span class="time">${timeStr}</span><i class="fas fa-info-circle"></i>`;
+                    }
+                    html += desc;
+                    html += `<span class="delete-btn"><i class="fas fa-trash"></i></span>`;
+
+                    li.innerHTML = html;
+                    listEl.appendChild(li);
+                }
+            }
+        });
+
+        // 匯入完成後綁定互動
+        bindNewEventButtons();
+        enableInteractions();
+    }
+
+    // 綁定匯入按鈕
+    document.getElementById('import-btn').addEventListener('click', () => {
+        const text = document.getElementById('batch-input').value;
+        if (!text.trim()) {
+            alert('你沒貼任何行程資料，北七哦！');
+            return;
+        }
+        loadScheduleFromText(text);
+    });
+
+</script>
+</body>
+</html>
