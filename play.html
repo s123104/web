@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>行程表</title>
+<title>超屌行程表</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -31,10 +31,14 @@
         box-shadow:0 2px 8px rgba(0,0,0,0.15);
     }
 
-    .top-bar h1 {
-        margin:0;
-        font-size:1.2rem;
-        font-weight:600;
+    .top-bar .title-input {
+        background:rgba(255,255,255,0.2);
+        border:none;
+        border-radius:4px;
+        padding:5px 10px;
+        color:#fff;
+        font-size:1rem;
+        width:60%;
     }
 
     .add-event-btn {
@@ -47,6 +51,7 @@
         font-size: 0.9rem;
         box-shadow:0 2px 6px rgba(0,0,0,0.1);
         transition:0.3s;
+        margin-left:10px;
     }
 
     .add-event-btn:hover {
@@ -112,6 +117,14 @@
         border: 2px dashed #ccc;
     }
 
+    /* 拖曳手把 */
+    .drag-handle {
+        cursor: grab;
+        color:#777;
+        margin-right:10px;
+        font-size:1.2rem;
+    }
+
     .schedule-list li .time {
         font-weight: 600;
         color: #555;
@@ -123,11 +136,13 @@
         margin-right: 8px;
     }
 
-    .schedule-list li .location {
-        display: inline-block;
-        margin-left: 22px;
-        color: #666;
-        font-size: 0.9rem;
+    .schedule-list li .location a {
+        color:#007aff;
+        text-decoration:none;
+    }
+
+    .schedule-list li .location a:hover {
+        text-decoration:underline;
     }
 
     .delete-btn {
@@ -137,10 +152,26 @@
         padding:5px;
         border-radius:50%;
         transition:0.3s;
+        margin-right:10px;
     }
 
     .delete-btn:hover {
         background:#f5f5f5;
+    }
+
+    .export-ics-btn {
+        background:#4e54c8;
+        color:#fff;
+        border:none;
+        padding:5px 8px;
+        border-radius:4px;
+        font-size:0.8rem;
+        cursor:pointer;
+        margin-right:10px;
+    }
+
+    .export-ics-btn:hover {
+        opacity:0.9;
     }
 
     .footer-note {
@@ -184,7 +215,8 @@
     }
 
     .modal input[type="text"], 
-    .modal input[type="time"] {
+    .modal input[type="datetime-local"],
+    .modal textarea {
         width: 100%;
         padding: 8px;
         margin-bottom:15px;
@@ -195,14 +227,8 @@
     }
 
     .modal textarea {
-        width:100%;
-        height:200px;
-        box-sizing:border-box;
-        border:1px solid #ccc;
-        border-radius:4px;
-        padding:10px;
-        margin-bottom:15px;
-        font-size:0.9rem;
+        height:100px;
+        resize: vertical;
     }
 
     .modal .modal-btns {
@@ -230,11 +256,6 @@
         opacity:0.9;
     }
 
-    /* 讓新增行程的icon有點互動感 */
-    .add-event-btn:active {
-        transform:scale(0.95);
-    }
-
     /* 批次匯入的懸浮按鈕 */
     .import-fab {
         position: fixed;
@@ -257,17 +278,16 @@
     .import-fab:hover {
         transform:scale(1.1);
     }
-
 </style>
 </head>
 <body>
 <div class="top-bar">
-    <h1>超屌行程表</h1>
+    <input type="text" class="title-input" id="schedule-title" placeholder="行程表名稱" />
     <button class="add-event-btn" id="global-add-event">＋新增行程</button>
 </div>
 <div class="container">
     <div class="schedule-container">
-        <!-- 初始無內容，用戶可自行透過新增或批次匯入 -->
+        <!-- 初始無內容或從localStorage載入 -->
     </div>
 
     <div class="footer-note">
@@ -284,12 +304,14 @@
 <div class="modal-overlay">
     <div class="modal">
         <h2>新增行程</h2>
-        <label>時間（選填）</label>
-        <input type="time" id="new-time">
+        <label>日期時間（必填）</label>
+        <input type="datetime-local" id="new-datetime">
         <label>描述（必填）</label>
         <input type="text" id="new-desc" placeholder="行程描述">
         <label>地點（選填）</label>
         <input type="text" id="new-location" placeholder="地點">
+        <label>備註（選填）</label>
+        <textarea id="new-note" placeholder="備註..."></textarea>
         <div class="modal-btns">
             <button class="cancel">取消</button>
             <button class="confirm">新增</button>
@@ -311,11 +333,13 @@
 
 <script>
     let currentList = null;
+    const scheduleContainer = document.querySelector('.schedule-container');
+    const scheduleTitle = document.getElementById('schedule-title');
+
     const modalOverlay = document.querySelector('.modal-overlay');
     const cancelBtn = document.querySelector('.cancel');
     const confirmBtn = document.querySelector('.confirm');
 
-    const scheduleContainer = document.querySelector('.schedule-container');
     const globalAddBtn = document.getElementById('global-add-event');
 
     const importFab = document.getElementById('import-fab');
@@ -324,38 +348,96 @@
     const confirmImportBtn = document.querySelector('.confirm-import');
     const batchInput = document.getElementById('batch-input');
 
-    cancelBtn.addEventListener('click', hideModal);
+    // 本地儲存與載入
+    function loadFromLocalStorage() {
+        const data = localStorage.getItem('scheduleData');
+        if(data) {
+            const obj = JSON.parse(data);
+            scheduleTitle.value = obj.title || '';
+            if(obj.days) {
+                scheduleContainer.innerHTML='';
+                obj.days.forEach(dayData=>{
+                    const dayDiv = createDayBlock(dayData.date);
+                    scheduleContainer.appendChild(dayDiv);
+                    const listEl = dayDiv.querySelector('.schedule-list');
+                    dayData.events.forEach(ev=>{
+                        addEventToList(listEl, ev.datetime, ev.desc, ev.loc, ev.note);
+                    });
+                });
+                enableInteractions();
+            }
+        }
+    }
+
+    function saveToLocalStorage() {
+        // 將DOM轉成資料物件
+        const days = [...scheduleContainer.querySelectorAll('.schedule-day')].map(dayDiv=>{
+            const dateStr = dayDiv.getAttribute('data-date');
+            const events = [...dayDiv.querySelectorAll('li')].map(li=>{
+                return {
+                    datetime: li.getAttribute('data-datetime'),
+                    desc: li.querySelector('.desc').textContent,
+                    loc: li.getAttribute('data-loc') || '',
+                    note: li.getAttribute('data-note') || ''
+                };
+            });
+            return {date:dateStr, events};
+        });
+
+        const data = {
+            title: scheduleTitle.value.trim(),
+            days: days
+        };
+        localStorage.setItem('scheduleData', JSON.stringify(data));
+    }
+
+    scheduleTitle.addEventListener('input', saveToLocalStorage);
+
+    // Modal事件
     globalAddBtn.addEventListener('click', () => {
         currentList = null; 
         showModal();
     });
 
+    cancelBtn.addEventListener('click', hideModal);
     confirmBtn.addEventListener('click', () => {
-        const time = document.getElementById('new-time').value.trim();
+        const datetime = document.getElementById('new-datetime').value.trim();
         const desc = document.getElementById('new-desc').value.trim();
         const loc = document.getElementById('new-location').value.trim();
+        const note = document.getElementById('new-note').value.trim();
 
-        if(!desc) {
-            alert('描述必填，北七哦！');
+        if(!desc || !datetime) {
+            alert('日期時間與描述必填，北七哦！');
             return;
         }
 
-        // 沒有日期區塊就建立一個
-        if(!currentList) {
-            const today = new Date();
-            const month = (today.getMonth()+1);
-            const day = today.getDate();
-            const dateStr = `${month}/${day}`;
-
-            const dayDiv = createDayBlock(dateStr);
+        const datePart = datetime.split('T')[0]; 
+        // 建立或取得當天區塊
+        let dayDiv = [...scheduleContainer.querySelectorAll('.schedule-day')]
+                     .find(d => d.getAttribute('data-date')===datePart);
+        if(!dayDiv) {
+            dayDiv = createDayBlock(datePart);
             scheduleContainer.appendChild(dayDiv);
-            currentList = dayDiv.querySelector('.schedule-list');
         }
+        currentList = dayDiv.querySelector('.schedule-list');
 
-        addEventToList(currentList, time, desc, loc);
+        addEventToList(currentList, datetime, desc, loc, note);
         hideModal();
         enableInteractions();
+        saveToLocalStorage();
     });
+
+    function showModal() {
+        modalOverlay.style.display = 'flex';
+        document.getElementById('new-datetime').value = '';
+        document.getElementById('new-desc').value = '';
+        document.getElementById('new-location').value = '';
+        document.getElementById('new-note').value = '';
+    }
+
+    function hideModal() {
+        modalOverlay.style.display = 'none';
+    }
 
     // 批次匯入邏輯
     importFab.addEventListener('click', ()=>{
@@ -373,19 +455,10 @@
         }
         loadScheduleFromText(text);
         importOverlay.style.display='none';
+        saveToLocalStorage();
     });
 
-    function showModal() {
-        modalOverlay.style.display = 'flex';
-        document.getElementById('new-time').value = '';
-        document.getElementById('new-desc').value = '';
-        document.getElementById('new-location').value = '';
-    }
-
-    function hideModal() {
-        modalOverlay.style.display = 'none';
-    }
-
+    // 建立日期區塊
     function createDayBlock(dateStr) {
         const dayDiv = document.createElement('div');
         dayDiv.className='schedule-day';
@@ -403,46 +476,65 @@
         return dayDiv;
     }
 
-    function addEventToList(list, time, desc, loc) {
+    // 加入事件
+    function addEventToList(list, datetime, desc, loc, note) {
         const li = document.createElement('li');
         li.setAttribute('draggable','true');
+        li.setAttribute('data-datetime', datetime);
+        if(loc) li.setAttribute('data-loc', loc);
+        if(note) li.setAttribute('data-note', note);
+
+        const dateObj = new Date(datetime);
+        const timeStr = formatTime(dateObj);
+
         let html='';
-        if(time) {
-            html+=`<span class="time">${formatTime(time)}</span><i class="fas fa-info-circle"></i>`;
+        html+= `<span class="drag-handle">≡</span>`;
+        if(timeStr) {
+            html+=`<span class="time">${timeStr}</span><i class="fas fa-info-circle"></i>`;
         }
-        html+=desc;
+        html+=`<span class="desc">${desc}</span>`;
         if(loc) {
-            html+=`<div class="location"><i class="fas fa-map-marker-alt"></i>${loc}</div>`;
+            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
+            html+=`<div class="location"><i class="fas fa-map-marker-alt"></i><a href="${mapUrl}" target="_blank">${loc}</a></div>`;
         }
+        if(note) {
+            html+=`<div class="note" style="margin-left:22px; font-size:0.9rem; color:#666;">
+                    <i class="fas fa-sticky-note"></i>${note}
+                   </div>`;
+        }
+        html+=`<button class="export-ics-btn">匯出日曆</button>`;
         html+=`<span class="delete-btn"><i class="fas fa-trash"></i></span>`;
         li.innerHTML=html;
 
         list.appendChild(li);
     }
 
-    function formatTime(timeStr) {
-        let [hour, minute] = timeStr.split(':');
-        hour = parseInt(hour,10);
-        let ampm='AM';
-        if(hour>=12) {
-            ampm='PM';
-            if(hour>12) hour=hour-12;
-        }
-        if(hour===0) hour=12;
-        return `${hour}:${minute} ${ampm}`;
+    // 格式化時間
+    function formatTime(dateObj) {
+        const hour = dateObj.getHours();
+        const minute = (dateObj.getMinutes()<10?'0':'') + dateObj.getMinutes();
+        const year = dateObj.getFullYear();
+        const month = (dateObj.getMonth()+1<10?'0':'')+(dateObj.getMonth()+1);
+        const day = (dateObj.getDate()<10?'0':'')+dateObj.getDate();
+        return `${year}/${month}/${day} ${hour<10?'0':''}${hour}:${minute}`;
     }
 
-    // 拖曳排序 & 刪除
+    // 拖曳排序 & 刪除 & 匯出ICS
     function enableInteractions() {
         const draggables = document.querySelectorAll('.schedule-list li');
         const lists = document.querySelectorAll('.schedule-list');
 
         draggables.forEach(li => {
+            const handle = li.querySelector('.drag-handle');
+            handle && handle.addEventListener('mousedown', e=>{
+                li.setAttribute('draggable','true');
+            });
             li.addEventListener('dragstart', () => {
                 li.classList.add('dragging');
             });
             li.addEventListener('dragend', () => {
                 li.classList.remove('dragging');
+                saveToLocalStorage();
             });
         });
 
@@ -477,8 +569,64 @@
             btn.onclick = ()=>{
                 const li = btn.closest('li');
                 li.parentNode.removeChild(li);
+                saveToLocalStorage();
             };
         });
+
+        // 匯出ICS
+        document.querySelectorAll('.export-ics-btn').forEach(btn=>{
+            btn.onclick=()=>{
+                const li = btn.closest('li');
+                const desc = li.querySelector('.desc').textContent;
+                const loc = li.getAttribute('data-loc')||'';
+                const note = li.getAttribute('data-note')||'';
+                const dt = li.getAttribute('data-datetime');
+                const dtObj = new Date(dt);
+
+                const icsContent = generateICS(desc, dtObj, loc, note);
+                const blob = new Blob([icsContent], {type:'text/calendar'});
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'event.ics';
+                a.click();
+
+                URL.revokeObjectURL(url);
+            };
+        });
+    }
+
+    function generateICS(summary, dt, location, description) {
+        const pad = n => n<10? '0'+n : n;
+        const y = dt.getFullYear();
+        const m = pad(dt.getMonth()+1);
+        const d = pad(dt.getDate());
+        const hh = pad(dt.getHours());
+        const mm = pad(dt.getMinutes());
+        const ss = '00';
+
+        // UTC時間
+        // 這裡簡單用本地時間當UTC，真實應該轉換時區
+        const dtStr = `${y}${m}${d}T${hh}${mm}${ss}`;
+
+        return `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//YourProduct//Event//EN
+BEGIN:VEVENT
+UID:${Date.now()}@yourdomain.com
+DTSTAMP:${dtStr}Z
+DTSTART:${dtStr}Z
+DTEND:${dtStr}Z
+SUMMARY:${escapeICS(summary)}
+LOCATION:${escapeICS(location)}
+DESCRIPTION:${escapeICS(description)}
+END:VEVENT
+END:VCALENDAR`;
+    }
+
+    function escapeICS(str) {
+        return str.replace(/\\n/g, "\\n").replace(/,/g,"\\,").replace(/;/g,"\\;")
     }
 
     // 批次匯入解析
@@ -489,11 +637,10 @@
         let currentDay = null;
         let currentDate = '';
         let listEl = null;
-
+        // 格式: "HH:MM AM/PM" 或 "HH:MM" 都有可能
         const timePattern = /^(\d{1,2}:\d{2}\s?(AM|PM)?)(：|:)/i;
 
         lines.forEach(line => {
-            // 日期行
             const dayMatch = line.match(/^(\d{1,2}\/\d{1,2})$/);
             if (dayMatch) {
                 currentDate = dayMatch[1];
@@ -502,18 +649,29 @@
                 listEl = currentDay.querySelector('.schedule-list');
             } else {
                 if (!currentDay) return; 
+
                 const locationMatch = line.match(/^地點：(.*)/);
                 if (locationMatch) {
-                    // 地點加入上一個li
+                    // 加到上一個li
                     const lastLi = listEl.querySelector('li:last-child');
                     if (lastLi) {
-                        const locDiv = document.createElement('div');
-                        locDiv.className = 'location';
-                        locDiv.innerHTML = `<i class="fas fa-map-marker-alt"></i>${locationMatch[1].trim()}`;
-                        lastLi.appendChild(locDiv);
+                        lastLi.setAttribute('data-loc', locationMatch[1].trim());
+                        const descEl = lastLi.querySelector('.desc');
+                        if(descEl) {
+                            // 在DOM上添加地點
+                            const loc = locationMatch[1].trim();
+                            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
+                            let locDiv = lastLi.querySelector('.location');
+                            if(!locDiv) {
+                                locDiv = document.createElement('div');
+                                locDiv.className='location';
+                                locDiv.style='margin-left:22px;';
+                                lastLi.insertBefore(locDiv,lastLi.querySelector('.export-ics-btn'));
+                            }
+                            locDiv.innerHTML=`<i class="fas fa-map-marker-alt"></i><a href="${mapUrl}" target="_blank">${loc}</a>`;
+                        }
                     }
                 } else {
-                    // 行程描述
                     let desc = line.replace(/^•\s?/,'');
                     let timeStr = '';
                     const matchTime = desc.match(timePattern);
@@ -522,24 +680,39 @@
                         desc = desc.replace(timePattern, '').trim();
                     }
 
-                    const li = document.createElement('li');
-                    li.setAttribute('draggable','true');
-
-                    let html = '';
-                    if (timeStr) {
-                        html += `<span class="time">${timeStr}</span><i class="fas fa-info-circle"></i>`;
+                    // 因為使用批次匯入的資料不一定有日期時間詳細格式
+                    // 只能盡量解讀：若有時間，將日期用currentDate組合datetime
+                    // 假設當天事件皆使用 currentDate 的日期
+                    let datetime = '';
+                    // 試著解析時間(僅有HH:MM可能無AM/PM)
+                    // 若無法，則給一個預設時間中午12:00
+                    let hour=12, minute=0;
+                    if(timeStr) {
+                        // 嘗試解析AM/PM
+                        const ampmMatch = timeStr.match(/AM|PM/i);
+                        const isPM = ampmMatch ? ampmMatch[0].toUpperCase()==='PM' : false;
+                        const hm = timeStr.split(':');
+                        hour = parseInt(hm[0],10);
+                        minute = parseInt(hm[1],10) || 0;
+                        if(isPM && hour<12) hour+=12;
+                        if(!isPM && hour===12) hour=0;
                     }
-                    html += desc;
-                    html += `<span class="delete-btn"><i class="fas fa-trash"></i></span>`;
-                    li.innerHTML = html;
-                    listEl.appendChild(li);
+                    const dateParts = currentDate.split('/');
+                    const year = (new Date()).getFullYear();
+                    const month = dateParts[0];
+                    const day = dateParts[1];
+                    const isoStr = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}T${(hour+'').padStart(2,'0')}:${(minute+'').padStart(2,'0')}`;
+                    datetime=isoStr;
+
+                    addEventToList(listEl, datetime, desc, '', '');
                 }
             }
         });
         enableInteractions();
     }
 
-    enableInteractions(); // 初始無行程，但先給予互動保護
+    // 載入
+    loadFromLocalStorage();
 </script>
 </body>
 </html>
