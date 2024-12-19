@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>完善行程表</title>
+    <title>專業行程表管理</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600&display=swap" rel="stylesheet">
-    <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTTXJN4K59qN/OjXy2gV1lTI7V3SThv5Ibt3Hn7VjzoS1VPhbfX4JhecoyexkclVtqvUx3PzQw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <!-- SortableJS for Drag-and-Drop -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrQkTyX8iVhJo+nu2iDmn7pI8PIRiZeN5j6pU8w4TnQhXQ6ha4eZPc0k5j3IxTdcJ3l5I5n4JgXNkQhKcA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
+        /* 基本樣式 */
         body {
             margin: 0;
             font-family: 'Noto Sans TC', sans-serif;
@@ -26,55 +24,16 @@
             top:0; left:0; right:0;
             background: linear-gradient(135deg, #4e54c8, #8f94fb);
             color:#fff;
-            padding: 15px 20px;
+            padding: 10px 20px;
             display:flex;
             align-items:center;
             justify-content: space-between;
             z-index:1000;
             box-shadow:0 2px 8px rgba(0,0,0,0.15);
+            flex-wrap: wrap;
         }
 
-        .top-bar h1 {
-            margin:0;
-            font-size:1.5rem;
-            font-weight:600;
-        }
-
-        .add-schedule-btn {
-            background: #fff;
-            border: none;
-            color: #4e54c8;
-            padding: 8px 12px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 1rem;
-            box-shadow:0 2px 6px rgba(0,0,0,0.1);
-            transition:0.3s;
-        }
-
-        .add-schedule-btn:hover {
-            background:#eee;
-        }
-
-        /* 切換行程表的下拉選單 */
-        .schedule-selector {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            border-radius: 4px;
-            padding: 5px 10px;
-            color:#fff;
-            font-size:1rem;
-            margin-right: 10px;
-        }
-
-        /* 行程表名稱與年份顯示 */
-        .title-year {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            margin-left: 20px;
-        }
-
+        /* 行程表名稱 */
         .title-input {
             background: rgba(255,255,255,0.2);
             border: none;
@@ -82,23 +41,62 @@
             padding: 5px 10px;
             color:#fff;
             font-size:1rem;
-            width: 200px;
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 5px;
         }
 
-        .year-display {
+        /* 行程表切換與新增 */
+        .schedule-tabs {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .schedule-tab {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 20px;
+            cursor: pointer;
             font-size: 0.9rem;
-            margin-top: 3px;
+            margin-right: 10px;
+            margin-bottom: 5px;
+            transition: background 0.3s;
         }
 
-        /* 行程表容器 */
+        .schedule-tab.active {
+            background: #fff;
+            color: #4e54c8;
+        }
+
+        .add-schedule-btn {
+            background: #fff;
+            color: #4e54c8;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+            margin-bottom: 5px;
+        }
+
+        .add-schedule-btn:hover {
+            background: #eee;
+        }
+
+        /* 主容器 */
         .container {
-            max-width: 1200px;
-            margin: 80px auto 0 auto; /* 調整頂部間距 */
+            max-width: 1000px;
+            margin: 180px auto 0 auto; /* 調整頂部間距以適應多行程表切換 */
             padding: 20px;
         }
 
-        /* 單個行程表 */
-        .schedule-bookmark {
+        /* 日期區塊 */
+        .schedule-day {
             background: #fff;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             border-radius: 12px;
@@ -108,26 +106,40 @@
             transition:0.3s;
         }
 
-        .schedule-bookmark-header {
-            background: linear-gradient(135deg, #3e3e3e, #555);
+        /* 日期標頭 */
+        .schedule-day-header {
             color: #fff;
             padding: 15px 20px;
             font-size: 1.2rem;
             font-weight: 600;
             display: flex;
             align-items: center;
-            justify-content: space-between;
         }
 
-        .schedule-bookmark-header .icon {
-            margin-right: 10px;
+        /* 不同星期對應不同顏色 */
+        .schedule-day-header[data-weekday="Monday"] {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+        }
+        .schedule-day-header[data-weekday="Tuesday"] {
+            background: linear-gradient(135deg, #fc5c7d, #6a82fb);
+        }
+        .schedule-day-header[data-weekday="Wednesday"] {
+            background: linear-gradient(135deg, #56ab2f, #a8e063);
+        }
+        .schedule-day-header[data-weekday="Thursday"] {
+            background: linear-gradient(135deg, #ee0979, #ff6a00);
+        }
+        .schedule-day-header[data-weekday="Friday"] {
+            background: linear-gradient(135deg, #36d1dc, #5b86e5);
+        }
+        .schedule-day-header[data-weekday="Saturday"] {
+            background: linear-gradient(135deg, #ff9966, #ff5e62);
+        }
+        .schedule-day-header[data-weekday="Sunday"] {
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
         }
 
-        .schedule-bookmark-header .day-info {
-            display: flex;
-            flex-direction: column;
-        }
-
+        /* 行程列表 */
         .schedule-list {
             list-style: none;
             margin: 0;
@@ -135,10 +147,11 @@
             transition:0.3s;
         }
 
+        /* 行程項目 */
         .schedule-list li {
             margin-bottom: 15px;
             background: #fdfdfd;
-            padding: 12px;
+            padding: 10px;
             border-radius: 8px;
             position: relative;
             display: flex;
@@ -164,51 +177,42 @@
             font-size:1.2rem;
         }
 
-        .schedule-list li .time {
+        /* 時間顯示 */
+        .time {
             font-weight: 600;
             color: #555;
-            margin-right: 10px;
+            margin-right: 5px;
             min-width: 100px;
+            text-align: right;
+            padding-right: 10px;
+            border-right: 1px solid #ccc;
         }
 
-        .schedule-list li i {
-            color: #777;
-            margin-right: 8px;
+        /* 描述 */
+        .desc {
+            flex-grow: 1;
+            padding-left: 10px;
+            font-size: 1rem;
         }
 
-        .schedule-list li .desc {
-            flex: 1;
-            font-size:1rem;
-        }
-
-        .schedule-list li .location a {
+        /* 地點連結 */
+        .location a {
             color:#007aff;
             text-decoration:none;
         }
 
-        .schedule-list li .location a:hover {
+        .location a:hover {
             text-decoration:underline;
         }
 
-        .schedule-list li .note {
-            margin-top: 5px;
+        /* 備註 */
+        .note {
+            margin-left: 10px;
             font-size:0.9rem;
             color:#666;
         }
 
-        .delete-btn {
-            color: #cc0000;
-            cursor: pointer;
-            padding:5px;
-            border-radius:50%;
-            transition:0.3s;
-            margin-left:10px;
-        }
-
-        .delete-btn:hover {
-            background:#f5f5f5;
-        }
-
+        /* 匯出ICS按鈕 */
         .export-ics-btn {
             background:#4e54c8;
             color:#fff;
@@ -217,16 +221,29 @@
             border-radius:4px;
             font-size:0.8rem;
             cursor:pointer;
-            margin-left:10px;
-            transition:0.3s;
+            margin-right:10px;
+            transition: background 0.3s;
         }
 
         .export-ics-btn:hover {
-            opacity:0.9;
+            background:#3a42a5;
         }
 
-        /* 每日匯出按鈕 */
-        .export-day-btn {
+        /* 刪除按鈕 */
+        .delete-btn {
+            color: #cc0000;
+            cursor: pointer;
+            padding:5px;
+            border-radius:50%;
+            transition:background 0.3s;
+        }
+
+        .delete-btn:hover {
+            background:#f5f5f5;
+        }
+
+        /* 批次匯出按鈕 */
+        .batch-export-btn {
             background: #28a745;
             color: #fff;
             border: none;
@@ -234,56 +251,19 @@
             border-radius: 20px;
             cursor: pointer;
             font-size: 0.9rem;
-            box-shadow:0 2px 6px rgba(0,0,0,0.1);
-            transition:0.3s;
-            margin: 20px;
+            transition: background 0.3s;
+            margin-top: 10px;
         }
 
-        .export-day-btn:hover {
-            background:#218838;
-        }
-
-        /* 書籤管理 */
-        .bookmark-bar {
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-        }
-
-        .bookmark-bar .bookmark-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .bookmark-item {
-            background: #fff;
-            padding: 8px 12px;
-            border-radius: 20px;
-            box-shadow:0 1px 3px rgba(0,0,0,0.1);
-            cursor: pointer;
-            transition:0.3s;
-        }
-
-        .bookmark-item.active {
-            background: #4e54c8;
-            color: #fff;
-        }
-
-        .bookmark-item:hover {
-            background: #ddd;
-        }
-
-        /* 備註欄位 */
-        .schedule-list li .note {
-            margin-left: 120px;
+        .batch-export-btn:hover {
+            background: #218838;
         }
 
         /* 批次匯入的浮動按鈕 */
         .import-fab {
             position: fixed;
             right:20px;
-            bottom:80px;
+            bottom:20px;
             width:50px;
             height:50px;
             background: linear-gradient(135deg, #4e54c8, #8f94fb);
@@ -294,41 +274,18 @@
             justify-content:center;
             box-shadow:0 2px 6px rgba(0,0,0,0.2);
             cursor:pointer;
-            z-index:999;
-            transition:0.3s;
+            z-index:1000;
+            transition:transform 0.3s;
         }
 
         .import-fab:hover {
             transform:scale(1.1);
         }
 
-        /* 新增行程的浮動按鈕 */
-        .add-event-fab {
-            position: fixed;
-            right:20px;
-            bottom:20px;
-            width:50px;
-            height:50px;
-            background: linear-gradient(135deg, #28a745, #5cd65c);
-            color:#fff;
-            border-radius:50%;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            box-shadow:0 2px 6px rgba(0,0,0,0.2);
-            cursor:pointer;
-            z-index:999;
-            transition:0.3s;
-        }
-
-        .add-event-fab:hover {
-            transform:scale(1.1);
-        }
-
-        /* Modal Styles */
+        /* 新增行程的modal */
         .modal-overlay, .modal-overlay-import {
             position: fixed;
-            top:0;left:0;right:0;bottom:0;
+            top:0; left:0; right:0; bottom:0;
             background: rgba(0,0,0,0.4);
             display: none;
             justify-content: center;
@@ -341,15 +298,17 @@
             border-radius: 12px;
             padding: 20px;
             width: 90%;
-            max-width: 500px;
+            max-width: 400px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal h2 {
             margin-top:0;
             margin-bottom:20px;
-            font-size:1.5rem;
-            text-align:center;
+            font-size:1.2rem;
+            text-align: center;
         }
 
         .modal label {
@@ -383,98 +342,101 @@
             background: linear-gradient(135deg, #4e54c8, #8f94fb);
             color:#fff;
             border: none;
-            padding: 10px 15px;
+            padding: 8px 12px;
             border-radius:4px;
             cursor: pointer;
             margin-left:10px;
-            font-size:1rem;
-            transition:0.3s;
+            font-size:0.9rem;
+            transition: opacity 0.3s;
         }
 
         .modal-btns .cancel {
-            background: linear-gradient(135deg, #aaa, #bbb);
+            background: linear-gradient(135deg, #999, #bbb);
         }
 
         .modal-btns button:hover {
             opacity:0.9;
         }
 
-        /* 日期標頭顏色對應星期 */
-        .schedule-bookmark-header.monday {
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
+        /* 書籤樣式 */
+        .schedule-tabs {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
         }
 
-        .schedule-bookmark-header.tuesday {
-            background: linear-gradient(135deg, #FF512F, #DD2476);
+        .schedule-tab {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-right: 10px;
+            margin-bottom: 5px;
+            transition: background 0.3s, color 0.3s;
         }
 
-        .schedule-bookmark-header.wednesday {
-            background: linear-gradient(135deg, #FC466B, #3F5EFB);
+        .schedule-tab.active {
+            background: #fff;
+            color: #4e54c8;
         }
 
-        .schedule-bookmark-header.thursday {
-            background: linear-gradient(135deg, #00C9FF, #92FE9D);
+        .add-schedule-btn {
+            background: #fff;
+            color: #4e54c8;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+            margin-bottom: 5px;
         }
 
-        .schedule-bookmark-header.friday {
-            background: linear-gradient(135deg, #f7971e, #ffd200);
+        .add-schedule-btn:hover {
+            background: #eee;
         }
 
-        .schedule-bookmark-header.saturday {
-            background: linear-gradient(135deg, #f12711, #f5af19);
-        }
-
-        .schedule-bookmark-header.sunday {
-            background: linear-gradient(135deg, #89f7fe, #66a6ff);
-        }
-
-        /* Responsiveness */
-        @media(max-width:768px){
+        /* RWD */
+        @media(max-width:600px) {
             .top-bar {
-                flex-direction: column;
-                align-items: flex-start;
+                padding: 10px;
             }
-
-            .title-year {
-                margin-left: 0;
-                margin-top: 10px;
+            .title-input {
+                max-width: 100%;
             }
-
-            .schedule-bookmark-header {
-                flex-direction: column;
-                align-items: flex-start;
+            .schedule-tab, .add-schedule-btn {
+                font-size: 0.8rem;
+                padding: 5px 8px;
             }
-
-            .schedule-list li .time {
+            .time {
                 min-width: 80px;
+                font-size: 0.9rem;
             }
-
-            .schedule-list li .desc {
+            .desc {
                 font-size: 0.9rem;
             }
         }
     </style>
 </head>
 <body>
-    <!-- 頂部工具列 -->
     <div class="top-bar">
-        <h1>行程表管理</h1>
-        <button class="add-schedule-btn" id="add-schedule-btn"><i class="fas fa-plus"></i> 新增行程表</button>
+        <div style="width: 100%;">
+            <input type="text" class="title-input" id="schedule-title" placeholder="行程表名稱" />
+            <div class="year-display" id="year-display"></div>
+            <div class="schedule-tabs" id="schedule-tabs">
+                <!-- 行程表書籤將動態生成 -->
+                <button class="add-schedule-btn" id="add-schedule-btn">＋新增行程表</button>
+            </div>
+        </div>
     </div>
-
-    <!-- 書籤管理區 -->
     <div class="container">
-        <div class="bookmark-bar">
-            <label for="schedule-selector" style="margin-right:10px; font-weight:600;">選擇行程表：</label>
-            <select id="schedule-selector" class="schedule-selector">
-                <!-- 選項將動態生成 -->
-            </select>
+        <div class="schedule-container" id="schedule-container">
+            <!-- 行程表內容將動態生成 -->
         </div>
-
-        <div class="schedule-container">
-            <!-- 行程表將動態生成 -->
-        </div>
-
         <div class="footer-note">
             © 行程表管理有限公司
         </div>
@@ -485,35 +447,17 @@
         <i class="fas fa-file-import"></i>
     </div>
 
-    <!-- 新增行程的浮動按鈕 -->
-    <div class="add-event-fab" id="add-event-fab" title="新增行程">
-        <i class="fas fa-plus"></i>
-    </div>
-
-    <!-- 新增行程表的modal -->
-    <div class="modal-overlay" id="add-schedule-modal">
-        <div class="modal">
-            <h2>新增行程表</h2>
-            <label for="new-schedule-name">行程表名稱</label>
-            <input type="text" id="new-schedule-name" placeholder="例如：假期行程">
-            <div class="modal-btns">
-                <button class="cancel">取消</button>
-                <button class="confirm">新增</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 新增行程的modal -->
-    <div class="modal-overlay" id="add-event-modal">
+    <div class="modal-overlay" id="modal-overlay">
         <div class="modal">
             <h2>新增行程</h2>
-            <label for="new-datetime">日期時間（必填）</label>
+            <label>日期時間（必填）</label>
             <input type="datetime-local" id="new-datetime">
-            <label for="new-desc">描述（必填）</label>
+            <label>描述（必填）</label>
             <input type="text" id="new-desc" placeholder="行程描述">
-            <label for="new-location">地點（選填）</label>
+            <label>地點（選填）</label>
             <input type="text" id="new-location" placeholder="地點">
-            <label for="new-note">備註（選填）</label>
+            <label>備註（選填）</label>
             <textarea id="new-note" placeholder="備註..."></textarea>
             <div class="modal-btns">
                 <button class="cancel">取消</button>
@@ -523,7 +467,7 @@
     </div>
 
     <!-- 批次匯入的modal -->
-    <div class="modal-overlay-import" id="batch-import-modal">
+    <div class="modal-overlay-import" id="import-overlay">
         <div class="modal">
             <h2>批次匯入行程</h2>
             <textarea id="batch-input" placeholder="將行程文本貼在這裡..."></textarea>
@@ -534,615 +478,588 @@
         </div>
     </div>
 
+    <!-- 新增行程表的modal -->
+    <div class="modal-overlay" id="add-schedule-modal">
+        <div class="modal">
+            <h2>新增行程表</h2>
+            <label>行程表名稱（必填）</label>
+            <input type="text" id="new-schedule-name" placeholder="行程表名稱">
+            <div class="modal-btns">
+                <button class="cancel">取消</button>
+                <button class="confirm">新增</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // 初始化變數與元素
+        // 初始化年份顯示
+        function initializeYear() {
+            const today = new Date();
+            const year = today.getFullYear();
+            document.getElementById('year-display').textContent = `年份：${year}`;
+        }
+
+        // 資料結構
+        let scheduleData = {
+            title: '',
+            schedules: [] // 每個 schedule 包含 name, days
+        };
+        let currentScheduleIndex = 0;
+
+        // DOM元素
+        const scheduleTitle = document.getElementById('schedule-title');
+        const scheduleTabs = document.getElementById('schedule-tabs');
         const addScheduleBtn = document.getElementById('add-schedule-btn');
-        const addScheduleModal = document.getElementById('add-schedule-modal');
-        const addScheduleCancel = addScheduleModal.querySelector('.cancel');
-        const addScheduleConfirm = addScheduleModal.querySelector('.confirm');
-        const newScheduleNameInput = document.getElementById('new-schedule-name');
-
-        const scheduleSelector = document.getElementById('schedule-selector');
-        const scheduleContainer = document.querySelector('.schedule-container');
-
-        const addEventFab = document.getElementById('add-event-fab');
-        const addEventModal = document.getElementById('add-event-modal');
-        const addEventCancel = addEventModal.querySelector('.cancel');
-        const addEventConfirm = addEventModal.querySelector('.confirm');
-        const newDatetimeInput = document.getElementById('new-datetime');
-        const newDescInput = document.getElementById('new-desc');
-        const newLocationInput = document.getElementById('new-location');
-        const newNoteInput = document.getElementById('new-note');
-
+        const scheduleContainer = document.getElementById('schedule-container');
         const importFab = document.getElementById('import-fab');
-        const batchImportModal = document.getElementById('batch-import-modal');
-        const batchImportCancel = batchImportModal.querySelector('.cancel-import');
-        const batchImportConfirm = batchImportModal.querySelector('.confirm-import');
+
+        // Modal元素
+        const modalOverlay = document.getElementById('modal-overlay');
+        const cancelBtn = modalOverlay.querySelector('.cancel');
+        const confirmBtn = modalOverlay.querySelector('.confirm');
+
+        const importOverlay = document.getElementById('import-overlay');
+        const cancelImportBtn = importOverlay.querySelector('.cancel-import');
+        const confirmImportBtn = importOverlay.querySelector('.confirm-import');
         const batchInput = document.getElementById('batch-input');
 
-        // 管理多個行程表
-        let schedules = {};
-        let currentSchedule = '';
+        const addScheduleModal = document.getElementById('add-schedule-modal');
+        const newScheduleName = document.getElementById('new-schedule-name');
+        const cancelAddScheduleBtn = addScheduleModal.querySelector('.cancel');
+        const confirmAddScheduleBtn = addScheduleModal.querySelector('.confirm');
 
         // 初始化
-        window.onload = () => {
-            loadSchedules();
-            if(Object.keys(schedules).length > 0){
-                currentSchedule = Object.keys(schedules)[0];
-                populateScheduleSelector();
-                renderSchedule();
-            }
-        };
-
-        // 讀取 localStorage
-        function loadSchedules(){
-            const data = localStorage.getItem('schedules');
-            if(data){
-                schedules = JSON.parse(data);
-            } else {
-                // 初始化一個預設行程表
-                schedules = {
-                    "預設行程表": {
-                        title: "預設行程表",
-                        days: {}
-                    }
-                };
-                saveSchedules();
-            }
-        }
-
-        // 儲存到 localStorage
-        function saveSchedules(){
-            localStorage.setItem('schedules', JSON.stringify(schedules));
-        }
-
-        // 生成行程表選擇下拉選單
-        function populateScheduleSelector(){
-            scheduleSelector.innerHTML = '';
-            for(let scheduleName in schedules){
-                const option = document.createElement('option');
-                option.value = scheduleName;
-                option.textContent = scheduleName;
-                if(scheduleName === currentSchedule){
-                    option.selected = true;
-                }
-                scheduleSelector.appendChild(option);
-            }
-        }
-
-        // 切換行程表
-        scheduleSelector.addEventListener('change', (e) => {
-            currentSchedule = e.target.value;
-            renderSchedule();
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeYear();
+            loadFromLocalStorage();
+            renderScheduleTabs();
+            renderCurrentSchedule();
         });
 
-        // 新增行程表
+        // 事件監聽
+        scheduleTitle.addEventListener('input', () => {
+            scheduleData.title = scheduleTitle.value.trim();
+            saveToLocalStorage();
+        });
+
         addScheduleBtn.addEventListener('click', () => {
+            showAddScheduleModal();
+        });
+
+        cancelAddScheduleBtn.addEventListener('click', () => {
+            hideAddScheduleModal();
+        });
+
+        confirmAddScheduleBtn.addEventListener('click', () => {
+            const name = newScheduleName.value.trim();
+            if (!name) {
+                alert('行程表名稱為必填項目。');
+                return;
+            }
+            addNewSchedule(name);
+            hideAddScheduleModal();
+        });
+
+        // 新增行程表的Modal
+        function showAddScheduleModal() {
             addScheduleModal.style.display = 'flex';
-            newScheduleNameInput.value = '';
-        });
-
-        addScheduleCancel.addEventListener('click', () => {
-            addScheduleModal.style.display = 'none';
-        });
-
-        addScheduleConfirm.addEventListener('click', () => {
-            const newName = newScheduleNameInput.value.trim();
-            if(newName === ''){
-                alert('行程表名稱不能為空。');
-                return;
-            }
-            if(schedules.hasOwnProperty(newName)){
-                alert('此行程表名稱已存在。請使用其他名稱。');
-                return;
-            }
-            schedules[newName] = {
-                title: newName,
-                days: {}
-            };
-            saveSchedules();
-            populateScheduleSelector();
-            scheduleSelector.value = newName;
-            currentSchedule = newName;
-            renderSchedule();
-            addScheduleModal.style.display = 'none';
-        });
-
-        // 渲染當前行程表
-        function renderSchedule(){
-            scheduleContainer.innerHTML = '';
-            const schedule = schedules[currentSchedule];
-            const days = schedule.days;
-
-            for(let date in days){
-                const day = days[date];
-                const dayDiv = createDayBlock(date, day);
-                scheduleContainer.appendChild(dayDiv);
-            }
-
-            // Initialize SortableJS for drag-and-drop
-            initializeSortable();
+            newScheduleName.value = '';
         }
 
-        // 建立單個日期區塊
-        function createDayBlock(dateStr, dayData){
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'schedule-bookmark';
-
-            // 解析日期與星期幾
-            const dateObj = new Date(dateStr);
-            const options = { weekday: 'long' };
-            const dayOfWeek = dateObj.toLocaleDateString('zh-TW', options);
-            const weekday = dayOfWeek.slice(0,3).toLowerCase(); // e.g., "mon", "tue"
-
-            // 設定對應星期的顏色
-            const headerClass = `schedule-bookmark-header ${weekday}`;
-            const dayHeader = document.createElement('div');
-            dayHeader.className = headerClass;
-            dayHeader.innerHTML = `<i class="fas fa-calendar-day icon"></i>
-                                   <div class="day-info">
-                                       <span>${dateStr}</span>
-                                       <span>${dayOfWeek}</span>
-                                   </div>`;
-            dayDiv.appendChild(dayHeader);
-
-            // 行程列表
-            const ul = document.createElement('ul');
-            ul.className = 'schedule-list';
-            ul.setAttribute('data-date', dateStr);
-
-            dayData.events.forEach(event => {
-                const li = document.createElement('li');
-                li.setAttribute('data-datetime', event.datetime);
-                if(event.loc) li.setAttribute('data-loc', event.loc);
-                if(event.note) li.setAttribute('data-note', event.note);
-
-                // 時間顯示
-                const timeSpan = document.createElement('span');
-                timeSpan.className = 'time';
-                const eventDate = new Date(event.datetime);
-                const hours = eventDate.getHours();
-                const minutes = eventDate.getMinutes().toString().padStart(2, '0');
-                const ampm = hours >= 12 ? 'PM' : 'AM';
-                const formattedHour = hours % 12 === 0 ? 12 : hours % 12;
-                timeSpan.textContent = `${formattedHour}:${minutes} ${ampm}`;
-
-                // 拖曳手把
-                const dragHandle = document.createElement('span');
-                dragHandle.className = 'drag-handle';
-                dragHandle.innerHTML = '≡';
-
-                // 描述
-                const descSpan = document.createElement('span');
-                descSpan.className = 'desc';
-                descSpan.textContent = event.desc;
-
-                // 地點
-                const locationDiv = document.createElement('div');
-                locationDiv.className = 'location';
-                if(event.loc){
-                    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.loc)}`;
-                    const mapLink = document.createElement('a');
-                    mapLink.href = mapUrl;
-                    mapLink.target = '_blank';
-                    mapLink.textContent = event.loc;
-                    locationDiv.innerHTML = `<i class="fas fa-map-marker-alt"></i>`;
-                    locationDiv.appendChild(mapLink);
-                }
-
-                // 備註
-                const noteDiv = document.createElement('div');
-                noteDiv.className = 'note';
-                if(event.note){
-                    noteDiv.innerHTML = `<i class="fas fa-sticky-note"></i> ${event.note}`;
-                }
-
-                // 匯出ICS按鈕
-                const exportBtn = document.createElement('button');
-                exportBtn.className = 'export-ics-btn';
-                exportBtn.textContent = '匯出日曆';
-                exportBtn.addEventListener('click', () => {
-                    exportICS(event);
-                });
-
-                // 刪除按鈕
-                const deleteBtn = document.createElement('span');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-                deleteBtn.addEventListener('click', () => {
-                    deleteEvent(dateStr, event.datetime);
-                });
-
-                // 組合
-                li.appendChild(dragHandle);
-                li.appendChild(timeSpan);
-                li.appendChild(descSpan);
-                li.appendChild(locationDiv);
-                if(event.note) li.appendChild(noteDiv);
-                li.appendChild(exportBtn);
-                li.appendChild(deleteBtn);
-
-                ul.appendChild(li);
-            });
-
-            dayDiv.appendChild(ul);
-
-            // 每日匯出按鈕
-            const exportDayBtn = document.createElement('button');
-            exportDayBtn.className = 'export-day-btn';
-            exportDayBtn.innerHTML = '<i class="fas fa-calendar-alt"></i> 匯出當日行程';
-            exportDayBtn.addEventListener('click', () => {
-                exportDayICS(dateStr);
-            });
-            dayDiv.appendChild(exportDayBtn);
-
-            return dayDiv;
+        function hideAddScheduleModal() {
+            addScheduleModal.style.display = 'none';
         }
 
         // 新增行程
-        addEventFab.addEventListener('click', () => {
-            addEventModal.style.display = 'flex';
-            newDatetimeInput.value = '';
-            newDescInput.value = '';
-            newLocationInput.value = '';
-            newNoteInput.value = '';
-        });
+        function showModal() {
+            modalOverlay.style.display = 'flex';
+            document.getElementById('new-datetime').value = '';
+            document.getElementById('new-desc').value = '';
+            document.getElementById('new-location').value = '';
+            document.getElementById('new-note').value = '';
+        }
 
-        addEventCancel.addEventListener('click', () => {
-            addEventModal.style.display = 'none';
-        });
+        function hideModal() {
+            modalOverlay.style.display = 'none';
+        }
 
-        addEventConfirm.addEventListener('click', () => {
-            const datetime = newDatetimeInput.value.trim();
-            const desc = newDescInput.value.trim();
-            const loc = newLocationInput.value.trim();
-            const note = newNoteInput.value.trim();
+        confirmBtn.addEventListener('click', () => {
+            const datetime = document.getElementById('new-datetime').value.trim();
+            const desc = document.getElementById('new-desc').value.trim();
+            const loc = document.getElementById('new-location').value.trim();
+            const note = document.getElementById('new-note').value.trim();
 
-            if(!datetime || !desc){
+            if(!desc || !datetime) {
                 alert('日期時間與描述為必填項目。');
                 return;
             }
 
-            const schedule = schedules[currentSchedule];
             const datePart = datetime.split('T')[0];
-            if(!schedule.days[datePart]){
-                schedule.days[datePart] = { events: [] };
+            const timePart = datetime.split('T')[1];
+
+            // 檢查是否已有該日期
+            let day = scheduleData.schedules[currentScheduleIndex].days.find(d => d.date === datePart);
+            if (!day) {
+                day = { date: datePart, events: [] };
+                scheduleData.schedules[currentScheduleIndex].days.push(day);
             }
 
-            schedule.days[datePart].events.push({
+            const event = {
                 datetime: datetime,
                 desc: desc,
                 loc: loc,
                 note: note
-            });
+            };
 
-            saveSchedules();
-            renderSchedule();
-            addEventModal.style.display = 'none';
+            day.events.push(event);
+            renderCurrentSchedule();
+            enableInteractions();
+            saveToLocalStorage();
+            hideModal();
         });
 
         // 批次匯入
         importFab.addEventListener('click', () => {
-            batchImportModal.style.display = 'flex';
+            showImportModal();
+        });
+
+        function showImportModal() {
+            importOverlay.style.display = 'flex';
             batchInput.value = '';
+        }
+
+        function hideImportModal() {
+            importOverlay.style.display = 'none';
+        }
+
+        cancelImportBtn.addEventListener('click', () => {
+            hideImportModal();
         });
 
-        batchImportCancel.addEventListener('click', () => {
-            batchImportModal.style.display = 'none';
-        });
-
-        batchImportConfirm.addEventListener('click', () => {
+        confirmImportBtn.addEventListener('click', () => {
             const text = batchInput.value.trim();
-            if(text === ''){
+            if(!text) {
                 alert('請貼入行程資料。');
                 return;
             }
-            importBatch(text);
-            batchImportModal.style.display = 'none';
+            parseAndImport(text);
+            hideImportModal();
+            renderCurrentSchedule();
+            enableInteractions();
+            saveToLocalStorage();
         });
 
-        // 匯入批次行程
-        function importBatch(text){
-            const lines = text.split('\n').map(l => l.trim()).filter(l=>l);
+        // 新增行程表
+        function addNewSchedule(name) {
+            scheduleData.schedules.push({ name: name, days: [] });
+            currentScheduleIndex = scheduleData.schedules.length -1;
+            renderScheduleTabs();
+            renderCurrentSchedule();
+            saveToLocalStorage();
+        }
 
-            let currentDate = '';
-            let schedule = schedules[currentSchedule];
+        // 渲染行程表書籤
+        function renderScheduleTabs() {
+            // 清除現有的書籤（除了新增按鈕）
+            const existingTabs = scheduleTabs.querySelectorAll('.schedule-tab');
+            existingTabs.forEach(tab => tab.remove());
 
-            lines.forEach(line => {
-                // 檢查是否為日期行
-                const dateMatch = line.match(/^(\d{1,2}\/\d{1,2})$/);
-                if(dateMatch){
-                    currentDate = dateMatch[1];
-                    if(!schedule.days[currentDate]){
-                        schedule.days[currentDate] = { events: [] };
-                    }
-                    return;
+            scheduleData.schedules.forEach((schedule, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'schedule-tab';
+                if(index === currentScheduleIndex) btn.classList.add('active');
+                btn.textContent = schedule.name;
+                btn.addEventListener('click', () => {
+                    currentScheduleIndex = index;
+                    renderScheduleTabs();
+                    renderCurrentSchedule();
+                });
+                scheduleTabs.insertBefore(btn, addScheduleBtn);
+            });
+        }
+
+        // 渲染當前行程表
+        function renderCurrentSchedule() {
+            scheduleContainer.innerHTML = '';
+            if(scheduleData.schedules.length === 0) return;
+
+            const currentSchedule = scheduleData.schedules[currentScheduleIndex];
+
+            currentSchedule.days.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            currentSchedule.days.forEach(day => {
+                const dayDiv = createDayBlock(day.date);
+                scheduleContainer.appendChild(dayDiv);
+                const listEl = dayDiv.querySelector('.schedule-list');
+                day.events.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+                day.events.forEach(ev => {
+                    addEventToList(listEl, ev.datetime, ev.desc, ev.loc, ev.note);
+                });
+                // 批次匯出按鈕
+                const batchExportBtn = document.createElement('button');
+                batchExportBtn.className = 'batch-export-btn';
+                batchExportBtn.textContent = '匯出整天行程';
+                batchExportBtn.addEventListener('click', () => {
+                    exportDayToICS(day);
+                });
+                listEl.appendChild(batchExportBtn);
+            });
+        }
+
+        // 建立日期區塊
+        function createDayBlock(dateStr) {
+            const dayDiv = document.createElement('div');
+            dayDiv.className='schedule-day';
+            dayDiv.setAttribute('data-date', dateStr);
+
+            const dayHeader = document.createElement('div');
+            dayHeader.className='schedule-day-header';
+
+            const dateObj = new Date(dateStr);
+            const options = { weekday: 'long' };
+            const weekday = dateObj.toLocaleDateString('zh-Hant-TW', options);
+
+            dayHeader.setAttribute('data-weekday', weekday);
+            dayHeader.innerHTML = `<i class="fas fa-calendar-day icon"></i>${dateStr} (${weekday})`;
+
+            const ul = document.createElement('ul');
+            ul.className = 'schedule-list';
+
+            dayDiv.appendChild(dayHeader);
+            dayDiv.appendChild(ul);
+            return dayDiv;
+        }
+
+        // 加入事件
+        function addEventToList(list, datetime, desc, loc, note) {
+            const li = document.createElement('li');
+            li.setAttribute('draggable','true');
+
+            const dateObj = new Date(datetime);
+            const timeStr = formatTime(dateObj);
+
+            let html = '';
+            html += `<span class="drag-handle"><i class="fas fa-grip-lines"></i></span>`;
+            if(timeStr) {
+                html += `<span class="time">${timeStr}</span>`;
+            }
+            html += `<span class="desc">${desc}</span>`;
+            if(loc) {
+                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
+                html += `<div class="location"><i class="fas fa-map-marker-alt"></i><a href="${mapUrl}" target="_blank">${loc}</a></div>`;
+            }
+            if(note) {
+                html += `<div class="note"><i class="fas fa-sticky-note"></i> ${note}</div>`;
+            }
+            html += `<button class="export-ics-btn">匯出日曆</button>`;
+            html += `<span class="delete-btn"><i class="fas fa-trash"></i></span>`;
+            li.innerHTML = html;
+
+            list.appendChild(li);
+        }
+
+        // 格式化時間顯示
+        function formatTime(dateObj) {
+            const hours = dateObj.getHours();
+            const minutes = dateObj.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const formattedHour = hours % 12 === 0 ? 12 : hours % 12;
+            const formattedMinute = minutes < 10 ? `0${minutes}` : minutes;
+            return `${formattedHour}:${formattedMinute} ${ampm}`;
+        }
+
+        // 拖曳排序、刪除、匯出ICS
+        function enableInteractions() {
+            const draggables = document.querySelectorAll('.schedule-list li');
+            const lists = document.querySelectorAll('.schedule-list');
+
+            draggables.forEach(li => {
+                const handle = li.querySelector('.drag-handle');
+                handle && handle.addEventListener('touchstart', e => {
+                    e.preventDefault();
+                });
+
+                handle && handle.addEventListener('mousedown', e => {
+                    li.setAttribute('draggable','true');
+                });
+
+                li.addEventListener('dragstart', () => {
+                    li.classList.add('dragging');
+                });
+
+                li.addEventListener('dragend', () => {
+                    li.classList.remove('dragging');
+                    saveToLocalStorage();
+                });
+
+                // 匯出ICS事件
+                const exportBtn = li.querySelector('.export-ics-btn');
+                if(exportBtn) {
+                    exportBtn.addEventListener('click', () => {
+                        const desc = li.querySelector('.desc').textContent;
+                        const loc = li.getAttribute('data-loc') || '';
+                        const note = li.querySelector('.note') ? li.querySelector('.note').textContent : '';
+                        const dt = li.getAttribute('data-datetime');
+                        const dtObj = new Date(dt);
+
+                        const icsContent = generateICS(desc, dtObj, loc, note);
+                        downloadICS(desc, icsContent);
+                    });
                 }
 
-                // 檢查是否為地點行
-                const locMatch = line.match(/^•\s*地點：(.*)$/);
-                if(locMatch && currentDate !== ''){
-                    const lastEvent = schedule.days[currentDate].events[schedule.days[currentDate].events.length -1];
-                    if(lastEvent){
-                        lastEvent.loc = locMatch[1].trim();
-                    }
-                    return;
-                }
-
-                // 檢查是否為備註行
-                const noteMatch = line.match(/^•\s*備註：(.*)$/);
-                if(noteMatch && currentDate !== ''){
-                    const lastEvent = schedule.days[currentDate].events[schedule.days[currentDate].events.length -1];
-                    if(lastEvent){
-                        lastEvent.note = noteMatch[1].trim();
-                    }
-                    return;
-                }
-
-                // 一般行程行
-                const eventMatch = line.match(/^•\s*(\d{1,2}:\d{2}\s?(AM|PM)?)\s*[:：]\s*(.*)$/i);
-                if(eventMatch && currentDate !== ''){
-                    const timeStr = eventMatch[1];
-                    const desc = eventMatch[3];
-                    let datetime = '';
-
-                    // 解析時間
-                    const now = new Date();
-                    const year = now.getFullYear();
-                    const [month, day] = currentDate.split('/').map(num => parseInt(num,10));
-
-                    let hours = 0;
-                    let minutes = 0;
-                    let ampm = 'AM';
-
-                    const timeParts = timeStr.match(/(\d{1,2}):(\d{2})\s?(AM|PM)?/i);
-                    if(timeParts){
-                        hours = parseInt(timeParts[1],10);
-                        minutes = parseInt(timeParts[2],10);
-                        if(timeParts[3]){
-                            ampm = timeParts[3].toUpperCase();
-                            if(ampm === 'PM' && hours < 12){
-                                hours += 12;
-                            }
-                            if(ampm === 'AM' && hours === 12){
-                                hours = 0;
-                            }
+                // 刪除事件
+                const deleteBtn = li.querySelector('.delete-btn');
+                if(deleteBtn) {
+                    deleteBtn.addEventListener('click', () => {
+                        if(confirm('確定要刪除此行程嗎？')) {
+                            li.remove();
+                            saveToLocalStorage();
                         }
-                    }
-
-                    const eventDate = new Date(year, month -1, day, hours, minutes);
-                    datetime = eventDate.toISOString();
-
-                    schedule.days[currentDate].events.push({
-                        datetime: datetime,
-                        desc: desc,
-                        loc: '',
-                        note: ''
                     });
                 }
             });
 
-            saveSchedules();
-            renderSchedule();
-        }
-
-        // 刪除行程
-        function deleteEvent(dateStr, datetime){
-            const schedule = schedules[currentSchedule];
-            if(schedule.days[dateStr]){
-                schedule.days[dateStr].events = schedule.days[dateStr].events.filter(ev => ev.datetime !== datetime);
-                if(schedule.days[dateStr].events.length === 0){
-                    delete schedule.days[dateStr];
-                }
-                saveSchedules();
-                renderSchedule();
-            }
-        }
-
-        // 初始化 SortableJS
-        function initializeSortable(){
-            const lists = document.querySelectorAll('.schedule-list');
             lists.forEach(list => {
-                new Sortable(list, {
-                    handle: '.drag-handle',
-                    animation: 150,
-                    onEnd: function (evt) {
-                        const dateStr = list.getAttribute('data-date');
-                        const schedule = schedules[currentSchedule];
-                        const events = schedule.days[dateStr].events;
-                        const newOrder = [];
-                        list.querySelectorAll('li').forEach(li => {
-                            const datetime = li.getAttribute('data-datetime');
-                            const event = events.find(ev => ev.datetime === datetime);
-                            if(event){
-                                newOrder.push(event);
-                            }
-                        });
-                        schedule.days[dateStr].events = newOrder;
-                        saveSchedules();
+                list.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    const afterElement = getDragAfterElement(list, e.clientY);
+                    const dragging = document.querySelector('.dragging');
+                    if (afterElement == null) {
+                        list.appendChild(dragging);
+                    } else {
+                        list.insertBefore(dragging, afterElement);
                     }
                 });
             });
+
+            function getDragAfterElement(list, y) {
+                const draggableElements = [...list.querySelectorAll('li:not(.dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if(offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
         }
 
-        // 匯出單一行程的 ICS
-        function exportICS(event){
-            const summary = event.desc;
-            const location = event.loc || '';
-            const description = event.note || '';
+        // 生成ICS內容
+        function generateICS(summary, dt, location, description) {
+            const pad = n => n < 10 ? '0' + n : n;
+            const y = dt.getFullYear();
+            const m = pad(dt.getMonth()+1);
+            const d = pad(dt.getDate());
+            const hh = pad(dt.getHours());
+            const mm = pad(dt.getMinutes());
+            const ss = '00';
 
-            const eventDate = new Date(event.datetime);
-            const start = formatICSDate(eventDate);
-            const end = formatICSDate(new Date(eventDate.getTime() + 60*60*1000)); // 假設活動持續1小時
+            // 格式化為UTC時間
+            const dtUTC = new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000));
+            const dtStr = `${y}${m}${d}T${hh}${mm}${ss}Z`;
 
-            const icsContent = `BEGIN:VCALENDAR
+            return `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//YourProduct//Event//EN
 BEGIN:VEVENT
 UID:${Date.now()}@yourdomain.com
-DTSTAMP:${start}Z
-DTSTART:${start}Z
-DTEND:${end}Z
+DTSTAMP:${dtStr}
+DTSTART:${dtStr}
+DTEND:${dtStr}
 SUMMARY:${escapeICS(summary)}
 LOCATION:${escapeICS(location)}
 DESCRIPTION:${escapeICS(description)}
 END:VEVENT
 END:VCALENDAR`;
-
-            downloadICS(icsContent, `${summary}.ics`);
         }
 
-        // 匯出當日所有行程的 ICS
-        function exportDayICS(dateStr){
-            const schedule = schedules[currentSchedule];
-            const events = schedule.days[dateStr].events;
-            if(events.length === 0){
-                alert('當天沒有行程。');
-                return;
-            }
-
-            let icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//YourProduct//Events//EN
-`;
-
-            events.forEach(event => {
-                const summary = event.desc;
-                const location = event.loc || '';
-                const description = event.note || '';
-
-                const eventDate = new Date(event.datetime);
-                const start = formatICSDate(eventDate);
-                const end = formatICSDate(new Date(eventDate.getTime() + 60*60*1000)); // 假設活動持續1小時
-
-                icsContent += `BEGIN:VEVENT
-UID:${Date.now()}@yourdomain.com
-DTSTAMP:${start}Z
-DTSTART:${start}Z
-DTEND:${end}Z
-SUMMARY:${escapeICS(summary)}
-LOCATION:${escapeICS(location)}
-DESCRIPTION:${escapeICS(description)}
-END:VEVENT
-`;
-            });
-
-            icsContent += `END:VCALENDAR`;
-
-            downloadICS(icsContent, `行程_${dateStr}.ics`);
-        }
-
-        // 生成 ICS 格式的日期時間
-        function formatICSDate(dateObj){
-            const pad = n => n.toString().padStart(2, '0');
-            return `${dateObj.getUTCFullYear()}${pad(dateObj.getUTCMonth()+1)}${pad(dateObj.getUTCDate())}T${pad(dateObj.getUTCHours())}${pad(dateObj.getUTCMinutes())}${pad(dateObj.getUTCSeconds())}`;
-        }
-
-        // 下載 ICS 檔案
-        function downloadICS(content, filename){
-            const blob = new Blob([content], {type: 'text/calendar;charset=utf-8'});
+        // 下載ICS檔案
+        function downloadICS(filename, content) {
+            const blob = new Blob([content], { type: 'text/calendar' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
+            a.download = `${filename}.ics`;
             a.click();
-            document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
 
-        // 轉義 ICS 內容
-        function escapeICS(str){
-            if(!str) return '';
+        // 逃逸ICS特定字符
+        function escapeICS(str) {
+            if (!str) return '';
             return str.replace(/\\/g, "\\\\")
                       .replace(/;/g, "\\;")
                       .replace(/,/g, "\\,")
                       .replace(/\n/g, "\\n");
         }
 
-        // 匯入批次行程
-        function importBatch(text){
-            const lines = text.split('\n').map(l => l.trim()).filter(l=>l);
+        // 批次匯入解析
+        function parseAndImport(text) {
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
             let currentDate = '';
-            let schedule = schedules[currentSchedule];
+            let currentDay = null;
+
+            const timePattern = /^•\s*(\d{1,2}:\d{2}\s?(AM|PM)?)(：|:)\s*(.*)$/i;
 
             lines.forEach(line => {
                 // 檢查是否為日期行
                 const dateMatch = line.match(/^(\d{1,2}\/\d{1,2})$/);
-                if(dateMatch){
+                if(dateMatch) {
                     currentDate = dateMatch[1];
-                    if(!schedule.days[currentDate]){
-                        schedule.days[currentDate] = { events: [] };
+                    // 檢查是否已存在該日期
+                    let day = scheduleData.schedules[currentScheduleIndex].days.find(d => d.date === currentDate);
+                    if(!day) {
+                        day = { date: currentDate, events: [] };
+                        scheduleData.schedules[currentScheduleIndex].days.push(day);
                     }
-                    return;
-                }
+                    currentDay = day;
+                } else {
+                    if(!currentDay) return;
 
-                // 檢查是否為地點行
-                const locMatch = line.match(/^•\s*地點：(.*)$/);
-                if(locMatch && currentDate !== ''){
-                    const lastEvent = schedule.days[currentDate].events[schedule.days[currentDate].events.length -1];
-                    if(lastEvent){
-                        lastEvent.loc = locMatch[1].trim();
-                    }
-                    return;
-                }
+                    // 檢查是否為地點行
+                    const locMatch = line.match(/^•\s*地點：(.*)$/i);
+                    if(locMatch) {
+                        const loc = locMatch[1].trim();
+                        if(currentDay.events.length > 0) {
+                            currentDay.events[currentDay.events.length -1].loc = loc;
+                        }
+                    } else {
+                        // 檢查是否為行程項目
+                        const eventMatch = line.match(timePattern);
+                        if(eventMatch) {
+                            const time = eventMatch[1].trim();
+                            const desc = eventMatch[4].trim();
+                            let datetime = '';
 
-                // 檢查是否為備註行
-                const noteMatch = line.match(/^•\s*備註：(.*)$/);
-                if(noteMatch && currentDate !== ''){
-                    const lastEvent = schedule.days[currentDate].events[schedule.days[currentDate].events.length -1];
-                    if(lastEvent){
-                        lastEvent.note = noteMatch[1].trim();
-                    }
-                    return;
-                }
-
-                // 一般行程行
-                const eventMatch = line.match(/^•\s*(\d{1,2}:\d{2}\s?(AM|PM)?)\s*[:：]\s*(.*)$/i);
-                if(eventMatch && currentDate !== ''){
-                    const timeStr = eventMatch[1];
-                    const desc = eventMatch[3];
-                    let datetime = '';
-
-                    // 解析時間
-                    const now = new Date();
-                    const year = now.getFullYear();
-                    const [month, day] = currentDate.split('/').map(num => parseInt(num,10));
-
-                    let hours = 0;
-                    let minutes = 0;
-                    let ampm = 'AM';
-
-                    const timeParts = timeStr.match(/(\d{1,2}):(\d{2})\s?(AM|PM)?/i);
-                    if(timeParts){
-                        hours = parseInt(timeParts[1],10);
-                        minutes = parseInt(timeParts[2],10);
-                        if(timeParts[3]){
-                            ampm = timeParts[3].toUpperCase();
-                            if(ampm === 'PM' && hours < 12){
-                                hours += 12;
+                            // 解析時間
+                            const ampmMatch = time.match(/AM|PM/i);
+                            let isPM = false;
+                            if(ampmMatch) {
+                                isPM = ampmMatch[0].toUpperCase() === 'PM';
                             }
-                            if(ampm === 'AM' && hours === 12){
-                                hours = 0;
-                            }
+
+                            let [hour, minute] = time.split(':').map(Number);
+                            if(isPM && hour < 12) hour += 12;
+                            if(!isPM && hour === 12) hour = 0;
+
+                            const dateParts = currentDate.split('/');
+                            const year = new Date().getFullYear();
+                            const month = dateParts[0].padStart(2, '0');
+                            const dayNum = dateParts[1].padStart(2, '0');
+                            const isoStr = `${year}-${month}-${dayNum}T${padZero(hour)}:${padZero(minute)}`;
+
+                            datetime = isoStr;
+
+                            const event = {
+                                datetime: datetime,
+                                desc: desc,
+                                loc: '',
+                                note: ''
+                            };
+
+                            currentDay.events.push(event);
+                        } else {
+                            // 可能是備註或其他描述
+                            // 這裡暫時不處理
                         }
                     }
-
-                    const eventDate = new Date(year, month -1, day, hours, minutes);
-                    datetime = eventDate.toISOString();
-
-                    schedule.days[currentDate].events.push({
-                        datetime: datetime,
-                        desc: desc,
-                        loc: '',
-                        note: ''
-                    });
                 }
             });
 
-            saveSchedules();
-            renderSchedule();
+            // 更新UI
+            renderCurrentSchedule();
         }
+
+        // 工具函式
+        function padZero(n) {
+            return n < 10 ? '0' + n : n;
+        }
+
+        // 儲存到localStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('scheduleData', JSON.stringify(scheduleData));
+        }
+
+        // 從localStorage載入
+        function loadFromLocalStorage() {
+            const data = localStorage.getItem('scheduleData');
+            if(data) {
+                scheduleData = JSON.parse(data);
+                currentScheduleIndex = 0; // 預設選擇第一個行程表
+            } else {
+                // 初始化第一個行程表
+                scheduleData = {
+                    title: '',
+                    schedules: []
+                };
+            }
+        }
+
+        // 匯出整天到ICS
+        function exportDayToICS(day) {
+            const events = day.events;
+            if(events.length === 0) {
+                alert('此日期無行程。');
+                return;
+            }
+
+            let icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//YourProduct//Event//EN
+`;
+
+            events.forEach(ev => {
+                const dt = new Date(ev.datetime);
+                const dtStart = formatICSDate(dt);
+                const dtEnd = formatICSDate(new Date(dt.getTime() + 60*60*1000)); // 假設1小時後結束
+
+                icsContent += `BEGIN:VEVENT
+UID:${Date.now()}@yourdomain.com
+DTSTAMP:${dtStart}Z
+DTSTART:${dtStart}Z
+DTEND:${dtEnd}Z
+SUMMARY:${escapeICS(ev.desc)}
+LOCATION:${escapeICS(ev.loc)}
+DESCRIPTION:${escapeICS(ev.note)}
+END:VEVENT
+`;
+            });
+
+            icsContent += `END:VCALENDAR`;
+
+            downloadICS(`${day.date}_行程`, icsContent);
+        }
+
+        // 格式化為ICS日期
+        function formatICSDate(dateObj) {
+            const pad = n => n < 10 ? '0' + n : n;
+            const y = dateObj.getUTCFullYear();
+            const m = pad(dateObj.getUTCMonth() +1);
+            const d = pad(dateObj.getUTCDate());
+            const hh = pad(dateObj.getUTCHours());
+            const mm = pad(dateObj.getUTCMinutes());
+            const ss = pad(dateObj.getUTCSeconds());
+            return `${y}${m}${d}T${hh}${mm}${ss}`;
+        }
+
+        // 下載ICS
+        function downloadICS(filename, content) {
+            const blob = new Blob([content], { type: 'text/calendar' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${filename}.ics`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 解析並匯入
+        function parseAndImport(text) {
+            parseAndImport(text);
+        }
+
     </script>
 </body>
 </html>
