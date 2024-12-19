@@ -89,11 +89,27 @@
         font-weight: 600;
         display: flex;
         align-items: center;
+        justify-content: space-between;
     }
 
     .schedule-day-header .icon {
         margin-right: 10px;
     }
+
+    .schedule-day-header .weekday {
+        font-size: 0.9rem;
+        margin-left: 10px;
+        color: #ddd;
+    }
+
+    /* 不同星期對應不同的顏色 */
+    .schedule-day-header.monday { background: linear-gradient(135deg, #1E3C72, #2A5298); }
+    .schedule-day-header.tuesday { background: linear-gradient(135deg, #FF7E5F, #FEB47B); }
+    .schedule-day-header.wednesday { background: linear-gradient(135deg, #654EA3, #eaafc8); }
+    .schedule-day-header.thursday { background: linear-gradient(135deg, #00c6ff, #0072ff); }
+    .schedule-day-header.friday { background: linear-gradient(135deg, #f7971e, #ffd200); }
+    .schedule-day-header.saturday { background: linear-gradient(135deg, #11998e, #38ef7d); }
+    .schedule-day-header.sunday { background: linear-gradient(135deg, #ee0979, #ff6a00); }
 
     .schedule-list {
         list-style: none;
@@ -136,6 +152,8 @@
         font-weight: 600;
         color: #555;
         margin-right: 5px;
+        min-width: 120px;
+        text-align: right;
     }
 
     .schedule-list li i {
@@ -164,21 +182,6 @@
 
     .delete-btn:hover {
         background:#f5f5f5;
-    }
-
-    .export-ics-btn {
-        background:#4e54c8;
-        color:#fff;
-        border:none;
-        padding:5px 8px;
-        border-radius:4px;
-        font-size:0.8rem;
-        cursor:pointer;
-        margin-right:10px;
-    }
-
-    .export-ics-btn:hover {
-        opacity:0.9;
     }
 
     .footer-note {
@@ -285,6 +288,33 @@
     .import-fab:hover {
         transform:scale(1.1);
     }
+
+    /* 批次匯出按鈕 */
+    .export-day-btn {
+        background: #28a745;
+        color: #fff;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition:0.3s;
+        margin-top: 10px;
+    }
+
+    .export-day-btn:hover {
+        background: #218838;
+    }
+
+    /* 日期標頭星期幾顏色 */
+    .schedule-day-header.monday { background: linear-gradient(135deg, #1E3C72, #2A5298); }
+    .schedule-day-header.tuesday { background: linear-gradient(135deg, #FF7E5F, #FEB47B); }
+    .schedule-day-header.wednesday { background: linear-gradient(135deg, #654EA3, #eaafc8); }
+    .schedule-day-header.thursday { background: linear-gradient(135deg, #00c6ff, #0072ff); }
+    .schedule-day-header.friday { background: linear-gradient(135deg, #f7971e, #ffd200); }
+    .schedule-day-header.saturday { background: linear-gradient(135deg, #11998e, #38ef7d); }
+    .schedule-day-header.sunday { background: linear-gradient(135deg, #ee0979, #ff6a00); }
+
 </style>
 </head>
 <body>
@@ -374,7 +404,7 @@
             if(obj.days) {
                 scheduleContainer.innerHTML='';
                 obj.days.forEach(dayData=>{
-                    const dayDiv = createDayBlock(dayData.date);
+                    const dayDiv = createDayBlock(dayData.date, dayData.weekday);
                     scheduleContainer.appendChild(dayDiv);
                     const listEl = dayDiv.querySelector('.schedule-list');
                     dayData.events.forEach(ev=>{
@@ -400,7 +430,8 @@
                     note: li.querySelector('.note') ? li.querySelector('.note').textContent : ''
                 };
             });
-            return {date:dateStr, events};
+            const weekday = dayDiv.getAttribute('data-weekday');
+            return {date:dateStr, weekday, events};
         });
 
         const data = {
@@ -431,11 +462,13 @@
         }
 
         const datePart = datetime.split('T')[0]; 
+        const weekday = getWeekday(new Date(datetime));
+
         // 建立或取得當天區塊
         let dayDiv = [...scheduleContainer.querySelectorAll('.schedule-day')]
                      .find(d => d.getAttribute('data-date')===datePart);
         if(!dayDiv) {
-            dayDiv = createDayBlock(datePart);
+            dayDiv = createDayBlock(datePart, weekday);
             scheduleContainer.appendChild(dayDiv);
         }
         currentList = dayDiv.querySelector('.schedule-list');
@@ -478,20 +511,30 @@
     });
 
     // 建立日期區塊
-    function createDayBlock(dateStr) {
+    function createDayBlock(dateStr, weekday) {
         const dayDiv = document.createElement('div');
         dayDiv.className='schedule-day';
         dayDiv.setAttribute('data-date', dateStr);
+        dayDiv.setAttribute('data-weekday', weekday);
 
         const dayHeader = document.createElement('div');
-        dayHeader.className='schedule-day-header';
-        dayHeader.innerHTML = `<i class="fas fa-calendar-day icon"></i>${dateStr}`;
+        dayHeader.className=`schedule-day-header ${weekday.toLowerCase()}`;
+        dayHeader.innerHTML = `<i class="fas fa-calendar-day icon"></i>${dateStr}<span class="weekday">(${weekday})</span>`;
 
         const ul = document.createElement('ul');
         ul.className = 'schedule-list';
 
+        // 批次匯出按鈕
+        const exportBtn = document.createElement('button');
+        exportBtn.className = 'export-day-btn';
+        exportBtn.textContent = '匯出當日行程';
+        exportBtn.addEventListener('click', () => {
+            exportDayToICS(dateStr);
+        });
+
         dayDiv.appendChild(dayHeader);
         dayDiv.appendChild(ul);
+        dayDiv.appendChild(exportBtn);
         return dayDiv;
     }
 
@@ -521,7 +564,6 @@
                     <i class="fas fa-sticky-note"></i> ${note}
                    </div>`;
         }
-        html+=`<button class="export-ics-btn">匯出日曆</button>`;
         html+=`<span class="delete-btn"><i class="fas fa-trash"></i></span>`;
         li.innerHTML=html;
 
@@ -538,7 +580,13 @@
         return `${formattedHour}:${formattedMinute} ${ampm}`;
     }
 
-    // 拖曳排序 & 刪除 & 匯出ICS
+    // 取得星期幾
+    function getWeekday(date) {
+        const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return weekdays[date.getDay()];
+    }
+
+    // 拖曳排序 & 刪除
     function enableInteractions() {
         const draggables = document.querySelectorAll('.schedule-list li');
         const lists = document.querySelectorAll('.schedule-list');
@@ -591,29 +639,134 @@
                 saveToLocalStorage();
             };
         });
+    }
 
-        // 匯出ICS
-        document.querySelectorAll('.export-ics-btn').forEach(btn=>{
-            btn.onclick=()=>{
-                const li = btn.closest('li');
-                const desc = li.querySelector('.desc').textContent;
-                const loc = li.getAttribute('data-loc')||'';
-                const note = li.querySelector('.note') ? li.querySelector('.note').textContent : '';
-                const dt = li.getAttribute('data-datetime');
-                const dtObj = new Date(dt);
+    // 批次匯入解析
+    function loadScheduleFromText(text) {
+        const lines = text.split('\n').map(l => l.trim()).filter(l=>l);
 
-                const icsContent = generateICS(desc, dtObj, loc, note);
-                const blob = new Blob([icsContent], {type:'text/calendar'});
-                const url = URL.createObjectURL(blob);
+        const timePattern = /^•\s?(\d{1,2}:\d{2}\s?(AM|PM)?)(：|:)\s?(.*)$/i;
+        const locationPattern = /^•\s?地點：(.*)$/i;
 
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${desc}.ics`;
-                a.click();
+        let currentDay = null;
+        let currentDate = '';
+        let listEl = null;
 
-                URL.revokeObjectURL(url);
-            };
+        lines.forEach(line => {
+            // 判斷是不是日期行，格式像 "12/26" 或 "1/2"
+            const dayMatch = line.match(/^(\d{1,2}\/\d{1,2})$/);
+            if (dayMatch) {
+                currentDate = dayMatch[1];
+                const dateObj = new Date(`${new Date().getFullYear()}-${currentDate.split('/')[0].padStart(2,'0')}-${currentDate.split('/')[1].padStart(2,'0')}`);
+                const weekday = getWeekday(dateObj);
+                currentDay = createDayBlock(currentDate, weekday);
+                scheduleContainer.appendChild(currentDay);
+                listEl = currentDay.querySelector('.schedule-list');
+            } else if (timePattern.test(line)) {
+                const matches = line.match(timePattern);
+                let timeStr = matches[1];
+                let desc = matches[4];
+                let datetime = '';
+
+                // 解析時間
+                const [timePart, ampm] = [matches[1].split('：')[0].split(':').map(part => part.trim()), matches[2]];
+                let hours = parseInt(matches[1].split(':')[0], 10);
+                let minutes = parseInt(matches[1].split(':')[1], 10);
+                if (ampm) {
+                    if (ampm.toUpperCase() === 'PM' && hours < 12) hours += 12;
+                    if (ampm.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                }
+                const dateParts = currentDate.split('/');
+                const year = new Date().getFullYear();
+                const month = dateParts[0].padStart(2,'0');
+                const day = dateParts[1].padStart(2,'0');
+                const isoStr = `${year}-${month}-${day}T${padZero(hours)}:${padZero(minutes)}`;
+                datetime = isoStr;
+
+                addEventToList(listEl, datetime, desc, '', '');
+            } else if (locationPattern.test(line)) {
+                const matches = line.match(locationPattern);
+                const loc = matches[1];
+                const lastLi = listEl.querySelector('li:last-child');
+                if (lastLi) {
+                    lastLi.setAttribute('data-loc', loc);
+                    const descEl = lastLi.querySelector('.desc');
+                    if(descEl) {
+                        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
+                        let locDiv = lastLi.querySelector('.location');
+                        if(!locDiv) {
+                            locDiv = document.createElement('div');
+                            locDiv.className='location';
+                            locDiv.style='margin-left:22px;';
+                            lastLi.insertBefore(locDiv, lastLi.querySelector('.delete-btn'));
+                        }
+                        locDiv.innerHTML=`<i class="fas fa-map-marker-alt"></i><a href="${mapUrl}" target="_blank">${loc}</a>`;
+                    }
+                }
+            } else {
+                // 沒有時間的描述
+                const desc = line.replace(/^•\s?/, '');
+                const dateParts = currentDate.split('/');
+                const year = new Date().getFullYear();
+                const month = dateParts[0].padStart(2,'0');
+                const day = dateParts[1].padStart(2,'0');
+                const isoStr = `${year}-${month}-${day}T12:00`; // 預設中午12:00
+                addEventToList(listEl, isoStr, desc, '', '');
+            }
         });
+        enableInteractions();
+    }
+
+    function padZero(n) {
+        return n < 10 ? '0' + n : n;
+    }
+
+    // 匯出當日行程到ICS
+    function exportDayToICS(dateStr) {
+        const dayDiv = [...scheduleContainer.querySelectorAll('.schedule-day')]
+                       .find(d => d.getAttribute('data-date')===dateStr);
+        if(!dayDiv) {
+            alert('找不到指定日期的行程。');
+            return;
+        }
+        const events = [...dayDiv.querySelectorAll('li')].map(li=>{
+            const desc = li.querySelector('.desc').textContent;
+            const loc = li.getAttribute('data-loc') || '';
+            const note = li.querySelector('.note') ? li.querySelector('.note').textContent : '';
+            const dt = li.getAttribute('data-datetime');
+            return {desc, loc, note, dt};
+        });
+
+        if(events.length === 0) {
+            alert('當日沒有行程。');
+            return;
+        }
+
+        const icsContent = generateICSBatch(events);
+        const blob = new Blob([icsContent], {type:'text/calendar'});
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${dateStr}_行程.ics`;
+        a.click();
+
+        URL.revokeObjectURL(url);
+    }
+
+    function generateICSBatch(events) {
+        let ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//YourProduct//Event//EN
+`;
+
+        events.forEach(ev => {
+            const event = generateICS(ev.desc, new Date(ev.dt), ev.loc, ev.note);
+            ics += event + '\n';
+        });
+
+        ics += 'END:VCALENDAR';
+        return ics;
     }
 
     function generateICS(summary, dt, location, description) {
@@ -629,10 +782,7 @@
         const dtUTC = new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000));
         const dtStr = `${y}${m}${d}T${hh}${mm}${ss}Z`;
 
-        return `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//YourProduct//Event//EN
-BEGIN:VEVENT
+        return `BEGIN:VEVENT
 UID:${Date.now()}@yourdomain.com
 DTSTAMP:${dtStr}
 DTSTART:${dtStr}
@@ -640,8 +790,7 @@ DTEND:${dtStr}
 SUMMARY:${escapeICS(summary)}
 LOCATION:${escapeICS(location)}
 DESCRIPTION:${escapeICS(description)}
-END:VEVENT
-END:VCALENDAR`;
+END:VEVENT`;
     }
 
     function escapeICS(str) {
@@ -650,104 +799,6 @@ END:VCALENDAR`;
                   .replace(/;/g, "\\;")
                   .replace(/,/g, "\\,")
                   .replace(/\n/g, "\\n");
-    }
-
-    // 批次匯入解析
-    function loadScheduleFromText(text) {
-        const lines = text.split('\n').map(l => l.trim()).filter(l=>l);
-
-        // 保留現有行程，新增新的行程
-        let currentDay = null;
-        let currentDate = '';
-        let listEl = null;
-
-        // 更新年份顯示
-        const today = new Date();
-        const year = today.getFullYear();
-        yearDisplay.textContent = `年份：${year}`;
-
-        const timePattern = /^(\d{1,2}:\d{2}\s?(AM|PM)?)(：|:)/i;
-
-        lines.forEach(line => {
-            // 日期行
-            const dayMatch = line.match(/^(\d{1,2}\/\d{1,2})$/);
-            if (dayMatch) {
-                currentDate = dayMatch[1];
-                currentDay = createDayBlock(currentDate);
-                scheduleContainer.appendChild(currentDay);
-                listEl = currentDay.querySelector('.schedule-list');
-            } else {
-                if (!currentDay) return; 
-
-                const locationMatch = line.match(/^地點：(.*)/);
-                if (locationMatch) {
-                    // 加到上一個li
-                    const lastLi = listEl.querySelector('li:last-child');
-                    if (lastLi) {
-                        lastLi.setAttribute('data-loc', locationMatch[1].trim());
-                        const descEl = lastLi.querySelector('.desc');
-                        if(descEl) {
-                            // 在DOM上添加地點
-                            const loc = locationMatch[1].trim();
-                            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
-                            let locDiv = lastLi.querySelector('.location');
-                            if(!locDiv) {
-                                locDiv = document.createElement('div');
-                                locDiv.className='location';
-                                locDiv.style='margin-left:22px;';
-                                lastLi.insertBefore(locDiv, lastLi.querySelector('.export-ics-btn'));
-                            }
-                            locDiv.innerHTML=`<i class="fas fa-map-marker-alt"></i><a href="${mapUrl}" target="_blank">${loc}</a>`;
-                        }
-                    }
-                } else {
-                    // 行程描述
-                    let desc = line.replace(/^•\s?/,'');
-                    let timeStr = '';
-                    const matchTime = desc.match(timePattern);
-                    if (matchTime) {
-                        timeStr = matchTime[1];
-                        desc = desc.replace(timePattern, '').trim();
-                    }
-
-                    // 解析時間
-                    let datetime = '';
-                    if(timeStr) {
-                        let hour=12, minute=0;
-                        const ampmMatch = timeStr.match(/AM|PM/i);
-                        const isPM = ampmMatch ? ampmMatch[0].toUpperCase()==='PM' : false;
-                        const hm = timeStr.split(':');
-                        hour = parseInt(hm[0],10);
-                        minute = parseInt(hm[1],10) || 0;
-                        if(isPM && hour < 12) hour += 12;
-                        if(!isPM && hour === 12) hour = 0;
-
-                        const dateParts = currentDate.split('/');
-                        const year = (new Date()).getFullYear();
-                        const month = dateParts[0].padStart(2,'0');
-                        const day = dateParts[1].padStart(2,'0');
-                        const isoStr = `${year}-${month}-${day}T${padZero(hour)}:${padZero(minute)}`;
-
-                        datetime = isoStr;
-                    } else {
-                        // 如果沒有時間，使用當天中午12:00
-                        const dateParts = currentDate.split('/');
-                        const year = (new Date()).getFullYear();
-                        const month = dateParts[0].padStart(2,'0');
-                        const day = dateParts[1].padStart(2,'0');
-                        const isoStr = `${year}-${month}-${day}T12:00`;
-                        datetime = isoStr;
-                    }
-
-                    addEventToList(listEl, datetime, desc, '', '');
-                }
-            }
-        });
-        enableInteractions();
-    }
-
-    function padZero(n) {
-        return n < 10 ? '0' + n : n;
     }
 
     // 載入
