@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>超屌行程表</title>
+<title>完善行程表</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -25,8 +25,9 @@
         color:#fff;
         padding: 10px 20px;
         display:flex;
-        align-items:center;
-        justify-content: space-between;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
         z-index:999;
         box-shadow:0 2px 8px rgba(0,0,0,0.15);
     }
@@ -38,7 +39,13 @@
         padding:5px 10px;
         color:#fff;
         font-size:1rem;
-        width:60%;
+        width:100%;
+        margin-bottom:5px;
+    }
+
+    .top-bar .year-display {
+        font-size: 1rem;
+        margin-bottom: 10px;
     }
 
     .add-event-btn {
@@ -51,7 +58,7 @@
         font-size: 0.9rem;
         box-shadow:0 2px 6px rgba(0,0,0,0.1);
         transition:0.3s;
-        margin-left:10px;
+        align-self: flex-end;
     }
 
     .add-event-btn:hover {
@@ -60,7 +67,7 @@
 
     .container {
         max-width: 1000px;
-        margin: 80px auto 0 auto;
+        margin: 140px auto 0 auto; /* 調整頂部間距以適應年份顯示 */
         padding: 20px;
     }
 
@@ -283,6 +290,7 @@
 <body>
 <div class="top-bar">
     <input type="text" class="title-input" id="schedule-title" placeholder="行程表名稱" />
+    <div class="year-display" id="year-display"></div>
     <button class="add-event-btn" id="global-add-event">＋新增行程</button>
 </div>
 <div class="container">
@@ -291,7 +299,7 @@
     </div>
 
     <div class="footer-note">
-        © 幹你家行程表超長不耐煩有限公司 | 不要鬧欸😏🥵🤡
+        © 行程表管理有限公司
     </div>
 </div>
 
@@ -335,6 +343,7 @@
     let currentList = null;
     const scheduleContainer = document.querySelector('.schedule-container');
     const scheduleTitle = document.getElementById('schedule-title');
+    const yearDisplay = document.getElementById('year-display');
 
     const modalOverlay = document.querySelector('.modal-overlay');
     const cancelBtn = document.querySelector('.cancel');
@@ -348,12 +357,20 @@
     const confirmImportBtn = document.querySelector('.confirm-import');
     const batchInput = document.getElementById('batch-input');
 
+    // 初始化年份顯示
+    function initializeYear() {
+        const today = new Date();
+        const year = today.getFullYear();
+        yearDisplay.textContent = `年份：${year}`;
+    }
+
     // 本地儲存與載入
     function loadFromLocalStorage() {
         const data = localStorage.getItem('scheduleData');
         if(data) {
             const obj = JSON.parse(data);
             scheduleTitle.value = obj.title || '';
+            initializeYear();
             if(obj.days) {
                 scheduleContainer.innerHTML='';
                 obj.days.forEach(dayData=>{
@@ -366,6 +383,8 @@
                 });
                 enableInteractions();
             }
+        } else {
+            initializeYear();
         }
     }
 
@@ -378,7 +397,7 @@
                     datetime: li.getAttribute('data-datetime'),
                     desc: li.querySelector('.desc').textContent,
                     loc: li.getAttribute('data-loc') || '',
-                    note: li.getAttribute('data-note') || ''
+                    note: li.querySelector('.note') ? li.querySelector('.note').textContent : ''
                 };
             });
             return {date:dateStr, events};
@@ -407,7 +426,7 @@
         const note = document.getElementById('new-note').value.trim();
 
         if(!desc || !datetime) {
-            alert('日期時間與描述必填，北七哦！');
+            alert('日期時間與描述為必填項目。');
             return;
         }
 
@@ -450,7 +469,7 @@
     confirmImportBtn.addEventListener('click', ()=>{
         const text = batchInput.value.trim();
         if(!text) {
-            alert('你沒貼任何行程資料，北七哦！');
+            alert('請貼入行程資料。');
             return;
         }
         loadScheduleFromText(text);
@@ -490,7 +509,7 @@
         let html='';
         html+= `<span class="drag-handle">≡</span>`;
         if(timeStr) {
-            html+=`<span class="time">${timeStr}</span><i class="fas fa-info-circle"></i>`;
+            html+=`<span class="time">${timeStr}</span><i class="fas fa-clock"></i>`;
         }
         html+=`<span class="desc">${desc}</span>`;
         if(loc) {
@@ -498,8 +517,8 @@
             html+=`<div class="location"><i class="fas fa-map-marker-alt"></i><a href="${mapUrl}" target="_blank">${loc}</a></div>`;
         }
         if(note) {
-            html+=`<div class="note" style="margin-left:22px; font-size:0.9rem; color:#666;">
-                    <i class="fas fa-sticky-note"></i>${note}
+            html+=`<div class="note">
+                    <i class="fas fa-sticky-note"></i> ${note}
                    </div>`;
         }
         html+=`<button class="export-ics-btn">匯出日曆</button>`;
@@ -511,12 +530,12 @@
 
     // 格式化時間
     function formatTime(dateObj) {
-        const hour = dateObj.getHours();
-        const minute = (dateObj.getMinutes()<10?'0':'') + dateObj.getMinutes();
-        const year = dateObj.getFullYear();
-        const month = (dateObj.getMonth()+1<10?'0':'')+(dateObj.getMonth()+1);
-        const day = (dateObj.getDate()<10?'0':'')+dateObj.getDate();
-        return `${year}/${month}/${day} ${hour<10?'0':''}${hour}:${minute}`;
+        const hours = dateObj.getHours();
+        const minutes = dateObj.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const formattedHour = hours % 12 === 0 ? 12 : hours % 12;
+        const formattedMinute = minutes < 10 ? `0${minutes}` : minutes;
+        return `${formattedHour}:${formattedMinute} ${ampm}`;
     }
 
     // 拖曳排序 & 刪除 & 匯出ICS
@@ -579,7 +598,7 @@
                 const li = btn.closest('li');
                 const desc = li.querySelector('.desc').textContent;
                 const loc = li.getAttribute('data-loc')||'';
-                const note = li.getAttribute('data-note')||'';
+                const note = li.querySelector('.note') ? li.querySelector('.note').textContent : '';
                 const dt = li.getAttribute('data-datetime');
                 const dtObj = new Date(dt);
 
@@ -589,7 +608,7 @@
 
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'event.ics';
+                a.download = `${desc}.ics`;
                 a.click();
 
                 URL.revokeObjectURL(url);
@@ -606,18 +625,18 @@
         const mm = pad(dt.getMinutes());
         const ss = '00';
 
-        // UTC時間
-        // 這裡簡單用本地時間當UTC，真實應該轉換時區
-        const dtStr = `${y}${m}${d}T${hh}${mm}${ss}`;
+        // 格式化為 UTC 時間
+        const dtUTC = new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000));
+        const dtStr = `${y}${m}${d}T${hh}${mm}${ss}Z`;
 
         return `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//YourProduct//Event//EN
 BEGIN:VEVENT
 UID:${Date.now()}@yourdomain.com
-DTSTAMP:${dtStr}Z
-DTSTART:${dtStr}Z
-DTEND:${dtStr}Z
+DTSTAMP:${dtStr}
+DTSTART:${dtStr}
+DTEND:${dtStr}
 SUMMARY:${escapeICS(summary)}
 LOCATION:${escapeICS(location)}
 DESCRIPTION:${escapeICS(description)}
@@ -626,21 +645,31 @@ END:VCALENDAR`;
     }
 
     function escapeICS(str) {
-        return str.replace(/\\n/g, "\\n").replace(/,/g,"\\,").replace(/;/g,"\\;")
+        if (!str) return '';
+        return str.replace(/\\/g, "\\\\")
+                  .replace(/;/g, "\\;")
+                  .replace(/,/g, "\\,")
+                  .replace(/\n/g, "\\n");
     }
 
     // 批次匯入解析
     function loadScheduleFromText(text) {
         const lines = text.split('\n').map(l => l.trim()).filter(l=>l);
 
-        scheduleContainer.innerHTML = '';
+        // 保留現有行程，新增新的行程
         let currentDay = null;
         let currentDate = '';
         let listEl = null;
-        // 格式: "HH:MM AM/PM" 或 "HH:MM" 都有可能
+
+        // 更新年份顯示
+        const today = new Date();
+        const year = today.getFullYear();
+        yearDisplay.textContent = `年份：${year}`;
+
         const timePattern = /^(\d{1,2}:\d{2}\s?(AM|PM)?)(：|:)/i;
 
         lines.forEach(line => {
+            // 日期行
             const dayMatch = line.match(/^(\d{1,2}\/\d{1,2})$/);
             if (dayMatch) {
                 currentDate = dayMatch[1];
@@ -666,12 +695,13 @@ END:VCALENDAR`;
                                 locDiv = document.createElement('div');
                                 locDiv.className='location';
                                 locDiv.style='margin-left:22px;';
-                                lastLi.insertBefore(locDiv,lastLi.querySelector('.export-ics-btn'));
+                                lastLi.insertBefore(locDiv, lastLi.querySelector('.export-ics-btn'));
                             }
                             locDiv.innerHTML=`<i class="fas fa-map-marker-alt"></i><a href="${mapUrl}" target="_blank">${loc}</a>`;
                         }
                     }
                 } else {
+                    // 行程描述
                     let desc = line.replace(/^•\s?/,'');
                     let timeStr = '';
                     const matchTime = desc.match(timePattern);
@@ -680,35 +710,44 @@ END:VCALENDAR`;
                         desc = desc.replace(timePattern, '').trim();
                     }
 
-                    // 因為使用批次匯入的資料不一定有日期時間詳細格式
-                    // 只能盡量解讀：若有時間，將日期用currentDate組合datetime
-                    // 假設當天事件皆使用 currentDate 的日期
+                    // 解析時間
                     let datetime = '';
-                    // 試著解析時間(僅有HH:MM可能無AM/PM)
-                    // 若無法，則給一個預設時間中午12:00
-                    let hour=12, minute=0;
                     if(timeStr) {
-                        // 嘗試解析AM/PM
+                        let hour=12, minute=0;
                         const ampmMatch = timeStr.match(/AM|PM/i);
                         const isPM = ampmMatch ? ampmMatch[0].toUpperCase()==='PM' : false;
                         const hm = timeStr.split(':');
                         hour = parseInt(hm[0],10);
                         minute = parseInt(hm[1],10) || 0;
-                        if(isPM && hour<12) hour+=12;
-                        if(!isPM && hour===12) hour=0;
+                        if(isPM && hour < 12) hour += 12;
+                        if(!isPM && hour === 12) hour = 0;
+
+                        const dateParts = currentDate.split('/');
+                        const year = (new Date()).getFullYear();
+                        const month = dateParts[0].padStart(2,'0');
+                        const day = dateParts[1].padStart(2,'0');
+                        const isoStr = `${year}-${month}-${day}T${padZero(hour)}:${padZero(minute)}`;
+
+                        datetime = isoStr;
+                    } else {
+                        // 如果沒有時間，使用當天中午12:00
+                        const dateParts = currentDate.split('/');
+                        const year = (new Date()).getFullYear();
+                        const month = dateParts[0].padStart(2,'0');
+                        const day = dateParts[1].padStart(2,'0');
+                        const isoStr = `${year}-${month}-${day}T12:00`;
+                        datetime = isoStr;
                     }
-                    const dateParts = currentDate.split('/');
-                    const year = (new Date()).getFullYear();
-                    const month = dateParts[0];
-                    const day = dateParts[1];
-                    const isoStr = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}T${(hour+'').padStart(2,'0')}:${(minute+'').padStart(2,'0')}`;
-                    datetime=isoStr;
 
                     addEventToList(listEl, datetime, desc, '', '');
                 }
             }
         });
         enableInteractions();
+    }
+
+    function padZero(n) {
+        return n < 10 ? '0' + n : n;
     }
 
     // 載入
