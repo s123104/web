@@ -21,6 +21,7 @@
             --glow-color: rgba(255, 0, 85, 0.7);
             --power-bg: rgba(0, 255, 255, 0.2);
             --power-glow: var(--secondary-color);
+            --animation-duration: 1s;
         }
 
         body {
@@ -133,7 +134,7 @@
 
         textarea {
             width: 100%;
-            height: 150px; /* 調整高度 */
+            height: 120px; /* 減少高度 */
             background: rgba(0, 0, 0, 0.3);
             border: none;
             border-radius: 5px;
@@ -147,7 +148,7 @@
 
         @media (min-width: 768px) {
             textarea {
-                height: 200px; /* 桌面版高度較小 */
+                height: 150px; /* 桌面版高度較小 */
             }
         }
 
@@ -238,6 +239,7 @@
             animation: floatUp 1s forwards;
             pointer-events: none;
             z-index: 2;
+            opacity: 0;
         }
 
         @keyframes floatUp {
@@ -311,53 +313,107 @@
             return acc;
         }, {});
 
-        // 台灣常用髒話列表
+        // 台灣常用髒話列表，包含詞語及其權重
         const badWords = [
             // 台灣常用髒話
-            '幹', '幹你娘', '幹你老師', 
-            '靠', '靠北', '靠夭', 
-            '雞掰', '雞巴毛', 
-            '北七', '三小', 
-            '懶趴毛啦', 
-            '屁啦', 
-            '傻逼', '傻逼玩意', 
-            '去你的', '去吃屎啦', 
-            '死三八', '死機掰', 
-            '臭雞掰', '臭你媽的', 
-            '幹你全家', 
-            '媽的行', 
+            { word: '幹', weight: 5 },
+            { word: '幹你娘', weight: 10 },
+            { word: '幹你老師', weight: 10 },
+            { word: '靠', weight: 3 },
+            { word: '靠北', weight: 5 },
+            { word: '靠夭', weight: 5 },
+            { word: '雞掰', weight: 7 },
+            { word: '雞巴毛', weight: 7 },
+            { word: '北七', weight: 4 },
+            { word: '三小', weight: 4 },
+            { word: '懶趴毛啦', weight: 3 },
+            { word: '屁啦', weight: 3 },
+            { word: '傻逼', weight: 6 },
+            { word: '傻逼玩意', weight: 6 },
+            { word: '去你的', weight: 5 },
+            { word: '去吃屎啦', weight: 7 },
+            { word: '死三八', weight: 5 },
+            { word: '死機掰', weight: 5 },
+            { word: '臭雞掰', weight: 6 },
+            { word: '臭你媽的', weight: 6 },
+            { word: '幹你全家', weight: 10 },
+            { word: '媽的行', weight: 5 },
 
             // 台灣常用語助詞
-            '啊', '啦', '嘛', '喔', '哦', '齁呦',
+            { word: '啊', weight: 1 },
+            { word: '啦', weight: 1 },
+            { word: '嘛', weight: 1 },
+            { word: '喔', weight: 1 },
+            { word: '哦', weight: 1 },
+            { word: '齁呦', weight: 2 },
 
             // 網路/流行輕度髒話
-            '笑死', '笑爛', '無言薯條', '北爛', '白痴哦', '笑鼠', '傻眼貓咪', '無聊死', '真無聊',
+            { word: '笑死', weight: 2 },
+            { word: '笑爛', weight: 2 },
+            { word: '無言薯條', weight: 2 },
+            { word: '北爛', weight: 3 },
+            { word: '白痴哦', weight: 3 },
+            { word: '笑鼠', weight: 2 },
+            { word: '傻眼貓咪', weight: 3 },
+            { word: '無聊死', weight: 2 },
+            { word: '真無聊', weight: 2 },
 
             // 經典台詞級加持
-            '你瘋了', '所以呢？然後咧？', '眼睛幹是不是？', '跪下來求我啊！', '不要鬧欸！',
+            { word: '你瘋了', weight: 5 },
+            { word: '所以呢？然後咧？', weight: 3 },
+            { word: '眼睛幹是不是？', weight: 5 },
+            { word: '跪下來求我啊！', weight: 4 },
+            { word: '不要鬧欸！', weight: 2 },
 
-            // 反向拼音
-            'gan', 'gan nian', 'gan ni laoshi',
-            'kao', 'kaobei', 'kaoyao',
-            'jibai', 'jiba mao',
-            'beiqi', 'sanshao',
-            'lanpa mao la',
-            'pila',
-            'shabi', 'shabi wanyi',
-            'qu nide', 'qu chi shi la',
-            'si sanba', 'si jibi',
-            'chou jibai', 'chou ni mama de',
-            'gan ni quanjia',
-            'ma de xing',
+            // 反向拼音（拼音轉中文）
+            { word: 'gan', weight: 5 },
+            { word: 'gan nian', weight: 10 },
+            { word: 'gan ni laoshi', weight: 10 },
+            { word: 'kao', weight: 3 },
+            { word: 'kaobei', weight: 5 },
+            { word: 'kaoyao', weight: 5 },
+            { word: 'jibai', weight: 7 },
+            { word: 'jiba mao', weight: 7 },
+            { word: 'beiqi', weight: 4 },
+            { word: 'sanshao', weight: 4 },
+            { word: 'lanpa mao la', weight: 3 },
+            { word: 'pila', weight: 3 },
+            { word: 'shabi', weight: 6 },
+            { word: 'shabi wanyi', weight: 6 },
+            { word: 'qu nide', weight: 5 },
+            { word: 'qu chi shi la', weight: 7 },
+            { word: 'si sanba', weight: 5 },
+            { word: 'si jibi', weight: 5 },
+            { word: 'chou jibai', weight: 6 },
+            { word: 'chou ni mama de', weight: 6 },
+            { word: 'gan ni quanjia', weight: 10 },
+            { word: 'ma de xing', weight: 5 },
 
             // 語助詞反向拼音
-            'a', 'la', 'ma', 'wo', 'o', 'houyou',
+            { word: 'a', weight: 1 },
+            { word: 'la', weight: 1 },
+            { word: 'ma', weight: 1 },
+            { word: 'wo', weight: 1 },
+            { word: 'o', weight: 1 },
+            { word: 'houyou', weight: 2 },
 
             // 網路輕度髒話反向拼音
-            'xiaosi', 'xiaolan', 'wuyanshutiao', 'beilan', 'baichi o', 'xiaoshu', 'shayan maomi', 'wuliaosi', 'zhenwuliao',
+            { word: 'xiaosi', weight: 2 },
+            { word: 'xiaolan', weight: 2 },
+            { word: 'wuyanshutiao', weight: 2 },
+            { word: 'beilan', weight: 3 },
+            { word: 'baichi o', weight: 3 },
+            { word: 'xiaoshu', weight: 2 },
+            { word: 'shayan maomi', weight: 3 },
+            { word: 'wuliaosi', weight: 2 },
+            { word: 'zhenwuliao', weight: 2 },
 
             // 經典台詞級加持反向拼音
-            'ni feng le', 'suoyine? ranhou lie?', 'yanjing gan shifou?', 'gui xialai qiuwu a!', 'buyao nao e!'
+            { word: 'ni feng le', weight: 5 },
+            { word: 'suoyine? ranhou lie?', weight: 3 },
+            { word: 'yanjing gan shifou?', weight: 5 },
+            { word: 'gui xialai qiuwu a!', weight: 4 },
+            { word: 'buyao nao e!', weight: 2 },
         ];
 
         /**
@@ -418,19 +474,23 @@
             const powerElement = document.getElementById('power');
             const powerBar = document.getElementById('power-bar');
             let power = 0;
+            let totalWeight = 0;
+            let matchedWords = [];
 
-            // 檢測髒話數量
-            let badWordCount = 0;
-            badWords.forEach(word => {
-                const regex = new RegExp(word, 'gi');
+            // 檢測髒話數量及總權重
+            badWords.forEach(entry => {
+                const regex = new RegExp(entry.word, 'gi');
                 const matches = text.match(regex);
                 if (matches) {
-                    badWordCount += matches.length;
+                    matches.forEach(() => {
+                        totalWeight += entry.weight;
+                        matchedWords.push(entry.word);
+                    });
                 }
             });
 
-            // 假設每個髒話增加5%，最高100%
-            power = badWordCount * 5;
+            // 計算靈力值
+            power = totalWeight;
             if (power > 100) power = 100;
 
             // 更新靈力值顯示
@@ -438,22 +498,23 @@
             powerBar.style.width = power + '%';
 
             // 觸發加分動畫
-            if (badWordCount > 0) {
-                for (let i = 0; i < badWordCount; i++) {
-                    triggerScoreAnimation();
-                }
+            if (matchedWords.length > 0) {
+                matchedWords.forEach(word => {
+                    triggerScoreAnimation(word);
+                });
             }
         }
 
         /**
          * 觸發加分動畫
-         * 在隨機位置生成加分動畫元素
+         * 在隨機位置生成加分動畫元素，並顯示觸發的詞語
+         * @param {string} word - 觸發加分的詞語
          */
-        function triggerScoreAnimation() {
+        function triggerScoreAnimation(word) {
             const container = document.querySelector('.input-section');
             const animation = document.createElement('div');
             animation.classList.add('score-animation');
-            animation.textContent = '+5%';
+            animation.textContent = `+${getWeight(word)}% (${word})`;
             // 隨機位置
             animation.style.left = Math.random() * 80 + '%';
             animation.style.top = Math.random() * 80 + '%';
@@ -465,6 +526,16 @@
             });
         }
 
+        /**
+         * 根據詞語取得其權重
+         * @param {string} word - 詞語
+         * @returns {number} - 詞語的權重
+         */
+        function getWeight(word) {
+            const entry = badWords.find(entry => entry.word.toLowerCase() === word.toLowerCase());
+            return entry ? entry.weight : 0;
+        }
+
         // 防抖後的處理函數
         const handleInput = debounce(function(e) {
             const input = e.target.value.trim();
@@ -472,7 +543,7 @@
             const outputElement = document.getElementById('output');
             typeText(result, outputElement, 30); // 調整延遲時間以改變打字速度
             updatePowerLevel(input);
-        }, 300); // 300 毫秒的防抖延遲
+        }, 500); // 500 毫秒的防抖延遲
 
         // 監聽輸入框的變化
         document.getElementById('input').addEventListener('input', handleInput);
