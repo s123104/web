@@ -18,6 +18,8 @@
             --bg-color: #0a0a2a;
             --text-color: #fff;
             --glow-color: rgba(255, 0, 85, 0.7);
+            --power-bg: rgba(0, 255, 255, 0.2);
+            --power-glow: var(--secondary-color);
         }
 
         body {
@@ -26,6 +28,11 @@
             min-height: 100vh;
             line-height: 1.6;
             overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-bottom: 100px; /* 為靈力值留出空間 */
         }
 
         .magic-circle {
@@ -52,6 +59,7 @@
             margin: 0 auto;
             padding: 1rem;
             z-index: 1;
+            width: 90%;
         }
 
         .header {
@@ -165,42 +173,39 @@
             opacity: 0.8;
         }
 
-        .power-level {
+        .power-level-container {
             position: fixed;
-            top: 1rem;
-            right: 1rem;
-            font-size: 1rem;
-            color: var(--secondary-color);
-            animation: pulseGlow 2s infinite;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--power-bg);
             padding: 0.5rem 1rem;
             border-radius: 20px;
-            background: rgba(0, 255, 255, 0.1);
-            box-shadow: 0 0 10px var(--secondary-color), 0 0 20px var(--secondary-color);
-            transition: background 0.5s, box-shadow 0.5s;
+            box-shadow: 0 0 10px var(--power-glow), 0 0 20px var(--power-glow);
+            animation: pulseGlow 2s infinite;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--secondary-color);
+            font-size: 1rem;
         }
 
         @keyframes pulseGlow {
             0% {
-                box-shadow: 0 0 10px var(--secondary-color), 0 0 20px var(--secondary-color);
-                background: rgba(0, 255, 255, 0.1);
+                box-shadow: 0 0 10px var(--power-glow), 0 0 20px var(--power-glow);
+                background: var(--power-bg);
             }
             50% {
-                box-shadow: 0 0 20px var(--secondary-color), 0 0 30px var(--secondary-color);
-                background: rgba(0, 255, 255, 0.2);
+                box-shadow: 0 0 20px var(--power-glow), 0 0 30px var(--power-glow);
+                background: rgba(0, 255, 255, 0.3);
             }
             100% {
-                box-shadow: 0 0 10px var(--secondary-color), 0 0 20px var(--secondary-color);
-                background: rgba(0, 255, 255, 0.1);
+                box-shadow: 0 0 10px var(--power-glow), 0 0 20px var(--power-glow);
+                background: var(--power-bg);
             }
         }
 
-        /* 新增的打字動畫 */
-        @keyframes typing {
-            from { width: 0; }
-            to { width: 100%; }
-        }
-
-        /* 滾動條樣式 (可選) */
+        /* 自訂滾動條樣式 (可選) */
         textarea::-webkit-scrollbar {
             width: 8px;
         }
@@ -249,7 +254,9 @@
         </div>
     </div>
 
-    <div class="power-level">靈力值: <span id="power">100%</span></div>
+    <div class="power-level-container">
+        靈力值: <span id="power">100%</span>
+    </div>
 
     <!-- 引入 pinyin4js (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/pinyin4js/dist/pinyin4js.min.js"></script>
@@ -311,28 +318,22 @@
             const result = detectAndConvert(input);
             const outputElement = document.getElementById('output');
             typeText(result, outputElement, 30); // 調整延遲時間以改變打字速度
+            updatePowerLevel(input.length);
         });
 
         /**
          * 動態更新靈力值
-         * 這裡簡單地讓靈力值在 80% 到 100% 之間隨機變動
-         * 您可以根據需求修改此邏輯
+         * 根據輸入文字的長度增加靈力值，最高不超過100%
          */
-        function updatePowerLevel() {
+        function updatePowerLevel(inputLength) {
             const powerElement = document.getElementById('power');
             let power = 100;
-            setInterval(() => {
-                // 隨機減少 0-5%
-                const change = Math.floor(Math.random() * 11) - 5; // -5 到 +5
-                power += change;
-                if (power < 80) power = 80;
-                if (power > 100) power = 100;
-                powerElement.textContent = power + '%';
-            }, 2000); // 每 2 秒更新一次
-        }
 
-        // 初始化靈力值更新
-        updatePowerLevel();
+            // 假設靈力值基礎為100%，每增加10個字元增加1%，最高100%
+            power += Math.floor(inputLength / 10);
+            if (power > 100) power = 100;
+            powerElement.textContent = power + '%';
+        }
     </script>
 </body>
 </html>
