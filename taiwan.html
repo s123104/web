@@ -182,6 +182,7 @@
             border-radius: 10px;
             overflow: hidden;
             height: 20px;
+            position: relative;
         }
 
         .power-level-bar {
@@ -224,6 +225,30 @@
         textarea::-webkit-scrollbar-thumb {
             background: var(--primary-color);
             border-radius: 4px;
+        }
+
+        /* 加分動畫樣式 */
+        .score-animation {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--primary-color);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            animation: floatUp 1s forwards;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px) scale(1.5);
+            }
         }
     </style>
 </head>
@@ -286,11 +311,53 @@
             return acc;
         }, {});
 
-        // 台灣常用髒話列表（示例，請根據需要擴展）
+        // 台灣常用髒話列表
         const badWords = [
-            '幹', '靠', '媽的', '他媽的', '屎', '屁', '尿', '死', '爛', '混蛋',
+            // 台灣常用髒話
+            '幹', '幹你娘', '幹你老師', 
+            '靠', '靠北', '靠夭', 
+            '雞掰', '雞巴毛', 
+            '北七', '三小', 
+            '懶趴毛啦', 
+            '屁啦', 
+            '傻逼', '傻逼玩意', 
+            '去你的', '去吃屎啦', 
+            '死三八', '死機掰', 
+            '臭雞掰', '臭你媽的', 
+            '幹你全家', 
+            '媽的行', 
+
+            // 台灣常用語助詞
+            '啊', '啦', '嘛', '喔', '哦', '齁呦',
+
+            // 網路/流行輕度髒話
+            '笑死', '笑爛', '無言薯條', '北爛', '白痴哦', '笑鼠', '傻眼貓咪', '無聊死', '真無聊',
+
+            // 經典台詞級加持
+            '你瘋了', '所以呢？然後咧？', '眼睛幹是不是？', '跪下來求我啊！', '不要鬧欸！',
+
             // 反向拼音
-            'gan', 'kao', 'mada', 'tamade', 'shi', 'pi', 'niao', 'si', 'lan', 'hundan'
+            'gan', 'gan nian', 'gan ni laoshi',
+            'kao', 'kaobei', 'kaoyao',
+            'jibai', 'jiba mao',
+            'beiqi', 'sanshao',
+            'lanpa mao la',
+            'pila',
+            'shabi', 'shabi wanyi',
+            'qu nide', 'qu chi shi la',
+            'si sanba', 'si jibi',
+            'chou jibai', 'chou ni mama de',
+            'gan ni quanjia',
+            'ma de xing',
+
+            // 語助詞反向拼音
+            'a', 'la', 'ma', 'wo', 'o', 'houyou',
+
+            // 網路輕度髒話反向拼音
+            'xiaosi', 'xiaolan', 'wuyanshutiao', 'beilan', 'baichi o', 'xiaoshu', 'shayan maomi', 'wuliaosi', 'zhenwuliao',
+
+            // 經典台詞級加持反向拼音
+            'ni feng le', 'suoyine? ranhou lie?', 'yanjing gan shifou?', 'gui xialai qiuwu a!', 'buyao nao e!'
         ];
 
         /**
@@ -344,6 +411,7 @@
         /**
          * 更新靈力值
          * 根據輸入文字中髒話的數量增加靈力值，最高不超過100%
+         * 並觸發加分動畫
          * @param {string} text - 輸入文字
          */
         function updatePowerLevel(text) {
@@ -365,8 +433,36 @@
             power = badWordCount * 5;
             if (power > 100) power = 100;
 
+            // 更新靈力值顯示
             powerElement.textContent = power + '%';
             powerBar.style.width = power + '%';
+
+            // 觸發加分動畫
+            if (badWordCount > 0) {
+                for (let i = 0; i < badWordCount; i++) {
+                    triggerScoreAnimation();
+                }
+            }
+        }
+
+        /**
+         * 觸發加分動畫
+         * 在隨機位置生成加分動畫元素
+         */
+        function triggerScoreAnimation() {
+            const container = document.querySelector('.input-section');
+            const animation = document.createElement('div');
+            animation.classList.add('score-animation');
+            animation.textContent = '+5%';
+            // 隨機位置
+            animation.style.left = Math.random() * 80 + '%';
+            animation.style.top = Math.random() * 80 + '%';
+            container.appendChild(animation);
+
+            // 移除動畫元素
+            animation.addEventListener('animationend', () => {
+                animation.remove();
+            });
         }
 
         // 防抖後的處理函數
