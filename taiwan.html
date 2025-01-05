@@ -66,7 +66,7 @@
 
         .header {
             text-align: center;
-            margin: 1rem 0;
+            margin: 0.5rem 0;
             position: relative;
         }
 
@@ -239,6 +239,7 @@
             pointer-events: none;
             z-index: 2;
             opacity: 0;
+            font-size: 0.9rem;
         }
 
         @keyframes floatUp {
@@ -309,6 +310,32 @@
                 transform: translate(-50%, -50%) scale(1);
             }
         }
+
+        /* 按鈕樣式 */
+        .button-container {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .button-container button {
+            padding: 0.5rem 1rem;
+            background: var(--primary-color);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+
+        .button-container button:hover {
+            background: var(--secondary-color);
+        }
+
+        .copy-button {
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -327,6 +354,10 @@
     <!-- 主要內容容器 -->
     <div class="container">
         <div class="header">
+            <div class="button-container">
+                <button id="clear-button">清空</button>
+                <button id="paste-button">貼上</button>
+            </div>
             <h1 class="title">『闇黒奧義』轉換陣</h1>
             <p class="subtitle">✧解放吾等靈魂之束縛，展現真實之語✧</p>
         </div>
@@ -350,6 +381,7 @@
                 <textarea id="output" readonly></textarea>
                 <div class="magic-border"></div>
                 <div class="status" id="output-status"></div>
+                <button class="copy-button" id="copy-button">複製結果</button>
             </div>
         </div>
     </div>
@@ -545,9 +577,9 @@
                 if (matches) {
                     matches.forEach(match => {
                         const lowerMatch = match.toLowerCase();
-                        if (!triggeredWords.has(lowerMatch)) {
+                        if (!countedWords.has(lowerMatch)) {
                             totalPowerIncrease += item.weight;
-                            triggeredWords.add(lowerMatch);
+                            countedWords.add(lowerMatch);
                             triggerScoreAnimation(match, item.weight);
                         }
                     });
@@ -621,19 +653,51 @@
             const outputElement = document.getElementById('output');
             typeText(result, outputElement, 30); // 調整延遲時間以改變打字速度
             updatePowerLevel(input);
-
-            // 如果輸入被清空，重置已計算的詞語
-            if (input === '') {
-                countedWords.clear();
-                document.getElementById('power').textContent = '0%';
-                document.getElementById('power-bar').style.width = '0%';
-                document.getElementById('achievement').style.display = 'none';
-                document.getElementById('achievementKing').style.display = 'none';
-            }
         }, 500); // 500 毫秒的防抖延遲
 
         // 監聽輸入框的變化
         document.getElementById('input').addEventListener('input', handleInput);
+
+        // 清空按鈕功能
+        document.getElementById('clear-button').addEventListener('click', () => {
+            const inputElement = document.getElementById('input');
+            const outputElement = document.getElementById('output');
+            const powerElement = document.getElementById('power');
+            const powerBar = document.getElementById('power-bar');
+            const achievement = document.getElementById('achievement');
+            const achievementKing = document.getElementById('achievementKing');
+
+            inputElement.value = '';
+            outputElement.value = '';
+            powerElement.textContent = '0%';
+            powerBar.style.width = '0%';
+            countedWords.clear();
+            achievement.style.display = 'none';
+            achievementKing.style.display = 'none';
+        });
+
+        // 貼上按鈕功能
+        document.getElementById('paste-button').addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                const inputElement = document.getElementById('input');
+                inputElement.value += text;
+                inputElement.dispatchEvent(new Event('input'));
+            } catch (err) {
+                alert('無法從剪貼簿貼上文字。');
+            }
+        });
+
+        // 複製按鈕功能
+        document.getElementById('copy-button').addEventListener('click', async () => {
+            const outputElement = document.getElementById('output');
+            try {
+                await navigator.clipboard.writeText(outputElement.value);
+                alert('結果已複製到剪貼簿！');
+            } catch (err) {
+                alert('無法複製結果。');
+            }
+        });
     </script>
 </body>
 </html>
