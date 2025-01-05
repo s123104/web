@@ -193,6 +193,7 @@
         </div>
 
         <div class="converter-container">
+            <!-- 中字轉拼音 -->
             <div class="input-section">
                 <div class="section-header">『吾之真言』</div>
                 <textarea id="input" placeholder="在此寫下汝之密語..."></textarea>
@@ -211,7 +212,11 @@
 
     <div class="power-level">靈力值: <span id="power">100%</span></div>
 
+    <!-- 引入 pinyin4js (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/pinyin4js/dist/pinyin4js.min.js"></script>
+
     <script>
+        // 手動擴展的拼音到中文字典
         const dictionary = {
             '狼': 'Lan', '掉': 'diau', '珍': 'Jen', '珠': 'ju', '啦': 'la',
             '我': 'Wou', '想': 'siang', '玩': 'wong', '屁': 'pi', '眼': 'yan',
@@ -221,21 +226,28 @@
             '掰': 'bai', '勒': 'lei', // 自行擴展...
         };
 
+        // 建立拼音到中文的反向字典
         const reverseDictionary = Object.entries(dictionary).reduce((acc, [key, value]) => {
             acc[value.toLowerCase()] = key;
             return acc;
         }, {});
 
+        /**
+         * 檢測輸入文字的類型並進行轉換
+         * @param {string} text - 輸入文字
+         * @returns {string} - 轉換後的結果
+         */
         function detectAndConvert(text) {
             if (!text) return '';
             const isRomanization = /[a-zA-Z]/.test(text);
             return isRomanization
                 ? text.split(/\s+/).map(word => reverseDictionary[word.toLowerCase()] || word).join('')
-                : Array.from(text).map(char => dictionary[char] || char).join(' ');
+                : PinyinHelper.convertToPinyinString(text, ' ', PinyinFormat.WITH_TONE_MARK);
         }
 
+        // 監聽輸入框的變化
         document.getElementById('input').addEventListener('input', function (e) {
-            const input = e.target.value;
+            const input = e.target.value.trim();
             const result = detectAndConvert(input);
             document.getElementById('output').value = result;
         });
