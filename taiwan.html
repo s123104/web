@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>『闇黒奧義』轉換陣</title>
     <style>
+        /* 全局樣式和變數 */
         * {
             margin: 0;
             padding: 0;
@@ -32,7 +33,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding-bottom: 100px; /* 為靈力值留出空間 */
+            padding: 2rem;
         }
 
         .magic-circle {
@@ -59,7 +60,8 @@
             margin: 0 auto;
             padding: 1rem;
             z-index: 1;
-            width: 90%;
+            width: 100%;
+            max-width: 800px;
         }
 
         .header {
@@ -89,9 +91,9 @@
         .converter-container {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.5rem;
             margin: 2rem 0;
-            max-width: 100%;
+            width: 100%;
         }
 
         @media (min-width: 768px) {
@@ -174,34 +176,38 @@
         }
 
         .power-level-container {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--power-bg);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            box-shadow: 0 0 10px var(--power-glow), 0 0 20px var(--power-glow);
-            animation: pulseGlow 2s infinite;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--secondary-color);
+            margin-top: 1rem;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 20px;
+        }
+
+        .power-level-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            transition: width 0.5s ease-in-out;
+        }
+
+        .power-level-text {
+            text-align: center;
+            margin-top: 0.5rem;
             font-size: 1rem;
+            color: var(--secondary-color);
+            animation: pulseGlow 2s infinite;
         }
 
         @keyframes pulseGlow {
             0% {
-                box-shadow: 0 0 10px var(--power-glow), 0 0 20px var(--power-glow);
-                background: var(--power-bg);
+                text-shadow: 0 0 10px var(--secondary-color), 0 0 20px var(--secondary-color);
             }
             50% {
-                box-shadow: 0 0 20px var(--power-glow), 0 0 30px var(--power-glow);
-                background: rgba(0, 255, 255, 0.3);
+                text-shadow: 0 0 20px var(--secondary-color), 0 0 30px var(--secondary-color);
             }
             100% {
-                box-shadow: 0 0 10px var(--power-glow), 0 0 20px var(--power-glow);
-                background: var(--power-bg);
+                text-shadow: 0 0 10px var(--secondary-color), 0 0 20px var(--secondary-color);
             }
         }
 
@@ -222,6 +228,7 @@
     </style>
 </head>
 <body>
+    <!-- 背景動畫 -->
     <svg class="magic-circle" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="45" fill="none" stroke="var(--primary-color)" stroke-width="0.5"/>
         <circle cx="50" cy="50" r="35" fill="none" stroke="var(--secondary-color)" stroke-width="0.5"/>
@@ -229,6 +236,7 @@
         <circle cx="50" cy="50" r="25" fill="none" stroke="var(--secondary-color)" stroke-width="0.5"/>
     </svg>
 
+    <!-- 主要內容容器 -->
     <div class="container">
         <div class="header">
             <h1 class="title">『闇黒奧義』轉換陣</h1>
@@ -242,6 +250,10 @@
                 <textarea id="input" placeholder="在此寫下汝之密語..."></textarea>
                 <div class="magic-border"></div>
                 <div class="status" id="input-status"></div>
+                <div class="power-level-container">
+                    <div class="power-level-bar" id="power-bar"></div>
+                </div>
+                <div class="power-level-text">靈力值: <span id="power">100%</span></div>
             </div>
 
             <!-- 拼音轉中文 -->
@@ -252,10 +264,6 @@
                 <div class="status" id="output-status"></div>
             </div>
         </div>
-    </div>
-
-    <div class="power-level-container">
-        靈力值: <span id="power">100%</span>
     </div>
 
     <!-- 引入 pinyin4js (CDN) -->
@@ -277,6 +285,20 @@
             acc[value.toLowerCase()] = key;
             return acc;
         }, {});
+
+        /**
+         * 防抖函數
+         * @param {Function} func - 要執行的函數
+         * @param {number} wait - 延遲時間（毫秒）
+         * @returns {Function}
+         */
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
 
         /**
          * 逐步打字效果函數
@@ -312,28 +334,35 @@
                 : PinyinHelper.convertToPinyinString(text, ' ', PinyinFormat.WITHOUT_TONE);
         }
 
-        // 監聽輸入框的變化
-        document.getElementById('input').addEventListener('input', function (e) {
-            const input = e.target.value.trim();
-            const result = detectAndConvert(input);
-            const outputElement = document.getElementById('output');
-            typeText(result, outputElement, 30); // 調整延遲時間以改變打字速度
-            updatePowerLevel(input.length);
-        });
-
         /**
-         * 動態更新靈力值
+         * 更新靈力值
          * 根據輸入文字的長度增加靈力值，最高不超過100%
+         * @param {number} inputLength - 輸入文字的長度
          */
         function updatePowerLevel(inputLength) {
             const powerElement = document.getElementById('power');
+            const powerBar = document.getElementById('power-bar');
             let power = 100;
 
             // 假設靈力值基礎為100%，每增加10個字元增加1%，最高100%
             power += Math.floor(inputLength / 10);
             if (power > 100) power = 100;
+
             powerElement.textContent = power + '%';
+            powerBar.style.width = power + '%';
         }
+
+        // 防抖後的處理函數
+        const handleInput = debounce(function(e) {
+            const input = e.target.value.trim();
+            const result = detectAndConvert(input);
+            const outputElement = document.getElementById('output');
+            typeText(result, outputElement, 30); // 調整延遲時間以改變打字速度
+            updatePowerLevel(input.length);
+        }, 300); // 300 毫秒的防抖延遲
+
+        // 監聽輸入框的變化
+        document.getElementById('input').addEventListener('input', handleInput);
     </script>
 </body>
 </html>
