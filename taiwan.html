@@ -3,145 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>語言劍魔·萬字解密之陣</title>
-    <script src="https://cdn.jsdelivr.net/npm/pinyin/lib/web-pinyin.min.js"></script>
+    <title>『闇黒奧義』台灣文字轉換陣</title>
     <style>
-        body {
-            font-family: 'Courier New', monospace;
+        * {
             margin: 0;
             padding: 0;
-            background: linear-gradient(to right, #0f0f0f, #1a1a1a);
-            color: #00ff00;
+            box-sizing: border-box;
+            font-family: "微軟正黑體", sans-serif;
+        }
+
+        :root {
+            --primary-color: #ff0055;
+            --secondary-color: #00ffff;
+            --bg-color: #0a0a2a;
+            --text-color: #fff;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .magic-circle {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 800px;
+            pointer-events: none;
+            opacity: 0.1;
+            animation: rotate 20s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .container {
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .title {
+            font-size: clamp(1.5rem, 5vw, 3rem);
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            display: inline-block;
+            text-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: var(--secondary-color);
+            opacity: 0.8;
+            margin-bottom: 2rem;
+        }
+
+        .converter-container {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            flex-direction: column;
+            gap: 1rem;
+            margin: 2rem 0;
+            max-width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .converter-container {
+                flex-direction: row;
+            }
+        }
+
+        .input-section, .output-section {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 1rem;
+            position: relative;
             overflow: hidden;
         }
-        .container {
-            width: 90%;
-            max-width: 800px;
-            text-align: center;
+
+        .section-header {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        h1 {
-            color: #00ff00;
-            font-size: 40px;
-            text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
-            animation: glow 2s infinite;
-            margin-bottom: 20px;
+
+        .section-header::before {
+            content: "⚡";
+            animation: flash 1s infinite;
         }
-        @keyframes glow {
-            0% { text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00; }
-            50% { text-shadow: 0 0 20px #00ff00, 0 0 40px #00ff00; }
-            100% { text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00; }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
-        .subtitle {
-            color: #00aa00;
-            font-size: 20px;
-            margin-bottom: 30px;
-        }
+
         textarea {
             width: 100%;
-            height: 150px;
-            background: black;
-            color: #00ff00;
-            border: 2px solid #00ff00;
-            border-radius: 10px;
-            font-size: 18px;
-            padding: 10px;
-            outline: none;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border: none;
+            border-radius: 5px;
+            padding: 1rem;
+            color: var(--text-color);
+            font-size: 1rem;
             resize: none;
-            animation: borderGlow 2s infinite;
+            outline: none;
         }
-        @keyframes borderGlow {
-            0% { box-shadow: 0 0 5px #00ff00; }
-            50% { box-shadow: 0 0 20px #00ff00; }
-            100% { box-shadow: 0 0 5px #00ff00; }
+
+        @media (min-width: 768px) {
+            textarea {
+                height: 400px;
+            }
         }
-        textarea:focus {
-            border-color: #00ff00;
-            box-shadow: 0 0 20px #00ff00;
-        }
-        .output {
-            margin-top: 20px;
-            padding: 20px;
-            background: black;
-            border: 2px solid #00ff00;
+
+        .magic-border {
+            position: absolute;
+            inset: 0;
+            border: 2px solid transparent;
             border-radius: 10px;
-            font-size: 18px;
-            color: #00ff00;
-            white-space: pre-wrap;
-            animation: fadeIn 1s ease-in-out;
+            animation: borderGlow 3s linear infinite;
+            pointer-events: none;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+
+        @keyframes borderGlow {
+            0% { border-color: var(--primary-color); }
+            50% { border-color: var(--secondary-color); }
+            100% { border-color: var(--primary-color); }
+        }
+
+        .status {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+            opacity: 0.8;
+        }
+
+        .power-level {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
 <body>
+    <svg class="magic-circle" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="var(--primary-color)" stroke-width="0.5"/>
+        <circle cx="50" cy="50" r="35" fill="none" stroke="var(--secondary-color)" stroke-width="0.5"/>
+        <path d="M50 5 L50 95 M5 50 L95 50" stroke="var(--primary-color)" stroke-width="0.5"/>
+        <circle cx="50" cy="50" r="25" fill="none" stroke="var(--secondary-color)" stroke-width="0.5"/>
+    </svg>
+
     <div class="container">
-        <h1>語言劍魔·萬字解密之陣</h1>
-        <p class="subtitle">千年文字，破譯之術，解鎖台灣之語！</p>
-        <textarea id="inputText" placeholder="輸入中文或拼音..." oninput="convertText()"></textarea>
-        <div id="output" class="output">結果將即時顯示在這裡...</div>
+        <div class="header">
+            <h1 class="title">『闇黒奧義』台灣文字轉換陣</h1>
+            <p class="subtitle">✧解放吾等靈魂之束縛，展現真實之語✧</p>
+        </div>
+
+        <div class="converter-container">
+            <div class="input-section">
+                <div class="section-header">『吾之真言』</div>
+                <textarea id="input" placeholder="在此寫下汝之密語..."></textarea>
+                <div class="magic-border"></div>
+                <div class="status" id="input-status"></div>
+            </div>
+
+            <div class="output-section">
+                <div class="section-header">『轉化結界』</div>
+                <textarea id="output" readonly></textarea>
+                <div class="magic-border"></div>
+                <div class="status" id="output-status"></div>
+            </div>
+        </div>
     </div>
 
-    <script>
-        const pinyinToZhMapping = {
-            'lan': '狼', 'diau': '掉', 'jen': '珍', 'ju': '珠', 'la': '啦',
-            'wou': '我', 'siang': '想', 'wong': '玩', 'piyan': '屁眼',
-            'pai': '派', 'duai': '對', 
-            'hau': '好', 'tsi': '刺', 'chi': '激', 'ah': '喔', 
-            'pi': '屁', 'yang': '眼', 'ye': '也', 
-            'gong': '講', 'san': '三', 'xiao': '小', 
-            'gan': '幹', 'ni': '你', 'niang': '娘', 'ji': '雞', 'bai': '掰', 'lei': '勒',
+    <div class="power-level">靈力值: <span id="power">100%</span></div>
 
-            // 範例句完整加入
-            'lan lan diau jen ju la': '狼狼掉珍珠',
-            'wou siang wong piyan pai duai': '我想玩屁眼派對',
-            'hau tsi chi ah': '好刺激喔',
-            'wou pi yang ye hau yang': '我屁眼也好癢',
-            'gong san xiao': '講三小',
-            'gan ni niang ji bai lei': '幹你娘雞掰勒'
+    <script>
+        const dictionary = {
+            '狼': 'Lan', '掉': 'diau', '珍': 'Jen', '珠': 'ju', '啦': 'la',
+            '我': 'Wou', '想': 'siang', '玩': 'wong', '屁': 'pi', '眼': 'yan',
+            '派': 'pai', '對': 'duai', '好': 'Hau', '刺': 'tsi', '激': 'chi',
+            '喔': 'ah', '也': 'ye', '癢': 'Yang', '講': 'Gong', '三': 'san',
+            '小': 'xiao', '幹': 'Gan', '你': 'ni', '娘': 'niang', '雞': 'ji',
+            '掰': 'bai', '勒': 'lei', // 自行擴展...
         };
 
-        const zhToPinyinMapping = Object.fromEntries(
-            Object.entries(pinyinToZhMapping).map(([k, v]) => [v, k])
-        );
+        const reverseDictionary = Object.entries(dictionary).reduce((acc, [key, value]) => {
+            acc[value.toLowerCase()] = key;
+            return acc;
+        }, {});
 
-        function detectLanguage(text) {
-            const chineseRegex = /[\u4e00-\u9fa5]/;
-            const pinyinRegex = /^[a-z\s]+$/i; // 檢測拼音（字母和空格）
-
-            if (chineseRegex.test(text)) return 'zh';
-            if (pinyinRegex.test(text)) return 'pinyin';
-            return 'unknown';
+        function detectAndConvert(text) {
+            if (!text) return '';
+            const isRomanization = /[a-zA-Z]/.test(text);
+            return isRomanization
+                ? text.split(/\s+/).map(word => reverseDictionary[word.toLowerCase()] || word).join('')
+                : Array.from(text).map(char => dictionary[char] || char).join(' ');
         }
 
-        function convertText() {
-            const input = document.getElementById('inputText').value.trim();
-            const output = document.getElementById('output');
-
-            if (!input) {
-                output.textContent = '請輸入文字！';
-                return;
-            }
-
-            const lang = detectLanguage(input);
-            if (lang === 'zh') {
-                // 中文轉拼音（使用 pinyin 庫動態處理）
-                output.textContent = window.pinyin(input, { style: window.pinyin.STYLE_NORMAL }).flat().join(' ');
-            } else if (lang === 'pinyin') {
-                // 拼音轉中文（使用自定義字典處理）
-                output.textContent = input
-                    .split(' ')
-                    .map((py) => pinyinToZhMapping[py] || py)
-                    .join('');
-            } else {
-                output.textContent = '無法判斷語言，請確認輸入內容！';
-            }
-        }
+        document.getElementById('input').addEventListener('input', function (e) {
+            const input = e.target.value;
+            const result = detectAndConvert(input);
+            document.getElementById('output').value = result;
+        });
     </script>
 </body>
 </html>
