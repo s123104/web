@@ -88,9 +88,7 @@
     </div>
 
     <script>
-        // 拼音 → 中文字典，補充範例文字並拆分成單字
         const pinyinToZhMapping = {
-            // 範例文字拆分
             'lan': '狼', 'diau': '掉', 'jen': '珍', 'ju': '珠', 'la': '啦',
             'wou': '我', 'siang': '想', 'wong': '玩', 'piyan': '屁眼',
             'pai': '派', 'duai': '對', 
@@ -108,14 +106,17 @@
             'gan ni niang ji bai lei': '幹你娘雞掰勒'
         };
 
-        // 中文 → 拼音字典，自動生成
         const zhToPinyinMapping = Object.fromEntries(
             Object.entries(pinyinToZhMapping).map(([k, v]) => [v, k])
         );
 
         function detectLanguage(text) {
             const chineseRegex = /[\u4e00-\u9fa5]/;
-            return chineseRegex.test(text) ? 'zh' : 'pinyin';
+            const pinyinRegex = /^[a-z\s]+$/i; // 檢測拼音（字母和空格）
+
+            if (chineseRegex.test(text)) return 'zh';
+            if (pinyinRegex.test(text)) return 'pinyin';
+            return 'unknown';
         }
 
         function convertText() {
@@ -131,12 +132,14 @@
             if (lang === 'zh') {
                 // 中文轉拼音（使用 pinyin 庫動態處理）
                 output.textContent = window.pinyin(input, { style: window.pinyin.STYLE_NORMAL }).flat().join(' ');
-            } else {
+            } else if (lang === 'pinyin') {
                 // 拼音轉中文（使用自定義字典處理）
                 output.textContent = input
                     .split(' ')
                     .map((py) => pinyinToZhMapping[py] || py)
                     .join('');
+            } else {
+                output.textContent = '無法判斷語言，請確認輸入內容！';
             }
         }
     </script>
