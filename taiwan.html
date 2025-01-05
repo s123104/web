@@ -88,6 +88,18 @@
     </div>
 
     <script>
+        const pinyinToZhMapping = {
+            'ni': '你', 'hao': '好', 'wo': '我', 'ta': '他', 'ta2': '她', 'ta3': '它',
+            'chi': '吃', 'he': '喝', 'kan': '看', 'lai': '來', 'qu': '去', 
+            'shuo': '說', 'xiao': '笑', 'wan': '玩', 'zuo': '做', 'da': '打',
+            'piyan': '屁眼', 'gan': '幹', 'kaobei': '靠北', 'bai': '掰', 
+            // 加入更多詞彙可擴展...
+        };
+
+        const zhToPinyinMapping = Object.fromEntries(
+            Object.entries(pinyinToZhMapping).map(([k, v]) => [v, k])
+        );
+
         function detectLanguage(text) {
             const chineseRegex = /[\u4e00-\u9fa5]/;
             return chineseRegex.test(text) ? 'zh' : 'pinyin';
@@ -104,11 +116,14 @@
 
             const lang = detectLanguage(input);
             if (lang === 'zh') {
-                // 中文轉拼音（使用 pinyin 庫自動轉換）
+                // 中文轉拼音（使用 pinyin 庫動態處理）
                 output.textContent = window.pinyin(input, { style: window.pinyin.STYLE_NORMAL }).flat().join(' ');
             } else {
-                // 拼音轉中文（若無法對應，直接回傳原文）
-                output.textContent = '暫時不支援拼音 → 中文的全域轉換！';
+                // 拼音轉中文（使用自定義字典處理）
+                output.textContent = input
+                    .split(' ')
+                    .map((py) => pinyinToZhMapping[py] || py)
+                    .join('');
             }
         }
     </script>
