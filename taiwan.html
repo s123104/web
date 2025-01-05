@@ -21,6 +21,8 @@
             --glow-color: rgba(255, 0, 85, 0.7);
             --power-bg: rgba(0, 255, 255, 0.2);
             --power-glow: var(--secondary-color);
+            --toast-bg: rgba(0, 0, 0, 0.7);
+            --toast-color: #fff;
         }
 
         body {
@@ -34,6 +36,7 @@
             justify-content: center;
             align-items: center;
             padding: 1rem;
+            position: relative;
         }
 
         .magic-circle {
@@ -254,7 +257,7 @@
         }
 
         /* 成就動畫 */
-        .achievement {
+        .achievement, .achievement-king {
             position: fixed;
             top: 50%;
             left: 50%;
@@ -271,29 +274,21 @@
             display: none;
         }
 
+        .achievement-king {
+            background: rgba(255, 215, 0, 0.95);
+            padding: 30px 60px;
+            border-radius: 20px;
+            box-shadow: 0 0 30px var(--primary-color);
+            font-size: 2rem;
+            animation: popIn 1s forwards;
+            z-index: 4;
+        }
+
         @keyframes fadeInOut {
             0% { opacity: 0; }
             10% { opacity: 1; }
             90% { opacity: 1; }
             100% { opacity: 0; }
-        }
-
-        /* 精美成就動畫 */
-        .achievement-king {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.5);
-            background: rgba(255, 215, 0, 0.95);
-            color: var(--primary-color);
-            padding: 30px 60px;
-            border-radius: 20px;
-            box-shadow: 0 0 30px var(--primary-color);
-            font-size: 2rem;
-            font-weight: bold;
-            animation: popIn 1s forwards;
-            z-index: 4;
-            display: none;
         }
 
         @keyframes popIn {
@@ -316,6 +311,7 @@
             display: flex;
             gap: 0.5rem;
             margin-bottom: 0.5rem;
+            justify-content: center;
         }
 
         .button-container button {
@@ -326,15 +322,67 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: background 0.3s;
+            transition: background 0.3s, transform 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button-container button::after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: rgba(255, 255, 255, 0.2);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .button-container button:hover::after {
+            opacity: 1;
         }
 
         .button-container button:hover {
             background: var(--secondary-color);
+            transform: scale(1.05);
         }
 
         .copy-button {
             margin-top: 0.5rem;
+        }
+
+        /* Toast樣式 */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 5;
+        }
+
+        .toast {
+            min-width: 200px;
+            background: var(--toast-bg);
+            color: var(--toast-color);
+            padding: 0.75rem 1rem;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            opacity: 0;
+            animation: fadeIn 0.5s forwards, fadeOut 0.5s forwards 2.5s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; }
         }
     </style>
 </head>
@@ -350,6 +398,9 @@
     <!-- 成就動畫 -->
     <div class="achievement" id="achievement">恭喜你成為台灣髒話王！</div>
     <div class="achievement-king" id="achievementKing">🌟 髒話王 🌟</div>
+
+    <!-- Toast容器 -->
+    <div class="toast-container" id="toast-container"></div>
 
     <!-- 主要內容容器 -->
     <div class="container">
@@ -568,7 +619,6 @@
             const achievementKing = document.getElementById('achievementKing');
             let power = parseInt(powerElement.textContent) || 0;
             let totalPowerIncrease = 0;
-            let triggeredWords = new Set();
 
             // 檢測髒話數量及總分
             badWords.forEach(item => {
@@ -630,6 +680,12 @@
             achievement.style.animation = 'fadeInOut 3s forwards';
             achievementKing.style.display = 'block';
             achievementKing.style.animation = 'popIn 1s forwards';
+
+            // 隱藏成就後清除
+            setTimeout(() => {
+                achievement.style.display = 'none';
+                achievementKing.style.display = 'none';
+            }, 3000);
         }
 
         /**
@@ -643,6 +699,23 @@
 
         // 已經觸發的詞語
         let countedWords = new Set();
+
+        /**
+         * 顯示吐司訊息
+         * @param {string} message - 訊息內容
+         */
+        function showToast(message) {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.classList.add('toast');
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+
+            // 移除吐司
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
 
         /**
          * 防抖後的處理函數
@@ -674,6 +747,7 @@
             countedWords.clear();
             achievement.style.display = 'none';
             achievementKing.style.display = 'none';
+            showToast('已清空輸入和結果。');
         });
 
         // 貼上按鈕功能
@@ -683,8 +757,9 @@
                 const inputElement = document.getElementById('input');
                 inputElement.value += text;
                 inputElement.dispatchEvent(new Event('input'));
+                showToast('已貼上剪貼簿內容。');
             } catch (err) {
-                alert('無法從剪貼簿貼上文字。');
+                showToast('無法從剪貼簿貼上文字。');
             }
         });
 
@@ -693,9 +768,9 @@
             const outputElement = document.getElementById('output');
             try {
                 await navigator.clipboard.writeText(outputElement.value);
-                alert('結果已複製到剪貼簿！');
+                showToast('結果已複製到剪貼簿！');
             } catch (err) {
-                alert('無法複製結果。');
+                showToast('無法複製結果。');
             }
         });
     </script>
