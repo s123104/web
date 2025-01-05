@@ -17,6 +17,7 @@
             --secondary-color: #00ffff;
             --bg-color: #0a0a2a;
             --text-color: #fff;
+            --glow-color: rgba(255, 0, 85, 0.7);
         }
 
         body {
@@ -24,6 +25,7 @@
             color: var(--text-color);
             min-height: 100vh;
             line-height: 1.6;
+            overflow-x: hidden;
         }
 
         .magic-circle {
@@ -130,6 +132,7 @@
             font-size: 1rem;
             resize: none;
             outline: none;
+            font-family: "微軟正黑體", sans-serif;
         }
 
         @media (min-width: 768px) {
@@ -166,15 +169,50 @@
             position: fixed;
             top: 1rem;
             right: 1rem;
-            font-size: 0.9rem;
+            font-size: 1rem;
             color: var(--secondary-color);
-            animation: pulse 2s infinite;
+            animation: pulseGlow 2s infinite;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 10px var(--secondary-color), 0 0 20px var(--secondary-color);
+            transition: background 0.5s, box-shadow 0.5s;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+        @keyframes pulseGlow {
+            0% {
+                box-shadow: 0 0 10px var(--secondary-color), 0 0 20px var(--secondary-color);
+                background: rgba(0, 255, 255, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 20px var(--secondary-color), 0 0 30px var(--secondary-color);
+                background: rgba(0, 255, 255, 0.2);
+            }
+            100% {
+                box-shadow: 0 0 10px var(--secondary-color), 0 0 20px var(--secondary-color);
+                background: rgba(0, 255, 255, 0.1);
+            }
+        }
+
+        /* 新增的打字動畫 */
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        /* 滾動條樣式 (可選) */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        textarea::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        textarea::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -201,6 +239,7 @@
                 <div class="status" id="input-status"></div>
             </div>
 
+            <!-- 拼音轉中文 -->
             <div class="output-section">
                 <div class="section-header">『轉化結界』</div>
                 <textarea id="output" readonly></textarea>
@@ -218,11 +257,11 @@
     <script>
         // 手動擴展的拼音到中文字典
         const dictionary = {
-            '狼': 'lan', '掉': 'diau', '珍': 'jen', '珠': 'ju', '啦': 'la',
-            '我': 'wou', '想': 'siang', '玩': 'wong', '屁': 'pi', '眼': 'yan',
-            '派': 'pai', '對': 'duai', '好': 'hau', '刺': 'tsi', '激': 'chi',
-            '喔': 'ah', '也': 'ye', '癢': 'yang', '講': 'gong', '三': 'san',
-            '小': 'xiao', '幹': 'gan', '你': 'ni', '娘': 'niang', '雞': 'ji',
+            '狼': 'Lan', '掉': 'diau', '珍': 'Jen', '珠': 'ju', '啦': 'la',
+            '我': 'Wou', '想': 'siang', '玩': 'wong', '屁': 'pi', '眼': 'yan',
+            '派': 'pai', '對': 'duai', '好': 'Hau', '刺': 'tsi', '激': 'chi',
+            '喔': 'ah', '也': 'ye', '癢': 'Yang', '講': 'Gong', '三': 'san',
+            '小': 'xiao', '幹': 'Gan', '你': 'ni', '娘': 'niang', '雞': 'ji',
             '掰': 'bai', '勒': 'lei', // 自行擴展...
         };
 
@@ -231,6 +270,27 @@
             acc[value.toLowerCase()] = key;
             return acc;
         }, {});
+
+        /**
+         * 逐步打字效果函數
+         * @param {string} text - 要顯示的文字
+         * @param {HTMLElement} element - 要顯示文字的元素
+         * @param {number} delay - 每個字元的延遲時間（毫秒）
+         */
+        function typeText(text, element, delay = 50) {
+            element.value = ''; // 清空現有內容
+            let index = 0;
+            const interval = setInterval(() => {
+                if (index < text.length) {
+                    element.value += text.charAt(index);
+                    index++;
+                    // 自動滾動到最底部
+                    element.scrollTop = element.scrollHeight;
+                } else {
+                    clearInterval(interval);
+                }
+            }, delay);
+        }
 
         /**
          * 檢測輸入文字的類型並進行轉換
@@ -242,15 +302,37 @@
             const isRomanization = /[a-zA-Z]/.test(text);
             return isRomanization
                 ? text.split(/\s+/).map(word => reverseDictionary[word.toLowerCase()] || word).join('')
-                : PinyinHelper.convertToPinyinString(text, ' ', PinyinFormat.NORMAL);
+                : PinyinHelper.convertToPinyinString(text, ' ', PinyinFormat.WITHOUT_TONE);
         }
 
         // 監聽輸入框的變化
         document.getElementById('input').addEventListener('input', function (e) {
             const input = e.target.value.trim();
             const result = detectAndConvert(input);
-            document.getElementById('output').value = result;
+            const outputElement = document.getElementById('output');
+            typeText(result, outputElement, 30); // 調整延遲時間以改變打字速度
         });
+
+        /**
+         * 動態更新靈力值
+         * 這裡簡單地讓靈力值在 80% 到 100% 之間隨機變動
+         * 您可以根據需求修改此邏輯
+         */
+        function updatePowerLevel() {
+            const powerElement = document.getElementById('power');
+            let power = 100;
+            setInterval(() => {
+                // 隨機減少 0-5%
+                const change = Math.floor(Math.random() * 11) - 5; // -5 到 +5
+                power += change;
+                if (power < 80) power = 80;
+                if (power > 100) power = 100;
+                powerElement.textContent = power + '%';
+            }, 2000); // 每 2 秒更新一次
+        }
+
+        // 初始化靈力值更新
+        updatePowerLevel();
     </script>
 </body>
 </html>
