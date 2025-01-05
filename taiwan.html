@@ -133,7 +133,7 @@
 
         textarea {
             width: 100%;
-            height: 200px;
+            height: 150px; /* 調整高度 */
             background: rgba(0, 0, 0, 0.3);
             border: none;
             border-radius: 5px;
@@ -147,7 +147,7 @@
 
         @media (min-width: 768px) {
             textarea {
-                height: 400px;
+                height: 200px; /* 桌面版高度較小 */
             }
         }
 
@@ -253,7 +253,7 @@
                 <div class="power-level-container">
                     <div class="power-level-bar" id="power-bar"></div>
                 </div>
-                <div class="power-level-text">靈力值: <span id="power">100%</span></div>
+                <div class="power-level-text">靈力值: <span id="power">0%</span></div>
             </div>
 
             <!-- 拼音轉中文 -->
@@ -285,6 +285,13 @@
             acc[value.toLowerCase()] = key;
             return acc;
         }, {});
+
+        // 台灣常用髒話列表（示例，請根據需要擴展）
+        const badWords = [
+            '幹', '靠', '媽的', '他媽的', '屎', '屁', '尿', '死', '爛', '混蛋',
+            // 反向拼音
+            'gan', 'kao', 'mada', 'tamade', 'shi', 'pi', 'niao', 'si', 'lan', 'hundan'
+        ];
 
         /**
          * 防抖函數
@@ -336,16 +343,26 @@
 
         /**
          * 更新靈力值
-         * 根據輸入文字的長度增加靈力值，最高不超過100%
-         * @param {number} inputLength - 輸入文字的長度
+         * 根據輸入文字中髒話的數量增加靈力值，最高不超過100%
+         * @param {string} text - 輸入文字
          */
-        function updatePowerLevel(inputLength) {
+        function updatePowerLevel(text) {
             const powerElement = document.getElementById('power');
             const powerBar = document.getElementById('power-bar');
-            let power = 100;
+            let power = 0;
 
-            // 假設靈力值基礎為100%，每增加10個字元增加1%，最高100%
-            power += Math.floor(inputLength / 10);
+            // 檢測髒話數量
+            let badWordCount = 0;
+            badWords.forEach(word => {
+                const regex = new RegExp(word, 'gi');
+                const matches = text.match(regex);
+                if (matches) {
+                    badWordCount += matches.length;
+                }
+            });
+
+            // 假設每個髒話增加5%，最高100%
+            power = badWordCount * 5;
             if (power > 100) power = 100;
 
             powerElement.textContent = power + '%';
@@ -358,7 +375,7 @@
             const result = detectAndConvert(input);
             const outputElement = document.getElementById('output');
             typeText(result, outputElement, 30); // 調整延遲時間以改變打字速度
-            updatePowerLevel(input.length);
+            updatePowerLevel(input);
         }, 300); // 300 毫秒的防抖延遲
 
         // 監聽輸入框的變化
