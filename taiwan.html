@@ -126,7 +126,7 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--primary-color);
             border-radius: 10px;
-            padding: 1.5rem 2rem;
+            padding: 1rem;
             position: relative;
             overflow: hidden;
         }
@@ -152,10 +152,10 @@
 
         textarea {
             width: 100%;
-            height: 120px; /* 調整高度 */
+            height: 100px; /* 調整高度 */
             background: rgba(0, 0, 0, 0.3);
             border: none;
-            border-radius: 10px;
+            border-radius: 5px;
             padding: 1rem;
             color: var(--text-color);
             font-size: 1rem;
@@ -200,7 +200,7 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             overflow: hidden;
-            height: 25px;
+            height: 20px;
             position: relative;
         }
 
@@ -350,7 +350,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0.6rem;
+            padding: 0.5rem;
             background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
             color: #fff;
             border: none;
@@ -359,15 +359,15 @@
             font-size: 1.2rem; /* 調整字體大小 */
             transition: transform 0.2s, box-shadow 0.3s, background 0.3s;
             position: absolute; /* 絕對定位 */
-            top: 15px; /* 距離頂部 */
-            right: 15px; /* 距離右側 */
+            top: 10px; /* 距離頂部 */
+            right: 10px; /* 距離右側 */
             overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* 增加陰影 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* 減少陰影使按鈕更扁平 */
         }
 
         /* 分別定位按鈕在右上角，不重疊 */
         .input-section .record-button {
-            right: 60px; /* 偏移 */
+            right: 50px; /* 偏移 */
         }
 
         /* 新增按鈕點擊時的RGB動畫 */
@@ -414,8 +414,7 @@
 
         .copy-button:hover, .listen-button:hover, .record-button:hover {
             background: var(--button-hover-bg);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4); /* 增加點擊時的陰影 */
-            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* 增加點擊時的陰影 */
         }
 
         /* Toast樣式 */
@@ -929,21 +928,29 @@
 
         /**
          * 播放打字聲音
-         * 如果使用者停止輸入，立刻停止播放聲音
          */
+        let typingSoundPlaying = false;
         let typingSoundTimeout;
+
         function playTypingSound() {
             const typingSound = document.getElementById('typing-sound');
-            typingSound.currentTime = 0;
-            typingSound.play();
-
-            // 清除之前的timeout
+            if (!typingSoundPlaying) {
+                typingSound.loop = true;
+                typingSound.play();
+                typingSoundPlaying = true;
+            }
+            // Reset the timeout
             clearTimeout(typingSoundTimeout);
-            // 設置新的timeout來停止聲音
             typingSoundTimeout = setTimeout(() => {
-                typingSound.pause();
-                typingSound.currentTime = 0;
-            }, 500); // 與防抖延遲相同
+                stopTypingSound();
+            }, 1000); // 停止打字聲音如果1秒內沒有輸入
+        }
+
+        function stopTypingSound() {
+            const typingSound = document.getElementById('typing-sound');
+            typingSound.pause();
+            typingSound.currentTime = 0;
+            typingSoundPlaying = false;
         }
 
         /**
@@ -1036,7 +1043,7 @@
             }
 
             explode() {
-                const particleCount = 150; // 增加粒子數量
+                const particleCount = 100; // 增加粒子數量
                 for (let i = 0; i < particleCount; i++) {
                     particles.push(new Particle(this.x, this.y));
                 }
@@ -1154,6 +1161,81 @@
 
         let fireworkInterval;
 
+        // Initialize typing sound control
+        let typingSoundTimeout;
+
+        /**
+         * 播放打字聲音
+         */
+        function playTypingSound() {
+            const typingSound = document.getElementById('typing-sound');
+            if (!typingSound.loop) {
+                typingSound.loop = true;
+                typingSound.play();
+            }
+            // Reset the timeout to stop the sound after 1 second of inactivity
+            clearTimeout(typingSoundTimeout);
+            typingSoundTimeout = setTimeout(() => {
+                stopTypingSound();
+            }, 1000); // 1秒後停止打字聲音
+        }
+
+        /**
+         * 停止打字聲音
+         */
+        function stopTypingSound() {
+            const typingSound = document.getElementById('typing-sound');
+            typingSound.pause();
+            typingSound.currentTime = 0;
+        }
+
+        /**
+         * 播放複製聲音
+         */
+        function playCopySound() {
+            const copySound = document.getElementById('copy-sound');
+            copySound.currentTime = 0;
+            copySound.play();
+        }
+
+        /**
+         * 播放成就聲音
+         */
+        function playAchievementSound() {
+            const achievementSound = document.getElementById('achievement-sound');
+            achievementSound.currentTime = 0;
+            achievementSound.play();
+        }
+
+        /**
+         * 文字轉語音
+         * @param {string} text - 要朗讀的文字
+         */
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) {
+                showToast('瀏覽器不支援語音合成功能。');
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            // 設定語言為中文
+            utterance.lang = 'zh-TW';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        /**
+         * 觸發按鈕的RGB動畫效果
+         * @param {HTMLElement} button - 按鈕元素
+         */
+        function triggerRGBAnimation(button) {
+            const animation = document.createElement('div');
+            animation.classList.add('rgb-animation');
+            button.appendChild(animation);
+            // 移除動畫元素
+            animation.addEventListener('animationend', () => {
+                animation.remove();
+            });
+        }
     </script>
 </body>
 </html>
