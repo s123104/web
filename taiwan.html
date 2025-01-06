@@ -889,7 +889,7 @@
         const recordButton = document.getElementById('record-input');
         let recognition;
         let isRecording = false;
-        let typingSoundInterval;
+        let typingSoundTimeout;
 
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -929,29 +929,22 @@
 
         /**
          * 播放打字聲音
-         * 修改：使用setInterval來播放連續打字聲，並在停止輸入時立刻停止
+         * 修改：使用防抖函數來控制打字聲的播放和停止
          */
         function playTypingSound() {
             const typingSound = document.getElementById('typing-sound');
             typingSound.currentTime = 0;
             typingSound.play();
-            
-            // 如果已經有打字聲音在播放，先停止
-            if (typingSoundInterval) {
-                clearInterval(typingSoundInterval);
+
+            // 清除之前的timeout
+            if (typingSoundTimeout) {
+                clearTimeout(typingSoundTimeout);
             }
 
-            // 連續播放打字聲
-            typingSoundInterval = setInterval(() => {
-                typingSound.currentTime = 0;
-                typingSound.play();
-            }, 300); // 每300毫秒播放一次
-
-            // 監聽輸入框的輸入事件以停止打字聲
-            document.getElementById('input').addEventListener('input', () => {
-                if (typingSound.paused) return;
-                clearInterval(typingSoundInterval);
-            }, { once: true });
+            // 設定當用戶停止輸入後立即停止聲音
+            typingSoundTimeout = setTimeout(() => {
+                stopTypingSound();
+            }, 300); // 300毫秒無輸入後停止
         }
 
         /**
@@ -961,9 +954,6 @@
             const typingSound = document.getElementById('typing-sound');
             typingSound.pause();
             typingSound.currentTime = 0;
-            if (typingSoundInterval) {
-                clearInterval(typingSoundInterval);
-            }
         }
 
         /**
@@ -1056,7 +1046,7 @@
             }
 
             explode() {
-                const particleCount = 100; // 增加粒子數量
+                const particleCount = 150; // 增加粒子數量
                 for (let i = 0; i < particleCount; i++) {
                     particles.push(new Particle(this.x, this.y));
                 }
@@ -1079,8 +1069,8 @@
                 this.angle = Math.random() * Math.PI * 2;
                 this.velX = Math.cos(this.angle) * this.speed;
                 this.velY = Math.sin(this.angle) * this.speed;
-                this.gravity = 0.1; // 增加重力
-                this.lifetime = 150; // 增加粒子壽命
+                this.gravity = 0.05; // 減少重力
+                this.lifetime = 200; // 增加粒子壽命
                 this.opacity = 1;
                 this.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
                 this.size = Math.random() * 2 + 1; // 變化粒子大小
@@ -1091,7 +1081,7 @@
                 this.x += this.velX;
                 this.y += this.velY;
                 this.lifetime--;
-                this.opacity = this.lifetime / 150;
+                this.opacity = this.lifetime / 200;
                 // 減少速度以模擬阻力
                 this.velX *= 0.98;
                 this.velY *= 0.98;
@@ -1160,7 +1150,7 @@
                 const y = canvas.height;
                 const targetY = Math.random() * canvas.height / 2;
                 fireworks.push(new Firework(x, y, targetY));
-            }, 300); // 增加發射頻率
+            }, 500); // 調整發射頻率
         }
 
         // Stop Fireworks
