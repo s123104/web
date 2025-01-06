@@ -27,6 +27,7 @@
             --achievement-text-color: #fff;
             --button-hover-bg: #ff66aa;
             --overlay-bg: rgba(0, 0, 0, 0.85);
+            --rgb-animation-duration: 0.5s;
         }
 
         body {
@@ -346,31 +347,53 @@
 
         /* 按鈕樣式 */
         .copy-button, .listen-button, .record-button {
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0.4rem 0.8rem; /* 減少上下左右的padding */
+            padding: 0.5rem;
             background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
             color: #fff;
             border: none;
-            border-radius: 5px; /* 減少圓角使按鈕更扁平 */
+            border-radius: 50%; /* 完全圓形 */
             cursor: pointer;
-            font-size: 1rem; /* 調整字體大小 */
-            transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
-            position: absolute; /* 更改為絕對定位 */
+            font-size: 1.2rem; /* 調整字體大小 */
+            transition: transform 0.2s, box-shadow 0.3s, background 0.3s;
+            position: absolute; /* 絕對定位 */
             top: 10px; /* 距離頂部 */
             right: 10px; /* 距離右側 */
-            /* 將按鈕排列水平 */
-            display: flex;
-            gap: 0.3rem;
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* 減少陰影使按鈕更扁平 */
         }
 
-        /* 移除單獨的按鈕位置 */
-        /* .copy-button, .listen-button, .record-button {
-            margin-left: 0.5rem;
-        } */
+        /* 分別定位按鈕在右上角，不重疊 */
+        .input-section .record-button {
+            right: 50px; /* 偏移 */
+        }
+
+        /* 新增按鈕點擊時的RGB動畫 */
+        .rgb-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            pointer-events: none;
+            background: radial-gradient(circle, rgba(255,0,0,0.5), rgba(0,255,0,0.5), rgba(0,0,255,0.5));
+            opacity: 0;
+            animation: rgbFlash var(--rgb-animation-duration) forwards;
+        }
+
+        @keyframes rgbFlash {
+            0% {
+                opacity: 1;
+                transform: scale(0.8);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1.5);
+            }
+        }
 
         .copy-button::before, .listen-button::before, .record-button::before {
             content: "";
@@ -390,17 +413,9 @@
         }
 
         .copy-button:hover, .listen-button:hover, .record-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* 增加點擊時的陰影 */
             background: var(--button-hover-bg);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* 增加點擊時的陰影 */
         }
-
-        /* Button Group */
-        /* .button-group {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        } */
 
         /* Toast樣式 */
         .toast-container {
@@ -836,6 +851,7 @@
                 await navigator.clipboard.writeText(outputElement.value);
                 showToast('結果已複製到剪貼簿！');
                 playCopySound();
+                triggerRGBAnimation(document.getElementById('copy-button'));
             } catch (err) {
                 showToast('無法複製結果。');
             }
@@ -855,6 +871,7 @@
                 return;
             }
             speakText(inputText);
+            triggerRGBAnimation(document.getElementById('listen-input'));
         });
 
         // 聆聽轉換結果按鈕
@@ -865,6 +882,7 @@
                 return;
             }
             speakText(outputText);
+            triggerRGBAnimation(document.getElementById('listen-output'));
         });
 
         // 語音輸入按鈕
@@ -883,6 +901,7 @@
                 const speechResult = event.results[0][0].transcript;
                 document.getElementById('input').value = speechResult;
                 handleInput({ target: document.getElementById('input') });
+                triggerRGBAnimation(recordButton);
             };
 
             recognition.onerror = (event) => {
@@ -903,6 +922,7 @@
                 recognition.start();
                 isRecording = true;
                 recordButton.classList.add('recording');
+                triggerRGBAnimation(recordButton);
             }
         });
 
@@ -947,6 +967,20 @@
             // 設定語言為中文
             utterance.lang = 'zh-TW';
             window.speechSynthesis.speak(utterance);
+        }
+
+        /**
+         * 觸發按鈕的RGB動畫效果
+         * @param {HTMLElement} button - 按鈕元素
+         */
+        function triggerRGBAnimation(button) {
+            const animation = document.createElement('div');
+            animation.classList.add('rgb-animation');
+            button.appendChild(animation);
+            // 移除動畫元素
+            animation.addEventListener('animationend', () => {
+                animation.remove();
+            });
         }
 
         // Fireworks Effect Implementation
