@@ -23,7 +23,7 @@
             --power-glow: var(--secondary-color);
             --toast-bg: rgba(0, 0, 0, 0.7);
             --toast-color: #fff;
-            --achievement-bg: rgba(0, 0, 0, 0.8);
+            --achievement-bg: rgba(0, 0, 0, 0.85);
             --achievement-text-color: #fff;
             --button-hover-bg: #ff66aa;
             --overlay-bg: rgba(0, 0, 0, 0.85);
@@ -296,7 +296,8 @@
 
         .achievement-content {
             text-align: center;
-            max-width: 90%;
+            width: 100%;
+            max-width: 600px;
             padding: 2rem;
             border-radius: 15px;
             background: rgba(255, 255, 255, 0.1);
@@ -344,7 +345,7 @@
         }
 
         /* 按鈕樣式 */
-        .copy-button {
+        .copy-button, .listen-button, .record-button {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -359,9 +360,10 @@
             position: relative;
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            margin-left: 0.5rem;
         }
 
-        .copy-button::before {
+        .copy-button::before, .listen-button::before, .record-button::before {
             content: "";
             position: absolute;
             width: 300%;
@@ -374,11 +376,11 @@
             transition: opacity 0.3s;
         }
 
-        .copy-button:hover::before {
+        .copy-button:hover::before, .listen-button:hover::before, .record-button:hover::before {
             opacity: 1;
         }
 
-        .copy-button:hover {
+        .copy-button:hover, .listen-button:hover, .record-button:hover {
             transform: scale(1.05);
             box-shadow: 0 6px 10px rgba(0, 0, 0, 0.4);
             background: var(--button-hover-bg);
@@ -416,6 +418,17 @@
         @keyframes fadeOut {
             to { opacity: 0; }
         }
+
+        /* 聲音按鈕圖示 */
+        .icon {
+            margin-right: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        /* 聽取中樣式 */
+        .recording {
+            background: red;
+        }
     </style>
 </head>
 <body>
@@ -433,7 +446,11 @@
     <!-- 成就動畫覆蓋層 -->
     <div class="achievement-overlay" id="achievementOverlay">
         <div class="achievement-content">
-            <!-- 獎盃 SVG -->
+            <!-- 獎盃 ICON 使用 Font Awesome 或其他 ICON 庫 -->
+            <!-- 這裡使用 Font Awesome 獎盃圖示 -->
+            <i class="fas fa-trophy" style="font-size: 100px; color: #FFD700; margin-bottom: 1rem;"></i>
+            <!-- 如果不使用 Font Awesome，可以使用以下 SVG 獎盃圖示 -->
+            <!--
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
                 <path fill="#FFD700" d="M50 14H14a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h36a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"/>
                 <path fill="#FFD700" d="M46 26H18a2 2 0 0 0-2 2v2h32v-2a2 2 0 0 0-2-2z"/>
@@ -441,7 +458,7 @@
                 <path fill="#FFD700" d="M38 42a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/>
                 <path fill="#FFD700" d="M26 42a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/>
             </svg>
-
+            -->
             <!-- 成就標題 -->
             <div class="achievement-title">🌟 台灣髒話王 🌟</div>
 
@@ -466,7 +483,17 @@
             <!-- 中文轉拼音 -->
             <div class="input-section">
                 <div class="section-header">『吾之真言』</div>
-                <textarea id="input" placeholder="在此寫下汝之密語..."></textarea>
+                <div style="display: flex; align-items: center;">
+                    <textarea id="input" placeholder="在此寫下汝之密語..."></textarea>
+                    <!-- 聆聽語音按鈕 -->
+                    <button class="listen-button" id="listen-input" title="聆聽輸入內容">
+                        🔊
+                    </button>
+                    <!-- 語音輸入按鈕 -->
+                    <button class="record-button" id="record-input" title="語音輸入">
+                        🎤
+                    </button>
+                </div>
                 <div class="magic-border"></div>
                 <div class="status" id="input-status"></div>
                 <div class="power-level-container">
@@ -478,13 +505,22 @@
             <!-- 拼音轉中文 -->
             <div class="output-section">
                 <div class="section-header">『轉化結界』</div>
-                <textarea id="output" readonly></textarea>
+                <div style="display: flex; align-items: center;">
+                    <textarea id="output" readonly></textarea>
+                    <!-- 聆聽結果按鈕 -->
+                    <button class="listen-button" id="listen-output" title="聆聽轉換結果">
+                        🔊
+                    </button>
+                </div>
                 <div class="magic-border"></div>
                 <div class="status" id="output-status"></div>
                 <button class="copy-button" id="copy-button">🔗 複製結果</button>
             </div>
         </div>
     </div>
+
+    <!-- 引入 Font Awesome (用於獎盃圖示) -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 
     <!-- 引入 pinyin4js (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/pinyin4js/dist/pinyin4js.min.js"></script>
@@ -806,23 +842,106 @@
             stopFireworks();
         });
 
-        // 音效播放函數
+        // 聆聽輸入內容按鈕
+        document.getElementById('listen-input').addEventListener('click', () => {
+            const inputText = document.getElementById('input').value;
+            if (inputText.trim() === '') {
+                showToast('沒有內容可以聆聽。');
+                return;
+            }
+            speakText(inputText);
+        });
+
+        // 聆聽輸出結果按鈕
+        document.getElementById('listen-output').addEventListener('click', () => {
+            const outputText = document.getElementById('output').value;
+            if (outputText.trim() === '') {
+                showToast('沒有內容可以聆聽。');
+                return;
+            }
+            speakText(outputText);
+        });
+
+        // 語音輸入按鈕
+        const recordButton = document.getElementById('record-input');
+        let recognition;
+        let isRecording = false;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'zh-TW';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = (event) => {
+                const speechResult = event.results[0][0].transcript;
+                document.getElementById('input').value = speechResult;
+                handleInput({ target: document.getElementById('input') });
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error detected: ' + event.error);
+                showToast('語音識別發生錯誤。');
+            };
+        } else {
+            recordButton.disabled = true;
+            recordButton.title = '瀏覽器不支援語音識別功能。';
+        }
+
+        recordButton.addEventListener('click', () => {
+            if (isRecording) {
+                recognition.stop();
+                isRecording = false;
+                recordButton.classList.remove('recording');
+            } else {
+                recognition.start();
+                isRecording = true;
+                recordButton.classList.add('recording');
+            }
+        });
+
+        /**
+         * 播放打字聲音
+         */
         function playTypingSound() {
             const typingSound = document.getElementById('typing-sound');
             typingSound.currentTime = 0;
             typingSound.play();
         }
 
+        /**
+         * 播放複製聲音
+         */
         function playCopySound() {
             const copySound = document.getElementById('copy-sound');
             copySound.currentTime = 0;
             copySound.play();
         }
 
+        /**
+         * 播放成就聲音
+         */
         function playAchievementSound() {
             const achievementSound = document.getElementById('achievement-sound');
             achievementSound.currentTime = 0;
             achievementSound.play();
+        }
+
+        /**
+         * 文字轉語音
+         * @param {string} text - 要朗讀的文字
+         */
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) {
+                showToast('瀏覽器不支援語音合成功能。');
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            // 設定語言為中文
+            utterance.lang = 'zh-TW';
+            window.speechSynthesis.speak(utterance);
         }
 
         // Fireworks Effect Implementation
