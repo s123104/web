@@ -409,6 +409,41 @@
             to { opacity: 0; }
         }
 
+        /* 輸出區域樣式 */
+        .output-content {
+            width: 100%;
+            height: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border: none;
+            border-radius: 5px;
+            padding: 1rem;
+            color: var(--text-color);
+            font-size: 1rem;
+            resize: none;
+            outline: none;
+            font-family: "微軟正黑體", sans-serif;
+            overflow-y: auto;
+        }
+
+        .output-content span {
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .listen-button {
+            margin-left: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            background: none;
+            border: none;
+            color: var(--secondary-color);
+        }
+
+        .listen-button:hover {
+            color: var(--primary-color);
+        }
+
         /* Responsive Achievement Content */
         @media (max-width: 600px) {
             .achievement-title {
@@ -486,7 +521,7 @@
             <!-- 拼音轉中文 -->
             <div class="output-section">
                 <div class="section-header">『轉化結界』</div>
-                <textarea id="output" readonly></textarea>
+                <div id="output" class="output-content"></div>
                 <div class="magic-border"></div>
                 <div class="status" id="output-status"></div>
                 <button class="copy-button" id="copy-button">🔗 複製結果</button>
@@ -642,44 +677,143 @@
         }
 
         /**
+         * 逃逸正則特殊字元
+         * @param {string} string - 輸入字串
+         * @returns {string} - 逃逸後的字串
+         */
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // 已經觸發的詞語
+        let countedWords = new Set();
+
+        /**
+         * 顯示吐司訊息
+         * @param {string} message - 訊息內容
+         */
+        function showToast(message) {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.classList.add('toast');
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+
+            // 移除吐司
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        /**
          * 逐步打字效果函數
          * @param {string} text - 要顯示的文字
          * @param {HTMLElement} element - 要顯示文字的元素
          * @param {number} delay - 每個字元的延遲時間（毫秒）
          */
         function typeText(text, element, delay = 50) {
-            element.value = ''; // 清空現有內容
+            element.innerHTML = ''; // 清空現有內容
             let index = 0;
-            const interval = setInterval(() => {
+
+            function typeCharacter() {
                 if (index < text.length) {
-                    element.value += text.charAt(index);
+                    const char = text.charAt(index);
+                    if (char === '\n') {
+                        element.innerHTML += '<br>';
+                    } else {
+                        element.innerHTML += char;
+                    }
                     index++;
                     // 自動滾動到最底部
                     element.scrollTop = element.scrollHeight;
-                } else {
-                    clearInterval(interval);
+                    setTimeout(typeCharacter, delay);
                 }
-            }, delay);
+            }
+
+            typeCharacter();
+        }
+
+        /**
+         * 逐步顯示拼音和聆聽按鈕
+         * @param {Array} conversion - 轉換後的詞語陣列
+         * @param {HTMLElement} element - 要顯示的元素
+         * @param {number} delay - 每個詞語的延遲時間（毫秒）
+         */
+        function displayConversion(conversion, element, delay = 50) {
+            element.innerHTML = ''; // 清空現有內容
+            let index = 0;
+
+            function displayWord() {
+                if (index < conversion.length) {
+                    const item = conversion[index];
+                    if (item.pinyin) {
+                        const span = document.createElement('span');
+                        span.textContent = `${item.chinese} (${item.pinyin})`;
+                        
+                        const listenButton = document.createElement('button');
+                        listenButton.innerHTML = '🔊';
+                        listenButton.classList.add('listen-button');
+                        listenButton.addEventListener('click', () => {
+                            listenPinyin(item.pinyin);
+                        });
+
+                        span.appendChild(listenButton);
+                        element.appendChild(span);
+                        element.appendChild(document.createElement('br'));
+                    } else {
+                        const span = document.createElement('span');
+                        span.textContent = item.chinese + ' ';
+                        element.appendChild(span);
+                    }
+                    index++;
+                    // 自動滾動到最底部
+                    element.scrollTop = element.scrollHeight;
+                    setTimeout(displayWord, delay);
+                }
+            }
+
+            displayWord();
+        }
+
+        /**
+         * 聆聽拼音
+         * @param {string} pinyin - 要聆聽的拼音
+         */
+        function listenPinyin(pinyin) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(pinyin);
+                utterance.lang = 'zh-TW';
+                window.speechSynthesis.speak(utterance);
+            } else {
+                showToast('您的瀏覽器不支援語音播放功能。');
+            }
         }
 
         /**
          * 檢測輸入文字的類型並進行轉換
          * @param {string} text - 輸入文字
-         * @returns {string} - 轉換後的結果
+         * @returns {Array} - 轉換後的結果陣列
          */
-        function detectAndConvert(text) {
-            if (!text) return '';
+        function detectAndConvertDetailed(text) {
+            if (!text) return [];
             const isRomanization = /^[a-zA-Z\s]+$/.test(text.trim());
             if (isRomanization) {
                 // 處理拼音輸入
                 const words = text.trim().toLowerCase().split(/\s+/);
-                const convertedWords = words.map(word => {
-                    return reverseDictionary[word.replace(/\s+/g, '')] || word;
+                const converted = words.map(word => {
+                    const chinese = reverseDictionary[word.replace(/\s+/g, '')];
+                    if (chinese) {
+                        const pinyin = dictionary[chinese].replace(/\s+/g, '');
+                        return { chinese, pinyin };
+                    } else {
+                        return { chinese: word, pinyin: '' };
+                    }
                 });
-                return convertedWords.join(' ');
+                return converted;
             } else {
                 // 處理中文輸入，拼音相連
-                return PinyinHelper.convertToPinyinString(text, '', PinyinFormat.WITHOUT_TONE);
+                const pinyin = PinyinHelper.convertToPinyinString(text, '', PinyinFormat.WITHOUT_TONE);
+                return [{ chinese: text, pinyin }];
             }
         }
 
@@ -756,53 +890,25 @@
         }
 
         /**
-         * 逃逸正則特殊字元
-         * @param {string} string - 輸入字串
-         * @returns {string} - 逃逸後的字串
-         */
-        function escapeRegExp(string) {
-            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-
-        // 已經觸發的詞語
-        let countedWords = new Set();
-
-        /**
-         * 顯示吐司訊息
-         * @param {string} message - 訊息內容
-         */
-        function showToast(message) {
-            const toastContainer = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.classList.add('toast');
-            toast.textContent = message;
-            toastContainer.appendChild(toast);
-
-            // 移除吐司
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
-        }
-
-        /**
          * 防抖後的處理函數
          */
-        const handleInput = debounce(function(e) {
+        const handleInputWithListen = debounce(function(e) {
             const input = e.target.value.trim();
-            const result = detectAndConvert(input);
+            const conversion = detectAndConvertDetailed(input);
             const outputElement = document.getElementById('output');
-            typeText(result, outputElement, 30); // 調整延遲時間以改變打字速度
+            displayConversion(conversion, outputElement, 30); // 調整延遲時間以改變顯示速度
             updatePowerLevel(input);
         }, 500); // 500 毫秒的防抖延遲
 
         // 監聽輸入框的變化
-        document.getElementById('input').addEventListener('input', handleInput);
+        document.getElementById('input').addEventListener('input', handleInputWithListen);
 
         // 複製按鈕功能
         document.getElementById('copy-button').addEventListener('click', async () => {
             const outputElement = document.getElementById('output');
+            const text = outputElement.innerText;
             try {
-                await navigator.clipboard.writeText(outputElement.value);
+                await navigator.clipboard.writeText(text);
                 showToast('結果已複製到剪貼簿！');
             } catch (err) {
                 showToast('無法複製結果。');
@@ -857,7 +963,7 @@
             }
 
             explode() {
-                const particleCount = 50;
+                const particleCount = 100; // 增加粒子數量
                 for (let i = 0; i < particleCount; i++) {
                     particles.push(new Particle(this.x, this.y));
                 }
@@ -896,7 +1002,7 @@
 
             draw() {
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
                 ctx.fillStyle = `rgba(${hslToRgb(this.color)}, ${this.opacity})`;
                 ctx.fill();
             }
@@ -967,304 +1073,6 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             fireworks = [];
             particles = [];
-        }
-
-        let fireworkInterval;
-
-        /**
-         * 聆聽拼音
-         * @param {string} pinyin - 要聆聽的拼音
-         */
-        function listenPinyin(pinyin) {
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(pinyin);
-                utterance.lang = 'zh-TW';
-                window.speechSynthesis.speak(utterance);
-            } else {
-                showToast('您的瀏覽器不支援語音播放功能。');
-            }
-        }
-
-        /**
-         * 顯示拼音轉換結果及聆聽按鈕
-         * @param {string} chinese - 對應的中文詞語
-         * @param {string} pinyin - 該詞語的拼音
-         */
-        function displayPinyinResult(chinese, pinyin) {
-            const outputElement = document.getElementById('output');
-            const currentContent = outputElement.value.trim();
-            const newContent = `${currentContent}\n${chinese} (${pinyin}) 🔊`;
-            outputElement.value = newContent;
-        }
-
-        // 修改 typeText 以處理拼音聆聽
-        function typeTextWithListen(text, element, delay = 50) {
-            element.value = ''; // 清空現有內容
-            let index = 0;
-            const words = text.split(' ');
-            let currentWord = '';
-
-            function typeWord(word, callback) {
-                let wordIndex = 0;
-                const wordInterval = setInterval(() => {
-                    if (wordIndex < word.length) {
-                        element.value += word.charAt(wordIndex);
-                        wordIndex++;
-                        // 自動滾動到最底部
-                        element.scrollTop = element.scrollHeight;
-                    } else {
-                        clearInterval(wordInterval);
-                        element.value += ' ';
-                        callback();
-                    }
-                }, delay);
-            }
-
-            function processNextWord() {
-                if (index < words.length) {
-                    const word = words[index];
-                    currentWord = word;
-                    index++;
-                    typeWord(word, processNextWord);
-                }
-            }
-
-            processNextWord();
-        }
-
-        /**
-         * 修改 detectAndConvert 以返回拼音對應的中文詞語
-         * @param {string} text - 輸入文字
-         * @returns {Object} - { chinese: string, pinyin: string }
-         */
-        function detectAndConvertDetailed(text) {
-            if (!text) return { chinese: '', pinyin: '' };
-            const isRomanization = /^[a-zA-Z\s]+$/.test(text.trim());
-            if (isRomanization) {
-                // 處理拼音輸入
-                const words = text.trim().toLowerCase().split(/\s+/);
-                const converted = words.map(word => {
-                    const chinese = reverseDictionary[word.replace(/\s+/g, '')];
-                    if (chinese) {
-                        const pinyin = dictionary[chinese].replace(/\s+/g, '');
-                        return { chinese, pinyin };
-                    } else {
-                        return { chinese: word, pinyin: '' };
-                    }
-                });
-                return converted;
-            } else {
-                // 處理中文輸入，拼音相連
-                const pinyin = PinyinHelper.convertToPinyinString(text, '', PinyinFormat.WITHOUT_TONE);
-                return [{ chinese: text, pinyin }];
-            }
-        }
-
-        // 更新 handleInput 以支持聆聽功能
-        const handleInputWithListen = debounce(function(e) {
-            const input = e.target.value.trim();
-            const conversion = detectAndConvertDetailed(input);
-            const outputElement = document.getElementById('output');
-            if (Array.isArray(conversion)) {
-                outputElement.value = ''; // 清空現有內容
-                conversion.forEach(item => {
-                    if (typeof item === 'object' && item.pinyin) {
-                        displayPinyinResult(item.chinese, item.pinyin);
-                    } else {
-                        outputElement.value += item + ' ';
-                    }
-                });
-            }
-            updatePowerLevel(input);
-        }, 500); // 500 毫秒的防抖延遲
-
-        // 監聽輸入框的變化
-        document.getElementById('input').addEventListener('input', handleInputWithListen);
-
-        // 聆聽拼音功能
-        document.getElementById('output').addEventListener('click', (e) => {
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(e.target);
-            selection.removeAllRanges();
-            selection.addRange(range);
-            const text = e.target.value;
-            const regex = /\((.*?)\) 🔊/g;
-            let match;
-            while ((match = regex.exec(text)) !== null) {
-                listenPinyin(match[1]);
-            }
-        });
-
-        // 複製按鈕功能
-        document.getElementById('copy-button').addEventListener('click', async () => {
-            const outputElement = document.getElementById('output');
-            try {
-                await navigator.clipboard.writeText(outputElement.value);
-                showToast('結果已複製到剪貼簿！');
-            } catch (err) {
-                showToast('無法複製結果。');
-            }
-        });
-
-        // 關閉成就動畫（點擊任意地方）
-        document.getElementById('achievementOverlay').addEventListener('click', () => {
-            document.getElementById('achievementOverlay').classList.remove('active');
-            stopFireworks();
-        });
-
-        // Fireworks Effect Implementation
-        const canvasFire = document.getElementById('fireworks-canvas');
-        const ctxFire = canvasFire.getContext('2d');
-        let fireworksFire = [];
-        let particlesFire = [];
-        let animationRunningFire = false;
-
-        // Resize canvas to full window size
-        function resizeCanvasFire() {
-            canvasFire.width = window.innerWidth;
-            canvasFire.height = window.innerHeight;
-        }
-
-        window.addEventListener('resize', resizeCanvasFire);
-        resizeCanvasFire();
-
-        // Firework class
-        class FireworkFire {
-            constructor(x, y, targetY) {
-                this.x = x;
-                this.y = y;
-                this.targetY = targetY;
-                this.speed = Math.random() * 3 + 2;
-                this.angle = Math.random() * Math.PI * 2;
-                this.velX = Math.cos(this.angle) * this.speed;
-                this.velY = Math.sin(this.angle) * this.speed;
-                this.distanceTraveled = 0;
-                this.distanceToTarget = Math.sqrt((x - x) ** 2 + (y - targetY) ** 2);
-                this.exploded = false;
-            }
-
-            update() {
-                this.x += this.velX;
-                this.y += this.velY;
-                this.distanceTraveled = Math.sqrt((this.x - this.x) ** 2 + (this.y - this.targetY) ** 2);
-                if (this.distanceTraveled >= this.distanceToTarget) {
-                    this.explode();
-                    this.exploded = true;
-                }
-            }
-
-            explode() {
-                const particleCount = 100; // 增加粒子數量
-                for (let i = 0; i < particleCount; i++) {
-                    particlesFire.push(new ParticleFire(this.x, this.y));
-                }
-            }
-
-            draw() {
-                ctxFire.beginPath();
-                ctxFire.arc(this.x, this.y, 2, 0, Math.PI * 2);
-                ctxFire.fillStyle = 'white';
-                ctxFire.fill();
-            }
-        }
-
-        // Particle class
-        class ParticleFire {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.speed = Math.random() * 5 + 1;
-                this.angle = Math.random() * Math.PI * 2;
-                this.velX = Math.cos(this.angle) * this.speed;
-                this.velY = Math.sin(this.angle) * this.speed;
-                this.gravity = 0.05;
-                this.lifetime = 100;
-                this.opacity = 1;
-                this.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-            }
-
-            update() {
-                this.velY += this.gravity;
-                this.x += this.velX;
-                this.y += this.velY;
-                this.lifetime--;
-                this.opacity = this.lifetime / 100;
-            }
-
-            draw() {
-                ctxFire.beginPath();
-                ctxFire.arc(this.x, this.y, 3, 0, Math.PI * 2);
-                ctxFire.fillStyle = `rgba(${hslToRgb(this.color)}, ${this.opacity})`;
-                ctxFire.fill();
-            }
-        }
-
-        // Utility function to convert HSL to RGB
-        function hslToRgb(hsl) {
-            const hslValues = hsl.match(/\d+/g).map(Number);
-            let [h, s, l] = hslValues;
-            s /= 100;
-            l /= 100;
-
-            const k = n => (n + h / 30) % 12;
-            const a = s * Math.min(l, 1 - l);
-            const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-
-            const r = Math.round(255 * f(0));
-            const g = Math.round(255 * f(8));
-            const b = Math.round(255 * f(4));
-
-            return `${r}, ${g}, ${b}`;
-        }
-
-        // Animation loop
-        function animateFire() {
-            if (!animationRunningFire) return;
-            ctxFire.globalCompositeOperation = 'destination-out';
-            ctxFire.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctxFire.fillRect(0, 0, canvasFire.width, canvasFire.height);
-            ctxFire.globalCompositeOperation = 'lighter';
-
-            fireworksFire.forEach((firework, index) => {
-                firework.update();
-                firework.draw();
-                if (firework.exploded) {
-                    fireworksFire.splice(index, 1);
-                }
-            });
-
-            particlesFire.forEach((particle, index) => {
-                particle.update();
-                particle.draw();
-                if (particle.lifetime <= 0) {
-                    particlesFire.splice(index, 1);
-                }
-            });
-
-            requestAnimationFrame(animateFire);
-        }
-
-        // Start Fireworks
-        function startFireworks() {
-            animationRunningFire = true;
-            animateFire();
-            // Launch fireworks periodically
-            fireworkInterval = setInterval(() => {
-                const x = Math.random() * canvasFire.width;
-                const y = canvasFire.height;
-                const targetY = Math.random() * canvasFire.height / 2;
-                fireworksFire.push(new FireworkFire(x, y, targetY));
-            }, 500);
-        }
-
-        // Stop Fireworks
-        function stopFireworks() {
-            animationRunningFire = false;
-            clearInterval(fireworkInterval);
-            ctxFire.clearRect(0, 0, canvasFire.width, canvasFire.height);
-            fireworksFire = [];
-            particlesFire = [];
         }
 
         let fireworkInterval;
