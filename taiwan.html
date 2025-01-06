@@ -367,7 +367,7 @@
 
         /* 分別定位按鈕在右上角，不重疊 */
         .input-section .record-button {
-            right: 50px; /* 偏移 */
+            right: 60px; /* 偏移 */
         }
 
         /* 新增按鈕點擊時的RGB動畫 */
@@ -889,6 +889,7 @@
         const recordButton = document.getElementById('record-input');
         let recognition;
         let isRecording = false;
+        let typingSoundInterval;
 
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -928,29 +929,41 @@
 
         /**
          * 播放打字聲音
+         * 修改：使用setInterval來播放連續打字聲，並在停止輸入時立刻停止
          */
-        let typingSoundPlaying = false;
-        let typingSoundTimeout;
-
         function playTypingSound() {
             const typingSound = document.getElementById('typing-sound');
-            if (!typingSoundPlaying) {
-                typingSound.loop = true;
-                typingSound.play();
-                typingSoundPlaying = true;
+            typingSound.currentTime = 0;
+            typingSound.play();
+            
+            // 如果已經有打字聲音在播放，先停止
+            if (typingSoundInterval) {
+                clearInterval(typingSoundInterval);
             }
-            // Reset the timeout
-            clearTimeout(typingSoundTimeout);
-            typingSoundTimeout = setTimeout(() => {
-                stopTypingSound();
-            }, 1000); // 停止打字聲音如果1秒內沒有輸入
+
+            // 連續播放打字聲
+            typingSoundInterval = setInterval(() => {
+                typingSound.currentTime = 0;
+                typingSound.play();
+            }, 300); // 每300毫秒播放一次
+
+            // 監聽輸入框的輸入事件以停止打字聲
+            document.getElementById('input').addEventListener('input', () => {
+                if (typingSound.paused) return;
+                clearInterval(typingSoundInterval);
+            }, { once: true });
         }
 
+        /**
+         * 停止打字聲音
+         */
         function stopTypingSound() {
             const typingSound = document.getElementById('typing-sound');
             typingSound.pause();
             typingSound.currentTime = 0;
-            typingSoundPlaying = false;
+            if (typingSoundInterval) {
+                clearInterval(typingSoundInterval);
+            }
         }
 
         /**
@@ -1161,81 +1174,6 @@
 
         let fireworkInterval;
 
-        // Initialize typing sound control
-        let typingSoundTimeout;
-
-        /**
-         * 播放打字聲音
-         */
-        function playTypingSound() {
-            const typingSound = document.getElementById('typing-sound');
-            if (!typingSound.loop) {
-                typingSound.loop = true;
-                typingSound.play();
-            }
-            // Reset the timeout to stop the sound after 1 second of inactivity
-            clearTimeout(typingSoundTimeout);
-            typingSoundTimeout = setTimeout(() => {
-                stopTypingSound();
-            }, 1000); // 1秒後停止打字聲音
-        }
-
-        /**
-         * 停止打字聲音
-         */
-        function stopTypingSound() {
-            const typingSound = document.getElementById('typing-sound');
-            typingSound.pause();
-            typingSound.currentTime = 0;
-        }
-
-        /**
-         * 播放複製聲音
-         */
-        function playCopySound() {
-            const copySound = document.getElementById('copy-sound');
-            copySound.currentTime = 0;
-            copySound.play();
-        }
-
-        /**
-         * 播放成就聲音
-         */
-        function playAchievementSound() {
-            const achievementSound = document.getElementById('achievement-sound');
-            achievementSound.currentTime = 0;
-            achievementSound.play();
-        }
-
-        /**
-         * 文字轉語音
-         * @param {string} text - 要朗讀的文字
-         */
-        function speakText(text) {
-            if (!('speechSynthesis' in window)) {
-                showToast('瀏覽器不支援語音合成功能。');
-                return;
-            }
-
-            const utterance = new SpeechSynthesisUtterance(text);
-            // 設定語言為中文
-            utterance.lang = 'zh-TW';
-            window.speechSynthesis.speak(utterance);
-        }
-
-        /**
-         * 觸發按鈕的RGB動畫效果
-         * @param {HTMLElement} button - 按鈕元素
-         */
-        function triggerRGBAnimation(button) {
-            const animation = document.createElement('div');
-            animation.classList.add('rgb-animation');
-            button.appendChild(animation);
-            // 移除動畫元素
-            animation.addEventListener('animationend', () => {
-                animation.remove();
-            });
-        }
     </script>
 </body>
 </html>
