@@ -1003,40 +1003,39 @@
         requestAnimationFrame(update);
       }
 
-      // 上下滑動切換
-      let startY = 0;
-      let startTime = 0;
-      let isTransitioning = false;
+      let startY = 0,
+        startTime = 0,
+        isVideoTransitioning = false; // 防止多次快速觸發
 
+      // 綁定 touchstart 和 touchend 到 document.body
       document.body.addEventListener(
         "touchstart",
         (e) => {
-          startY = e.touches[0].clientY;
-          startTime = Date.now();
+          startY = e.touches[0].clientY; // 記錄起始位置
+          startTime = Date.now(); // 記錄起始時間
         },
-        { passive: true }
+        { passive: true } // 啟用被動事件處理，提高性能
       );
 
       document.body.addEventListener(
         "touchend",
         (e) => {
-          if (isTransitioning) return;
+          if (isVideoTransitioning) return; // 如果正在切換，阻止新的滑動
+          const deltaY = e.changedTouches[0].clientY - startY; // 計算滑動距離
+          const deltaTime = Date.now() - startTime; // 計算滑動時間
+          const speed = Math.abs(deltaY) / deltaTime; // 計算滑動速度
 
-          const deltaY = e.changedTouches[0].clientY - startY;
-          const deltaTime = Date.now() - startTime;
-
-          if (Math.abs(deltaY) > 50 && deltaTime < 1000) {
-            isTransitioning = true;
-
+          // 判斷滑動條件：距離 > 50px，速度 > 0.3，且時間 < 1000ms
+          if (Math.abs(deltaY) > 50 && speed > 0.3 && deltaTime < 1000) {
+            isVideoTransitioning = true; // 標記正在切換，防止多次觸發
             if (deltaY < 0) {
-              playNextVideo(); // 上滑切換到下一部影片
+              playNextVideo(); // 上滑切換下一部影片
             } else {
-              playPreviousVideo(); // 下滑切換到上一部影片
+              playPreviousVideo(); // 下滑切換上一部影片
             }
-
             setTimeout(() => {
-              isTransitioning = false;
-            }, 500); // 防止連續觸發
+              isVideoTransitioning = false; // 冷卻完成，允許新滑動
+            }, 500); // 冷卻時間 500ms
           }
         },
         { passive: true }
