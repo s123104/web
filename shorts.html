@@ -45,34 +45,54 @@
     .video-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
     .video-description { font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.4; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
     .category-bar { 
-      position: fixed; top: env(safe-area-inset-top,0); left: 0; right: 0; height: 44px; 
-      padding: 0 12px; display: flex; align-items: center; overflow-x: auto; 
+      position: fixed; 
+      top: env(safe-area-inset-top,0); 
+      left: 0; 
+      right: 0; 
+      height: 44px; 
+      padding: 0 12px; 
+      display: flex; 
+      align-items: center; 
+      overflow-x: auto; 
       background: linear-gradient(rgba(0,0,0,0.4), transparent); 
-      -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; z-index: 100; 
-      white-space: nowrap;
+      -webkit-overflow-scrolling: touch; 
+      z-index: 100; 
+      white-space: nowrap; 
     }
-    .category-bar { 
-  position: fixed; 
-  top: env(safe-area-inset-top,0); 
-  left: 0; 
-  right: 0; 
-  height: 44px; 
-  padding: 0 12px; 
-  display: flex; 
-  flex-wrap: nowrap;           /* 確保分類按鈕在同一行，不換行 */
-  align-items: center; 
-  overflow-x: auto;            /* 啟用水平滾動 */
-  background: linear-gradient(rgba(0,0,0,0.4), transparent); 
-  -webkit-overflow-scrolling: touch; 
-  z-index: 100; 
-  white-space: nowrap; 
-}
     .category { 
-      flex: 0 0 auto; padding: 6px 16px; margin: 0 4px; font-size: 14px; 
-      color: rgba(255,255,255,0.8); background: transparent; border-radius: 16px; 
-      white-space: nowrap; scroll-snap-align: start; transition: all 0.3s; 
+      flex: 0 0 auto; 
+      padding: 6px 16px; 
+      margin: 0 4px; 
+      font-size: 14px; 
+      color: rgba(255,255,255,0.8); 
+      background: transparent; 
+      border-radius: 16px; 
+      white-space: nowrap; 
+      scroll-snap-align: start; 
+      transition: all 0.3s; 
     }
-    .category.active { color: #fff; background: rgba(255,255,255,0.2); font-weight: 500; }
+    .category.active { 
+      color: #fff; 
+      background: rgba(255,255,255,0.2); 
+      font-weight: 500; 
+    }
+    .scroll-hint {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 6px 10px;
+      font-size: 14px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 12px;
+      color: #fff;
+      z-index: 999;
+      display: none;
+    }
+    .scroll-hint.show {
+      display: block;
+      animation: hintFloat 1s ease-in-out infinite alternate;
+    }
     .progress-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: rgba(255,255,255,0.2); z-index: 3; }
     .progress { height: 100%; width: 0; background: #fff; transition: width 0.1s linear; }
     .loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
@@ -93,11 +113,22 @@
     .feature-hint span { font-size: 14px; color: rgba(255,255,255,0.9); }
     .quality-indicator { position: fixed; top: 60px; right: 16px; background: rgba(0,0,0,0.6); padding: 6px 12px; border-radius: 12px; font-size: 12px; color: rgba(255,255,255,0.9); z-index: 100; opacity: 0; transition: opacity 0.3s; }
     .quality-indicator.show { opacity: 1; }
-    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes hintFloat { from { transform: translateX(-50%) translateY(0); } to { transform: translateX(-50%) translateY(-5px); } }
+    @keyframes slideUp { 
+      from { transform: translateY(20px); opacity: 0; } 
+      to { transform: translateY(0); opacity: 1; } 
+    }
+    @keyframes spin { 
+      to { transform: rotate(360deg); } 
+    }
+    @keyframes hintFloat { 
+      from { transform: translateX(-50%) translateY(0); } 
+      to { transform: translateX(-50%) translateY(-5px); } 
+    }
     @supports (padding: max(0px)) {
-      .category-bar { padding-top: max(12px, env(safe-area-inset-top)); height: max(44px, calc(44px + env(safe-area-inset-top))); }
+      .category-bar { 
+        padding-top: max(12px, env(safe-area-inset-top)); 
+        height: max(44px, calc(44px + env(safe-area-inset-top))); 
+      }
     }
   </style>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
@@ -122,6 +153,9 @@
   </div>
 
   <div class="quality-indicator">HD 1080P</div>
+  
+  <!-- 滑動提示文字 -->
+  <div class="scroll-hint" id="scrollHint">左右滑動查看更多分類</div>
 
   <div id="app">
     <div class="category-bar">
@@ -166,6 +200,9 @@
   </div>
 
   <script>
+    // 假設這是一個不給看的 ID 清單或停權清單，別再浪費時間了
+    const bannedVideoIds = ["魯班尺URL", "someBannedId1", "someBannedId2"];
+
     const videos = [
       // 分類：工具操作與使用眉角
       { id: '4eWtbt1DsLU', title: '足幾分板是什麼？這影片告訴你！', description: '', category: '工具操作' },
@@ -204,9 +241,13 @@
       // 將所有影片依此格式新增於此陣列中
     ];
 
+    // 撈出所有有用的影片：排除掉在 bannedVideoIds 裡的
+    const validVideos = videos.filter(video => !bannedVideoIds.includes(video.id));
+
     const categories = ['工具操作', '建材選擇', '施工細節', '修復保養', '美觀收尾', '專業術語', '特殊施工'];
+
     let currentCategoryIndex = 0;
-    let filteredVideos = videos.filter(v => v.category === categories[currentCategoryIndex]);
+    let filteredVideos = validVideos.filter(v => v.category === categories[currentCategoryIndex]);
 
     let player;
     let currentVideoIndex = 0;
@@ -222,8 +263,13 @@
       }
     }
 
-    function showLoading() { document.querySelector('.loading-overlay').classList.add('active'); }
-    function hideLoading() { document.querySelector('.loading-overlay').classList.remove('active'); }
+    function showLoading() { 
+      document.querySelector('.loading-overlay').classList.add('active'); 
+    }
+
+    function hideLoading() { 
+      document.querySelector('.loading-overlay').classList.remove('active'); 
+    }
 
     function updateVideoInfo() {
       document.querySelector('.video-title').textContent = filteredVideos[currentVideoIndex].title;
@@ -246,7 +292,10 @@
       const container = document.querySelector('.video-container');
       container.style.transition = 'transform 0.3s ease-out';
       container.style.transform = direction === 'up' ? 'translateY(-100%)' : 'translateY(100%)';
-      setTimeout(() => { container.style.transition = ''; container.style.transform = ''; }, 300);
+      setTimeout(() => {
+        container.style.transition = '';
+        container.style.transform = '';
+      }, 300);
     }
 
     function hasWatched(videoId) {
@@ -262,7 +311,9 @@
       }
     }
 
-    function resetWatchedVideos() { localStorage.removeItem('watchedVideos'); }
+    function resetWatchedVideos() {
+      localStorage.removeItem('watchedVideos');
+    }
 
     function showReplayModal() {
       const modal = document.getElementById('replayModal');
@@ -318,7 +369,7 @@
 
     function updateCategory(index) {
       currentCategoryIndex = index;
-      filteredVideos = videos.filter(v => v.category === categories[currentCategoryIndex]);
+      filteredVideos = validVideos.filter(v => v.category === categories[currentCategoryIndex]);
       currentVideoIndex = 0;
       if(filteredVideos.length > 0) {
         player.loadVideoById(filteredVideos[currentVideoIndex].id);
@@ -352,6 +403,23 @@
         categoryElem.classList.add('active');
         updateCategory(index);
       });
+    });
+
+    // 當使用者有水平滑動時，就顯示或隱藏 scroll-hint
+    const categoryBar = document.querySelector('.category-bar');
+    let scrollHintTimeout;
+    categoryBar.addEventListener('scroll', () => {
+      const scrollHint = document.getElementById('scrollHint');
+      // 用戶開始滑動時先清掉任何倒數隱藏計時
+      if (scrollHintTimeout) clearTimeout(scrollHintTimeout);
+      // 如果還沒滑到最右或最左，就顯示提示
+      if (categoryBar.scrollWidth > categoryBar.clientWidth) {
+        scrollHint.classList.add('show');
+        // 等個 3 秒後自動隱藏
+        scrollHintTimeout = setTimeout(() => {
+          scrollHint.classList.remove('show');
+        }, 3000);
+      }
     });
 
     document.body.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
@@ -393,7 +461,7 @@
       player = new YT.Player('player', {
         height: '100%',
         width: '100%',
-        videoId: filteredVideos[0] ? filteredVideos[0].id : videos[0].id,
+        videoId: filteredVideos[0] ? filteredVideos[0].id : validVideos[0].id,
         playerVars: {
           autoplay: 1,
           controls: 0,
@@ -418,7 +486,9 @@
       const qualityIndicator = document.querySelector('.quality-indicator');
       qualityIndicator.classList.add('show');
       qualityIndicator.textContent = getQualityLabel(quality);
-      setTimeout(() => { qualityIndicator.classList.remove('show'); }, 3000);
+      setTimeout(() => { 
+        qualityIndicator.classList.remove('show');
+      }, 3000);
     }
 
     function getQualityLabel(quality) {
