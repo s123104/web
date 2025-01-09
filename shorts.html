@@ -44,9 +44,19 @@
     .video-info { max-width: 90%; transform: translateY(20px); opacity: 0; animation: slideUp 0.5s ease forwards; }
     .video-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
     .video-description { font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.4; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
-    .category-bar { position: fixed; top: env(safe-area-inset-top,0); left: 0; right: 0; height: 44px; padding: 0 12px; display: flex; align-items: center; overflow-x: auto; background: linear-gradient(rgba(0,0,0,0.4), transparent); -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; z-index: 100; white-space: nowrap; }
+    .category-bar { 
+      position: fixed; top: env(safe-area-inset-top,0); left: 0; right: 0; height: 44px; 
+      padding: 0 12px; display: flex; align-items: center; overflow-x: auto; 
+      background: linear-gradient(rgba(0,0,0,0.4), transparent); 
+      -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; z-index: 100; 
+      white-space: nowrap;
+    }
     .category-bar::-webkit-scrollbar { display: none; }
-    .category { flex: 0 0 auto; padding: 6px 16px; margin: 0 4px; font-size: 14px; color: rgba(255,255,255,0.8); background: transparent; border-radius: 16px; white-space: nowrap; scroll-snap-align: start; transition: all 0.3s; }
+    .category { 
+      flex: 0 0 auto; padding: 6px 16px; margin: 0 4px; font-size: 14px; 
+      color: rgba(255,255,255,0.8); background: transparent; border-radius: 16px; 
+      white-space: nowrap; scroll-snap-align: start; transition: all 0.3s; 
+    }
     .category.active { color: #fff; background: rgba(255,255,255,0.2); font-weight: 500; }
     .progress-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: rgba(255,255,255,0.2); z-index: 3; }
     .progress { height: 100%; width: 0; background: #fff; transition: width 0.1s linear; }
@@ -179,7 +189,8 @@
       // 將所有影片依此格式新增於此陣列中
     ];
 
-    const categories = ['工具操作', '建材選擇', '施工細節', '修復保養', '美觀收尾', '專業術語', '特殊施工'];    let currentCategoryIndex = 0;
+    const categories = ['工具操作', '建材選擇', '施工細節', '修復保養', '美觀收尾', '專業術語', '特殊施工'];
+    let currentCategoryIndex = 0;
     let filteredVideos = videos.filter(v => v.category === categories[currentCategoryIndex]);
 
     let player;
@@ -254,6 +265,7 @@
 
     function playNextVideo() {
       if (!isTransitioning) {
+        // 檢查是否還有未觀看影片在當前分類
         while(currentVideoIndex < filteredVideos.length - 1 && hasWatched(filteredVideos[currentVideoIndex + 1].id)) {
           currentVideoIndex++;
         }
@@ -266,7 +278,13 @@
           preloadNextVideo();
           setTimeout(() => { isTransitioning = false; }, 300);
         } else {
-          showReplayModal();
+          // 當前分類影片播放完畢，自動切換到下一個分類
+          if (currentCategoryIndex < categories.length - 1) {
+            updateCategory(currentCategoryIndex + 1);
+          } else {
+            // 所有分類影片皆已播放完畢
+            showReplayModal();
+          }
         }
       }
     }
@@ -412,8 +430,11 @@
       if (event.data === YT.PlayerState.ENDED) {
         markVideoAsWatched(filteredVideos[currentVideoIndex].id);
         playNextVideo();
-      } else if (event.data === YT.PlayerState.PLAYING) hideLoading();
-      else if (event.data === YT.PlayerState.BUFFERING) showLoading();
+      } else if (event.data === YT.PlayerState.PLAYING) {
+        hideLoading();
+      } else if (event.data === YT.PlayerState.BUFFERING) {
+        showLoading();
+      }
     }
 
     document.addEventListener('DOMContentLoaded', initWelcomeExperience);
