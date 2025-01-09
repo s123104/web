@@ -2,43 +2,118 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>裝修教學短視頻</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: "Microsoft JhengHei", sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
             background-color: #000;
             color: #fff;
-            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        #app {
+            position: fixed;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
         }
 
-        .app-container {
-            height: 100vh;
+        .video-feed {
             position: relative;
-            touch-action: none;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .video-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .video-item {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .video-frame-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+
+        .video-frame {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            z-index: 2;
+        }
+
+        .video-info {
+            max-width: 90%;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        .video-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .video-description {
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.4;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
 
         .category-bar {
             position: fixed;
-            top: 0;
+            top: env(safe-area-inset-top, 0);
             left: 0;
             right: 0;
             height: 44px;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+            padding: 0 12px;
             display: flex;
             align-items: center;
-            padding: 0 16px;
-            z-index: 100;
             overflow-x: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            background: linear-gradient(rgba(0,0,0,0.4), transparent);
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory;
+            z-index: 100;
         }
 
         .category-bar::-webkit-scrollbar {
@@ -46,68 +121,26 @@
         }
 
         .category {
-            color: rgba(255,255,255,0.6);
+            flex: 0 0 auto;
             padding: 6px 16px;
             margin: 0 4px;
-            font-size: 15px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+            background: transparent;
             border-radius: 16px;
             white-space: nowrap;
+            scroll-snap-align: start;
             transition: all 0.3s;
-            cursor: pointer;
         }
 
         .category.active {
             color: #fff;
             background: rgba(255,255,255,0.2);
-        }
-
-        .video-container {
-            height: 100vh;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .video-wrapper {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.3s ease-out;
-        }
-
-        .video-frame {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .video-info {
-            position: absolute;
-            left: 16px;
-            bottom: 80px;
-            max-width: 80%;
-            z-index: 2;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: slideUp 0.5s ease forwards;
-            animation-delay: 0.3s;
-        }
-
-        .video-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .video-description {
-            font-size: 14px;
-            color: rgba(255,255,255,0.9);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            line-height: 1.4;
+            font-weight: 500;
         }
 
         .progress-bar {
-            position: fixed;
+            position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
@@ -123,69 +156,73 @@
             transition: width 0.1s linear;
         }
 
-        .swipe-hint {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: rgba(255,255,255,0.8);
-            font-size: 14px;
-            padding: 12px 24px;
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(0,0,0,0.6);
-            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
             opacity: 0;
             pointer-events: none;
-            animation: fadeInOut 2s ease-in-out forwards;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .loading-spinner {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             width: 40px;
             height: 40px;
             border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
             border-top-color: #fff;
+            border-radius: 50%;
             animation: spin 1s linear infinite;
-            display: none;
+        }
+
+        .preload-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            opacity: 0;
         }
 
         @keyframes slideUp {
             from {
-                opacity: 0;
                 transform: translateY(20px);
+                opacity: 0;
             }
             to {
-                opacity: 1;
                 transform: translateY(0);
+                opacity: 1;
             }
-        }
-
-        @keyframes fadeInOut {
-            0% { opacity: 0; }
-            20% { opacity: 1; }
-            80% { opacity: 1; }
-            100% { opacity: 0; }
         }
 
         @keyframes spin {
-            to { transform: translate(-50%, -50%) rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
-        .gesture-area {
-            position: absolute;
-            top: 44px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 2;
+        @supports (padding: max(0px)) {
+            .category-bar {
+                padding-top: max(12px, env(safe-area-inset-top));
+                height: max(44px, calc(44px + env(safe-area-inset-top)));
+            }
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
+    <div id="app">
         <div class="category-bar">
             <div class="category active">工具操作</div>
             <div class="category">建材選擇</div>
@@ -195,26 +232,32 @@
             <div class="category">專業術語</div>
         </div>
 
-        <div class="video-container">
-            <div class="video-wrapper">
-                <div id="player"></div>
-                <div class="video-info">
-                    <h2 class="video-title">足幾分板的應用技巧</h2>
-                    <p class="video-description">學習專業的足幾分板操作方法，掌握完美施工技巧</p>
+        <div class="video-feed">
+            <div class="video-container">
+                <div class="video-item">
+                    <div class="video-frame-wrapper">
+                        <div id="player"></div>
+                    </div>
+                    <div class="video-overlay">
+                        <div class="video-info">
+                            <h2 class="video-title"></h2>
+                            <p class="video-description"></p>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="progress-bar">
-            <div class="progress"></div>
+        <div class="loading-overlay">
+            <div class="loading-spinner"></div>
         </div>
 
-        <div class="gesture-area"></div>
-        <div class="loading-spinner"></div>
-        <div class="swipe-hint">上下滑動切換影片</div>
+        <div class="preload-container"></div>
     </div>
 
-    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         const videos = [
             {
@@ -237,8 +280,21 @@
         let player;
         let currentVideoIndex = 0;
         let isTransitioning = false;
-        
-        // YouTube Player API
+        let startY = 0;
+        let startTime = 0;
+
+        // 預加載下一個視頻
+        function preloadNextVideo() {
+            if (currentVideoIndex < videos.length - 1) {
+                const preloadContainer = document.querySelector('.preload-container');
+                const nextVideoId = videos[currentVideoIndex + 1].id;
+                preloadContainer.innerHTML = `
+                    <img src="https://img.youtube.com/vi/${nextVideoId}/maxresdefault.jpg" alt="preload">
+                `;
+            }
+        }
+
+        // 初始化YouTube Player
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '100%',
@@ -250,69 +306,88 @@
                     modestbranding: 1,
                     playsinline: 1,
                     rel: 0,
-                    showinfo: 0
+                    showinfo: 0,
+                    loop: 0,
+                    mute: 0
                 },
                 events: {
                     'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
                 }
             });
         }
 
         function onPlayerReady(event) {
             event.target.playVideo();
-            updateProgressBar();
+            updateVideoInfo();
+            startProgressBar();
+            preloadNextVideo();
         }
 
         function onPlayerStateChange(event) {
             if (event.data === YT.PlayerState.ENDED) {
                 playNextVideo();
-            }
-            if (event.data === YT.PlayerState.PLAYING) {
-                updateVideoInfo();
-                document.querySelector('.loading-spinner').style.display = 'none';
+            } else if (event.data === YT.PlayerState.PLAYING) {
+                hideLoading();
+            } else if (event.data === YT.PlayerState.BUFFERING) {
+                showLoading();
             }
         }
 
-        // 進度條更新
-        function updateProgressBar() {
-            if (player && player.getCurrentTime) {
-                const progress = document.querySelector('.progress');
-                const interval = setInterval(() => {
-                    const currentTime = player.getCurrentTime();
-                    const duration = player.getDuration();
-                    const percentage = (currentTime / duration) * 100;
+        function onPlayerError(event) {
+            console.error('Player Error:', event);
+            hideLoading();
+            playNextVideo();
+        }
+
+        function showLoading() {
+            document.querySelector('.loading-overlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.querySelector('.loading-overlay').classList.remove('active');
+        }
+
+        function updateVideoInfo() {
+            const title = document.querySelector('.video-title');
+            const description = document.querySelector('.video-description');
+            title.textContent = videos[currentVideoIndex].title;
+            description.textContent = videos[currentVideoIndex].description;
+        }
+
+        function startProgressBar() {
+            const progress = document.querySelector('.progress');
+            const updateProgress = () => {
+                if (player && player.getCurrentTime && player.getDuration) {
+                    const percentage = (player.getCurrentTime() / player.getDuration()) * 100;
                     progress.style.width = `${percentage}%`;
-
-                    if (currentTime >= duration) {
-                        clearInterval(interval);
-                    }
-                }, 100);
-            }
+                    requestAnimationFrame(updateProgress);
+                }
+            };
+            requestAnimationFrame(updateProgress);
         }
 
-        // 播放下一個視頻
         function playNextVideo() {
-            if (currentVideoIndex < videos.length - 1) {
-                currentVideoIndex++;
-                loadVideo(currentVideoIndex);
-            }
-        }
-
-        // 播放上一個視頻
-        function playPreviousVideo() {
-            if (currentVideoIndex > 0) {
-                currentVideoIndex--;
-                loadVideo(currentVideoIndex);
-            }
-        }
-
-        // 加載視頻
-        function loadVideo(index) {
-            if (!isTransitioning) {
+            if (!isTransitioning && currentVideoIndex < videos.length - 1) {
                 isTransitioning = true;
-                document.querySelector('.loading-spinner').style.display = 'block';
-                player.loadVideoById(videos[index].id);
+                currentVideoIndex++;
+                showLoading();
+                player.loadVideoById(videos[currentVideoIndex].id);
+                updateVideoInfo();
+                preloadNextVideo();
+                setTimeout(() => {
+                    isTransitioning = false;
+                }, 500);
+            }
+        }
+
+        function playPreviousVideo() {
+            if (!isTransitioning && currentVideoIndex > 0) {
+                isTransitioning = true;
+                currentVideoIndex--;
+                showLoading();
+                player.loadVideoById(videos[currentVideoIndex].id);
                 updateVideoInfo();
                 setTimeout(() => {
                     isTransitioning = false;
@@ -320,45 +395,44 @@
             }
         }
 
-        // 更新視頻信息
-        function updateVideoInfo() {
-            const videoInfo = document.querySelector('.video-info');
-            videoInfo.innerHTML = `
-                <h2 class="video-title">${videos[currentVideoIndex].title}</h2>
-                <p class="video-description">${videos[currentVideoIndex].description}</p>
-            `;
-        }
-
-        // 觸摸控制
-        let startY = 0;
-        const gestureArea = document.querySelector('.gesture-area');
-
-        gestureArea.addEventListener('touchstart', (e) => {
+        // 觸摸事件處理
+        document.addEventListener('touchstart', (e) => {
             startY = e.touches[0].clientY;
-        });
+            startTime = Date.now();
+        }, { passive: true });
 
-        gestureArea.addEventListener('touchend', (e) => {
+        document.addEventListener('touchend', (e) => {
             const deltaY = e.changedTouches[0].clientY - startY;
-            const minSwipeDistance = 50;
-
-            if (Math.abs(deltaY) > minSwipeDistance) {
+            const deltaTime = Date.now() - startTime;
+            
+            if (Math.abs(deltaY) > 50 && deltaTime < 300) {
                 if (deltaY < 0) {
                     playNextVideo();
                 } else {
                     playPreviousVideo();
                 }
             }
-        });
+        }, { passive: true });
 
         // 分類切換
-        const categories = document.querySelectorAll('.category');
-        categories.forEach((category, index) => {
+        document.querySelectorAll('.category').forEach(category => {
             category.addEventListener('click', () => {
-                categories.forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('.category').forEach(c => 
+                    c.classList.remove('active'));
                 category.classList.add('active');
-                // 這裡可以添加分類切換邏輯
             });
         });
+
+        // 防止iOS橡皮筋效果
+        document.body.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
+        // 加載YouTube API
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
     </script>
 </body>
 </html>
