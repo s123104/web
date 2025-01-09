@@ -133,7 +133,7 @@
   </div>
 
   <script>
-const videos = [
+    const videos = [
       // 分類：工具操作與使用眉角
       { id: '4eWtbt1DsLU', title: '足幾分板是什麼？這影片告訴你！', description: '', category: '工具操作' },
       { id: 'rAuk2qK-BRY', title: '釘槍不只帥，還超好用！', description: '', category: '工具操作' },
@@ -174,7 +174,6 @@ const videos = [
     const categories = ['工具操作', '建材選擇', '施工細節', '修復保養', '美觀收尾', '專業術語', '特殊施工'];
     let currentCategoryIndex = 0;
     let filteredVideos = videos.filter(v => v.category === categories[currentCategoryIndex]);
-
     let player;
     let currentVideoIndex = 0;
     let isTransitioning = false;
@@ -188,13 +187,8 @@ const videos = [
         preloadContainer.innerHTML = `<img src="https://img.youtube.com/vi/${nextVideoId}/maxresdefault.jpg" alt="preload">`;
       }
     }
-
-    function showLoading() {
-      document.querySelector('.loading-overlay').classList.add('active');
-    }
-    function hideLoading() {
-      document.querySelector('.loading-overlay').classList.remove('active');
-    }
+    function showLoading() { document.querySelector('.loading-overlay').classList.add('active'); }
+    function hideLoading() { document.querySelector('.loading-overlay').classList.remove('active'); }
     function updateVideoInfo() {
       document.querySelector('.video-title').textContent = filteredVideos[currentVideoIndex].title;
       document.querySelector('.video-description').textContent = filteredVideos[currentVideoIndex].description;
@@ -213,12 +207,27 @@ const videos = [
     function applyTransitionEffect(direction) {
       const container = document.querySelector('.video-container');
       container.style.transition = 'transform 0.3s ease-out';
-      if (direction === 'up') container.style.transform = 'translateY(-100%)';
-      else container.style.transform = 'translateY(100%)';
+      container.style.transform = direction === 'up' ? 'translateY(-100%)' : 'translateY(100%)';
       setTimeout(() => { container.style.transition = ''; container.style.transform = ''; }, 300);
     }
+    function hasWatched(videoId) {
+      let watched = JSON.parse(localStorage.getItem('watchedVideos')) || [];
+      return watched.includes(videoId);
+    }
+    function markVideoAsWatched(videoId) {
+      let watched = JSON.parse(localStorage.getItem('watchedVideos')) || [];
+      if (!watched.includes(videoId)) {
+        watched.push(videoId);
+        localStorage.setItem('watchedVideos', JSON.stringify(watched));
+      }
+    }
+    function resetWatchedVideos() { localStorage.removeItem('watchedVideos'); }
     function playNextVideo() {
       if (!isTransitioning) {
+        // 檢查並跳過已觀看影片
+        while(currentVideoIndex < filteredVideos.length - 1 && hasWatched(filteredVideos[currentVideoIndex + 1].id)) {
+          currentVideoIndex++;
+        }
         if (currentVideoIndex < filteredVideos.length - 1) {
           isTransitioning = true;
           currentVideoIndex++;
@@ -229,8 +238,11 @@ const videos = [
           preloadNextVideo();
           setTimeout(() => { isTransitioning = false; }, 300);
         } else {
-          let nextCategoryIndex = (currentCategoryIndex + 1) % categories.length;
-          updateCategory(nextCategoryIndex);
+          if(confirm("您已經看過所有影片，是否重播？")) {
+            resetWatchedVideos();
+            currentVideoIndex = -1;
+            playNextVideo();
+          }
         }
       }
     }
@@ -271,14 +283,11 @@ const videos = [
       categoryElem.addEventListener('click', () => {
         document.querySelectorAll('.category').forEach(c => c.classList.remove('active'));
         categoryElem.classList.add('active');
-        console.log('選擇分類:', categoryElem.textContent);
         updateCategory(index);
       });
     });
     document.body.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
-    function hideIOSBars() {
-      setTimeout(() => { window.scrollTo(0, 1); }, 100);
-    }
+    function hideIOSBars() { setTimeout(() => { window.scrollTo(0, 1); }, 100); }
     function initWelcomeExperience() {
       const welcomeOverlay = document.querySelector('.welcome-overlay');
       const enterFullscreenBtn = document.getElementById('enterFullscreen');
@@ -352,8 +361,10 @@ const videos = [
       preloadNextVideo();
     }
     function onPlayerStateChange(event) {
-      if (event.data === YT.PlayerState.ENDED) playNextVideo();
-      else if (event.data === YT.PlayerState.PLAYING) hideLoading();
+      if (event.data === YT.PlayerState.ENDED) {
+        markVideoAsWatched(filteredVideos[currentVideoIndex].id);
+        playNextVideo();
+      } else if (event.data === YT.PlayerState.PLAYING) hideLoading();
       else if (event.data === YT.PlayerState.BUFFERING) showLoading();
     }
     document.addEventListener('DOMContentLoaded', initWelcomeExperience);
