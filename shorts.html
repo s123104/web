@@ -1004,31 +1004,41 @@
       }
 
       // 上下滑動切換
-      let startY = 0,
-        startTime = 0;
+      let startY = 0, startTime = 0;
+      let isTransitioning = false;
+      
+      document.addEventListener(
+        "touchstart",
+        (e) => {
+          startY = e.touches[0].clientY;
+          startTime = Date.now();
+        },
+        { passive: true }
+      );
+      
       document.addEventListener(
         "touchend",
         (e) => {
+          if (isTransitioning) return;
+      
           const deltaY = e.changedTouches[0].clientY - startY;
           const deltaTime = Date.now() - startTime;
-
-          // 修改後的快速滑動檢測
-          if (Math.abs(deltaY) > 20) {
-            // 減少滑動距離閾值
-            const speed = Math.abs(deltaY) / deltaTime; // 計算滑動速度
-            if (speed > 0.3 || deltaTime < 700) {
-              // 檢測速度或滑動時間
-              if (deltaY < 0) {
-                playNextVideo(); // 上滑播放下一部影片
-              } else {
-                playPreviousVideo(); // 下滑播放上一部影片
-              }
+          const speed = Math.abs(deltaY) / deltaTime;
+      
+          if (Math.abs(deltaY) > 50 && speed > 0.3) {
+            isTransitioning = true;
+            if (deltaY < 0) {
+              playNextVideo();
+            } else {
+              playPreviousVideo();
             }
+            setTimeout(() => {
+              isTransitioning = false;
+            }, 500); // 冷卻時間
           }
         },
         { passive: true }
       );
-
       // 左右滑動提示
       function initScrollHint() {
         const catBar = document.getElementById("categoryBar");
