@@ -3,79 +3,72 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <title>裝修教學短視頻</title>
   <style>
-    /* 禁止雙擊放大與選擇文字 */
-    html, body {
-      -webkit-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-      touch-action: manipulation;
-    }
+    /* 基本重置 */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
     }
-    body {
-      background-color: #000;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
-      overflow: hidden;
-      position: fixed;
+    html, body {
       width: 100%;
       height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
+      color: #fff;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+      position: relative;
     }
     #app {
       position: fixed;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       overflow: hidden;
     }
-    .video-feed { position: relative; width: 100%; height: 100%; overflow: hidden; }
-    .video-container { position: absolute; width: 100%; height: 100%; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
-    .video-item { position: absolute; width: 100%; height: 100%; overflow: hidden; background: #000; }
-    .video-frame-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000; }
-    .video-frame { position: absolute; width: 100%; height: 100%; object-fit: cover; }
-    .video-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px; background: linear-gradient(transparent, rgba(0,0,0,0.7)); z-index: 2; }
-    .video-info { max-width: 90%; transform: translateY(20px); opacity: 0; animation: slideUp 0.5s ease forwards; }
-    .video-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
-    .video-description { font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.4; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
-    .category-bar { 
-      position: fixed; 
-      top: env(safe-area-inset-top,0); 
-      left: 0; 
-      right: 0; 
-      height: 44px; 
-      padding: 0 12px; 
-      display: flex; 
-      align-items: center; 
-      overflow-x: auto; 
-      background: linear-gradient(rgba(0,0,0,0.4), transparent); 
-      -webkit-overflow-scrolling: touch; 
-      z-index: 100; 
-      white-space: nowrap; 
+
+    /* 分類按鈕容器 */
+    .category-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      background: rgba(0,0,0,0.6);
+      overflow-x: scroll; /* 讓它可以捲動 */
+      -webkit-overflow-scrolling: touch; /* iOS 慣性捲動 */
+      white-space: nowrap;
+      z-index: 999;
+      padding: 0 10px;
     }
-    .category { 
-      flex: 0 0 auto; 
-      padding: 6px 16px; 
-      margin: 0 4px; 
-      font-size: 14px; 
-      color: rgba(255,255,255,0.8); 
-      background: transparent; 
-      border-radius: 16px; 
-      white-space: nowrap; 
-      scroll-snap-align: start; 
-      transition: all 0.3s; 
+    .category {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 16px;
+      margin: 0 4px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.8);
+      background: transparent;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
     }
-    .category.active { 
-      color: #fff; 
-      background: rgba(255,255,255,0.2); 
-      font-weight: 500; 
+    .category.active {
+      color: #fff;
+      background: rgba(255,255,255,0.2);
+      font-weight: 500;
     }
+
+    /* 左右滑動提示 */
     .scroll-hint {
       position: fixed;
       bottom: 10px;
@@ -93,106 +86,160 @@
       display: block;
       animation: hintFloat 1s ease-in-out infinite alternate;
     }
-    .progress-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: rgba(255,255,255,0.2); z-index: 3; }
-    .progress { height: 100%; width: 0; background: #fff; transition: width 0.1s linear; }
-    .loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-    .loading-overlay.active { opacity: 1; pointer-events: auto; }
-    .loading-spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
-    .preload-container { position: absolute; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
-    .welcome-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; padding: 20px; transition: opacity 0.3s, visibility 0.3s; }
-    .welcome-content { text-align: center; max-width: 320px; }
-    .welcome-title { font-size: 24px; font-weight: 600; margin-bottom: 16px; color: #fff; }
-    .welcome-text { font-size: 16px; color: rgba(255,255,255,0.9); margin-bottom: 24px; line-height: 1.5; }
-    .welcome-buttons { display: flex; gap: 12px; flex-direction: column; width: 100%; }
-    .welcome-button { padding: 14px 24px; border-radius: 24px; border: none; background: #1a73e8; color: white; font-size: 16px; font-weight: 500; cursor: pointer; transition: transform 0.2s, background 0.2s; -webkit-tap-highlight-color: transparent; }
-    .welcome-button:active { transform: scale(0.98); }
-    .welcome-button.secondary { background: rgba(255,255,255,0.1); }
-    .feature-hint { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 12px 20px; border-radius: 20px; z-index: 1000; display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
-    .feature-hint.show { opacity: 1; animation: hintFloat 1s ease infinite alternate; }
-    .feature-hint i { font-size: 18px; }
-    .feature-hint span { font-size: 14px; color: rgba(255,255,255,0.9); }
-    .quality-indicator { position: fixed; top: 60px; right: 16px; background: rgba(0,0,0,0.6); padding: 6px 12px; border-radius: 12px; font-size: 12px; color: rgba(255,255,255,0.9); z-index: 100; opacity: 0; transition: opacity 0.3s; }
-    .quality-indicator.show { opacity: 1; }
-    @keyframes slideUp { 
-      from { transform: translateY(20px); opacity: 0; } 
-      to { transform: translateY(0); opacity: 1; } 
-    }
-    @keyframes spin { 
-      to { transform: rotate(360deg); } 
-    }
     @keyframes hintFloat { 
       from { transform: translateX(-50%) translateY(0); } 
       to { transform: translateX(-50%) translateY(-5px); } 
     }
-    @supports (padding: max(0px)) {
-      .category-bar { 
-        padding-top: max(12px, env(safe-area-inset-top)); 
-        height: max(44px, calc(44px + env(safe-area-inset-top))); 
-      }
+
+    /* 影片容器 */
+    .video-section {
+      position: absolute;
+      top: 50px; /* 預留給分類按鈕 */
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+    }
+    .video-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    .video-frame {
+      width: 100%;
+      height: 100%;
+      background: #000;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* loading 遮罩 */
+    .loading-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .loading-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 影片資訊及進度條 */
+    .video-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 16px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.6));
+      z-index: 2;
+    }
+    .video-info {
+      margin-bottom: 8px;
+    }
+    .video-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+    .video-description {
+      font-size: 14px;
+      line-height: 1.4;
+      color: rgba(255,255,255,0.9);
+    }
+    .progress-bar {
+      position: relative;
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.3);
+      overflow: hidden;
+    }
+    .progress {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 0%;
+      background: #fff;
+      transition: width 0.1s linear;
+    }
+
+    /* 重新播放提示彈窗 */
+    #replayModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    #replayModal.active {
+      display: flex;
+    }
+    #replayModal .modal-content {
+      background: #fff;
+      color: #000;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    #replayModal .modal-content button {
+      margin: 0 8px;
+      padding: 8px 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
     }
   </style>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
 </head>
 <body>
-  <div class="welcome-overlay">
-    <div class="welcome-content">
-      <h1 class="welcome-title">歡迎使用裝修教學</h1>
-      <p class="welcome-text">為獲得最佳觀看體驗，建議使用全螢幕模式觀看影片</p>
-      <div class="welcome-buttons">
-        <button class="welcome-button" id="enterFullscreen">
-          <i class="fas fa-expand"></i> 進入全螢幕模式
-        </button>
-        <button class="welcome-button secondary" id="continueNormal">繼續普通模式</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="feature-hint">
-    <i class="fas fa-arrow-up"></i>
-    <span>點擊上方可切換分類</span>
-  </div>
-
-  <div class="quality-indicator">HD 1080P</div>
-  
-  <!-- 滑動提示文字 -->
+  <!-- 分類按鈕列 -->
+  <div class="category-bar" id="categoryBar"></div>
+  <!-- 左右滑動提示 -->
   <div class="scroll-hint" id="scrollHint">左右滑動查看更多分類</div>
-
-  <div id="app">
-    <div class="category-bar">
-      <div class="category active">工具操作</div>
-      <div class="category">建材選擇</div>
-      <div class="category">施工細節</div>
-      <div class="category">修復保養</div>
-      <div class="category">美觀收尾</div>
-      <div class="category">專業術語</div>
-      <div class="category">特殊施工</div>
-    </div>
-    <div class="video-feed">
-      <div class="video-container">
-        <div class="video-item">
-          <div class="video-frame-wrapper">
-            <div id="player"></div>
-          </div>
-          <div class="video-overlay">
-            <div class="video-info">
-              <h2 class="video-title"></h2>
-              <p class="video-description"></p>
-            </div>
-            <div class="progress-bar">
-              <div class="progress"></div>
-            </div>
-          </div>
+  
+  <!-- 影片容器 -->
+  <div class="video-section">
+    <div class="video-container">
+      <div class="video-frame" id="player"></div>
+      <div class="video-overlay">
+        <div class="video-info">
+          <h2 class="video-title" id="videoTitle"></h2>
+          <p class="video-description" id="videoDesc"></p>
+        </div>
+        <div class="progress-bar">
+          <div class="progress" id="videoProgress"></div>
         </div>
       </div>
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+      </div>
     </div>
-    <div class="loading-overlay">
-      <div class="loading-spinner"></div>
-    </div>
-    <div class="preload-container"></div>
   </div>
 
-  <div id="replayModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:2000;">
-    <div style="background:#fff; color:#000; padding:20px; border-radius:8px; text-align:center;">
+  <!-- 全部播放完畢後，是否重新播放的彈窗 -->
+  <div id="replayModal">
+    <div class="modal-content">
       <p>您已經看過所有影片，是否重新觀看？</p>
       <button id="replayYes">是</button>
       <button id="replayNo">否</button>
@@ -200,317 +247,142 @@
   </div>
 
   <script>
-    // 假設這是一個不給看的 ID 清單或停權清單，別再浪費時間了
+    // ============ 配置區 ============
+    // 這裡放一些使用者不要看的影片 ID
     const bannedVideoIds = ["魯班尺URL", "someBannedId1", "someBannedId2"];
 
-    const videos = [
-      // 分類：工具操作與使用眉角
+    // 所有影片資料
+    const allVideos = [
+      // 分類：工具操作
       { id: '4eWtbt1DsLU', title: '足幾分板是什麼？這影片告訴你！', description: '', category: '工具操作' },
       { id: 'rAuk2qK-BRY', title: '釘槍不只帥，還超好用！', description: '', category: '工具操作' },
       { id: '9Es8VaMrGPE', title: '平土器到底在平啥？答案在這！', description: '', category: '工具操作' },
       { id: 'vhE16_8eh9g', title: '卷尺也有眉角？學起來別丟臉！', description: '', category: '工具操作' },
       { id: 'kzZ4wXOpRw4', title: '泥作工具太多？這裡幫你搞懂！', description: '', category: '工具操作' },
       { id: 'hy6KP-TJvyM', title: '工具術語太複雜？一看就秒懂！', description: '', category: '工具操作' },
-      // 分類：建材選擇與施工黑科技
+      // 分類：建材選擇
       { id: 'ZTtns0-nIcQ', title: '夾板厚度怎麼挑？別被老闆唬爛！', description: '', category: '建材選擇' },
       { id: 'YealWFoQUgs', title: '鑿面切磚這麼簡單？看完秒會！', description: '', category: '建材選擇' },
       { id: 'RyxE_6DPcGM', title: '手提修邊機超神！不用工具人也能上手！', description: '', category: '建材選擇' },
       { id: 'ZzP_sk4tefU', title: '紅磚牆很讚？缺點你搞清楚沒？', description: '', category: '建材選擇' },
-      // 分類：裝修細節處理，關鍵就在這！
+      // 分類：施工細節
       { id: 'F7xVuDDCCzc', title: '化糞池虎邊放？這是裝修人的小撇步！', description: '', category: '施工細節' },
       { id: '7x383cfXMzQ', title: '木作隔間超簡單，上集', description: '', category: '施工細節' },
       { id: 'kdl7ade-xSA', title: '木作隔間超簡單，下集', description: '', category: '施工細節' },
       { id: 'XhwjdtcFcao', title: '防火填塞這麼猛！用對材料超安心！', description: '', category: '施工細節' },
       { id: 'YqvhJnB-thE', title: '防火門該怎麼選？影片裡教你套路！', description: '', category: '施工細節' },
       { id: 'WTYfoTwF16s', title: '浴室裝修小細節，沒注意就GG啦！', description: '', category: '施工細節' },
-      // 分類：修復與翻新，老屋變新家！
+      // 分類：修復保養
       { id: '4YB2_9_TnM8', title: '磁磚空股修復術，省錢又好用！', description: '', category: '修復保養' },
       { id: 'fiWYdCzt5C4', title: '老屋壁癌？教你一招徹底解決！', description: '', category: '修復保養' },
-      // 分類：美觀與收尾超講究
+      // 分類：美觀收尾
       { id: 'BLy2RMyP7-o', title: '乳膠漆要收邊？別再用透明膠啦！', description: '', category: '美觀收尾' },
       { id: 'kc2Y1QcQo8Y', title: '家中油漆顏色怎麼挑？別被老婆罵爆！', description: '', category: '美觀收尾' },
       { id: '73Zh6fl4swg', title: '燈具選得好，家裡一秒高級化！', description: '', category: '美觀收尾' },
       { id: 'py8hlbc3AOs', title: '燈泡怎麼選？別裝完才傻眼！', description: '', category: '美觀收尾' },
-      // 分類：專業術語與文化解密
+      // 分類：專業術語
       { id: 'eC52Ms4yUUQ', title: '案場術語大公開！這些詞別裝不懂！', description: '', category: '專業術語' },
       { id: '魯班尺URL', title: '魯班尺是啥？看完不再霧煞煞！', description: '', category: '專業術語' },
-      // 分類：特殊施工超神技
+      // 分類：特殊施工
       { id: 'JDZxq_QDiT0', title: '美耐板怎麼貼才牢？這裡有秘訣！上集', description: '', category: '特殊施工' },
       { id: 'KovKnsBF7Ic', title: '美耐板怎麼貼才牢？這裡有秘訣！下集', description: '', category: '特殊施工' },
       { id: 'VotM_pXBV2Q', title: '混凝土振動器好猛！讓結構更扎實！', description: '', category: '特殊施工' }
-      // 將所有影片依此格式新增於此陣列中
     ];
 
-    // 撈出所有有用的影片：排除掉在 bannedVideoIds 裡的
-    const validVideos = videos.filter(video => !bannedVideoIds.includes(video.id));
+    // 定義所有分類
+    const categories = [
+      '工具操作',
+      '建材選擇',
+      '施工細節',
+      '修復保養',
+      '美觀收尾',
+      '專業術語',
+      '特殊施工'
+    ];
 
-    const categories = ['工具操作', '建材選擇', '施工細節', '修復保養', '美觀收尾', '專業術語', '特殊施工'];
+    // ============ 狀態 ============
+    // 只存可以播放的影片(篩掉停權的)
+    const validVideos = allVideos.filter(video => !bannedVideoIds.includes(video.id));
+    let currentCategoryIndex = 0; // 當前分類索引
+    let currentVideoIndex = 0;    // 當前播放影片索引
+    let filteredVideos = [];      // 依分類篩出來的影片
+    let player;                   // YouTube player
+    let isTransitioning = false;  // 避免重複切換
 
-    let currentCategoryIndex = 0;
-    let filteredVideos = validVideos.filter(v => v.category === categories[currentCategoryIndex]);
+    // ============ 初始化 ============
+    document.addEventListener('DOMContentLoaded', () => {
+      createCategoryButtons();
+      initCategory(0);
+      initYouTubePlayer();
+      initScrollHint();
+    });
 
-    let player;
-    let currentVideoIndex = 0;
-    let isTransitioning = false;
-    let startY = 0;
-    let startTime = 0;
-
-    function preloadNextVideo() {
-      if (currentVideoIndex < filteredVideos.length - 1) {
-        const preloadContainer = document.querySelector('.preload-container');
-        const nextVideoId = filteredVideos[currentVideoIndex + 1].id;
-        preloadContainer.innerHTML = `<img src="https://img.youtube.com/vi/${nextVideoId}/maxresdefault.jpg" alt="preload">`;
-      }
+    // ============ 分類相關 ============
+    function createCategoryButtons() {
+      const categoryBar = document.getElementById('categoryBar');
+      categories.forEach((catName, idx) => {
+        const catBtn = document.createElement('div');
+        catBtn.classList.add('category');
+        catBtn.textContent = catName;
+        if (idx === 0) catBtn.classList.add('active');
+        catBtn.addEventListener('click', () => {
+          // 切換 active 樣式
+          document.querySelectorAll('.category').forEach(el => el.classList.remove('active'));
+          catBtn.classList.add('active');
+          initCategory(idx);
+        });
+        categoryBar.appendChild(catBtn);
+      });
     }
-
-    function showLoading() { 
-      document.querySelector('.loading-overlay').classList.add('active'); 
-    }
-
-    function hideLoading() { 
-      document.querySelector('.loading-overlay').classList.remove('active'); 
-    }
-
-    function updateVideoInfo() {
-      document.querySelector('.video-title').textContent = filteredVideos[currentVideoIndex].title;
-      document.querySelector('.video-description').textContent = filteredVideos[currentVideoIndex].description;
-    }
-
-    function startProgressBar() {
-      const progress = document.querySelector('.progress');
-      function updateProgress() {
-        if (player && player.getCurrentTime && player.getDuration) {
-          const percentage = (player.getCurrentTime() / player.getDuration()) * 100;
-          progress.style.width = `${percentage}%`;
-          requestAnimationFrame(updateProgress);
-        }
-      }
-      requestAnimationFrame(updateProgress);
-    }
-
-    function applyTransitionEffect(direction) {
-      const container = document.querySelector('.video-container');
-      container.style.transition = 'transform 0.3s ease-out';
-      container.style.transform = direction === 'up' ? 'translateY(-100%)' : 'translateY(100%)';
-      setTimeout(() => {
-        container.style.transition = '';
-        container.style.transform = '';
-      }, 300);
-    }
-
-    function hasWatched(videoId) {
-      let watched = JSON.parse(localStorage.getItem('watchedVideos')) || [];
-      return watched.includes(videoId);
-    }
-
-    function markVideoAsWatched(videoId) {
-      let watched = JSON.parse(localStorage.getItem('watchedVideos')) || [];
-      if (!watched.includes(videoId)) {
-        watched.push(videoId);
-        localStorage.setItem('watchedVideos', JSON.stringify(watched));
-      }
-    }
-
-    function resetWatchedVideos() {
-      localStorage.removeItem('watchedVideos');
-    }
-
-    function showReplayModal() {
-      const modal = document.getElementById('replayModal');
-      modal.style.display = 'flex';
-      document.getElementById('replayYes').onclick = () => {
-        resetWatchedVideos();
-        currentVideoIndex = -1;
-        modal.style.display = 'none';
-        playNextVideo();
-      };
-      document.getElementById('replayNo').onclick = () => {
-        modal.style.display = 'none';
-      };
-    }
-
-    function playNextVideo() {
-      if (!isTransitioning) {
-        // 檢查是否還有未觀看影片在當前分類
-        while(currentVideoIndex < filteredVideos.length - 1 && hasWatched(filteredVideos[currentVideoIndex + 1].id)) {
-          currentVideoIndex++;
-        }
-        if (currentVideoIndex < filteredVideos.length - 1) {
-          isTransitioning = true;
-          currentVideoIndex++;
-          showLoading();
-          player.loadVideoById(filteredVideos[currentVideoIndex].id);
-          updateVideoInfo();
-          preloadNextVideo();
-          setTimeout(() => { isTransitioning = false; }, 300);
-        } else {
-          // 當前分類影片播放完畢，自動切換到下一個分類
-          if (currentCategoryIndex < categories.length - 1) {
-            updateCategory(currentCategoryIndex + 1);
-          } else {
-            // 所有分類影片皆已播放完畢
-            showReplayModal();
-          }
-        }
-      }
-    }
-
-    function playPreviousVideo() {
-      if (!isTransitioning && currentVideoIndex > 0) {
-        isTransitioning = true;
-        currentVideoIndex--;
-        applyTransitionEffect('down');
-        showLoading();
-        player.loadVideoById(filteredVideos[currentVideoIndex].id);
-        updateVideoInfo();
-        setTimeout(() => { isTransitioning = false; }, 300);
-      }
-    }
-
-    function updateCategory(index) {
-      currentCategoryIndex = index;
-      filteredVideos = validVideos.filter(v => v.category === categories[currentCategoryIndex]);
+    function initCategory(catIndex) {
+      currentCategoryIndex = catIndex;
+      // 篩出對應分類的影片
+      const targetCat = categories[currentCategoryIndex];
+      filteredVideos = validVideos.filter(v => v.category === targetCat);
       currentVideoIndex = 0;
-      if(filteredVideos.length > 0) {
-        player.loadVideoById(filteredVideos[currentVideoIndex].id);
+      if (filteredVideos.length > 0 && player) {
+        loadVideo(filteredVideos[currentVideoIndex].id);
         updateVideoInfo();
-        preloadNextVideo();
       }
     }
 
-    document.addEventListener('touchstart', (e) => {
-      startY = e.touches[0].clientY;
-      startTime = Date.now();
-    }, { passive: true });
+    // ============ YouTube API & Player ============ 
+    function initYouTubePlayer() {
+      // 動態載入 YouTube Iframe API
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-    document.addEventListener('touchend', (e) => {
-      const deltaY = e.changedTouches[0].clientY - startY;
-      const deltaTime = Date.now() - startTime;
-      if (Math.abs(deltaY) > 20 && deltaTime < 500) {
-        if (deltaY < 0) {
-          applyTransitionEffect('up');
-          playNextVideo();
-        } else {
-          applyTransitionEffect('down');
-          playPreviousVideo();
-        }
-      }
-    }, { passive: true });
-
-    document.querySelectorAll('.category').forEach((categoryElem, index) => {
-      categoryElem.addEventListener('click', () => {
-        document.querySelectorAll('.category').forEach(c => c.classList.remove('active'));
-        categoryElem.classList.add('active');
-        updateCategory(index);
-      });
-    });
-
-    // 當使用者有水平滑動時，就顯示或隱藏 scroll-hint
-    const categoryBar = document.querySelector('.category-bar');
-    let scrollHintTimeout;
-    categoryBar.addEventListener('scroll', () => {
-      const scrollHint = document.getElementById('scrollHint');
-      // 用戶開始滑動時先清掉任何倒數隱藏計時
-      if (scrollHintTimeout) clearTimeout(scrollHintTimeout);
-      // 如果還沒滑到最右或最左，就顯示提示
-      if (categoryBar.scrollWidth > categoryBar.clientWidth) {
-        scrollHint.classList.add('show');
-        // 等個 3 秒後自動隱藏
-        scrollHintTimeout = setTimeout(() => {
-          scrollHint.classList.remove('show');
-        }, 3000);
-      }
-    });
-
-    document.body.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
-
-    function hideIOSBars() {
-      setTimeout(() => { window.scrollTo(0, 1); }, 100);
+      // 建立全域函式供 API 回呼
+      window.onYouTubeIframeAPIReady = function() {
+        player = new YT.Player('player', {
+          height: '100%',
+          width: '100%',
+          videoId: filteredVideos[0] ? filteredVideos[0].id : '4eWtbt1DsLU', 
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            rel: 0,
+            showinfo: 0,
+            loop: 0,
+            mute: 0,
+            vq: 'hd1080'
+          },
+          events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange
+          }
+        });
+      };
     }
-
-    function initWelcomeExperience() {
-      const welcomeOverlay = document.querySelector('.welcome-overlay');
-      const enterFullscreenBtn = document.getElementById('enterFullscreen');
-      const continueNormalBtn = document.getElementById('continueNormal');
-      const featureHint = document.querySelector('.feature-hint');
-
-      enterFullscreenBtn.addEventListener('click', () => {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen();
-        } else if (document.documentElement.webkitRequestFullscreen) {
-          document.documentElement.webkitRequestFullscreen();
-        }
-        hideIOSBars();
-        startApp();
-      });
-
-      continueNormalBtn.addEventListener('click', startApp);
-
-      function startApp() {
-        welcomeOverlay.style.opacity = '0';
-        welcomeOverlay.style.visibility = 'hidden';
-        setTimeout(() => {
-          featureHint.classList.add('show');
-          setTimeout(() => { featureHint.classList.remove('show'); }, 3000);
-        }, 500);
-        initializePlayer();
-      }
-    }
-
-    function initializePlayer() {
-      player = new YT.Player('player', {
-        height: '100%',
-        width: '100%',
-        videoId: filteredVideos[0] ? filteredVideos[0].id : validVideos[0].id,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          modestbranding: 1,
-          playsinline: 1,
-          rel: 0,
-          showinfo: 0,
-          loop: 0,
-          mute: 0,
-          vq: 'hd1080'
-        },
-        events: {
-          'onReady': onPlayerReady,
-          'onStateChange': onPlayerStateChange,
-          'onPlaybackQualityChange': onQualityChange
-        }
-      });
-    }
-
-    function onQualityChange(event) {
-      const quality = event.data;
-      const qualityIndicator = document.querySelector('.quality-indicator');
-      qualityIndicator.classList.add('show');
-      qualityIndicator.textContent = getQualityLabel(quality);
-      setTimeout(() => { 
-        qualityIndicator.classList.remove('show');
-      }, 3000);
-    }
-
-    function getQualityLabel(quality) {
-      const qualities = { 'hd1080': 'HD 1080P', 'hd720': 'HD 720P', 'large': '480P', 'medium': '360P', 'small': '240P', 'tiny': '144P' };
-      return qualities[quality] || quality;
-    }
-
-    function setHighestQuality() {
-      if (player && player.getAvailableQualityLevels) {
-        const qualities = player.getAvailableQualityLevels();
-        if (qualities.length > 0) player.setPlaybackQuality(qualities[0]);
-      }
-    }
-
     function onPlayerReady(event) {
-      setHighestQuality();
+      // YouTube Player準備好後
       event.target.playVideo();
-      updateVideoInfo();
-      startProgressBar();
-      preloadNextVideo();
+      startProgressMonitor();
     }
-
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.ENDED) {
         markVideoAsWatched(filteredVideos[currentVideoIndex].id);
@@ -522,11 +394,162 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', initWelcomeExperience);
-    const tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    // ============ 播放控制 ============
+    function loadVideo(videoId) {
+      if (player && player.loadVideoById) {
+        showLoading();
+        player.loadVideoById(videoId);
+        updateVideoInfo();
+      }
+    }
+    function playNextVideo() {
+      if (isTransitioning) return;
+      isTransitioning = true;
+
+      // 檢查是否還有下一支未看影片
+      while (currentVideoIndex < filteredVideos.length - 1 && hasWatched(filteredVideos[currentVideoIndex + 1].id)) {
+        currentVideoIndex++;
+      }
+
+      if (currentVideoIndex < filteredVideos.length - 1) {
+        currentVideoIndex++;
+        loadVideo(filteredVideos[currentVideoIndex].id);
+      } else {
+        // 該分類播完了，切到下一個分類
+        if (currentCategoryIndex < categories.length - 1) {
+          initCategory(++currentCategoryIndex);
+          // 更新分類按鈕的 active 樣式
+          document.querySelectorAll('.category').forEach(el => el.classList.remove('active'));
+          document.querySelectorAll('.category')[currentCategoryIndex].classList.add('active');
+        } else {
+          // 全部都播完
+          showReplayModal();
+        }
+      }
+
+      setTimeout(() => { isTransitioning = false; }, 300);
+    }
+    function playPreviousVideo() {
+      if (isTransitioning || currentVideoIndex <= 0) return;
+      isTransitioning = true;
+
+      currentVideoIndex--;
+      loadVideo(filteredVideos[currentVideoIndex].id);
+
+      setTimeout(() => { isTransitioning = false; }, 300);
+    }
+
+    // ============ Watched & Replay Modal ============
+    function hasWatched(videoId) {
+      const watched = JSON.parse(localStorage.getItem('watchedVideos') || '[]');
+      return watched.includes(videoId);
+    }
+    function markVideoAsWatched(videoId) {
+      let watched = JSON.parse(localStorage.getItem('watchedVideos') || '[]');
+      if (!watched.includes(videoId)) {
+        watched.push(videoId);
+        localStorage.setItem('watchedVideos', JSON.stringify(watched));
+      }
+    }
+    function resetWatchedVideos() {
+      localStorage.removeItem('watchedVideos');
+    }
+    function showReplayModal() {
+      const replayModal = document.getElementById('replayModal');
+      replayModal.classList.add('active');
+      document.getElementById('replayYes').onclick = () => {
+        replayModal.classList.remove('active');
+        resetWatchedVideos();
+        currentCategoryIndex = 0;
+        currentVideoIndex = 0;
+        initCategory(currentCategoryIndex);
+        // 重設分類 active 樣式
+        document.querySelectorAll('.category').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.category')[0].classList.add('active');
+      };
+      document.getElementById('replayNo').onclick = () => {
+        replayModal.classList.remove('active');
+      };
+    }
+
+    // ============ UI 更新 ============
+    function updateVideoInfo() {
+      const titleElem = document.getElementById('videoTitle');
+      const descElem = document.getElementById('videoDesc');
+      if (filteredVideos[currentVideoIndex]) {
+        titleElem.textContent = filteredVideos[currentVideoIndex].title;
+        descElem.textContent = filteredVideos[currentVideoIndex].description;
+      }
+    }
+    function showLoading() {
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      loadingOverlay.classList.add('active');
+    }
+    function hideLoading() {
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      loadingOverlay.classList.remove('active');
+    }
+
+    // ============ 進度條 ============
+    function startProgressMonitor() {
+      const progressBar = document.getElementById('videoProgress');
+      function update() {
+        if (player && player.getPlayerState() === YT.PlayerState.PLAYING) {
+          const currentTime = player.getCurrentTime();
+          const duration = player.getDuration();
+          if (duration > 0) {
+            const percent = (currentTime / duration) * 100;
+            progressBar.style.width = percent + '%';
+          }
+        }
+        requestAnimationFrame(update);
+      }
+      requestAnimationFrame(update);
+    }
+
+    // ============ 手勢控制(上下滑換影片) ============
+    let startY = 0, startTime = 0;
+    document.body.addEventListener('touchstart', e => {
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+    }, { passive: true });
+    document.body.addEventListener('touchend', e => {
+      const deltaY = e.changedTouches[0].clientY - startY;
+      const deltaTime = Date.now() - startTime;
+      if (Math.abs(deltaY) > 50 && deltaTime < 500) {
+        if (deltaY < 0) {
+          playNextVideo();
+        } else {
+          playPreviousVideo();
+        }
+      }
+    }, { passive: true });
+
+    // ============ 左右滑動提示邏輯 ============
+    function initScrollHint() {
+      const categoryBar = document.getElementById('categoryBar');
+      const scrollHint = document.getElementById('scrollHint');
+      let hideTimer;
+      // 如果分類列表超出可視寬度，就顯示提示
+      function checkOverflow() {
+        // scrollWidth > clientWidth 代表可以左右捲動
+        const overflow = categoryBar.scrollWidth > categoryBar.clientWidth;
+        if (overflow) {
+          scrollHint.classList.add('show');
+          if (hideTimer) clearTimeout(hideTimer);
+          hideTimer = setTimeout(() => {
+            scrollHint.classList.remove('show');
+          }, 3000);
+        }
+      }
+      categoryBar.addEventListener('scroll', () => {
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => {
+          scrollHint.classList.remove('show');
+        }, 3000);
+      });
+      setTimeout(checkOverflow, 200); // 稍等一下再檢查
+    }
   </script>
 </body>
 </html>
