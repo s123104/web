@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <title>裝修教學短視頻</title>
@@ -27,10 +27,27 @@
       position: relative;
     }
 
+    /* 頂部提示區塊 */
+    .top-hint {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      background: #222;
+      color: #fff;
+      font-size: 14px;
+      padding: 4px 12px;
+      line-height: 1.5;
+    }
+    .top-hint p {
+      margin-bottom: 4px;
+    }
+
     /* 分類按鈕容器 */
     .category-bar {
       position: fixed;
-      top: 0; 
+      top: 60px; /* 往下讓出 top-hint 的空間 */
       left: 0; 
       right: 0;
       display: flex;
@@ -64,20 +81,20 @@
       font-weight: 500;
     }
 
-    /* 管理影片按鈕 - 小圓形設計 (改到右下角，進度條之上) */
+    /* 管理影片按鈕 - 右下角，影片符號 🎥 */
     .video-manager-btn {
       position: fixed;
-      bottom: 60px; /* 看你要留多少空間給進度條 */
-      right: 16px; 
-      width: 40px;
-      height: 40px;
-      z-index: 3000; /* 提高層級，確保不被其它元素蓋住 */
+      bottom: 60px; 
+      right: 16px;
+      width: 44px;
+      height: 44px;
+      z-index: 3000;
       background: #333;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 20px;
       color: #fff;
       cursor: pointer;
       user-select: none;
@@ -109,7 +126,7 @@
     /* 影片容器 */
     .video-section {
       position: absolute;
-      top: 50px; /* 預留給 category-bar */
+      top: 110px; /* category-bar 下面 + top-hint */
       left: 0;
       right: 0;
       bottom: 0;
@@ -374,10 +391,16 @@
   </style>
 </head>
 <body>
+  <!-- 頂部提示：上下滑動、左右滑動說明 -->
+  <div class="top-hint">
+    <p>提示：左右滑動可以切換分類</p>
+    <p>提示：上下滑動可以切換影片</p>
+  </div>
+
   <!-- 分類按鈕列 -->
   <div class="category-bar" id="categoryBar"></div>
-  <!-- 小小圓形管理按鈕 (右下角) -->
-  <div class="video-manager-btn" id="videoManagerBtn">管</div>
+  <!-- 右下角管理按鈕 -->
+  <div class="video-manager-btn" id="videoManagerBtn">🎥</div>
 
   <!-- 左右滑動提示 -->
   <div class="scroll-hint" id="scrollHint">左右滑動查看更多分類</div>
@@ -505,13 +528,11 @@
       '特殊施工'
     ];
 
-    // 最終使用的影片列表(含自訂+內建)
+
     let allVideos = [];
-    // 最終使用的分類列表(含自訂+內建)
     let allCategories = [];
-    // 只存可以播放的影片(篩掉停權的)
     let validVideos = [];
-    let currentCategoryIndex = 0;
+    let currentCategoryIndex = 0; // 預設第一個分類
     let currentVideoIndex = 0;
     let filteredVideos = [];
     let player;
@@ -527,9 +548,9 @@
       initVideoManagerUI();
     });
 
-    // ============ LocalStorage ============
-    // userVideos + userCategories
+    // ============ LocalStorage & 讀取 / 儲存 ============
     function loadAllDataFromLocal() {
+      // 讀使用者自訂影片
       const userVideosStr = localStorage.getItem('userVideos');
       let userVideos = [];
       if (userVideosStr) {
@@ -537,6 +558,7 @@
           userVideos = JSON.parse(userVideosStr);
         } catch(e) {}
       }
+      // 讀使用者自訂分類
       const userCatsStr = localStorage.getItem('userCategories');
       let userCats = [];
       if (userCatsStr) {
@@ -556,7 +578,7 @@
       localStorage.setItem('userCategories', JSON.stringify(userCats));
     }
 
-    // ============ 過濾 banned ============
+    // ============ 過濾被 ban 的影片 ============
     function filterOutBannedVideos() {
       validVideos = allVideos.filter(v => !bannedVideoIds.includes(v.id));
     }
@@ -564,7 +586,7 @@
     // ============ 分類按鈕 ============
     function createCategoryButtons() {
       const categoryBar = document.getElementById('categoryBar');
-      categoryBar.innerHTML = ''; 
+      categoryBar.innerHTML = '';
       allCategories.forEach((catName, idx) => {
         const catBtn = document.createElement('div');
         catBtn.classList.add('category');
@@ -590,12 +612,12 @@
         if (player && player.stopVideo) {
           player.stopVideo();
         }
-        document.getElementById('videoTitle').textContent = '（此分類暫無影片）';
+        document.getElementById('videoTitle').textContent = '';
         document.getElementById('videoDesc').textContent = '';
       }
     }
 
-    // ============ YouTube API ============
+    // ============ YouTube Player ============
     function initYouTubePlayer() {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
@@ -628,6 +650,7 @@
     function onPlayerReady(event) {
       event.target.playVideo();
       startProgressMonitor();
+      // 若 duration=0 => 影片失效 => 跳下一支
       setTimeout(() => {
         const duration = player.getDuration();
         if (duration <= 0 && filteredVideos[currentVideoIndex]) {
@@ -683,7 +706,7 @@
       setTimeout(() => { isTransitioning = false; }, 300);
     }
 
-    // ============ Watched ============
+    // ============ Watched 紀錄 ============
     function hasWatched(videoId) {
       const watched = JSON.parse(localStorage.getItem('watchedVideos') || '[]');
       return watched.includes(videoId);
@@ -699,7 +722,7 @@
       localStorage.removeItem('watchedVideos');
     }
 
-    // ============ Replay Modal ============
+    // ============ 重播提示彈窗 ============
     function showReplayModal() {
       const replayModal = document.getElementById('replayModal');
       replayModal.classList.add('active');
@@ -717,7 +740,7 @@
       };
     }
 
-    // ============ UI & Progress ============
+    // ============ UI & 進度條 ============
     function updateVideoInfo() {
       const titleElem = document.getElementById('videoTitle');
       const descElem = document.getElementById('videoDesc');
@@ -725,7 +748,7 @@
         titleElem.textContent = filteredVideos[currentVideoIndex].title || '無標題';
         descElem.textContent = filteredVideos[currentVideoIndex].description || '';
       } else {
-        titleElem.textContent = '（無影片）';
+        titleElem.textContent = '';
         descElem.textContent = '';
       }
     }
@@ -751,7 +774,7 @@
       requestAnimationFrame(update);
     }
 
-    // ============ 手勢(上下滑) ============
+    // ============ 上下滑換影片 ============
     let startY = 0, startTime = 0;
     document.body.addEventListener('touchstart', e => {
       startY = e.touches[0].clientY;
@@ -793,7 +816,7 @@
       setTimeout(checkOverflow, 200);
     }
 
-    // ============ 影片管理 UI ============
+    // ============ 影片管理功能 ============
     function initVideoManagerUI() {
       const videoManagerBtn = document.getElementById('videoManagerBtn');
       const videoManagerModal = document.getElementById('videoManagerModal');
@@ -804,12 +827,11 @@
       const videoList = document.getElementById('videoList');
       const exportBtn = document.getElementById('exportBtn');
 
-      // 分類管理
       const catForm = document.getElementById('catForm');
       const catNameInput = document.getElementById('catNameInput');
       const catList = document.getElementById('catList');
 
-      let editIndex = null; // 正在編輯哪個自訂影片
+      let editIndex = null; // 編輯哪個影片
 
       videoManagerBtn.onclick = () => {
         refreshVideoList();
@@ -824,7 +846,7 @@
         videoManagerModal.classList.remove('active');
       };
 
-      // 影片表單提交
+      // 影片表單：新增 / 編輯
       videoForm.onsubmit = (e) => {
         e.preventDefault();
         const linkValue = document.getElementById('videoLink').value.trim();
@@ -856,9 +878,11 @@
         addOrEditBtn.textContent = '新增影片';
       };
 
+      // 匯出按鈕
       exportBtn.onclick = () => {
         const exportText = generateExportText();
-        const blob = new Blob([exportText], { type: 'text/plain' });
+        // 建立 txt 檔並下載
+        const blob = new Blob([exportText], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -870,7 +894,7 @@
         alert('已匯出全部影片文字！');
       };
 
-      // 分類表單 - 新增分類
+      // 分類表單：新增
       catForm.onsubmit = (e) => {
         e.preventDefault();
         const newCat = catNameInput.value.trim();
@@ -879,7 +903,7 @@
           return;
         }
         let userCats = getUserCategories();
-        // 如果已經有相同名稱就不重複加
+        // 防止重複
         if (!userCats.includes(newCat) && !builtInCategories.includes(newCat)) {
           userCats.push(newCat);
         }
@@ -888,6 +912,7 @@
         reloadAllData();
       };
 
+      // 刷新影片列表
       function refreshVideoList() {
         videoList.innerHTML = '';
         const userVideos = getUserVideos();
@@ -924,7 +949,7 @@
           videoList.appendChild(div);
         });
       }
-
+      // 刷新表單中的分類下拉
       function refreshVideoFormCategories() {
         videoCategorySelect.innerHTML = '';
         allCategories.forEach(cat => {
@@ -934,7 +959,7 @@
           videoCategorySelect.appendChild(opt);
         });
       }
-
+      // 刷新分類列表
       function refreshCatList() {
         catList.innerHTML = '';
         const userCats = getUserCategories();
@@ -961,6 +986,7 @@
         });
       }
 
+      // 重新載入所有資料
       function reloadAllData() {
         loadAllDataFromLocal();
         filterOutBannedVideos();
@@ -972,62 +998,64 @@
       }
     }
 
-    // 解析ID
-    function parseYouTubeId(input) {
-      if (/^[a-zA-Z0-9_-]{11,}$/.test(input)) {
-        return input;
-      }
-      const regShort = /youtu\.be\/([^?]+)/;
-      const matchShort = input.match(regShort);
-      if (matchShort && matchShort[1]) return matchShort[1];
-
-      const regLong = /v=([^&]+)/;
-      const matchLong = input.match(regLong);
-      if (matchLong && matchLong[1]) return matchLong[1];
-      return null;
-    }
-
+    // ============ 取得自訂影片 / 分類 ============
     function getUserVideos() {
-      const userVideosStr = localStorage.getItem('userVideos');
-      let userVideos = [];
-      if (userVideosStr) {
-        try {
-          userVideos = JSON.parse(userVideosStr);
-        } catch(e) {}
+      const str = localStorage.getItem('userVideos');
+      let arr = [];
+      if (str) {
+        try { arr = JSON.parse(str); } catch(e) {}
       }
-      return userVideos;
+      return arr;
     }
     function getUserCategories() {
-      const userCatsStr = localStorage.getItem('userCategories');
-      let userCats = [];
-      if (userCatsStr) {
-        try {
-          userCats = JSON.parse(userCatsStr);
-        } catch(e) {}
+      const str = localStorage.getItem('userCategories');
+      let arr = [];
+      if (str) {
+        try { arr = JSON.parse(str); } catch(e) {}
       }
-      return userCats;
+      return arr;
     }
 
-    // 匯出文字
+    // ============ 匯出文字函式 ============
     function generateExportText() {
-      let text = '=== 所有影片清單 ===\n\n';
-      // 先把 allVideos 照分類分組
+      let text = '=== 所有影片清單 (UTF-8) ===\n\n';
       const grouped = {};
       allVideos.forEach(v => {
         if (!grouped[v.category]) grouped[v.category] = [];
         grouped[v.category].push(v);
       });
-      // 照 allCategories 順序輸出
+      // 依 allCategories 順序輸出
       allCategories.forEach(cat => {
         if (grouped[cat] && grouped[cat].length > 0) {
           text += `【${cat}】\n`;
           grouped[cat].forEach((vid, idx) => {
-            text += `  ${idx+1}. ${vid.title} (ID: ${vid.id})\n`;
+            // 把ID轉成短網址 https://youtu.be/xxxx
+            const url = `https://youtu.be/${encodeURIComponent(vid.id)}`;
+            text += `  ${idx+1}. ${vid.title} (URL: ${url})\n`;
           });
           text += '\n';
         }
       });
       return text;
+    }
+
+    // ============ 解析ID函式 ============
+    function parseYouTubeId(input) {
+      // 若是直接 11 碼(或更多)的 ID
+      if (/^[a-zA-Z0-9_-]{11,}$/.test(input)) {
+        return input;
+      }
+      // 短網址 youtu.be/xxxx
+      const regShort = /youtu\.be\/([^?]+)/;
+      const matchShort = input.match(regShort);
+      if (matchShort && matchShort[1]) return matchShort[1];
+
+      // 長網址 watch?v=xxxx
+      const regLong = /v=([^&]+)/;
+      const matchLong = input.match(regLong);
+      if (matchLong && matchLong[1]) return matchLong[1];
+
+      return null;
     }
   </script>
 </body>
