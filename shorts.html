@@ -207,9 +207,9 @@
         top: 0;
         right: 0;
         transform: translate(-8px, -8px);
-        width: 40px; /* 調整按鈕寬度 */
-        height: 40px; /* 調整按鈕高度 */
-        background: none; /* 去除背景 */
+        width: 40px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.2);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -217,13 +217,25 @@
         cursor: pointer;
         user-select: none;
         z-index: 3;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+        transition: background 0.3s ease, box-shadow 0.3s ease,
+          transform 0.2s ease;
+      }
+
+      .video-manager-btn:hover {
+        background: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+      }
+
+      .video-manager-btn:active {
+        transform: translate(-8px, -8px) scale(0.9);
       }
 
       .video-manager-btn img {
-        width: 100%; /* 圖片自適應按鈕大小 */
-        height: 100%;
-        object-fit: cover; /* 確保圖片填滿容器 */
-        border-radius: 50%; /* 如果需要圖片圓形邊角 */
+        width: 60%;
+        height: 60%;
+        object-fit: contain;
+        filter: invert(1); /* 將黑色 icon 反轉成白色 */
       }
 
       /* 重新播放提示彈窗 */
@@ -994,7 +1006,7 @@
       // 上下滑動切換
       let startY = 0,
         startTime = 0;
-      document.body.addEventListener(
+      ddocument.addEventListener(
         "touchstart",
         (e) => {
           startY = e.touches[0].clientY;
@@ -1002,14 +1014,25 @@
         },
         { passive: true }
       );
-      document.body.addEventListener(
+
+      document.addEventListener(
         "touchend",
         (e) => {
           const deltaY = e.changedTouches[0].clientY - startY;
           const deltaTime = Date.now() - startTime;
-          if (Math.abs(deltaY) > 50 && deltaTime < 500) {
-            if (deltaY < 0) playNextVideo();
-            else playPreviousVideo();
+
+          // 修改後的快速滑動檢測
+          if (Math.abs(deltaY) > 20) {
+            // 減少滑動距離閾值
+            const speed = Math.abs(deltaY) / deltaTime; // 計算滑動速度
+            if (speed > 0.3 || deltaTime < 700) {
+              // 檢測速度或滑動時間
+              if (deltaY < 0) {
+                playNextVideo(); // 上滑播放下一部影片
+              } else {
+                playPreviousVideo(); // 下滑播放上一部影片
+              }
+            }
           }
         },
         { passive: true }
