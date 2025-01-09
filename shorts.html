@@ -1004,8 +1004,10 @@
       }
 
       // 上下滑動切換
-      let startY = 0,
-        startTime = 0;
+      let startY = 0;
+      let startTime = 0;
+      let isTransitioning = false;
+
       document.body.addEventListener(
         "touchstart",
         (e) => {
@@ -1018,11 +1020,23 @@
       document.body.addEventListener(
         "touchend",
         (e) => {
+          if (isTransitioning) return;
+
           const deltaY = e.changedTouches[0].clientY - startY;
           const deltaTime = Date.now() - startTime;
-          if (Math.abs(deltaY) > 50 && deltaTime < 500) {
-            if (deltaY < 0) playNextVideo();
-            else playPreviousVideo();
+
+          if (Math.abs(deltaY) > 50 && deltaTime < 1000) {
+            isTransitioning = true;
+
+            if (deltaY < 0) {
+              playNextVideo(); // 上滑切換到下一部影片
+            } else {
+              playPreviousVideo(); // 下滑切換到上一部影片
+            }
+
+            setTimeout(() => {
+              isTransitioning = false;
+            }, 500); // 防止連續觸發
           }
         },
         { passive: true }
