@@ -248,7 +248,7 @@
 
   <script>
     // ============ 配置區 ============
-    // 這裡放一些使用者不要看的影片 ID
+    // 這裡放一些「不給看」或是直接掛掉的影片 ID
     const bannedVideoIds = ["魯班尺URL", "someBannedId1", "someBannedId2"];
 
     // 所有影片資料
@@ -379,9 +379,19 @@
       };
     }
     function onPlayerReady(event) {
-      // YouTube Player準備好後
       event.target.playVideo();
       startProgressMonitor();
+
+      // === 這裡多加一段：如果 duration=0，就代表影片播放失敗或被停權 ===
+      setTimeout(() => {
+        const duration = player.getDuration();
+        if (duration <= 0) {
+          console.warn("偵測到影片無效，直接跳到下一支。");
+          // 標記為已觀看，以免一直卡住這支
+          markVideoAsWatched(filteredVideos[currentVideoIndex].id);
+          playNextVideo();
+        }
+      }, 2000);
     }
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.ENDED) {
