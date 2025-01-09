@@ -7,12 +7,77 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>裝修教學短視頻</title>
   <style>
-    /* 這裡放置所有CSS樣式代碼，參考之前提供的範例 */
+    /* 禁止雙擊放大與選擇文字 */
+    html, body {
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+    }
+    #app {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    .video-feed { position: relative; width: 100%; height: 100%; overflow: hidden; }
+    .video-container { position: absolute; width: 100%; height: 100%; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+    .video-item { position: absolute; width: 100%; height: 100%; overflow: hidden; background: #000; }
+    .video-frame-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000; }
+    .video-frame { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+    .video-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px; background: linear-gradient(transparent, rgba(0,0,0,0.7)); z-index: 2; }
+    .video-info { max-width: 90%; transform: translateY(20px); opacity: 0; animation: slideUp 0.5s ease forwards; }
+    .video-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+    .video-description { font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.4; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+    .category-bar { position: fixed; top: env(safe-area-inset-top,0); left: 0; right: 0; height: 44px; padding: 0 12px; display: flex; align-items: center; overflow-x: auto; background: linear-gradient(rgba(0,0,0,0.4), transparent); -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; z-index: 100; white-space: nowrap; }
+    .category-bar::-webkit-scrollbar { display: none; }
+    .category { flex: 0 0 auto; padding: 6px 16px; margin: 0 4px; font-size: 14px; color: rgba(255,255,255,0.8); background: transparent; border-radius: 16px; white-space: nowrap; scroll-snap-align: start; transition: all 0.3s; }
+    .category.active { color: #fff; background: rgba(255,255,255,0.2); font-weight: 500; }
+    .progress-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: rgba(255,255,255,0.2); z-index: 3; }
+    .progress { height: 100%; width: 0; background: #fff; transition: width 0.1s linear; }
+    .loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .loading-overlay.active { opacity: 1; pointer-events: auto; }
+    .loading-spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+    .preload-container { position: absolute; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+    .welcome-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; padding: 20px; transition: opacity 0.3s, visibility 0.3s; }
+    .welcome-content { text-align: center; max-width: 320px; }
+    .welcome-title { font-size: 24px; font-weight: 600; margin-bottom: 16px; color: #fff; }
+    .welcome-text { font-size: 16px; color: rgba(255,255,255,0.9); margin-bottom: 24px; line-height: 1.5; }
+    .welcome-buttons { display: flex; gap: 12px; flex-direction: column; width: 100%; }
+    .welcome-button { padding: 14px 24px; border-radius: 24px; border: none; background: #1a73e8; color: white; font-size: 16px; font-weight: 500; cursor: pointer; transition: transform 0.2s, background 0.2s; -webkit-tap-highlight-color: transparent; }
+    .welcome-button:active { transform: scale(0.98); }
+    .welcome-button.secondary { background: rgba(255,255,255,0.1); }
+    .feature-hint { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 12px 20px; border-radius: 20px; z-index: 1000; display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .feature-hint.show { opacity: 1; animation: hintFloat 1s ease infinite alternate; }
+    .feature-hint i { font-size: 18px; }
+    .feature-hint span { font-size: 14px; color: rgba(255,255,255,0.9); }
+    .quality-indicator { position: fixed; top: 60px; right: 16px; background: rgba(0,0,0,0.6); padding: 6px 12px; border-radius: 12px; font-size: 12px; color: rgba(255,255,255,0.9); z-index: 100; opacity: 0; transition: opacity 0.3s; }
+    .quality-indicator.show { opacity: 1; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes hintFloat { from { transform: translateX(-50%) translateY(0); } to { transform: translateX(-50%) translateY(-5px); } }
+    @supports (padding: max(0px)) {
+      .category-bar { padding-top: max(12px, env(safe-area-inset-top)); height: max(44px, calc(44px + env(safe-area-inset-top))); }
+    }
   </style>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
 </head>
 <body>
-  <!-- 歡迎提示區塊 -->
   <div class="welcome-overlay">
     <div class="welcome-content">
       <h1 class="welcome-title">歡迎使用裝修教學</h1>
@@ -26,17 +91,15 @@
     </div>
   </div>
 
-  <!-- 功能提示與畫質指示器 -->
   <div class="feature-hint">
     <i class="fas fa-arrow-up"></i>
     <span>點擊上方可切換分類</span>
   </div>
+
   <div class="quality-indicator">HD 1080P</div>
 
-  <!-- 主應用區塊 -->
   <div id="app">
     <div class="category-bar">
-      <!-- 此處列出所有分類按鈕 -->
       <div class="category active">工具操作</div>
       <div class="category">建材選擇</div>
       <div class="category">施工細節</div>
@@ -69,7 +132,6 @@
     <div class="preload-container"></div>
   </div>
 
-  <!-- 重播模態框 -->
   <div id="replayModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:2000;">
     <div style="background:#fff; color:#000; padding:20px; border-radius:8px; text-align:center;">
       <p>您已經看過所有影片，是否重新觀看？</p>
@@ -79,7 +141,6 @@
   </div>
 
   <script>
-    // 影片資料
     const videos = [
       // 分類：工具操作與使用眉角
       { id: '4eWtbt1DsLU', title: '足幾分板是什麼？這影片告訴你！', description: '', category: '工具操作' },
@@ -175,9 +236,7 @@
       }
     }
 
-    function resetWatchedVideos() {
-      localStorage.removeItem('watchedVideos');
-    }
+    function resetWatchedVideos() { localStorage.removeItem('watchedVideos'); }
 
     function showReplayModal() {
       const modal = document.getElementById('replayModal');
@@ -201,7 +260,6 @@
         if (currentVideoIndex < filteredVideos.length - 1) {
           isTransitioning = true;
           currentVideoIndex++;
-          // 此處自動跳轉影片不使用過渡效果，僅在手動滑動時使用
           showLoading();
           player.loadVideoById(filteredVideos[currentVideoIndex].id);
           updateVideoInfo();
@@ -274,6 +332,7 @@
       const enterFullscreenBtn = document.getElementById('enterFullscreen');
       const continueNormalBtn = document.getElementById('continueNormal');
       const featureHint = document.querySelector('.feature-hint');
+
       enterFullscreenBtn.addEventListener('click', () => {
         if (document.documentElement.requestFullscreen) {
           document.documentElement.requestFullscreen();
@@ -283,7 +342,9 @@
         hideIOSBars();
         startApp();
       });
+
       continueNormalBtn.addEventListener('click', startApp);
+
       function startApp() {
         welcomeOverlay.style.opacity = '0';
         welcomeOverlay.style.visibility = 'hidden';
