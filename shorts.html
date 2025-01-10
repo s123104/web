@@ -1088,6 +1088,7 @@
           managerModal.classList.remove("active");
         };
 
+        // 修改影片表單提交，避免重複ID
         videoForm.onsubmit = (e) => {
           e.preventDefault();
           const linkValue = document.getElementById("videoLink").value.trim();
@@ -1104,7 +1105,14 @@
             alert("無法解析此連結或ID");
             return;
           }
+
           let userVideos = getUserVideos();
+          // 檢查是否重複
+          if (userVideos.some((v) => v.id === parsedId)) {
+            alert("此影片已經存在，不可重複新增");
+            return;
+          }
+
           if (editIndex === null) {
             userVideos.push({
               id: parsedId,
@@ -1157,28 +1165,47 @@
           reloadAllData();
         };
 
+        // === 以下為新增與分頁相關部分 ===
+
+        let currentPage = 1;
+        const itemsPerPage = 5;
+
         function refreshVideoList() {
           videoList.innerHTML = "";
           const userVideos = getUserVideos();
+
           if (userVideos.length === 0) {
             videoList.innerHTML =
               '<p style="text-align:center;">（尚無自訂影片）</p>';
             return;
           }
-          userVideos.forEach((v, i) => {
+
+          // 計算總頁數
+          const totalPages = Math.ceil(userVideos.length / itemsPerPage);
+
+          // 限制 currentPage 範圍
+          if (currentPage < 1) currentPage = 1;
+          if (currentPage > totalPages) currentPage = totalPages;
+
+          // 取出當前頁的影片資料
+          const startIndex = (currentPage - 1) * itemsPerPage;
+          const endIndex = startIndex + itemsPerPage;
+          const videosToShow = userVideos.slice(startIndex, endIndex);
+
+          videosToShow.forEach((v, i) => {
             const div = document.createElement("div");
             div.classList.add("video-item");
             div.innerHTML = `
-            <span>[${v.category}] ${v.title} (${v.id})</span>
-            <div>
-              <button class="edit-btn">編輯</button>
-              <button class="del-btn">刪除</button>
-            </div>
-          `;
+        <span>[${v.category}] ${v.title}</span>
+        <div>
+          <button class="edit-btn">編輯</button>
+          <button class="del-btn">刪除</button>
+        </div>
+      `;
             const editBtn = div.querySelector(".edit-btn");
             const delBtn = div.querySelector(".del-btn");
             editBtn.onclick = () => {
-              editIndex = i;
+              editIndex = startIndex + i; // 調整索引位置
               document.getElementById("videoLink").value = v.id;
               document.getElementById("videoTitleInput").value = v.title;
               videoCategorySelect.value = v.category;
@@ -1186,13 +1213,45 @@
             };
             delBtn.onclick = () => {
               if (confirm(`確定要刪除「${v.title}」嗎？`)) {
-                userVideos.splice(i, 1);
+                userVideos.splice(startIndex + i, 1);
                 saveUserVideosToLocal(userVideos);
                 reloadAllData();
               }
             };
             videoList.appendChild(div);
           });
+
+          // 分頁控制按鈕容器
+          const paginationControls = document.createElement("div");
+          paginationControls.style.textAlign = "center";
+          paginationControls.style.marginTop = "8px";
+
+          // 上一頁按鈕
+          const prevBtn = document.createElement("button");
+          prevBtn.textContent = "上一頁";
+          prevBtn.disabled = currentPage === 1;
+          prevBtn.onclick = () => {
+            currentPage--;
+            refreshVideoList();
+          };
+          paginationControls.appendChild(prevBtn);
+
+          // 顯示目前頁碼狀態
+          const pageIndicator = document.createElement("span");
+          pageIndicator.textContent = ` 第 ${currentPage} 頁，共 ${totalPages} 頁 `;
+          paginationControls.appendChild(pageIndicator);
+
+          // 下一頁按鈕
+          const nextBtn = document.createElement("button");
+          nextBtn.textContent = "下一頁";
+          nextBtn.disabled = currentPage === totalPages;
+          nextBtn.onclick = () => {
+            currentPage++;
+            refreshVideoList();
+          };
+          paginationControls.appendChild(nextBtn);
+
+          videoList.appendChild(paginationControls);
         }
         function refreshVideoFormCategories() {
           videoCategorySelect.innerHTML = "";
@@ -1282,6 +1341,16 @@
         const regShorts = /youtube\.com\/shorts\/([^?]+)/;
         const matchShorts = input.match(regShorts);
         if (matchShorts && matchShorts[1]) return matchShorts[1];
+
+        // 5) 處理 embed 格式
+        const regEmbed = /youtube\.com\/embed\/([^?]+)/;
+        const matchEmbed = input.match(regEmbed);
+        if (matchEmbed && matchEmbed[1]) return matchEmbed[1];
+
+        // 6) 處理舊 v/ 格式
+        const regOld = /youtube\.com\/v\/([^?]+)/;
+        const matchOld = input.match(regOld);
+        if (matchOld && matchOld[1]) return matchOld[1];
 
         return null;
       }
