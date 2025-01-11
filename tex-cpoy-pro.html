@@ -516,8 +516,294 @@
                 ]
             }
         };
-         </script>
+// 在你現有的代碼後面添加以下內容：
+
+        // 創建分類元素
+        function createCategoryElement(category, data) {
+            const categoryDiv = document.createElement('section');
+            categoryDiv.className = 'category';
+            
+            const headerGradient = categoryGradients[category] || categoryGradients['common-math'];
+            const iconName = categoryIcons[category] || 'star';
+            
+            categoryDiv.innerHTML = `
+                <div class="category-header" style="background: ${headerGradient}">
+                    <i class="fas fa-${iconName}"></i>
+                    ${data.title}
+                </div>
+                <div class="symbol-grid">
+                    ${data.symbols.map(symbol => `
+                        <div class="symbol-card" onclick="copyLatex('${symbol.latex.replace(/\\/g, '\\\\')}', this)">
+                            <div class="latex-display">\\(${symbol.latex}\\)</div>
+                            <div class="symbol-description">${symbol.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            return categoryDiv;
+        }
+
+        // 初始化應用
+        function initializeApp() {
+            const container = document.getElementById('symbols-container');
+            if (!container) {
+                console.error('符號容器不存在');
+                return;
+            }
+
+            try {
+                container.innerHTML = ''; // 清除載入動畫
+                
+                Object.entries(symbolsData).forEach(([category, data], index) => {
+                    const categoryElement = createCategoryElement(category, data);
+                    categoryElement.style.animationDelay = `${index * 0.1}s`;
+                    container.appendChild(categoryElement);
+                });
+
+                if (window.MathJax) {
+                    MathJax.typesetPromise().catch(err => {
+                        console.error('MathJax渲染錯誤:', err);
+                    });
+                }
+
+                initSearch();
+                initTheme();
+                addSymbolGuide();
+                initKeyboardShortcuts();
+            } catch (error) {
+                console.error('初始化錯誤:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>載入失敗，請重新整理頁面</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 複製 LaTeX 代碼
+        function copyLatex(latex, element) {
+            try {
+                navigator.clipboard.writeText(latex).then(() => {
+                    showToast(`已複製：${latex}`);
+                    element.classList.add('copy-animation');
+                    setTimeout(() => {
+                        element.classList.remove('copy-animation');
+                    }, 500);
+                }).catch(err => {
+                    console.error('複製失敗:', err);
+                    showToast('複製失敗，請手動複製');
+                });
+            } catch (error) {
+                console.error('複製錯誤:', error);
+                showToast('複製功能不支援，請手動複製');
+            }
+        }
+
+        // 顯示提示訊息
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // 切換主題
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.querySelector('.theme-switch i');
+            
+            try {
+                if (body.getAttribute('data-theme') === 'dark') {
+                    body.removeAttribute('data-theme');
+                    icon.className = 'fas fa-sun';
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    body.setAttribute('data-theme', 'dark');
+                    icon.className = 'fas fa-moon';
+                    localStorage.setItem('theme', 'dark');
+                }
+            } catch (error) {
+                console.error('主題切換錯誤:', error);
+            }
+        }
+
+        // 初始化主題
+        function initTheme() {
+            try {
+                const savedTheme = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const body = document.body;
+                const icon = document.querySelector('.theme-switch i');
+
+                if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                    body.setAttribute('data-theme', 'dark');
+                    icon.className = 'fas fa-moon';
+                } else {
+                    body.removeAttribute('data-theme');
+                    icon.className = 'fas fa-sun';
+                }
+            } catch (error) {
+                console.error('主題初始化錯誤:', error);
+            }
+        }
+
+        // 添加使用指南
+        function addSymbolGuide() {
+            try {
+                const container = document.getElementById('symbols-container');
+                const guide = document.createElement('div');
+                guide.className = 'category';
+                guide.style.animationDelay = '0.6s';
+                guide.innerHTML = `
+                    <div class="category-header" style="background: linear-gradient(135deg, #6e8efb, #a777e3)">
+                        <i class="fas fa-info-circle"></i>
+                        使用說明
+                    </div>
+                    <div style="
+                        padding: 1.5rem;
+                        background: var(--card-bg);
+                        border-radius: var(--border-radius);
+                        margin-top: 1rem;
+                        border: 1px solid rgba(110, 142, 251, 0.1);
+                    ">
+                        <div style="display: grid; gap: 1rem;">
+                            <div style="display: flex; align-items: center;">
+                                <i class="fas fa-mouse-pointer" style="
+                                    width: 24px;
+                                    color: var(--text-secondary);
+                                    margin-right: 1rem;
+                                "></i>
+                                <span>點擊符號卡片即可複製 LaTeX 代碼</span>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <i class="fas fa-search" style="
+                                    width: 24px;
+                                    color: var(--text-secondary);
+                                    margin-right: 1rem;
+                                "></i>
+                                <span>使用頂部搜尋框快速找到需要的符號 (Ctrl/Cmd + K)</span>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <i class="fas fa-paint-brush" style="
+                                    width: 24px;
+                                    color: var(--text-secondary);
+                                    margin-right: 1rem;
+                                "></i>
+                                <span>使用右上角按鈕切換深淺色主題</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertBefore(guide, container.firstChild);
+            } catch (error) {
+                console.error('添加使用指南錯誤:', error);
+            }
+        }
+
+        // 初始化搜索功能
+        function initSearch() {
+            const searchInput = document.querySelector('.search-input');
+            if (!searchInput) return;
+
+            let timeout = null;
+
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    const query = e.target.value.toLowerCase().trim();
+                    const categories = document.querySelectorAll('.category');
+                    let hasResults = false;
+
+                    categories.forEach(category => {
+                        const cards = category.querySelectorAll('.symbol-card');
+                        let categoryVisible = false;
+
+                        cards.forEach(card => {
+                            const latex = card.querySelector('.latex-display').textContent.toLowerCase();
+                            const description = card.querySelector('.symbol-description').textContent.toLowerCase();
+                            const isMatch = latex.includes(query) || description.includes(query);
+
+                            card.style.display = isMatch ? '' : 'none';
+                            if (isMatch) {
+                                categoryVisible = true;
+                                hasResults = true;
+                            }
+                        });
+
+                        if (categoryVisible) {
+                            category.style.display = '';
+                            category.style.opacity = '1';
+                            category.style.transform = 'translateY(0)';
+                        } else {
+                            category.style.opacity = '0';
+                            category.style.transform = 'translateY(20px)';
+                            setTimeout(() => {
+                                if (category.style.opacity === '0') {
+                                    category.style.display = 'none';
+                                }
+                            }, 300);
+                        }
+                    });
+
+                    // 處理無搜尋結果
+                    updateNoResultsMessage(hasResults, query);
+                }, 300);
+            });
+        }
+
+        // 更新無搜尋結果訊息
+        function updateNoResultsMessage(hasResults, query) {
+            const container = document.getElementById('symbols-container');
+            const existingMessage = document.getElementById('no-results');
+
+            if (!hasResults && query !== '') {
+                if (!existingMessage) {
+                    const message = document.createElement('div');
+                    message.id = 'no-results';
+                    message.style.cssText = `
+                        text-align: center;
+                        padding: 2rem;
+                        color: var(--text-secondary);
+                        animation: fadeIn 0.3s ease;
+                    `;
+                    message.innerHTML = `
+                        <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                        <p>找不到符合 "${query}" 的結果</p>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">試試其他關鍵字？</p>
+                    `;
+                    container.appendChild(message);
+                }
+            } else if (existingMessage) {
+                existingMessage.remove();
+            }
+        }
+
+        // 初始化鍵盤快捷鍵
+        function initKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    document.querySelector('.search-input')?.focus();
+                }
+                if (e.key === 'Escape') {
+                    const searchInput = document.querySelector('.search-input');
+                    if (document.activeElement === searchInput) {
+                        searchInput.value = '';
+                        searchInput.blur();
+                        searchInput.dispatchEvent(new Event('input'));
+                    }
+                }
+            });
+        }
+
+        // 網頁載入完成後初始化
+        window.addEventListener('load', initializeApp);
+        </script>
     </body>
 </html>
-        
         
