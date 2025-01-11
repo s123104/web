@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>精美 LaTeX 符號工具</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js" async></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6e8efb, #a777e3);
+            --secondary-gradient: linear-gradient(135deg, #8E2DE2, #4A00E0);
+            --bg-color: #f8f9fc;
+            --card-bg: #ffffff;
+            --text-primary: #2d3436;
+            --text-secondary: #636e72;
+            --border-radius: 12px;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --header-height: 60px;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1b1e;
+            --card-bg: #2d2e32;
+            --text-primary: #e2e8f0;
+            --text-secondary: #a0aec0;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+            transition: var(--transition);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+            padding-top: calc(var(--header-height) + 1rem);
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: var(--card-bg);
+            box-shadow: var(--card-shadow);
+            z-index: 100;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+        }
+
+        .theme-switch {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: var(--bg-color);
+            border: 2px solid transparent;
+            transition: var(--transition);
+        }
+
+        .theme-switch:hover {
+            border-color: #6e8efb;
+            transform: translateY(-2px);
+        }
+
+        .theme-switch i {
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+
+        .search-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 2.5rem;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            background: var(--bg-color);
+            border: 2px solid transparent;
+            border-radius: 50px;
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #6e8efb;
+            box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .category {
+            margin-bottom: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s forwards;
+        }
+
+        .category-header {
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--secondary-gradient);
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            color: white;
+            font-weight: 500;
+            box-shadow: var(--card-shadow);
+        }
+
+        .category-header i {
+            margin-right: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .symbol-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .symbol-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                padding: 0.5rem 1rem;
+                height: auto;
+            }
+
+            header {
+                height: auto;
+            }
+
+            .container {
+                padding-top: 120px;
+            }
+
+            .search-wrapper {
+                margin: 0.5rem 0;
+            }
+
+            .theme-switch {
+                position: absolute;
+                top: 0.5rem;
+                right: 1rem;
+            }
+        }
+
+        .symbol-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(110, 142, 251, 0.1);
+            transition: var(--transition);
+        }
+
+        .symbol-card:hover {
+            transform: translateY(-2px);
+            border-color: #6e8efb;
+            box-shadow: var(--card-shadow);
+        }
+
+        .symbol-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .symbol-card:active::before {
+            opacity: 0.1;
+        }
+
+        .latex-display {
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .symbol-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--secondary-gradient);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            visibility: visible;
+            animation: toastSlide 0.3s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes toastSlide {
+            from {
+                transform: translate(-50%, 20px);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, 0);
+                opacity: 1;
+            }
+        }
+
+        .category-icon {
+            width: 18px;
+            height: 18px;
+            margin-right: 0.5rem;
+            fill: white;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+
+        .loading::after {
+            content: '';
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #6e8efb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .copy-animation {
+            animation: copyPulse 0.5s ease;
+        }
+
+        @keyframes copyPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>LaTeX 符號工具</h1>
+            <div class="search-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" placeholder="搜尋符號或描述...">
+            </div>
+            <div class="theme-switch" onclick="toggleTheme()" title="切換主題">
+                <i class="fas fa-sun"></i>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <main id="symbols-container">
+            <!-- 符號內容將通過 JavaScript 動態生成 -->
+            <div class="loading"></div>
+        </main>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 分類圖標定義
+        const categoryIcons = {
+            'common-math': 'calculator',
+            'relation-symbols': 'equals',
+            'geometry-symbols': 'shapes',
+            'function-symbols': 'function',
+            'set-symbols': 'object-group',
+            'logic-arrows': 'arrow-right',
+            'brackets': 'brackets-curly',
+            'fractions-matrices': 'table',
+            'greek-letters': 'font',
+            'special-symbols': 'star'
+        };
+
+        // 分類顏色定義
+        const categoryGradients = {
+            'common-math': 'linear-gradient(135deg, #6e8efb, #a777e3)',
+            'relation-symbols': 'linear-gradient(135deg, #11998e, #38ef7d)',
+            'geometry-symbols': 'linear-gradient(135deg, #FC466B, #3F5EFB)',
+            'function-symbols': 'linear-gradient(135deg, #F37335, #FDC830)',
+            'set-symbols': 'linear-gradient(135deg, #8E2DE2, #4A00E0)',
+            'logic-arrows': 'linear-gradient(135deg, #ee0979, #ff6a00)',
+            'brackets': 'linear-gradient(135deg, #654ea3, #eaafc8)',
+            'fractions-matrices': 'linear-gradient(135deg, #009FFF, #ec2F4B)',
+            'greek-letters': 'linear-gradient(135deg, #11998e, #38ef7d)',
+            'special-symbols': 'linear-gradient(135deg, #8E2DE2, #4A00E0)'
+        };
+
+        // LaTeX 符號數據
+        const symbolsData = {
+            "common-math": {
+                title: "常用數學符號",
+                symbols: [
+                    { latex: "x^2", description: "平方" },
+                    { latex: "\\frac{a}{b}", description: "分數" },
+                    { latex: "\\sqrt{x}", description: "平方根" },
+                    { latex: "\\sum_{i=1}^{n}", description: "求和" },
+                    { latex: "\\prod_{i=1}^{n}", description: "連乘" },
+                    { latex: "\\int_{a}^{b}", description: "積分" },
+                    { latex: "\\lim_{x \\to \\infty}", description: "極限" },
+                    { latex: "\\infty", description: "無窮大" }
+                ]
+            },
+            "relation-symbols": {
+                title: "關係符號",
+                symbols: [
+                    { latex: "=", description: "等於" },
+                    { latex: "\\neq", description: "不等於" },
+                    { latex: "\\approx", description: "約等於" },
+                    { latex: "\\sim", description: "相似" },
+                    { latex: ">", description: "大於" },
+                    { latex: "<", description: "小於" },
+                    { latex: "\\geq", description: "大於等於" },
+                    { latex: "\\leq", description: "小於等於" }
+                ]
+            },
+            "geometry-symbols": {
+                title: "幾何符號",
+                symbols: [
+                    { latex: "\\angle", description: "角" },
+                    { latex: "\\triangle", description: "三角形" },
+                    { latex: "\\square", description: "正方形" },
+                    { latex: "\\perp", description: "垂直" },
+                    { latex: "\\parallel", description: "平行" },
+                    { latex: "\\degree", description: "度數" },
+                    { latex: "\\pi", description: "圓周率" },
+                    { latex: "\\circ", description: "圓圈" }
+                ]
+            },
+            "function-symbols": {
+                title: "函數符號",
+                symbols: [
+                    { latex: "\\sin x", description: "正弦" },
+                    { latex: "\\cos x", description: "餘弦" },
+                    { latex: "\\tan x", description: "正切" },
+                    { latex: "\\log x", description: "對數" },
+                    { latex: "\\ln x", description: "自然對數" },
+                    { latex: "f(x)", description: "函數" },
+                    { latex: "f'(x)", description: "導數" },
+                    { latex: "\\partial", description: "偏導數" }
+                ]
+            },
+            "set-symbols": {
+                title: "集合符號",
+                symbols: [
+                    { latex: "\\in", description: "屬於" },
+                    { latex: "\\notin", description: "不屬於" },
+                    { latex: "\\subset", description: "子集" },
+                    { latex: "\\supset", description: "超集" },
+                    { latex: "\\cup", description: "聯集" },
+                    { latex: "\\cap", description: "交集" },
+                    { latex: "\\emptyset", description: "空集" },
+                    { latex: "\\forall", description: "任意" }
+                ]
+            },
+            "logic-arrows": {
+                title: "邏輯與箭頭",
+                symbols: [
+                    { latex: "\\rightarrow", description: "右箭頭" },
+                    { latex: "\\leftarrow", description: "左箭頭" },
+                    { latex: "\\Rightarrow", description: "雙線右箭頭" },
+                    { latex: "\\Leftarrow", description: "雙線左箭頭" },
+                    { latex: "\\leftrightarrow", description: "雙向箭頭" },
+                    { latex: "\\land", description: "邏輯與" },
+                    { latex: "\\lor", description: "邏輯或" },
+                    { latex: "\\neg", description: "邏輯非" }
+                ]
+            },
+            "brackets": {
+                title: "括號",
+                symbols: [
+                    { latex: "\\left( \\right)", description: "圓括號" },
+                    { latex: "\\left[ \\right]", description: "方括號" },
+                    { latex: "\\left\\{ \\right\\}", description: "大括號" },
+                    { latex: "\\left| \\right|", description: "絕對值" },
+                    { latex: "\\left\\| \\right\\|", description: "範數" },
+                    { latex: "\\left\\langle \\right\\rangle", description: "尖括號" },
+                    { latex: "\\left\\lceil \\right\\rceil", description: "上取整" },
+                    { latex: "\\left\\lfloor \\right\\rfloor", description: "下取整" }
+                ]
+            },
+            "fractions-matrices": {
+                title: "分數、矩陣",
+                symbols: [
+                    { latex: "\\frac{a}{b}", description: "分數" },
+                    { latex: "\\dfrac{a}{b}", description: "大分數" },
+                    { latex: "\\binom{n}{k}", description: "組合數" },
+                    { latex: "\\begin{matrix} a & b \\\\ c & d \\end{matrix}", description: "矩陣" },
+                    { latex: "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}", description: "圓括號矩陣" },
+                    { latex: "\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}", description: "方括號矩陣" },
+                    { latex: "\\begin{vmatrix} a & b \\\\ c & d \\end{vmatrix}", description: "行列式" },
+                    { latex: "\\begin{cases} a & b \\\\ c & d \\end{cases}", description: "分段函數" }
+                ]
+            },
+            "greek-letters": {
+                title: "希臘字母",
+                symbols: [
+                    { latex: "\\alpha", description: "阿爾法" },
+                    { latex: "\\beta", description: "貝塔" },
+                    { latex: "\\gamma", description: "伽瑪" },
+                    { latex: "\\delta", description: "德爾塔" },
+                    { latex: "\\epsilon", description: "伊普西隆" },
+                    { latex: "\\theta", description: "西塔" },
+                    { latex: "\\lambda", description: "拉姆達" },
+                    { latex: "\\omega", description: "歐米加" }
+                ]
+            },
+            "special-symbols": {
+                title: "特殊符號",
+                symbols: [
+                    { latex: "\\dots", description: "省略號" },
+                    { latex: "\\cdots", description: "居中省略號" },
+                    { latex: "\\vdots", description: "垂直省略號" },
+                    { latex: "\\ddots", description: "對角省略號" },
+                    { latex: "\\star", description: "星號" },
+                    { latex: "\\sharp", description: "升號" },
+                    { latex: "\\flat", description: "降號" },
+                    { latex: "\\natural", description: "本位號" }
+                ]
+            }
+        
+
+        // 創建分類元素
+        function createCategoryElement(category, data) {
+            const categoryDiv = document.createElement('section');
+            categoryDiv.className = 'category';
+            
+            const headerGradient = categoryGradients[category] || categoryGradients['common-math'];
+            const iconName = categoryIcons[category] || 'star';
+            
+            categoryDiv.innerHTML = `
+                <div class="category-header" style="background: ${headerGradient}">
+                    <i class="fas fa-${iconName}"></i>
+                    ${data.title}
+                </div>
+                <div class="symbol-grid">
+                    ${data.symbols.map(symbol => `
+                        <div class="symbol-card" onclick="copyLatex('${symbol.latex.replace(/\\/g, '\\\\')}', this)">
+                            <div class="latex-display">\\(${symbol.latex}\\)</div>
+                            <div class="symbol-description">${symbol.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            return categoryDiv;
+        }
+
+        // 初始化應用
+        function initializeApp() {
+            const container = document.getElementById('symbols-container');
+            if (!container) {
+                console.error('符號容器不存在');
+                return;
+            }
+
+            try {
+                container.innerHTML = ''; // 清除載入動畫
+                
+                Object.entries(symbolsData).forEach(([category, data], index) => {
+                    const categoryElement = createCategoryElement(category, data);
+                    categoryElement.style.animationDelay = `${index * 0.1}s`;
+                    container.appendChild(categoryElement);
+                });
+
+                if (window.MathJax) {
+                    MathJax.typesetPromise().catch(err => {
+                        console.error('MathJax渲染錯誤:', err);
+                    });
+                }
+
+                initSearch();
+                initTheme();
+                addSymbolGuide();
+                initKeyboardShortcuts();
+            } catch (error) {
+                console.error('初始化錯誤:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>載入失敗，請重新整理頁面</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 複製 LaTeX 代碼
+        function copyLatex(latex, element) {
+            try {
+                navigator.clipboard.writeText(latex).then(() => {
+                    showToast(`已複製：${latex}`);
+                    element.classList.add('copy-animation');
+                    setTimeout(() => {
+                        element.classList.remove('copy-animation');
+                    }, 500);
+                }).catch(err => {
+                    console.error('複製失敗:', err);
+                    showToast('複製失敗，請手動複製');
+                });
+            } catch (error) {
+                console.error('複製錯誤:', error);
+                showToast('複製功能不支援，請手動複製');
+            }
+        }
+
+        // 顯示提示訊息
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // 切換主題
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.querySelector('.theme-switch i');
+            
+            try {
+                if (body.getAttribute('data-theme') === 'dark') {
+                    body.removeAttribute('data-theme');
+                    icon.className = 'fas fa-sun';
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    body.setAttribute('data-theme', 'dark');
+                    icon.className = 'fas fa-moon';
+                    localStorage.setItem('theme', 'dark');
+                }
+            } catch (error) {
+                console.error('主題切換錯誤:', error);
+            }
+        }
+
+        // 初始化主題
+        function initTheme() {
+            try {
+                const savedTheme = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const body = document.body;
+                const icon = document.querySelector('.theme-switch i');
+
+                if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                    body.setAttribute('data-theme', 'dark');
+                    icon.className = 'fas fa-moon';
+                } else {
+                    body.removeAttribute('data-theme');
+                    icon.className = 'fas fa-sun';
+                }
+            } catch (error) {
+                console.error('主題初始化錯誤:', error);
+            }
+        }
+
+        // 添加使用指南
+        function addSymbolGuide() {
+            try {
+                const container = document.getElementById('symbols-container');
+                const guide = document.createElement('div');
+                guide.className = 'category';
+                guide.style.animationDelay = '0.6s';
+                guide.innerHTML = `
+                    <div class="category-header" style="background: linear-gradient(135deg, #6e8efb, #a777e3)">
+                        <i class="fas fa-info-circle"></i>
+                        使用說明
+                    </div>
+                    <div style="
+                        padding: 1.5rem;
+                        background: var(--card-bg);
+                        border-radius: var(--border-radius);
+                        margin-top: 1rem;
+                        border: 1px solid rgba(110, 142, 251, 0.1);
+                    ">
+                        <div style="display: grid; gap: 1rem;">
+                            <div style="display: flex; align-items: center;">
+                                <i class="fas fa-mouse-pointer" style="
+                                    width: 24px;
+                                    color: var(--text-secondary);
+                                    margin-right: 1rem;
+                                "></i>
+                                <span>點擊符號卡片即可複製 LaTeX 代碼</span>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <i class="fas fa-search" style="
+                                    width: 24px;
+                                    color: var(--text-secondary);
+                                    margin-right: 1rem;
+                                "></i>
+                                <span>使用頂部搜尋框快速找到需要的符號 (Ctrl/Cmd + K)</span>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <i class="fas fa-paint-brush" style="
+                                    width: 24px;
+                                    color: var(--text-secondary);
+                                    margin-right: 1rem;
+                                "></i>
+                                <span>使用右上角按鈕切換深淺色主題</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertBefore(guide, container.firstChild);
+            } catch (error) {
+                console.error('添加使用指南錯誤:', error);
+            }
+        }
+
+        // 初始化搜索功能
+        function initSearch() {
+            const searchInput = document.querySelector('.search-input');
+            if (!searchInput) return;
+
+            let timeout = null;
+
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    const query = e.target.value.toLowerCase().trim();
+                    const categories = document.querySelectorAll('.category');
+                    let hasResults = false;
+
+                    categories.forEach(category => {
+                        const cards = category.querySelectorAll('.symbol-card');
+                        let categoryVisible = false;
+
+                        cards.forEach(card => {
+                            const latex = card.querySelector('.latex-display').textContent.toLowerCase();
+                            const description = card.querySelector('.symbol-description').textContent.toLowerCase();
+                            const isMatch = latex.includes(query) || description.includes(query);
+
+                            card.style.display = isMatch ? '' : 'none';
+                            if (isMatch) {
+                                categoryVisible = true;
+                                hasResults = true;
+                            }
+                        });
+
+                        if (categoryVisible) {
+                            category.style.display = '';
+                            category.style.opacity = '1';
+                            category.style.transform = 'translateY(0)';
+                        } else {
+                            category.style.opacity = '0';
+                            category.style.transform = 'translateY(20px)';
+                            setTimeout(() => {
+                                if (category.style.opacity === '0') {
+                                    category.style.display = 'none';
+                                }
+                            }, 300);
+                        }
+                    });
+
+                    // 處理無搜尋結果
+                    updateNoResultsMessage(hasResults, query);
+                }, 300);
+            });
+        }
+
+        // 更新無搜尋結果訊息
+        function updateNoResultsMessage(hasResults, query) {
+            const container = document.getElementById('symbols-container');
+            const existingMessage = document.getElementById('no-results');
+
+            if (!hasResults && query !== '') {
+                if (!existingMessage) {
+                    const message = document.createElement('div');
+                    message.id = 'no-results';
+                    message.style.cssText = `
+                        text-align: center;
+                        padding: 2rem;
+                        color: var(--text-secondary);
+                        animation: fadeIn 0.3s ease;
+                    `;
+                    message.innerHTML = `
+                        <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                        <p>找不到符合 "${query}" 的結果</p>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">試試其他關鍵字？</p>
+                    `;
+                    container.appendChild(message);
+                }
+            } else if (existingMessage) {
+                existingMessage.remove();
+            }
+        }
+
+        // 初始化鍵盤快捷鍵
+        function initKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    document.querySelector('.search-input')?.focus();
+                }
+                if (e.key === 'Escape') {
+                    const searchInput = document.querySelector('.search-input');
+                    if (document.activeElement === searchInput) {
+                        searchInput.value = '';
+                        searchInput.blur();
+                        searchInput.dispatchEvent(new Event('input'));
+                    }
+                }
+            });
+        }
+
+        // 網頁載入完成後初始化
+        window.addEventListener('load', initializeApp);
+        </script>
+    </body>
+</html>
+        
