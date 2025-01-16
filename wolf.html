@@ -195,156 +195,19 @@
         </button>
     </div>
     <input type="text" id="custom-text" placeholder="自定義嚎叫文字" value="嗷嗚嗚嗚嗚~">
-
+    <audio id="wolf-sound" src="嗷嗚.mp3"></audio>
     <script>
-        // 預加載音效
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const howlSounds = [];
-        const MAX_SOUNDS = 10;
-
-        // 創建音效池
-        for (let i = 0; i < MAX_SOUNDS; i++) {
-            howlSounds.push({
-                oscillator: null,
-                gainNode: null,
-                isPlaying: false
-            });
-        }
-
-        function getAvailableSound() {
-            return howlSounds.find(sound => !sound.isPlaying) || howlSounds[0];
-        }
-
-        async function playHowl(playbackRate = 1) {
-            if (audioContext.state === 'suspended') {
-                await audioContext.resume();
-            }
-
-            const sound = getAvailableSound();
-            if (sound.isPlaying) {
-                if (sound.oscillator) {
-                    sound.oscillator.stop();
-                }
-            }
-
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            sound.oscillator = oscillator;
-            sound.gainNode = gainNode;
-            sound.isPlaying = true;
-
-            const now = audioContext.currentTime;
-            oscillator.type = 'sawtooth';
-            
-            // 更短的嚎叫音效
-            oscillator.frequency.setValueAtTime(800 * playbackRate, now);
-            oscillator.frequency.linearRampToValueAtTime(400 * playbackRate, now + 0.1);
-            
-            gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(0.2, now + 0.05);
-            gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
-            
-            oscillator.start(now);
-            oscillator.stop(now + 0.2);
-
-            oscillator.onended = () => {
-                sound.isPlaying = false;
-            };
-        }
-
-        // 創建動畫文字
-        function createHowlText(x, y) {
-            const textContainer = document.querySelector('.text-container');
-            const text = document.createElement('div');
-            text.className = 'howl-text';
-            text.textContent = customTextInput.value || '嗷嗚嗚嗚嗚~';
-            
-            // 隨機位置和旋轉
-            const angle = Math.random() * 60 - 30;
-            const offsetX = (Math.random() - 0.5) * 100;
-            const offsetY = (Math.random() - 0.5) * 50;
-            
-            text.style.left = (x + offsetX) + 'px';
-            text.style.top = (y + offsetY) + 'px';
-            text.style.transform = `rotate(${angle}deg)`;
-            
-            textContainer.appendChild(text);
-
-            text.addEventListener('animationend', () => {
-                text.remove();
-            });
-        }
-
         let count = 0;
-        let isHowling = false;
-        let howlInterval = null;
-        const wolf = document.getElementById('wolf');
         const countDisplay = document.getElementById('count');
-        const customTextInput = document.getElementById('custom-text');
-        const container = document.querySelector('.container');
+        const wolfButton = document.getElementById('wolf');
+        const wolfSound = document.getElementById('wolf-sound');
 
-        // 點擊處理
-        let lastClickTime = 0;
-        const minClickInterval = 50; // 最小點擊間隔（毫秒）
-
-        wolf.addEventListener('click', async (e) => {
-            const currentTime = Date.now();
-            if (currentTime - lastClickTime < minClickInterval) {
-                return; // 忽略過快的點擊
-            }
-            lastClickTime = currentTime;
-
-            e.preventDefault();
+        wolfButton.addEventListener('click', () => {
             count++;
             countDisplay.textContent = `嚎叫次數: ${count}`;
-
-            const rect = container.getBoundingClientRect();
-            const x = (e.clientX || e.touches?.[0]?.clientX || rect.width/2) - rect.left;
-            const y = (e.clientY || e.touches?.[0]?.clientY || rect.height/2) - rect.top;
-
-            if (count >= 20 && !isHowling) {
-                isHowling = true;
-                wolf.classList.add('howling');
-
-                if (howlInterval) clearInterval(howlInterval);
-
-                howlInterval = setInterval(() => {
-                    playHowl(1.5);
-                    createHowlText(
-                        Math.random() * container.offsetWidth,
-                        Math.random() * container.offsetHeight
-                    );
-                }, 100);
-
-                setTimeout(() => {
-                    isHowling = false;
-                    wolf.classList.remove('howling');
-                    clearInterval(howlInterval);
-                }, 20000);
-            } else if (!isHowling) {
-                await playHowl();
-                createHowlText(x, y);
-            }
+            wolfSound.currentTime = 0;
+            wolfSound.play();
         });
-
-        // 防止默認行為
-        document.addEventListener('touchstart', e => {
-            if (e.touches.length > 1) e.preventDefault();
-        }, { passive: false });
-
-        document.addEventListener('touchmove', e => {
-            e.preventDefault();
-        }, { passive: false });
-
-        // 自動月亮效果
-        setInterval(() => {
-            const moon = document.querySelector('.moon i');
-            moon.style.textShadow = `0 0 ${20 + Math.random() * 20}px rgba(200, 200, 255, 0.8)`;
-        }, 2000);
     </script>
 </body>
 </html>
