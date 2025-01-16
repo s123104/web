@@ -203,49 +203,72 @@
         const wolfButton = document.getElementById('wolf');
         const customText = document.getElementById('custom-text');
 
+        // 解析 URL 參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const soundMode = urlParams.get('sound');
+
         // 音效管理器
         class SoundManager {
             constructor() {
                 this.sounds = [];
+                this.altSounds = [];
                 this.currentIndex = 0;
-                this.initSounds(30); // 初始化30個音效實例
+                this.currentAltIndex = 0;
+                this.hasMixedMode = soundMode === '大叔';
+                this.initSounds(30);
             }
 
             initSounds(count) {
                 for (let i = 0; i < count; i++) {
-                    const audio = new Audio('嗷嗚.mp3');
-                    audio.preload = 'auto';
-                    this.sounds.push(audio);
+                    const normalSound = new Audio('嗷嗚.mp3');
+                    normalSound.preload = 'auto';
+                    this.sounds.push(normalSound);
+
+                    if (this.hasMixedMode) {
+                        const altSound = new Audio('大叔嗷嗚.mp3');
+                        altSound.preload = 'auto';
+                        this.altSounds.push(altSound);
+                    }
                 }
             }
 
-            playSound() {
-                const sound = this.sounds[this.currentIndex];
+            playRandomSound() {
+                const sound = this.getRandomSound();
                 sound.currentTime = 0;
-                sound.play();
-                this.currentIndex = (this.currentIndex + 1) % this.sounds.length;
+                sound.play().catch(e => console.log('播放失敗:', e));
+                this.updateIndex(sound);
+            }
+
+            getRandomSound() {
+                if (!this.hasMixedMode) {
+                    return this.sounds[this.currentIndex];
+                }
+                return Math.random() < 0.5 ? 
+                    this.sounds[this.currentIndex] : 
+                    this.altSounds[this.currentAltIndex];
+            }
+
+            updateIndex(sound) {
+                if (sound === this.sounds[this.currentIndex]) {
+                    this.currentIndex = (this.currentIndex + 1) % this.sounds.length;
+                } else {
+                    this.currentAltIndex = (this.currentAltIndex + 1) % this.altSounds.length;
+                }
             }
 
             playRapidSounds() {
-                // 連續快速播放多個音效
                 for (let i = 0; i < 5; i++) {
-                    setTimeout(() => {
-                        const sound = this.sounds[(this.currentIndex + i) % this.sounds.length];
-                        sound.currentTime = 0;
-                        sound.play();
-                    }, i * 30); // 每30ms播放一次
+                    setTimeout(() => this.playRandomSound(), i * 30);
                 }
-                this.currentIndex = (this.currentIndex + 5) % this.sounds.length;
             }
         }
 
         const soundManager = new SoundManager();
 
         function getRandomPosition() {
-            const padding = 100; // 文字邊距
             return {
-                x: Math.random() * (window.innerWidth - padding),
-                y: Math.random() * (window.innerHeight - padding)
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight
             };
         }
 
@@ -255,8 +278,8 @@
             text.textContent = customText.value;
             
             const position = getRandomPosition();
-            const rotation = (Math.random() - 0.5) * 60; // -30 到 30 度
-            const scale = 0.8 + Math.random() * 0.8; // 0.8 到 1.6 的縮放
+            const rotation = (Math.random() - 0.5) * 60;
+            const scale = 0.8 + Math.random() * 0.8;
             
             text.style.cssText = `
                 left: ${position.x}px;
@@ -280,10 +303,8 @@
                     return;
                 }
 
-                // 播放快速疊加音效
                 soundManager.playRapidSounds();
 
-                // 在螢幕各處創建多個文字
                 for (let i = 0; i < 8; i++) {
                     setTimeout(() => createFloatingText(), i * 50);
                 }
@@ -309,11 +330,8 @@
                 startRapidMode();
             } else if (!isRapidMode) {
                 wolfButton.classList.add('howling');
-                
-                // 播放一般音效
-                soundManager.playSound();
+                soundManager.playRandomSound();
 
-                // 創建多個文字動畫
                 for (let i = 0; i < 3; i++) {
                     setTimeout(() => createFloatingText(), i * 100);
                 }
