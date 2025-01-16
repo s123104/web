@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>狼嚎網站</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -57,7 +56,6 @@
             position: relative;
             overflow: hidden;
             color: #c8c8ff;
-            font-size: 6rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -79,6 +77,24 @@
 
         #wolf.howling {
             animation: howl 0.3s ease-in-out infinite;
+        }
+
+        .wolf-icon {
+            width: 80%;
+            height: 80%;
+            position: relative;
+            z-index: 2;
+            transition: transform 0.2s ease;
+        }
+
+        .wolf-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 5px rgba(200, 200, 255, 0.5));
+        }
+
+        #wolf:hover .wolf-svg {
+            filter: drop-shadow(0 0 8px rgba(200, 200, 255, 0.8));
         }
 
         .howl-text {
@@ -143,19 +159,21 @@
             position: fixed;
             top: 40px;
             right: 40px;
-            font-size: 4rem;
-            color: #c8c8ff;
+            width: 60px;
+            height: 60px;
+            background: #c8c8ff;
+            border-radius: 50%;
+            box-shadow: 0 0 20px #c8c8ff;
             animation: moonGlow 4s ease-in-out infinite;
-            z-index: 1;
         }
 
         @keyframes moonGlow {
             0%, 100% {
-                text-shadow: 0 0 20px rgba(200, 200, 255, 0.6);
+                box-shadow: 0 0 20px rgba(200, 200, 255, 0.6);
                 transform: scale(1);
             }
             50% {
-                text-shadow: 0 0 40px rgba(200, 200, 255, 0.8);
+                box-shadow: 0 0 40px rgba(200, 200, 255, 0.8);
                 transform: scale(1.1);
             }
         }
@@ -170,46 +188,107 @@
             overflow: visible;
         }
 
-        .wolf-icon {
-            position: relative;
-            z-index: 2;
-            transition: transform 0.2s ease;
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
         }
 
-        #wolf:active .wolf-icon {
-            transform: scale(0.9);
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle var(--duration) ease-in-out infinite;
+            opacity: var(--opacity);
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: var(--opacity); }
+            50% { opacity: 0.2; }
         }
     </style>
 </head>
 <body>
-    <div class="moon">
-        <i class="fas fa-moon"></i>
-    </div>
+    <div class="stars"></div>
+    <div class="moon"></div>
     <div id="count">嚎叫次數: 0</div>
     <div class="container">
         <div class="text-container"></div>
         <button id="wolf" aria-label="狼嚎">
             <div class="wolf-icon">
-                <i class="fas fa-wolf-pack-battalion"></i>
+                <svg viewBox="0 0 100 100" class="wolf-svg">
+                    <!-- 狼頭輪廓 -->
+                    <path fill="currentColor" d="M50,20 
+                        C30,20 15,35 15,55 
+                        C15,75 30,85 50,85 
+                        C70,85 85,75 85,55 
+                        C85,35 70,20 50,20 Z" />
+                    
+                    <!-- 耳朵 -->
+                    <path fill="currentColor" d="M25,40 L15,20 L35,35 Z" />
+                    <path fill="currentColor" d="M75,40 L85,20 L65,35 Z" />
+                    
+                    <!-- 眼睛 -->
+                    <circle cx="35" cy="45" r="5" fill="#302b63"/>
+                    <circle cx="65" cy="45" r="5" fill="#302b63"/>
+                    <circle cx="35" cy="43" r="2" fill="#fff"/>
+                    <circle cx="65" cy="43" r="2" fill="#fff"/>
+                    
+                    <!-- 鼻子 -->
+                    <path fill="#302b63" d="M50,55 
+                        C45,55 40,58 40,62 
+                        C40,66 45,70 50,70 
+                        C55,70 60,66 60,62 
+                        C60,58 55,55 50,55 Z" />
+                    
+                    <!-- 嘴巴 -->
+                    <path fill="none" stroke="#302b63" stroke-width="2"
+                        d="M40,65 C45,70 55,70 60,65" />
+                </svg>
             </div>
         </button>
     </div>
     <input type="text" id="custom-text" placeholder="自定義嚎叫文字" value="嗷嗚嗚嗚嗚~">
 
     <script>
-        // 預加載音效
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const howlSounds = [];
-        const MAX_SOUNDS = 10;
+        // 創建星空背景
+        function createStars() {
+            const starsContainer = document.querySelector('.stars');
+            const numberOfStars = 100;
 
-        // 創建音效池
-        for (let i = 0; i < MAX_SOUNDS; i++) {
-            howlSounds.push({
-                oscillator: null,
-                gainNode: null,
-                isPlaying: false
-            });
+            for (let i = 0; i < numberOfStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const size = Math.random() * 3 + 1;
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                
+                star.style.cssText = `
+                    width: ${size}px;
+                    height: ${size}px;
+                    left: ${x}%;
+                    top: ${y}%;
+                    --duration: ${Math.random() * 3 + 2}s;
+                    --opacity: ${Math.random() * 0.7 + 0.3};
+                `;
+                
+                starsContainer.appendChild(star);
+            }
         }
+
+        createStars();
+
+        // 音效系統
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const howlSounds = Array(10).fill().map(() => ({
+            oscillator: null,
+            gainNode: null,
+            isPlaying: false
+        }));
 
         function getAvailableSound() {
             return howlSounds.find(sound => !sound.isPlaying) || howlSounds[0];
@@ -221,10 +300,8 @@
             }
 
             const sound = getAvailableSound();
-            if (sound.isPlaying) {
-                if (sound.oscillator) {
-                    sound.oscillator.stop();
-                }
+            if (sound.isPlaying && sound.oscillator) {
+                sound.oscillator.stop();
             }
 
             const oscillator = audioContext.createOscillator();
@@ -240,7 +317,6 @@
             const now = audioContext.currentTime;
             oscillator.type = 'sawtooth';
             
-            // 更短的嚎叫音效
             oscillator.frequency.setValueAtTime(800 * playbackRate, now);
             oscillator.frequency.linearRampToValueAtTime(400 * playbackRate, now + 0.1);
             
@@ -263,7 +339,6 @@
             text.className = 'howl-text';
             text.textContent = customTextInput.value || '嗷嗚嗚嗚嗚~';
             
-            // 隨機位置和旋轉
             const angle = Math.random() * 60 - 30;
             const offsetX = (Math.random() - 0.5) * 100;
             const offsetY = (Math.random() - 0.5) * 50;
@@ -273,29 +348,25 @@
             text.style.transform = `rotate(${angle}deg)`;
             
             textContainer.appendChild(text);
-
-            text.addEventListener('animationend', () => {
-                text.remove();
-            });
+            text.addEventListener('animationend', () => text.remove());
         }
 
+        // 初始化變量
         let count = 0;
         let isHowling = false;
         let howlInterval = null;
+        let lastClickTime = 0;
+        const minClickInterval = 50;
+
+        // 點擊事件處理
         const wolf = document.getElementById('wolf');
         const countDisplay = document.getElementById('count');
         const customTextInput = document.getElementById('custom-text');
         const container = document.querySelector('.container');
 
-        // 點擊處理
-        let lastClickTime = 0;
-        const minClickInterval = 50; // 最小點擊間隔（毫秒）
-
         wolf.addEventListener('click', async (e) => {
             const currentTime = Date.now();
-            if (currentTime - lastClickTime < minClickInterval) {
-                return; // 忽略過快的點擊
-            }
+            if (currentTime - lastClickTime < minClickInterval) return;
             lastClickTime = currentTime;
 
             e.preventDefault();
@@ -333,18 +404,4 @@
 
         // 防止默認行為
         document.addEventListener('touchstart', e => {
-            if (e.touches.length > 1) e.preventDefault();
-        }, { passive: false });
-
-        document.addEventListener('touchmove', e => {
-            e.preventDefault();
-        }, { passive: false });
-
-        // 自動月亮效果
-        setInterval(() => {
-            const moon = document.querySelector('.moon i');
-            moon.style.textShadow = `0 0 ${20 + Math.random() * 20}px rgba(200, 200, 255, 0.8)`;
-        }, 2000);
-    </script>
-</body>
-</html>
+            if (e.touches.length > 1) e.
