@@ -105,15 +105,18 @@
         @keyframes appear-move {
             0% {
                 opacity: 0;
-                transform: scale(0.5);
+                transform: scale(0.5) rotate(0deg);
             }
             10% {
                 opacity: 1;
-                transform: scale(1.2);
+                transform: scale(1.2) rotate(-10deg);
+            }
+            90% {
+                opacity: 1;
             }
             100% {
                 opacity: 0;
-                transform: scale(0.8) translateY(100px);
+                transform: scale(0.8) rotate(10deg) translateY(50px);
             }
         }
 
@@ -172,6 +175,10 @@
                 transform: scale(1.1);
             }
         }
+
+        .rapid-mode .howl-text {
+            animation-duration: 1.5s;
+        }
     </style>
 </head>
 <body>
@@ -181,7 +188,7 @@
     <div id="count">嚎叫次數: 0</div>
     <div class="container">
         <button id="wolf" aria-label="狼嚎">
-            <img src="搞威狼.PNG" alt="狼圖片">
+            <img src="wolf.PNG" alt="狼圖片">
         </button>
     </div>
     <input type="text" id="custom-text" placeholder="自定義嚎叫文字" value="嗷嗚嗚嗚嗚~">
@@ -196,62 +203,65 @@
         const wolfButton = document.getElementById('wolf');
         const customText = document.getElementById('custom-text');
 
-        // 音效池
-        class SoundPool {
-            constructor(size) {
-                this.size = size;
+        // 音效管理器
+        class SoundManager {
+            constructor() {
                 this.sounds = [];
                 this.currentIndex = 0;
-                
-                for (let i = 0; i < size; i++) {
+                this.initSounds(30); // 初始化30個音效實例
+            }
+
+            initSounds(count) {
+                for (let i = 0; i < count; i++) {
                     const audio = new Audio('嗷嗚.mp3');
                     audio.preload = 'auto';
                     this.sounds.push(audio);
                 }
             }
-            
-            play() {
-                // 取得下一個可用的音效
+
+            playSound() {
                 const sound = this.sounds[this.currentIndex];
                 sound.currentTime = 0;
                 sound.play();
-                
-                // 更新索引
-                this.currentIndex = (this.currentIndex + 1) % this.size;
+                this.currentIndex = (this.currentIndex + 1) % this.sounds.length;
             }
 
-            rapidPlay() {
-                // 同時播放多個音效達到疊加效果
-                for (let i = 0; i < 3; i++) {
+            playRapidSounds() {
+                // 連續快速播放多個音效
+                for (let i = 0; i < 5; i++) {
                     setTimeout(() => {
-                        const sound = this.sounds[(this.currentIndex + i) % this.size];
+                        const sound = this.sounds[(this.currentIndex + i) % this.sounds.length];
                         sound.currentTime = 0;
                         sound.play();
-                    }, i * 50);
+                    }, i * 30); // 每30ms播放一次
                 }
-                this.currentIndex = (this.currentIndex + 3) % this.size;
+                this.currentIndex = (this.currentIndex + 5) % this.sounds.length;
             }
         }
 
-        const soundPool = new SoundPool(30); // 創建30個音效實例
+        const soundManager = new SoundManager();
+
+        function getRandomPosition() {
+            const padding = 100; // 文字邊距
+            return {
+                x: Math.random() * (window.innerWidth - padding),
+                y: Math.random() * (window.innerHeight - padding)
+            };
+        }
 
         function createFloatingText() {
             const text = document.createElement('div');
             text.className = 'howl-text';
             text.textContent = customText.value;
             
-            // 隨機位置
-            const randomX = Math.random() * (window.innerWidth - 200);
-            const randomY = Math.random() * (window.innerHeight - 100);
-            
-            // 隨機角度和大小
-            const randomRotate = (Math.random() - 0.5) * 60;
-            const randomScale = 0.8 + Math.random() * 0.8;
+            const position = getRandomPosition();
+            const rotation = (Math.random() - 0.5) * 60; // -30 到 30 度
+            const scale = 0.8 + Math.random() * 0.8; // 0.8 到 1.6 的縮放
             
             text.style.cssText = `
-                left: ${randomX}px;
-                top: ${randomY}px;
-                transform: rotate(${randomRotate}deg) scale(${randomScale});
+                left: ${position.x}px;
+                top: ${position.y}px;
+                transform: rotate(${rotation}deg) scale(${scale});
             `;
             
             textContainer.appendChild(text);
@@ -260,30 +270,33 @@
 
         function startRapidMode() {
             isRapidMode = true;
-            let rapidCount = 0;
-            
+            document.body.classList.add('rapid-mode');
+            let duration = 0;
+            const maxDuration = 20000; // 20秒
+
             rapidInterval = setInterval(() => {
-                if (rapidCount >= 400) { // 20秒 * 20次/秒
+                if (duration >= maxDuration) {
                     stopRapidMode();
                     return;
                 }
-                
-                // 播放疊加音效
-                soundPool.rapidPlay();
-                
-                // 創建多個隨機文字
-                for (let i = 0; i < 5; i++) {
-                    createFloatingText();
+
+                // 播放快速疊加音效
+                soundManager.playRapidSounds();
+
+                // 在螢幕各處創建多個文字
+                for (let i = 0; i < 8; i++) {
+                    setTimeout(() => createFloatingText(), i * 50);
                 }
-                
-                rapidCount++;
-            }, 50); // 每50ms執行一次
-            
+
+                duration += 50;
+            }, 50);
+
             wolfButton.classList.add('howling');
         }
 
         function stopRapidMode() {
             isRapidMode = false;
+            document.body.classList.remove('rapid-mode');
             clearInterval(rapidInterval);
             wolfButton.classList.remove('howling');
         }
@@ -291,29 +304,32 @@
         wolfButton.addEventListener('click', () => {
             count++;
             countDisplay.textContent = `嚎叫次數: ${count}`;
-            
+
             if (count === 20 && !isRapidMode) {
                 startRapidMode();
             } else if (!isRapidMode) {
-                // 一般模式
                 wolfButton.classList.add('howling');
                 
-                // 播放疊加音效
-                soundPool.play();
-                
-                // 創建多個隨機文字
+                // 播放一般音效
+                soundManager.playSound();
+
+                // 創建多個文字動畫
                 for (let i = 0; i < 3; i++) {
                     setTimeout(() => createFloatingText(), i * 100);
                 }
-                
+
                 setTimeout(() => wolfButton.classList.remove('howling'), 300);
             }
         });
 
-        // 適配不同螢幕大小
+        // 適配螢幕大小變化
         window.addEventListener('resize', () => {
             const texts = document.querySelectorAll('.howl-text');
-            texts.forEach(text => text.remove());
+            texts.forEach(text => {
+                const position = getRandomPosition();
+                text.style.left = `${position.x}px`;
+                text.style.top = `${position.y}px`;
+            });
         });
     </script>
 </body>
