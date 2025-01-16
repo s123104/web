@@ -4,12 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>狼嚎網站</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
+
         body {
             min-height: 100vh;
             display: flex;
@@ -17,94 +23,226 @@
             align-items: center;
             justify-content: center;
             background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: #fff;
             font-family: Arial, sans-serif;
+            padding: 20px;
+            color: #fff;
             overflow: hidden;
+            touch-action: manipulation;
         }
+
         #count {
             font-size: 2.5rem;
             color: #c8c8ff;
             margin-bottom: 2rem;
             text-align: center;
+            text-shadow: 0 0 15px rgba(200, 200, 255, 0.8);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+
         .container {
             position: relative;
             width: 220px;
             height: 220px;
+            perspective: 1000px;
         }
+
         #wolf {
             width: 100%;
             height: 100%;
             cursor: pointer;
             border-radius: 50%;
+            transition: all 0.2s ease;
+            background: radial-gradient(circle at 30% 30%, #4a4a8f, #2a2a4a);
             border: none;
             position: relative;
             overflow: hidden;
-            background: no-repeat center/contain url('搞威狼.png');
+            color: #c8c8ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 
+                0 0 30px rgba(74, 74, 143, 0.6),
+                inset 0 0 20px rgba(200, 200, 255, 0.2);
         }
-        .subtitle {
+
+        #wolf img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.2s ease;
+        }
+
+        #wolf:hover {
+            transform: scale(1.05);
+            box-shadow: 
+                0 0 40px rgba(74, 74, 143, 0.8),
+                inset 0 0 30px rgba(200, 200, 255, 0.3);
+        }
+
+        #wolf:active {
+            transform: scale(0.95);
+        }
+
+        #wolf.howling {
+            animation: howl 0.3s ease-in-out infinite;
+        }
+
+        .howl-text {
             position: absolute;
-            top: 0;
-            left: 0;
-            font-size: 1rem;
-            color: #fff;
-            animation: floatUp 2s ease-out infinite;
+            color: #c8c8ff;
+            font-weight: bold;
+            font-size: 1.5rem;
             pointer-events: none;
+            text-shadow: 0 0 8px rgba(74, 74, 143, 0.8);
+            white-space: nowrap;
+            z-index: 10;
         }
-        @keyframes floatUp {
+
+        @keyframes floatText {
             0% {
+                opacity: 0;
+                transform: translate(calc(random * 100vw), calc(random * 100vh)) scale(0.8);
+            }
+            50% {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translate(calc(random * 100vw), calc(random * 100vh)) scale(1.2);
             }
             100% {
                 opacity: 0;
-                transform: translateY(-200px);
+                transform: translate(calc(random * 100vw), calc(random * 100vh)) scale(0.8);
+            }
+        }
+
+        #custom-text {
+            margin-top: 2rem;
+            padding: 0.8rem 1.2rem;
+            font-size: 1.1rem;
+            border: 2px solid #4a4a8f;
+            border-radius: 12px;
+            outline: none;
+            width: 220px;
+            text-align: center;
+            background: rgba(42, 42, 74, 0.6);
+            color: #fff;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .text-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .moon {
+            position: fixed;
+            top: 40px;
+            right: 40px;
+            font-size: 4rem;
+            color: #c8c8ff;
+            animation: moonGlow 4s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes moonGlow {
+            0%, 100% {
+                text-shadow: 0 0 20px rgba(200, 200, 255, 0.6);
+                transform: scale(1);
+            }
+            50% {
+                text-shadow: 0 0 40px rgba(200, 200, 255, 0.8);
+                transform: scale(1.1);
             }
         }
     </style>
 </head>
 <body>
+    <div class="moon">
+        <i class="fas fa-moon"></i>
+    </div>
     <div id="count">嚎叫次數: 0</div>
     <div class="container">
-        <button id="wolf" aria-label="狼嚎"></button>
+        <div class="text-container"></div>
+        <button id="wolf" aria-label="狼嚎">
+            <img src="搞威狼.png" alt="狼圖片">
+        </button>
     </div>
-    <audio id="wolf-sound" src="嗷嗚.mp3"></audio>
+    <input type="text" id="custom-text" placeholder="自定義嚎叫文字" value="嗷嗚嗚嗚嗚~">
     <script>
         let count = 0;
+        let soundInstances = [];
+        const maxSounds = 20;
+        const textContainer = document.querySelector('.text-container');
         const countDisplay = document.getElementById('count');
         const wolfButton = document.getElementById('wolf');
-        const wolfSound = document.getElementById('wolf-sound');
-        const container = document.querySelector('.container');
+        const customText = document.getElementById('custom-text');
 
-        function playSound() {
-            const newSound = wolfSound.cloneNode();
-            newSound.play();
+        // 預先載入多個音效實例
+        for (let i = 0; i < maxSounds; i++) {
+            const audio = new Audio('嗷嗚.mp3');
+            audio.preload = 'auto';
+            soundInstances.push(audio);
         }
 
-        function generateSubtitle() {
-            const subtitle = document.createElement('div');
-            subtitle.textContent = "嗷嗚嗚嗚嗚~";
-            subtitle.className = 'subtitle';
-            subtitle.style.left = `${Math.random() * 100}%`;
-            subtitle.style.top = `${Math.random() * 100}%`;
-            container.appendChild(subtitle);
+        function createFloatingText() {
+            const text = document.createElement('div');
+            text.className = 'howl-text';
+            text.textContent = customText.value;
             
-            // 移除動畫結束的字幕
-            subtitle.addEventListener('animationend', () => {
-                subtitle.remove();
-            });
+            // 隨機位置和動畫
+            const randomX = Math.random() * window.innerWidth;
+            const randomY = Math.random() * window.innerHeight;
+            const randomRotate = (Math.random() - 0.5) * 60;
+            const randomScale = 0.8 + Math.random() * 0.8;
+            
+            text.style.cssText = `
+                position: fixed;
+                left: ${randomX}px;
+                top: ${randomY}px;
+                transform: rotate(${randomRotate}deg) scale(${randomScale});
+                opacity: 0;
+                animation: floatText 2s ease-out forwards;
+            `;
+            
+            textContainer.appendChild(text);
+            setTimeout(() => text.remove(), 2000);
+        }
+
+        function playSound() {
+            // 當達到20次時，快速連續播放所有音效
+            if (count === 20) {
+                soundInstances.forEach((audio, index) => {
+                    setTimeout(() => {
+                        audio.currentTime = 0;
+                        audio.play();
+                    }, index * 50); // 每50ms播放一次
+                });
+            } else {
+                // 正常播放並疊加音效
+                const currentSound = soundInstances[count % maxSounds];
+                currentSound.currentTime = 0;
+                currentSound.play();
+            }
         }
 
         wolfButton.addEventListener('click', () => {
             count++;
             countDisplay.textContent = `嚎叫次數: ${count}`;
+            wolfButton.classList.add('howling');
+            
+            // 播放音效
             playSound();
-
-            if (count >= 20) {
-                for (let i = 0; i < 100; i++) {
-                    generateSubtitle();
-                }
+            
+            // 創建多個浮動文字
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => createFloatingText(), i * 100);
             }
+            
+            setTimeout(() => wolfButton.classList.remove('howling'), 300);
         });
     </script>
 </body>
