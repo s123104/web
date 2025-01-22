@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智慧 Prompt 生成器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #4f46e5;
+        --primary-dark: #4338ca;
+        --danger: #ef4444;
+        --danger-dark: #dc2626;
+        --success: #22c55e;
+        --success-dark: #16a34a;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-400: #9ca3af;
+        --gray-500: #6b7280;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-800: #1f2937;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+          0 2px 4px -2px rgb(0 0 0 / 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        transition: all 0.2s ease;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        padding: 2rem;
+        background-color: var(--gray-100);
+        color: var(--gray-800);
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: var(--shadow-md);
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 1rem;
+        }
+
+        .container {
+          padding: 1rem;
+        }
+
+        .header h1 {
+          font-size: 1.5rem;
+        }
+
+        .upload-section {
+          padding: 1rem;
+        }
+
+        .version-control {
+          flex-direction: column;
+        }
+
+        .version-input {
+          width: 100%;
+        }
+
+        .save-btn {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+        position: relative;
+        padding-top: 1rem;
+      }
+
+      .logo {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 1rem;
+        animation: float 6s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      .header h1 {
+        font-size: 2rem;
+        color: var(--gray-800);
+        margin-bottom: 0.25rem;
+        position: relative;
+        display: inline-block;
+      }
+
+      .header .title-ch {
+        font-weight: 600;
+        background: linear-gradient(120deg, var(--primary), #818cf8);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .header .title-en {
+        font-family: "Cinzel", serif;
+        font-size: 1.25rem;
+        color: var(--gray-500);
+        letter-spacing: 0.05em;
+        margin-top: 0.5rem;
+        display: block;
+      }
+
+      .header p {
+        color: var(--gray-600);
+        margin-top: 1rem;
+      }
+
+      @media (max-width: 768px) {
+        .header {
+          margin-bottom: 2rem;
+        }
+
+        .logo {
+          width: 48px;
+          height: 48px;
+        }
+
+        .header h1 {
+          font-size: 1.5rem;
+        }
+
+        .header .title-en {
+          font-size: 1rem;
+        }
+      }
+
+      .upload-section {
+        margin-bottom: 2rem;
+        padding: 2rem;
+        border: 2px dashed var(--gray-300);
+        border-radius: 0.75rem;
+        text-align: center;
+        background: var(--gray-50);
+        transition: all 0.3s ease;
+      }
+
+      .upload-section:hover,
+      .upload-section.drag-over {
+        border-color: var(--primary);
+        background: #f5f7ff;
+      }
+
+      .upload-icon {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 1rem;
+        color: var(--gray-400);
+      }
+
+      .upload-section:hover .upload-icon {
+        color: var(--primary);
+        transform: scale(1.1);
+      }
+
+      .file-input {
+        display: none;
+      }
+
+      .upload-button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        margin-top: 1rem;
+      }
+
+      .upload-button:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+      }
+
+      .upload-button svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .file-list {
+        margin-bottom: 2rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .file-item {
+        background: var(--gray-50);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        cursor: move;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid var(--gray-200);
+        transform-origin: center;
+        animation: slideIn 0.3s ease;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .file-item:hover {
+        background: white;
+        border-color: var(--primary);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .file-item.dragging {
+        opacity: 0.5;
+        background: var(--gray-100);
+        box-shadow: var(--shadow-md);
+      }
+
+      .file-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .file-icon {
+        width: 24px;
+        height: 24px;
+        color: var(--primary);
+      }
+
+      .file-path {
+        color: var(--gray-700);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-size: 0.875rem;
+      }
+
+      .delete-btn {
+        background: transparent;
+        color: var(--gray-400);
+        border: none;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .delete-btn:hover {
+        color: var(--danger);
+        background: var(--gray-100);
+      }
+
+      .delete-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .version-control {
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .version-input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--gray-300);
+        border-radius: 0.5rem;
+        outline: none;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+      }
+
+      .version-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+      }
+
+      .saved-versions {
+        margin-top: 1.5rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .version-item {
+        background: var(--gray-50);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid var(--gray-200);
+        animation: fadeIn 0.3s ease;
+      }
+
+      .version-item:hover {
+        background: white;
+        border-color: var(--primary);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .version-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .version-name {
+        font-weight: 500;
+        color: var(--gray-800);
+      }
+
+      .version-time {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+      }
+
+      .version-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .delete-version-btn {
+        padding: 0.5rem;
+        border: none;
+        background: transparent;
+        color: var(--danger);
+        border-radius: 0.375rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+
+      .delete-version-btn:hover {
+        background: var(--gray-100);
+      }
+
+      .delete-version-btn svg {
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+
+      .output-container {
+        position: relative;
+        margin-top: 1.5rem;
+        display: none; /* 預設隱藏 */
+      }
+
+      .output-container.show {
+        display: block;
+      }
+
+      .copy-btn-container {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        z-index: 10;
+      }
+
+      .copy-btn {
+        display: flex;
+        gap: 0.25rem;
+        align-items: center;
+        padding: 0.25rem 1rem;
+        background: var(--gray-50);
+        border: none;
+        border-radius: 0.375rem;
+        cursor: pointer;
+        font-size: 0.75rem;
+        color: var(--gray-600);
+        transition: all 0.2s ease;
+      }
+
+      .copy-btn:hover {
+        background: var(--gray-100);
+      }
+
+      .copy-btn svg {
+        width: 1rem;
+        height: 1rem;
+      }
+
+      .copy-btn.copied {
+        background: var(--gray-100);
+        color: var(--gray-700);
+      }
+
+      @media (max-width: 768px) {
+        .copy-btn {
+          padding: 0.25rem 0.75rem;
+        }
+      }
+
+      .output {
+        background: var(--gray-800);
+        color: var(--gray-100);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        white-space: pre-wrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-size: 0.875rem;
+        line-height: 1.7;
+        position: relative;
+        overflow-x: auto;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <svg
+          class="logo"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12 2L2 7L12 12L22 7L12 2Z"
+            stroke="var(--primary)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M2 17L12 22L22 17"
+            stroke="var(--primary)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M2 12L12 17L22 12"
+            stroke="var(--primary)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <circle cx="12" cy="12" r="2" fill="var(--primary)" />
+        </svg>
+        <h1>
+          <span class="title-ch">智慧 Prompt 生成器</span>
+          <span class="title-en">Smart Prompt Generator</span>
+        </h1>
+        <p>快速整理並生成結構化的 AI 提示文件</p>
+      </div>
+
+      <div class="upload-section" id="dropZone">
+        <svg
+          class="upload-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        <input
+          type="file"
+          id="fileInput"
+          class="file-input"
+          multiple
+          webkitdirectory
+          directory
+        />
+        <p>拖放檔案至此，或</p>
+        <button
+          class="upload-button"
+          onclick="document.getElementById('fileInput').click()"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          選擇檔案
+        </button>
+      </div>
+
+      <div class="version-control">
+        <input
+          type="text"
+          class="version-input"
+          id="versionName"
+          placeholder="輸入版本名稱"
+        />
+        <button class="save-btn" onclick="saveVersion()">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+            />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
+          儲存版本
+        </button>
+      </div>
+
+      <div class="file-list" id="fileList"></div>
+      <div class="saved-versions" id="savedVersions"></div>
+
+      <div class="output-container">
+        <div class="copy-btn-container">
+          <button class="copy-btn" onclick="copyOutput()" id="copyButton">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              class="icon-xs"
+            >
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z"
+                fill="currentColor"
+              />
+            </svg>
+            複製
+          </button>
+        </div>
+        <pre class="output" id="output"></pre>
+      </div>
+    </div>
+
+    <script>
+      let files = [];
+      let savedVersions = [];
+      let draggedItem = null;
+
+      // 初始化
+      document.addEventListener("DOMContentLoaded", () => {
+        setupDragAndDrop();
+        setupFileInput();
+        loadSavedVersions();
+      });
+
+      // 從 localStorage 載入已儲存的版本
+      function loadSavedVersions() {
+        try {
+          const savedData = localStorage.getItem("promptVersions");
+          if (savedData) {
+            savedVersions = JSON.parse(savedData);
+            updateVersionsList();
+          }
+        } catch (err) {
+          console.error("載入版本失敗:", err);
+        }
+      }
+
+      // 儲存版本到 localStorage
+      function saveVersionsToStorage() {
+        try {
+          localStorage.setItem("promptVersions", JSON.stringify(savedVersions));
+        } catch (err) {
+          console.error("儲存版本失敗:", err);
+        }
+      }
+
+      // 設置拖放功能
+      function setupDragAndDrop() {
+        const dropZone = document.getElementById("dropZone");
+
+        dropZone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          dropZone.classList.add("drag-over");
+        });
+
+        dropZone.addEventListener("dragleave", () => {
+          dropZone.classList.remove("drag-over");
+        });
+
+        dropZone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dropZone.classList.remove("drag-over");
+          handleFiles(e.dataTransfer.files);
+        });
+      }
+
+      // 設置文件輸入
+      function setupFileInput() {
+        document.getElementById("fileInput").addEventListener("change", (e) => {
+          handleFiles(e.target.files);
+        });
+      }
+
+      // 處理文件
+      async function handleFiles(fileList) {
+        for (const file of fileList) {
+          try {
+            const content = await readFileContent(file);
+            files.push({
+              id: Math.random().toString(36).substr(2, 9),
+              name: file.name,
+              path: file.webkitRelativePath || file.name,
+              content,
+              type: getFileType(file.name),
+            });
+          } catch (err) {
+            console.error("Error reading file:", err);
+          }
+        }
+        updateUI();
+      }
+
+      // 讀取文件內容
+      function readFileContent(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = reject;
+          reader.readAsText(file);
+        });
+      }
+
+      // 獲取文件類型
+      function getFileType(filename) {
+        const ext = filename.split(".").pop().toLowerCase();
+        const codeExts = [
+          "js",
+          "py",
+          "java",
+          "cpp",
+          "html",
+          "css",
+          "jsx",
+          "ts",
+          "tsx",
+        ];
+        return codeExts.includes(ext) ? "code" : "text";
+      }
+
+      // 更新UI
+      function updateUI() {
+        updateFileList();
+        updateOutput();
+        updateVersionsList();
+      }
+
+      // 更新文件列表
+      function updateFileList() {
+        const fileList = document.getElementById("fileList");
+        fileList.innerHTML = files
+          .map(
+            (file, index) => `
+                <div class="file-item" draggable="true" data-index="${index}">
+                    <div class="file-info">
+                        <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                            <polyline points="13 2 13 9 20 9"></polyline>
+                        </svg>
+                        <span class="file-path">${file.path}</span>
+                    </div>
+                    <button class="delete-btn" onclick="deleteFile('${file.id}')" title="刪除檔案">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
+            `
+          )
+          .join("");
+
+        setupFileDragAndDrop();
+      }
+
+      // 設置文件拖放排序
+      function setupFileDragAndDrop() {
+        const fileItems = document.querySelectorAll(".file-item");
+
+        fileItems.forEach((item) => {
+          item.addEventListener("dragstart", handleDragStart);
+          item.addEventListener("dragend", handleDragEnd);
+          item.addEventListener("dragover", handleDragOver);
+          item.addEventListener("drop", handleDrop);
+        });
+      }
+
+      function handleDragStart(e) {
+        draggedItem = e.target;
+        e.target.classList.add("dragging");
+      }
+
+      function handleDragEnd(e) {
+        e.target.classList.remove("dragging");
+        draggedItem = null;
+      }
+
+      function handleDragOver(e) {
+        e.preventDefault();
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        if (draggedItem) {
+          const draggedIndex = parseInt(draggedItem.dataset.index);
+          const dropIndex = parseInt(
+            e.target.closest(".file-item").dataset.index
+          );
+
+          const tempFiles = [...files];
+          const [draggedFile] = tempFiles.splice(draggedIndex, 1);
+          tempFiles.splice(dropIndex, 0, draggedFile);
+
+          files = tempFiles;
+          updateUI();
+        }
+      }
+
+      // 刪除文件
+      function deleteFile(id) {
+        files = files.filter((file) => file.id !== id);
+        updateUI();
+      }
+
+      // 產生輸出
+      function updateOutput() {
+        const outputContainer = document.querySelector(".output-container");
+
+        if (files.length === 0) {
+          outputContainer.classList.remove("show");
+          return;
+        }
+
+        let output = "";
+        const paths = new Set(
+          files.map((f) => f.path.split("/").slice(0, -1).join("/"))
+        );
+
+        paths.forEach((path) => {
+          if (path) {
+            output += `\n## ${path}\n\n`;
+            const pathFiles = files.filter((f) =>
+              f.path.startsWith(path + "/")
+            );
+            pathFiles.forEach((file) => {
+              output += `### ${file.name}\n\`\`\`${file.type}\n${file.content}\n\`\`\`\n\n`;
+            });
+          }
+        });
+
+        const rootFiles = files.filter((f) => !f.path.includes("/"));
+        rootFiles.forEach((file) => {
+          output += `### ${file.name}\n\`\`\`${file.type}\n${file.content}\n\`\`\`\n\n`;
+        });
+
+        document.getElementById("output").textContent = output;
+        outputContainer.classList.add("show");
+      }
+
+      // 複製輸出到剪貼簿
+      async function copyOutput() {
+        const output = document.getElementById("output").textContent;
+        const copyButton = document.getElementById("copyButton");
+
+        try {
+          await navigator.clipboard.writeText(output);
+
+          // 更新按鈕外觀
+          copyButton.classList.add("copied");
+          copyButton.innerHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-xs">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M18.0633 5.67387C18.5196 5.98499 18.6374 6.60712 18.3262 7.06343L10.8262 18.0634C10.6585 18.3095 10.3898 18.4679 10.0934 18.4957C9.79688 18.5235 9.50345 18.4178 9.29289 18.2072L4.79289 13.7072C4.40237 13.3167 4.40237 12.6835 4.79289 12.293C5.18342 11.9025 5.81658 11.9025 6.20711 12.293L9.85368 15.9396L16.6738 5.93676C16.9849 5.48045 17.607 5.36275 18.0633 5.67387Z" fill="currentColor"/>
+                    </svg>
+                    已複製
+                `;
+
+          // 2秒後恢復原狀
+          setTimeout(() => {
+            copyButton.classList.remove("copied");
+            copyButton.innerHTML = `
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-xs">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"/>
+                        </svg>
+                        複製
+                    `;
+          }, 2000);
+        } catch (err) {
+          console.error("複製失敗:", err);
+        }
+      }
+
+      // 儲存版本
+      function saveVersion() {
+        const versionName = document.getElementById("versionName").value.trim();
+        if (!versionName) {
+          alert("請輸入版本名稱");
+          return;
+        }
+        const newVersion = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: versionName,
+          files: [...files],
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        };
+
+        savedVersions.push(newVersion);
+        document.getElementById("versionName").value = "";
+
+        saveVersionsToStorage();
+        updateVersionsList();
+      }
+
+      // 更新版本列表
+      function updateVersionsList() {
+        const versionsList = document.getElementById("savedVersions");
+        versionsList.innerHTML = savedVersions
+          .map(
+            (version) => `
+                <div class="version-item">
+                    <div class="version-info">
+                        <span class="version-name">${version.name}</span>
+                        <span class="version-time">
+                            建立：${formatDate(version.created)}<br>
+                            更新：${formatDate(version.updated)}
+                        </span>
+                    </div>
+                    <div class="version-actions">
+                        <button class="save-btn" onclick="loadVersion('${
+                          version.id
+                        }')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 1.25rem; height: 1.25rem;">
+                                <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                            </svg>
+                            載入
+                        </button>
+                        <button class="delete-version-btn" onclick="deleteVersion('${
+                          version.id
+                        }')" title="刪除版本">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      // 格式化日期
+      function formatDate(dateString) {
+        const date = new Date(dateString);
+        return `${date.getFullYear()}/${(date.getMonth() + 1)
+          .toString()
+          .padStart(2, "0")}/${date
+          .getDate()
+          .toString()
+          .padStart(2, "0")} ${date
+          .getHours()
+          .toString()
+          .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+      }
+
+      // 載入版本
+      function loadVersion(id) {
+        const version = savedVersions.find((v) => v.id === id);
+        if (version) {
+          files = [...version.files];
+          version.updated = new Date().toISOString();
+          saveVersionsToStorage();
+          updateUI();
+        }
+      }
+
+      // 刪除版本
+      function deleteVersion(id) {
+        if (confirm("確定要刪除此版本嗎？")) {
+          savedVersions = savedVersions.filter((v) => v.id !== id);
+          saveVersionsToStorage();
+          updateVersionsList();
+        }
+      }
+    </script>
+  </body>
+</html>
