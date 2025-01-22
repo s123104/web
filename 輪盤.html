@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>終極輪盤抽獎</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+<!-- 引入 Fireworks.js -->
+<script src="https://cdn.jsdelivr.net/npm/fireworks-js@2.x/dist/index.umd.js"></script>
+<style>
+  :root {
+    /* 結合溫馨與現代感的配色 */
+    --primary: #f9d5a7;
+    --secondary: #fac886;
+    --accent: #f8b35e;
+    --background: #1a1a2e;
+    --text: #4a4a4a;
+    --modern-text: #ffffff;
+    --modern-primary: #4fc3dc;
+  }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: linear-gradient(135deg, var(--background), #16213e);
+    color: var(--modern-text);
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  h1 {
+    text-align: center;
+    color: var(--modern-primary);
+    text-shadow: 0 0 10px rgba(79,195,220,0.8);
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+  }
+
+  .container {
+    max-width: 1200px;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .wheel-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 30px auto;
+  }
+
+  .wheel-outer-border {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    border: 10px solid var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 10px var(--secondary), 0 0 20px rgba(0,0,0,0.2);
+  }
+
+  .wheel {
+    width: 100%;
+    padding-bottom: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .wheel-section {
+    position: absolute;
+    width: 50%;
+    height: 50%;
+    transform-origin: 100% 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .wheel-section span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    transform-origin: center;
+    padding: 0 10px;
+    box-sizing: border-box;
+  }
+
+  .spin-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  .spin-button:hover {
+    background-color: var(--secondary);
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+
+  .settings, .history {
+    background-color: var(--primary);
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    color: var(--text);
+  }
+
+  .settings.hidden { display: none; }
+
+  textarea, input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid var(--secondary);
+    border-radius: 5px;
+    background-color: #fff9f2;
+  }
+
+  .wheel-pointer {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-top: 40px solid var(--accent);
+    z-index: 20;
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+  }
+
+  .modal-content {
+    background-color: #fff9f2;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid var(--secondary);
+    width: 80%;
+    max-width: 500px;
+    border-radius: 15px;
+    text-align: center;
+  }
+
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .winner-text {
+    font-size: 24px;
+    color: var(--accent);
+    margin: 20px 0;
+  }
+
+  /* Fireworks 容器樣式 */
+  .fireworks {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>終極輪盤抽獎</h1>
+  
+  <div class="wheel-container">
+    <div class="wheel-outer-border"></div>
+    <div class="wheel-pointer"></div>
+    <div class="wheel" id="wheel"></div>
+    <button class="spin-button" id="spinBtn">抽獎</button>
+  </div>
+
+  <div id="settingsPanel" class="settings hidden">
+    <h2>設定</h2>
+    <input type="text" id="title" placeholder="輸入標題">
+    <textarea id="items" rows="5" placeholder="輸入抽籤項目（每行一個）"></textarea>
+    <div>
+      <input type="checkbox" id="removeWinner">
+      <label for="removeWinner">移除中獎者再抽一次</label>
+    </div>
+  </div>
+
+  <div class="history">
+    <h2>歷史得獎紀錄</h2>
+    <ul id="historyList"></ul>
+  </div>
+</div>
+
+<!-- 勝利彈窗 -->
+<div id="winnerModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>恭喜中獎！</h2>
+    <p class="winner-text" id="winnerText"></p>
+  </div>
+</div>
+
+<script>
+  const wheel = document.getElementById('wheel');
+  const spinBtn = document.getElementById('spinBtn');
+  const settingsPanel = document.getElementById('settingsPanel');
+  const titleInput = document.getElementById('title');
+  const itemsInput = document.getElementById('items');
+  const removeWinnerCheckbox = document.getElementById('removeWinner');
+  const historyList = document.getElementById('historyList');
+  const winnerModal = document.getElementById('winnerModal');
+  const winnerText = document.getElementById('winnerText');
+  const closeModal = document.getElementsByClassName('close')[0];
+
+  let items = [];
+  let angles = [];
+  let colors = ['#ffd700', '#ff9900', '#ff6600', '#ff3300', '#ff0099', '#cc00ff', '#9900ff', '#6600ff', '#3300ff', '#0066ff'];
+
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  function createWheel() {
+    wheel.innerHTML = '';
+    items = itemsInput.value.split('\n').filter(item => item.trim() !== '');
+    if (items.length === 0) {
+      items = Array.from({length: 10}, (_, i) => `項目 ${i + 1}`);
+    }
+    const anglePerItem = 360 / items.length;
+    angles = [];
+    let shuffledColors = shuffleArray([...colors]);
+
+    items.forEach((item, index) => {
+      const section = document.createElement('div');
+      section.className = 'wheel-section';
+      section.style.transform = `rotate(${index * anglePerItem}deg) skewY(${90 - anglePerItem}deg)`;
+      section.style.backgroundColor = shuffledColors[index % shuffledColors.length];
+
+      const span = document.createElement('span');
+      span.textContent = item;
+      span.style.transform = `skewY(-${90 - anglePerItem}deg) rotate(${anglePerItem / 2}deg)`;
+      section.appendChild(span);
+
+      wheel.appendChild(section);
+      angles.push(360 - (index * anglePerItem));
+    });
+  }
+
+  function spin() {
+    if (items.length === 0) return;
+    spinBtn.disabled = true;
+    const randomIndex = Math.floor(Math.random() * items.length);
+    const minRotations = 5;
+    const extraRotations = (minRotations + Math.random() * 3) * 360;
+    const targetAngle = angles[randomIndex] + extraRotations;
+
+    gsap.to(wheel, {
+      rotation: targetAngle,
+      duration: 8,
+      ease: "power2.out",
+      onComplete: () => {
+        announceWinner(randomIndex);
+        spinBtn.disabled = false;
+      }
+    });
+  }
+
+  function announceWinner(index) {
+    const winner = items[index];
+    showFireworks();
+    winnerText.textContent = winner;
+    winnerModal.style.display = "block";
+    addToHistory(winner);
+
+    if (removeWinnerCheckbox.checked) {
+      items.splice(index, 1);
+      createWheel();
+    }
+  }
+
+  function addToHistory(winner) {
+    const li = document.createElement('li');
+    li.textContent = `${titleInput.value || '抽籤'}: ${winner}`;
+    historyList.prepend(li);
+    gsap.from(li, {
+      opacity: 0,
+      y: -20,
+      duration: 0.5,
+      ease: "power2.out"
+    });
+  }
+
+  function showFireworks() {
+    const fireworksContainer = document.createElement('div');
+    fireworksContainer.className = 'fireworks';
+    document.body.appendChild(fireworksContainer);
+
+    for (let i = 0; i < 100; i++) {
+      const firework = document.createElement('div');
+      firework.style.position = 'absolute';
+      firework.style.width = '5px';
+      firework.style.height = '5px';
+      firework.style.borderRadius = '50%';
+      firework.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      fireworksContainer.appendChild(firework);
+
+      gsap.to(firework, {
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        opacity: 0,
+        scale: 0,
+        duration: 2,
+        delay: Math.random() * 2,
+        ease: "power2.out",
+        onComplete: () => fireworksContainer.removeChild(firework)
+      });
+    }
+
+    setTimeout(() => document.body.removeChild(fireworksContainer), 4000);
+  }
+
+  closeModal.onclick = function() {
+    winnerModal.style.display = "none";
+  }
+
+  window.onclick = function(event) {
+    if (event.target == winnerModal) {
+      winnerModal.style.display = "none";
+    }
+  }
+
+  spinBtn.addEventListener('click', spin);
+  itemsInput.addEventListener('input', () => {
+    createWheel();
+    if (itemsInput.value.trim() !== '') {
+      itemsInput.placeholder = '';
+    } else {
+      itemsInput.placeholder = '輸入抽籤項目（每行一個）';
+    }
+  });
+
+  // 初始化輪盤
+  createWheel();
+  itemsInput.value = '';
+  itemsInput.placeholder = '輸入抽籤項目（每行一個）';
+</script>
+</body>
+</html>
