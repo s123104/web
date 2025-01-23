@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>作品集</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #0f172a;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        color: #e2e8f0;
+        min-height: 100vh;
+        background: radial-gradient(
+          circle at 50% 50%,
+          #1e293b 0%,
+          #0f172a 100%
+        );
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        text-align: center;
+        margin: 40px 0;
+      }
+
+      .title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #60a5fa, #a855f7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+      }
+
+      .search {
+        width: 100%;
+        max-width: 400px;
+        margin: 30px auto;
+        padding: 12px 25px;
+        border: none;
+        border-radius: 12px;
+        background: #1e293b;
+        color: #e2e8f0;
+        font-size: 0.9rem;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+      }
+
+      .search:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 15px;
+        padding: 20px;
+      }
+
+      .item {
+        position: relative;
+        background: #1e293b;
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        color: #e2e8f0;
+        aspect-ratio: 1;
+        padding: 15px 10px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+      }
+
+      .item::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(96, 165, 250, 0.1),
+          rgba(168, 85, 247, 0.1)
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        border-radius: inherit;
+      }
+
+      .item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        border-color: rgba(96, 165, 250, 0.3);
+      }
+
+      .item:hover::before {
+        opacity: 1;
+      }
+
+      .icon {
+        font-size: 2rem;
+        margin-bottom: 8px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .name {
+        font-size: 0.75rem;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+        opacity: 0.9;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        max-width: 100%;
+        line-height: 1.3;
+      }
+
+      .category-tag {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: 0.6rem;
+        padding: 2px 6px;
+        background: rgba(96, 165, 250, 0.2);
+        border-radius: 8px;
+        color: #93c5fd;
+        z-index: 1;
+      }
+
+      @media (max-width: 768px) {
+        .grid {
+          grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+          gap: 12px;
+        }
+        .icon {
+          font-size: 1.75rem;
+        }
+        .name {
+          font-size: 0.7rem;
+        }
+        .title {
+          font-size: 2rem;
+        }
+      }
+
+      .loader {
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, #60a5fa, #a855f7);
+        position: fixed;
+        top: 0;
+        left: 0;
+        transform-origin: 0 50%;
+        animation: progress 1s ease-in-out;
+      }
+
+      @keyframes progress {
+        from {
+          transform: scaleX(0);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loader"></div>
+    <div class="container">
+      <header class="header">
+        <h1 class="title">作品集</h1>
+      </header>
+      <input type="text" class="search" placeholder="搜尋作品..." />
+      <div class="grid" id="grid"></div>
+    </div>
+
+    <script>
+      const items = [
+        { name: "Depression-solved-extend", icon: "❤️", category: "健康" },
+        { name: "Depression-solved", icon: "❤️", category: "健康" },
+        { name: "Quiz", icon: "📝", category: "教育" },
+        { name: "Wooden_fish", icon: "🎵", category: "工具" },
+        { name: "ai-prompt", icon: "🤖", category: "AI" },
+        { name: "code", icon: "💻", category: "開發" },
+        { name: "coin-hacker", icon: "🪙", category: "工具" },
+        { name: "depression-voice", icon: "🗣️", category: "健康" },
+        { name: "engineer", icon: "🔧", category: "職業" },
+        { name: "exam", icon: "📚", category: "教育" },
+        { name: "exam_tool", icon: "🔨", category: "教育" },
+        { name: "house", icon: "🏠", category: "生活" },
+        { name: "math", icon: "🔢", category: "教育" },
+        { name: "play", icon: "🎮", category: "娛樂" },
+        { name: "rabbit", icon: "🐰", category: "娛樂" },
+        { name: "seat", icon: "💺", category: "工具" },
+        { name: "shorts", icon: "🎥", category: "媒體" },
+        { name: "taiwan", icon: "🇹🇼", category: "在地" },
+        { name: "tesseract-ocr", icon: "📷", category: "AI" },
+        { name: "tex-copy-pro", icon: "📋", category: "工具" },
+        { name: "tex-copy", icon: "📋", category: "工具" },
+        { name: "tex-generate", icon: "⚙️", category: "工具" },
+        { name: "tex", icon: "📄", category: "工具" },
+        { name: "wolf", icon: "🐺", category: "其他" },
+        { name: "出入金", icon: "💰", category: "金融" },
+      ];
+
+      function renderItems(filteredItems = items) {
+        const grid = document.getElementById("grid");
+        grid.innerHTML = "";
+
+        const timeline = gsap.timeline();
+
+        filteredItems.forEach((item, index) => {
+          const div = document.createElement("a");
+          div.href = `${item.name}.html`;
+          div.className = "item";
+          div.style.opacity = "0";
+          div.style.transform = "translateY(20px)";
+          div.innerHTML = `
+                    <span class="category-tag">${item.category}</span>
+                    <span class="icon">${item.icon}</span>
+                    <span class="name">${item.name.replace(".html", "")}</span>
+                `;
+          grid.appendChild(div);
+
+          timeline.to(
+            div,
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.3,
+              ease: "power2.out",
+            },
+            index * 0.03
+          );
+        });
+      }
+
+      const search = document.querySelector(".search");
+      search.addEventListener("input", (e) => {
+        const value = e.target.value.toLowerCase();
+        const filtered = items.filter(
+          (item) =>
+            item.name.toLowerCase().includes(value) ||
+            item.category.toLowerCase().includes(value)
+        );
+        renderItems(filtered);
+      });
+
+      // 載入動畫
+      window.addEventListener("load", () => {
+        gsap.from(".header", {
+          opacity: 0,
+          y: -30,
+          duration: 1,
+          ease: "power3.out",
+        });
+
+        gsap.from(".search", {
+          opacity: 0,
+          y: -20,
+          duration: 0.8,
+          delay: 0.3,
+          ease: "power3.out",
+        });
+
+        renderItems();
+      });
+    </script>
+  </body>
+</html>
