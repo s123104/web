@@ -12,7 +12,15 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Dancing+Script:wght@700&display=swap"
       rel="stylesheet"
     />
+    <!-- 引入 JSZip 庫 -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
     <style>
+      /* 原有樣式保持不變 */
+
       :root {
         --primary: #4f46e5;
         --primary-dark: #4338ca;
@@ -316,6 +324,43 @@
         gap: 0.75rem;
       }
 
+      .file-list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .file-list-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--gray-800);
+      }
+
+      .download-all-button {
+        background: var(--success);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+      }
+
+      .download-all-button:hover {
+        background: var(--success-dark);
+        transform: translateY(-1px);
+      }
+
+      .download-all-button svg {
+        width: 20px;
+        height: 20px;
+      }
+
       .file-item {
         background: var(--gray-50);
         padding: 1rem;
@@ -371,7 +416,12 @@
         font-size: 0.875rem;
       }
 
-      .delete-btn {
+      .file-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .action-btn {
         background: transparent;
         color: var(--gray-400);
         border: none;
@@ -381,14 +431,24 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: all 0.2s ease;
       }
 
-      .delete-btn:hover {
+      .action-btn:hover {
+        background: var(--gray-100);
+      }
+
+      .action-btn.download:hover {
+        color: var(--success);
+        background: var(--gray-100);
+      }
+
+      .action-btn.delete:hover {
         color: var(--danger);
         background: var(--gray-100);
       }
 
-      .delete-btn svg {
+      .action-btn svg {
         width: 20px;
         height: 20px;
       }
@@ -619,6 +679,17 @@
         .copy-btn {
           padding: 0.25rem 0.75rem;
         }
+
+        .file-list-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.5rem;
+        }
+
+        .download-all-button {
+          width: 100%;
+          justify-content: center;
+        }
       }
 
       @keyframes fadeIn {
@@ -627,6 +698,17 @@
         }
         to {
           opacity: 1;
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
       }
     </style>
@@ -692,7 +774,7 @@
           webkitdirectory
           directory
         />
-        <p>拖放檔案至此，或</p>
+        <p>拖放檔案或資料夾至此，或</p>
         <button
           class="upload-button"
           onclick="document.getElementById('fileInput').click()"
@@ -709,8 +791,12 @@
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-          選擇檔案
+          選擇檔案或資料夾
         </button>
+      </div>
+
+      <div class="file-list" id="fileList">
+        <!-- 檔案列表將在有檔案時動態生成 -->
       </div>
 
       <div class="version-control">
@@ -739,7 +825,6 @@
         </button>
       </div>
 
-      <div class="file-list" id="fileList"></div>
       <div class="saved-versions" id="savedVersions"></div>
 
       <div class="output-container">
@@ -767,6 +852,7 @@
       </div>
     </div>
 
+    <!-- 模態框 -->
     <div id="modal" class="modal-backdrop">
       <div class="modal-content">
         <div class="modal-title" id="modalTitle"></div>
@@ -778,18 +864,48 @@
     <!-- 吐司訊息容器 -->
     <div id="toast"></div>
 
-    <div id="modal" class="modal-backdrop">
-      <div class="modal-content">
-        <div class="modal-title" id="modalTitle"></div>
-        <div class="modal-body" id="modalBody"></div>
-        <div class="modal-actions" id="modalActions"></div>
-      </div>
-    </div>
-
     <script>
       let files = [];
       let savedVersions = [];
       let draggedItem = null;
+
+      // 定義文本和二進位檔案的擴展名
+      const textExtensions = [
+        "js",
+        "py",
+        "java",
+        "cpp",
+        "html",
+        "css",
+        "jsx",
+        "ts",
+        "tsx",
+        "php",
+        "blade.php",
+        "json",
+        "md",
+        "txt",
+        "csv",
+        "xml",
+        "yml",
+        "yaml",
+      ];
+      const binaryExtensions = [
+        "jpg",
+        "jpeg",
+        "png",
+        "gif",
+        "bmp",
+        "svg",
+        "ico",
+        "pdf",
+        "zip",
+        "rar",
+        "7z",
+        "exe",
+        "dll",
+        "bin",
+      ];
 
       // 初始化
       document.addEventListener("DOMContentLoaded", () => {
@@ -849,20 +965,39 @@
 
       // 處理文件
       async function handleFiles(fileList) {
+        let failedFiles = [];
         for (const file of fileList) {
+          // 檢查是否為檔案
+          if (!file.type && file.size === 0) {
+            console.warn(`跳過非檔案項目：${file.name}`);
+            continue;
+          }
+
           try {
-            const content = await readFileContent(file);
+            console.log(`開始讀取檔案：${file.name}`);
+            const { content, type } = await readFileContent(file);
             files.push({
               id: Math.random().toString(36).substr(2, 9),
               name: file.name,
               path: file.webkitRelativePath || file.name,
               content,
-              type: getFileType(file.name),
+              type,
             });
+            console.log(`成功讀取檔案：${file.name}`);
           } catch (err) {
-            console.error("Error reading file:", err);
+            console.error(`讀取檔案失敗：${file.name}`, err);
+            failedFiles.push(file.name);
           }
         }
+
+        if (failedFiles.length > 0) {
+          showModal(
+            "讀取部分檔案失敗",
+            `無法讀取以下檔案：\n${failedFiles.join("\n")}`,
+            [{ text: "確認", onClick: "hideModal()", primary: true }]
+          );
+        }
+
         updateUI();
       }
 
@@ -870,27 +1005,49 @@
       function readFileContent(file) {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result);
-          reader.onerror = reject;
-          reader.readAsText(file);
+          const ext = file.name.split(".").pop().toLowerCase();
+          let typeCategory = "binary";
+
+          if (textExtensions.includes(ext)) {
+            typeCategory = "text";
+          } else if (binaryExtensions.includes(ext)) {
+            typeCategory = "binary";
+          } else {
+            // 默認處理為二進位
+            typeCategory = "binary";
+          }
+
+          if (typeCategory === "text") {
+            reader.onload = (e) =>
+              resolve({ content: e.target.result, type: "text" });
+            reader.onerror = (e) => {
+              console.error(`FileReader 錯誤：${file.name}`, e);
+              reject(e);
+            };
+            reader.readAsText(file);
+          } else {
+            // 對於二進位檔案，讀取為 ArrayBuffer
+            reader.onload = (e) =>
+              resolve({ content: e.target.result, type: "binary" });
+            reader.onerror = (e) => {
+              console.error(`FileReader 錯誤：${file.name}`, e);
+              reject(e);
+            };
+            reader.readAsArrayBuffer(file);
+          }
         });
       }
 
       // 獲取文件類型
       function getFileType(filename) {
         const ext = filename.split(".").pop().toLowerCase();
-        const codeExts = [
-          "js",
-          "py",
-          "java",
-          "cpp",
-          "html",
-          "css",
-          "jsx",
-          "ts",
-          "tsx",
-        ];
-        return codeExts.includes(ext) ? ext : "text";
+        if (textExtensions.includes(ext)) {
+          return "text";
+        } else if (binaryExtensions.includes(ext)) {
+          return "binary";
+        } else {
+          return "unknown";
+        }
       }
 
       // 更新UI
@@ -903,78 +1060,186 @@
       // 更新文件列表
       function updateFileList() {
         const fileList = document.getElementById("fileList");
-        fileList.innerHTML = files
-          .map(
-            (file, index) => `
-                <div class="file-item" draggable="true" data-index="${index}">
-                    <div class="file-info">
-                        <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                            <polyline points="13 2 13 9 20 9"></polyline>
-                        </svg>
-                        <span class="file-path">${file.path}</span>
-                    </div>
-                    <button class="delete-btn" onclick="deleteFile('${file.id}')" title="刪除檔案">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                    </button>
-                </div>
-            `
-          )
-          .join("");
 
-        setupFileDragAndDrop();
-      }
-
-      // 設置文件拖放排序
-      function setupFileDragAndDrop() {
-        const fileItems = document.querySelectorAll(".file-item");
-
-        fileItems.forEach((item) => {
-          item.addEventListener("dragstart", handleDragStart);
-          item.addEventListener("dragend", handleDragEnd);
-          item.addEventListener("dragover", handleDragOver);
-          item.addEventListener("drop", handleDrop);
-        });
-      }
-
-      function handleDragStart(e) {
-        draggedItem = e.target;
-        e.target.classList.add("dragging");
-      }
-
-      function handleDragEnd(e) {
-        e.target.classList.remove("dragging");
-        draggedItem = null;
-      }
-
-      function handleDragOver(e) {
-        e.preventDefault();
-      }
-
-      function handleDrop(e) {
-        e.preventDefault();
-        if (draggedItem) {
-          const draggedIndex = parseInt(draggedItem.dataset.index);
-          const dropIndex = parseInt(
-            e.target.closest(".file-item").dataset.index
-          );
-
-          const tempFiles = [...files];
-          const [draggedFile] = tempFiles.splice(draggedIndex, 1);
-          tempFiles.splice(dropIndex, 0, draggedFile);
-
-          files = tempFiles;
-          updateUI();
+        if (files.length === 0) {
+          fileList.innerHTML = "";
+          return;
         }
+
+        // 清除現有列表內容
+        fileList.innerHTML = `
+          <div class="file-list-header">
+            <h2>檔案列表</h2>
+            <button class="download-all-button" onclick="downloadAllFiles()">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+                <polyline points="12 15 12 3" />
+                <path d="M16 11l-4 4-4-4" />
+              </svg>
+              下載全部
+            </button>
+          </div>
+        `;
+
+        files.forEach((file, index) => {
+          const fileItem = document.createElement("div");
+          fileItem.classList.add("file-item");
+          fileItem.setAttribute("draggable", "true");
+          fileItem.dataset.index = index;
+
+          // 根據文件類型顯示不同的圖示和內容
+          let displayContent = "";
+          let icon = "";
+          if (file.type === "text") {
+            icon = `
+              <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                <polyline points="13 2 13 9 20 9"></polyline>
+              </svg>
+            `;
+            displayContent = `<span class="file-path">${file.path}</span>`;
+          } else if (file.type === "binary") {
+            icon = `
+              <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            `;
+            displayContent = `<span class="file-path">${file.path} (二進位檔案)</span>`;
+          } else {
+            icon = `
+              <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            `;
+            displayContent = `<span class="file-path">${file.path} (未知類型)</span>`;
+          }
+
+          fileItem.innerHTML = `
+            <div class="file-info">
+              ${icon}
+              ${displayContent}
+            </div>
+            <div class="file-actions">
+              <button class="action-btn download" onclick="downloadFile('${file.id}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                  <path d="M12 15l-4-4"></path>
+                  <path d="M12 15l4-4"></path>
+                </svg>
+                下載
+              </button>
+              <button class="action-btn delete" onclick="deleteFile('${file.id}')" title="刪除檔案">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+          `;
+
+          // 設置拖放排序事件
+          fileItem.addEventListener("dragstart", handleDragStart);
+          fileItem.addEventListener("dragend", handleDragEnd);
+          fileItem.addEventListener("dragover", handleDragOver);
+          fileItem.addEventListener("drop", handleDrop);
+
+          fileList.appendChild(fileItem);
+        });
       }
 
       // 刪除文件
       function deleteFile(id) {
         files = files.filter((file) => file.id !== id);
         updateUI();
+      }
+
+      // 下載單個文件
+      function downloadFile(id) {
+        const file = files.find((f) => f.id === id);
+        if (!file) {
+          showModal("下載失敗", "找不到該檔案。", [
+            { text: "確認", onClick: "hideModal()", primary: true },
+          ]);
+          return;
+        }
+
+        let blob;
+        let filename = file.name;
+
+        if (file.type === "text") {
+          blob = new Blob([file.content], { type: "text/plain" });
+        } else if (file.type === "binary") {
+          blob = new Blob([file.content]);
+        } else {
+          blob = new Blob([file.content]);
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        showToast(`已下載：${filename}`);
+      }
+
+      // 下載全部文件
+      async function downloadAllFiles() {
+        if (files.length === 0) {
+          showToast("沒有檔案可供下載");
+          return;
+        }
+
+        if (typeof JSZip === "undefined") {
+          showModal("下載失敗", "JSZip 未正確載入，無法壓縮檔案。", [
+            { text: "確認", onClick: "hideModal()", primary: true },
+          ]);
+          console.error("JSZip 未定義");
+          return;
+        }
+
+        const zip = new JSZip();
+
+        files.forEach((file) => {
+          if (file.type === "text") {
+            zip.file(file.path, file.content);
+          } else if (file.type === "binary") {
+            zip.file(file.path, file.content, { binary: true });
+          } else {
+            zip.file(file.path, file.content);
+          }
+        });
+
+        try {
+          const blob = await zip.generateAsync({ type: "blob" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "all_files.zip";
+          a.click();
+          URL.revokeObjectURL(url);
+
+          showToast("已下載全部檔案");
+        } catch (err) {
+          console.error("下載失敗:", err);
+          showModal("下載失敗", "下載失敗，請稍後再試。", [
+            { text: "確認", onClick: "hideModal()", primary: true },
+          ]);
+        }
       }
 
       // 產生輸出
@@ -998,14 +1263,26 @@
               f.path.startsWith(path + "/")
             );
             pathFiles.forEach((file) => {
-              output += `### ${file.name}\n\`\`\`${file.type}\n${file.content}\n\`\`\`\n\n`;
+              if (file.type === "text") {
+                output += `### ${file.name}\n\`\`\`${file.type}\n${file.content}\n\`\`\`\n\n`;
+              } else if (file.type === "binary") {
+                output += `### ${file.name}\n（二進位檔案）\n\n`;
+              } else {
+                output += `### ${file.name}\n（未知類型）\n\n`;
+              }
             });
           }
         });
 
         const rootFiles = files.filter((f) => !f.path.includes("/"));
         rootFiles.forEach((file) => {
-          output += `### ${file.name}\n\`\`\`${file.type}\n${file.content}\n\`\`\`\n\n`;
+          if (file.type === "text") {
+            output += `### ${file.name}\n\`\`\`${file.type}\n${file.content}\n\`\`\`\n\n`;
+          } else if (file.type === "binary") {
+            output += `### ${file.name}\n（二進位檔案）\n\n`;
+          } else {
+            output += `### ${file.name}\n（未知類型）\n\n`;
+          }
         });
 
         document.getElementById("output").textContent = output;
@@ -1023,25 +1300,27 @@
           // 更新按鈕外觀
           copyButton.classList.add("copied");
           copyButton.innerHTML = `
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-xs">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M18.0633 5.67387C18.5196 5.98499 18.6374 6.60712 18.3262 7.06343L10.8262 18.0634C10.6585 18.3095 10.3898 18.4679 10.0934 18.4957C9.79688 18.5235 9.50345 18.4178 9.29289 18.2072L4.79289 13.7072C4.40237 13.3167 4.40237 12.6835 4.79289 12.293C5.18342 11.9025 5.81658 11.9025 6.20711 12.293L9.85368 15.9396L16.6738 5.93676 C16.6738 5.93676C16.9849 5.48045 17.607 5.36275 18.0633 5.67387Z" fill="currentColor"/>
-                    </svg>
-                    已複製
-                `;
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-xs">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M18.0633 5.67387C18.5196 5.98499 18.6374 6.60712 18.3262 7.06343L10.8262 18.0634C10.6585 18.3095 10.3898 18.4679 10.0934 18.4957C9.79688 18.5235 9.50345 18.4178 9.29289 18.2072L4.79289 13.7072C4.40237 13.3167 4.40237 12.6835 4.79289 12.293C5.18342 11.9025 5.81658 11.9025 6.20711 12.293L9.85368 15.9396L16.6738 5.93676 C16.6738 5.93676C16.9849 5.48045 17.607 5.36275 18.0633 5.67387Z" fill="currentColor"/>
+            </svg>
+            已複製
+          `;
 
           // 2秒後恢復原狀
           setTimeout(() => {
             copyButton.classList.remove("copied");
             copyButton.innerHTML = `
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-xs">
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"/>
-                        </svg>
-                        複製
-                    `;
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-xs">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"/>
+              </svg>
+              複製
+            `;
           }, 2000);
         } catch (err) {
           console.error("複製失敗:", err);
-          showToast("複製失敗：無法複製到剪貼簿，請手動選取複製。");
+          showModal("複製失敗", "無法複製到剪貼簿，請手動選取複製。", [
+            { text: "確認", onClick: "hideModal()", primary: true },
+          ]);
         }
       }
 
@@ -1049,7 +1328,9 @@
       function saveVersion() {
         const versionName = document.getElementById("versionName").value.trim();
         if (!versionName) {
-          showToast("請輸入版本名稱");
+          showModal("儲存失敗", "請輸入版本名稱。", [
+            { text: "確認", onClick: "hideModal()", primary: true },
+          ]);
           return;
         }
 
@@ -1082,12 +1363,11 @@
         modalActions.innerHTML = actions
           .map(
             (action) => `
-                <button class="modal-btn ${
-                  action.primary ? "modal-btn-primary" : "modal-btn-secondary"
-                }"
-                        onclick="${action.onClick}">
-                    ${action.text}
-                </button>
+              <button class="modal-btn ${
+                action.primary ? "modal-btn-primary" : "modal-btn-secondary"
+              }" onclick="${action.onClick}">
+                ${action.text}
+              </button>
             `
           )
           .join("");
@@ -1107,33 +1387,33 @@
         versionsList.innerHTML = savedVersions
           .map(
             (version) => `
-                <div class="version-item">
-                    <div class="version-info">
-                        <span class="version-name">${version.name}</span>
-                        <span class="version-time">
-                            建立：${formatDate(version.created)}<br>
-                            更新：${formatDate(version.updated)}
-                        </span>
-                    </div>
-                    <div class="version-actions">
-                        <button class="save-btn" onclick="loadVersion('${
-                          version.id
-                        }')">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 1.25rem; height: 1.25rem;">
-                                <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                            </svg>
-                            載入
-                        </button>
-                        <button class="delete-version-btn" onclick="deleteVersion('${
-                          version.id
-                        }')" title="刪除版本">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 6h18"></path>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
-                    </div>
+              <div class="version-item">
+                <div class="version-info">
+                  <span class="version-name">${version.name}</span>
+                  <span class="version-time">
+                    建立：${formatDate(version.created)}<br>
+                    更新：${formatDate(version.updated)}
+                  </span>
                 </div>
+                <div class="version-actions">
+                  <button class="save-btn" onclick="loadVersion('${
+                    version.id
+                  }')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 1.25rem; height: 1.25rem;">
+                      <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                    載入
+                  </button>
+                  <button class="delete-version-btn" onclick="deleteVersion('${
+                    version.id
+                  }')" title="刪除版本">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 6h18"></path>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
             `
           )
           .join("");
@@ -1203,6 +1483,65 @@
             toast.style.display = "none";
           }, 500);
         }, duration);
+      }
+
+      // 文件拖放排序
+      function handleDragStart(e) {
+        draggedItem = e.currentTarget;
+        e.currentTarget.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      }
+
+      function handleDragEnd(e) {
+        e.currentTarget.classList.remove("dragging");
+        draggedItem = null;
+      }
+
+      function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+
+        const target = e.currentTarget;
+        if (target && target !== draggedItem) {
+          const rect = target.getBoundingClientRect();
+          const offset = e.clientY - rect.top;
+          if (offset > rect.height / 2) {
+            target.style["border-bottom"] = "2px solid var(--primary)";
+            target.style["border-top"] = "";
+          } else {
+            target.style["border-top"] = "2px solid var(--primary)";
+            target.style["border-bottom"] = "";
+          }
+        }
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        const target = e.currentTarget;
+        if (target && target !== draggedItem) {
+          const rect = target.getBoundingClientRect();
+          const offset = e.clientY - rect.top;
+          const dropIndex = parseInt(target.dataset.index);
+
+          const draggedIndex = parseInt(draggedItem.dataset.index);
+
+          if (offset > rect.height / 2) {
+            // Move below
+            files.splice(dropIndex + 1, 0, files.splice(draggedIndex, 1)[0]);
+          } else {
+            // Move above
+            files.splice(dropIndex, 0, files.splice(draggedIndex, 1)[0]);
+          }
+
+          updateUI();
+        }
+
+        // 清除排序樣式
+        const fileItems = document.querySelectorAll(".file-item");
+        fileItems.forEach((item) => {
+          item.style["border-bottom"] = "";
+          item.style["border-top"] = "";
+        });
       }
     </script>
   </body>
