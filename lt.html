@@ -1,0 +1,128 @@
+以下是將HTML和JavaScript整合到同一個文件中的版本。請注意，這個版本會使HTML文件變得相對較長，但它包含了所有需要的功能：
+
+```html
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隨機轉盤</title>
+    <style>
+        #wheel {
+            width: 300px;
+            height: 300px;
+            border: 2px solid #000;
+            border-radius: 50%;
+            position: relative;
+        }
+        .slice {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            transform-origin: 50% 50%;
+        }
+        #spinBtn {
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <input type="text" id="participants" placeholder="參與者姓名，以逗號分隔">
+    <input type="number" id="winners" placeholder="中獎數量">
+    <input type="text" id="prizes" placeholder="獎品，以逗號分隔">
+    <button onclick="setupWheel()">設置轉盤</button>
+    <div id="wheel"></div>
+    <button id="spinBtn" onclick="spinWheel()">開始轉動</button>
+
+    <script>
+        let participants = [];
+        let prizes = [];
+        let currentRotation = 0;
+        let wheelSlices = [];
+
+        function setupWheel() {
+            const participantInput = document.getElementById('participants').value.split(',');
+            const winners = parseInt(document.getElementById('winners').value);
+            prizes = document.getElementById('prizes').value.split(',');
+            
+            if (participantInput.length === 0 || winners <= 0 || prizes.length < winners) {
+                alert('請檢查輸入的參與者、中獎數量和獎品是否正確！');
+                return;
+            }
+
+            participants = participantInput.map(p => p.trim());
+            const wheel = document.getElementById('wheel');
+            wheel.innerHTML = '';  // 清空現有內容
+
+            const sliceAngle = 360 / participants.length;
+            wheelSlices = participants.map((p, index) => {
+                const slice = document.createElement('div');
+                slice.className = 'slice';
+                slice.style.transform = `rotate(${index * sliceAngle}deg)`;
+                slice.style.backgroundColor = `hsl(${index * 360 / participants.length}, 70%, 50%)`;
+                slice.textContent = p;
+                wheel.appendChild(slice);
+                return {
+                    element: slice,
+                    angle: index * sliceAngle
+                };
+            });
+        }
+
+        function spinWheel() {
+            const spins = 5 + Math.random() * 10; // 隨機轉圈數
+            const finalRotation = spins * 360 + Math.random() * 360;
+            currentRotation = finalRotation;
+            
+            let start = performance.now();
+            function animate(time) {
+                let timeFraction = (time - start) / 3000; // 旋轉3秒
+                if (timeFraction > 1) timeFraction = 1;
+                
+                let progress = Math.sin(timeFraction * Math.PI / 2);
+                document.getElementById('wheel').style.transform = `rotate(${progress * finalRotation}deg)`;
+                
+                if (timeFraction < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    showFireworks();
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function showFireworks() {
+            const fireworks = document.createElement('div');
+            fireworks.style = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;';
+            document.body.appendChild(fireworks);
+            
+            for (let i = 0; i < 50; i++) {
+                const spark = document.createElement('div');
+                spark.style = `position: absolute; width: 10px; height: 10px; background: hsl(${Math.random() * 360}, 100%, 50%); border-radius: 50%; left: ${Math.random() * 100}%; top: ${Math.random() * 100}%; opacity: 0; transform: scale(0);`;
+                fireworks.appendChild(spark);
+                
+                setTimeout(() => {
+                    spark.style.opacity = '1';
+                    spark.style.transform = 'scale(5)';
+                }, i * 50);
+
+                setTimeout(() => {
+                    spark.style.opacity = '0';
+                    spark.style.transform = 'scale(1)';
+                }, i * 50 + 1000);
+            }
+
+            setTimeout(() => document.body.removeChild(fireworks), 2000);
+        }
+    </script>
+</body>
+</html>
+```
+
+這個整合版本將所有功能包括在單一HTML文件中，使得你可以直接在瀏覽器中打開並使用這個轉盤程式。注意，這個實現依然是相對簡化的，特別是煙火特效部分可以進一步優化或加入更複雜的圖形庫來增強視覺效果。
