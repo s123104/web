@@ -274,9 +274,8 @@
       
       let currentPlayer = 'x';
       let gameActive = true;
-      // 分別為 X 與 O 記錄各自的落子順序（最多3回合）
-      let moveQueueX = [];
-      let moveQueueO = [];
+      // 維護一個總體先進先出佇列，場上最多只能有7顆旗子
+      let moveQueue = [];
       let totalMoveCount = 1;
       let timeLeft = 10.0;
       let timerInterval;
@@ -288,7 +287,7 @@
           cell.classList.remove('x', 'o', 'vanish', 'appear', 'shake');
           cell.replaceWith(cell.cloneNode(true));
         });
-        // 重新取得 cell 參考（因為 cloneNode 重建了）
+        // 重新取得 cell 參考（因 cloneNode 重建了）
         const newCells = document.querySelectorAll('.cell');
         newCells.forEach(cell => {
           cell.addEventListener('click', handleCellClick);
@@ -296,8 +295,7 @@
       
         currentPlayer = 'x';
         gameActive = true;
-        moveQueueX = [];
-        moveQueueO = [];
+        moveQueue = [];
         totalMoveCount = 1;
         updateMoveCounter();
         status.textContent = '輪到玩家 X 下棋';
@@ -359,34 +357,23 @@
         const cell = e.target;
         const index = cell.dataset.index;
         
-        // 如果該格已有棋子或遊戲已結束則返回
+        // 如果該格已有旗子或遊戲結束則返回
         if (cell.classList.contains('x') || cell.classList.contains('o') || !gameActive) {
           return;
         }
         
-        // 下子前：若該玩家已有 3 顆棋子，則先移除最早那顆（先進先出）
-        if (currentPlayer === 'x' && moveQueueX.length === 3) {
-          const oldMove = moveQueueX.shift();
-          const oldCell = document.querySelector(`.cell[data-index="${oldMove.index}"]`);
-          oldCell.classList.add('vanish');
-          setTimeout(() => {
-            oldCell.classList.remove('x', 'vanish');
-          }, 500);
-        } else if (currentPlayer === 'o' && moveQueueO.length === 3) {
-          const oldMove = moveQueueO.shift();
-          const oldCell = document.querySelector(`.cell[data-index="${oldMove.index}"]`);
-          oldCell.classList.add('vanish');
-          setTimeout(() => {
-            oldCell.classList.remove('o', 'vanish');
-          }, 500);
-        }
-        
-        // 在該格下子並記錄
+        // 在該格下子並記錄進 moveQueue
         cell.classList.add(currentPlayer, 'appear');
-        if (currentPlayer === 'x') {
-          moveQueueX.push({ index });
-        } else {
-          moveQueueO.push({ index });
+        moveQueue.push({ index, player: currentPlayer });
+        
+        // 從第7回合開始，場上超過 7 顆旗子時先進先出移除最早的旗子
+        if (totalMoveCount >= 7 && moveQueue.length > 7) {
+          const oldMove = moveQueue.shift();
+          const oldCell = document.querySelector(`.cell[data-index="${oldMove.index}"]`);
+          oldCell.classList.add('vanish');
+          setTimeout(() => {
+            oldCell.classList.remove(oldMove.player, 'vanish');
+          }, 500);
         }
         
         // 檢查是否獲勝
