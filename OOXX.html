@@ -233,7 +233,7 @@
       </div>
     </div>
     <div class="timer" id="timer">10.0秒</div>
-    <div class="move-counter" id="move-counter">回合: 1</div>
+    <div class="move-counter" id="move-counter">總回合: 1</div>
     <div class="board" id="board">
       <div class="cell" data-index="0"></div>
       <div class="cell" data-index="1"></div>
@@ -269,14 +269,16 @@
       const winAnimation = document.getElementById('win-animation');
       const timerElement = document.getElementById('timer');
       const moveCounter = document.getElementById('move-counter');
-      const playerX = document.getElementById('player-x');
-      const playerO = document.getElementById('player-o');
+      const playerXIndicator = document.getElementById('player-x');
+      const playerOIndicator = document.getElementById('player-o');
       
       let currentPlayer = 'x';
       let gameActive = true;
-      let moveQueue = []; // 改成先進先出佇列，永遠只保留最近3步
+      // 分別為 X 與 O 記錄各自的落子順序（最多3回合）
+      let moveQueueX = [];
+      let moveQueueO = [];
+      let totalMoveCount = 1;
       let timeLeft = 10.0;
-      let moveCount = 1;
       let timerInterval;
       
       initGame();
@@ -284,10 +286,9 @@
       function initGame() {
         cells.forEach(cell => {
           cell.classList.remove('x', 'o', 'vanish', 'appear', 'shake');
-          // 先移除所有點擊監聽，避免重複
           cell.replaceWith(cell.cloneNode(true));
         });
-        // 重新取得 cell 參考（因為 cloneNode）
+        // 重新取得 cell 參考（因為 cloneNode 重建了）
         const newCells = document.querySelectorAll('.cell');
         newCells.forEach(cell => {
           cell.addEventListener('click', handleCellClick);
@@ -295,8 +296,9 @@
       
         currentPlayer = 'x';
         gameActive = true;
-        moveQueue = [];
-        moveCount = 1;
+        moveQueueX = [];
+        moveQueueO = [];
+        totalMoveCount = 1;
         updateMoveCounter();
         status.textContent = '輪到玩家 X 下棋';
         updatePlayerIndicator();
@@ -340,16 +342,16 @@
       }
       
       function updateMoveCounter() {
-        moveCounter.textContent = `回合: ${moveCount}`;
+        moveCounter.textContent = `總回合: ${totalMoveCount}`;
       }
       
       function updatePlayerIndicator() {
         if (currentPlayer === 'x') {
-          playerX.classList.add('active');
-          playerO.classList.remove('active');
+          playerXIndicator.classList.add('active');
+          playerOIndicator.classList.remove('active');
         } else {
-          playerO.classList.add('active');
-          playerX.classList.remove('active');
+          playerOIndicator.classList.add('active');
+          playerXIndicator.classList.remove('active');
         }
       }
       
@@ -357,24 +359,34 @@
         const cell = e.target;
         const index = cell.dataset.index;
         
-        // 如果該格已有棋子或遊戲結束，直接返回
+        // 如果該格已有棋子或遊戲已結束則返回
         if (cell.classList.contains('x') || cell.classList.contains('o') || !gameActive) {
           return;
         }
         
-        // 下子，並記錄進 moveQueue
-        cell.classList.add(currentPlayer, 'appear');
-        moveQueue.push({ index, player: currentPlayer, moveNumber: moveCount });
-        
-        // 如果 moveQueue 超過 3，移除最早的那一步
-        if (moveQueue.length > 3) {
-          const oldMove = moveQueue.shift();
+        // 下子前：若該玩家已有 3 顆棋子，則先移除最早那顆（先進先出）
+        if (currentPlayer === 'x' && moveQueueX.length === 3) {
+          const oldMove = moveQueueX.shift();
           const oldCell = document.querySelector(`.cell[data-index="${oldMove.index}"]`);
-          // 加上消失動畫，500ms 後移除該棋子的 class
           oldCell.classList.add('vanish');
           setTimeout(() => {
-            oldCell.classList.remove(oldMove.player, 'vanish');
+            oldCell.classList.remove('x', 'vanish');
           }, 500);
+        } else if (currentPlayer === 'o' && moveQueueO.length === 3) {
+          const oldMove = moveQueueO.shift();
+          const oldCell = document.querySelector(`.cell[data-index="${oldMove.index}"]`);
+          oldCell.classList.add('vanish');
+          setTimeout(() => {
+            oldCell.classList.remove('o', 'vanish');
+          }, 500);
+        }
+        
+        // 在該格下子並記錄
+        cell.classList.add(currentPlayer, 'appear');
+        if (currentPlayer === 'x') {
+          moveQueueX.push({ index });
+        } else {
+          moveQueueO.push({ index });
         }
         
         // 檢查是否獲勝
@@ -386,7 +398,7 @@
         }
         
         // 切換玩家
-        moveCount++;
+        totalMoveCount++;
         updateMoveCounter();
         currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
         updatePlayerIndicator();
@@ -400,8 +412,6 @@
           [0, 3, 6], [1, 4, 7], [2, 5, 8], // 直行
           [0, 4, 8], [2, 4, 6]             // 對角線
         ];
-        
-        // 根據 DOM 中的 class 判斷棋盤狀態
         const boardState = [];
         cells.forEach(cell => {
           if (cell.classList.contains('x')) {
@@ -416,10 +426,9 @@
         for (const pattern of winPatterns) {
           const [a, b, c] = pattern;
           if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
-            // 高亮顯示獲勝格子
-            pattern.forEach(index => {
-              cells[index].style.backgroundColor = '#2ecc71';
-              cells[index].classList.add('shake');
+            pattern.forEach(idx => {
+              cells[idx].style.backgroundColor = '#2ecc71';
+              cells[idx].classList.add('shake');
             });
             return true;
           }
