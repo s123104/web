@@ -258,232 +258,234 @@
   </div>
   
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const board = document.getElementById('board');
-      const cells = document.querySelectorAll('.cell');
-      const status = document.getElementById('status');
-      const restart = document.getElementById('restart');
-      const restartOverlay = document.getElementById('restart-overlay');
-      const gameOver = document.getElementById('game-over');
-      const gameOverMessage = document.getElementById('game-over-message');
-      const winAnimation = document.getElementById('win-animation');
-      const timerElement = document.getElementById('timer');
-      const moveCounter = document.getElementById('move-counter');
-      const playerXIndicator = document.getElementById('player-x');
-      const playerOIndicator = document.getElementById('player-o');
+    // 改成 let 讓 cells 可更新
+    let cells = document.querySelectorAll('.cell');
+    const status = document.getElementById('status');
+    const restart = document.getElementById('restart');
+    const restartOverlay = document.getElementById('restart-overlay');
+    const gameOver = document.getElementById('game-over');
+    const gameOverMessage = document.getElementById('game-over-message');
+    const winAnimation = document.getElementById('win-animation');
+    const timerElement = document.getElementById('timer');
+    const moveCounter = document.getElementById('move-counter');
+    const playerXIndicator = document.getElementById('player-x');
+    const playerOIndicator = document.getElementById('player-o');
+    
+    let currentPlayer = 'x';
+    let gameActive = true;
+    // 先進先出佇列，場上最多出現7顆旗子（總回合計）
+    let moveQueue = [];
+    let totalMoveCount = 1;
+    let timeLeft = 10.0;
+    let timerInterval;
+    
+    initGame();
+    
+    function initGame() {
+      // 清除原有的事件與樣式
+      cells.forEach(cell => {
+        cell.classList.remove('x', 'o', 'vanish', 'appear', 'shake');
+        // 利用 cloneNode 移除事件，然後重新塞回 DOM
+        cell.replaceWith(cell.cloneNode(true));
+      });
+      // 更新 cells 變數，確保 win 檢查拿到的是最新的 DOM
+      cells = document.querySelectorAll('.cell');
+      cells.forEach(cell => {
+        cell.addEventListener('click', handleCellClick);
+      });
       
-      let currentPlayer = 'x';
-      let gameActive = true;
-      // 維護一個先進先出佇列，場上最多出現7顆旗子（總回合計）
-      let moveQueue = [];
-      let totalMoveCount = 1;
-      let timeLeft = 10.0;
-      let timerInterval;
-      
-      initGame();
-      
-      function initGame() {
-        cells.forEach(cell => {
-          cell.classList.remove('x', 'o', 'vanish', 'appear', 'shake');
-          cell.replaceWith(cell.cloneNode(true));
-        });
-        const newCells = document.querySelectorAll('.cell');
-        newCells.forEach(cell => {
-          cell.addEventListener('click', handleCellClick);
-        });
-      
-        currentPlayer = 'x';
-        gameActive = true;
-        moveQueue = [];
-        totalMoveCount = 1;
-        updateMoveCounter();
-        status.textContent = '輪到玩家 X 下棋';
-        updatePlayerIndicator();
-        resetTimer();
-        gameOver.classList.remove('show');
-      }
-      
-      function resetTimer() {
-        clearInterval(timerInterval);
-        timeLeft = 10.0;
-        updateTimerDisplay();
-        startTimer();
-      }
-      
-      function startTimer() {
-        timerInterval = setInterval(() => {
-          timeLeft -= 0.1;
-          if (timeLeft <= 0) {
-            timeLeft = 0;
-            clearInterval(timerInterval);
-            autoSwitchPlayer();
-          }
-          updateTimerDisplay();
-        }, 100);
-      }
-      
-      function autoSwitchPlayer() {
-        status.textContent = `時間到！輪到玩家 ${currentPlayer === 'x' ? 'O' : 'X'} 下棋`;
-        currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
-        updatePlayerIndicator();
-        resetTimer();
-      }
-      
-      function updateTimerDisplay() {
-        timerElement.textContent = `${timeLeft.toFixed(1)}秒`;
-        if (timeLeft <= 3) {
-          timerElement.classList.add('time-warning');
-        } else {
-          timerElement.classList.remove('time-warning');
-        }
-      }
-      
-      function updateMoveCounter() {
-        moveCounter.textContent = `總回合: ${totalMoveCount}`;
-      }
-      
-      function updatePlayerIndicator() {
-        if (currentPlayer === 'x') {
-          playerXIndicator.classList.add('active');
-          playerOIndicator.classList.remove('active');
-        } else {
-          playerOIndicator.classList.add('active');
-          playerXIndicator.classList.remove('active');
-        }
-      }
-      
-      function handleCellClick(e) {
-        const cell = e.target;
-        const index = cell.dataset.index;
-        
-        // 如果該格已有旗子或遊戲結束則返回
-        if (cell.classList.contains('x') || cell.classList.contains('o') || !gameActive) {
-          return;
-        }
-        
-        // 下子，記錄進 moveQueue
-        cell.classList.add(currentPlayer, 'appear');
-        moveQueue.push({ index, player: currentPlayer });
-        
-        // 從第7回合開始，場上超過 7 顆旗子時先進先出移除最早的旗子
-        if (totalMoveCount >= 7 && moveQueue.length > 7) {
-          const oldMove = moveQueue.shift();
-          const oldCell = document.querySelector(`.cell[data-index="${oldMove.index}"]`);
-          oldCell.classList.add('vanish');
-          setTimeout(() => {
-            oldCell.classList.remove(oldMove.player, 'vanish');
-          }, 500);
-        }
-        
-        // 檢查是否獲勝：橫、直、斜全有算
-        if (checkWin()) {
+      currentPlayer = 'x';
+      gameActive = true;
+      moveQueue = [];
+      totalMoveCount = 1;
+      updateMoveCounter();
+      status.textContent = '輪到玩家 X 下棋';
+      updatePlayerIndicator();
+      resetTimer();
+      gameOver.classList.remove('show');
+    }
+    
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timeLeft = 10.0;
+      updateTimerDisplay();
+      startTimer();
+    }
+    
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft -= 0.1;
+        if (timeLeft <= 0) {
+          timeLeft = 0;
           clearInterval(timerInterval);
-          endGame(`玩家 ${currentPlayer.toUpperCase()} 獲勝！`);
-          showWinAnimation();
-          return;
+          autoSwitchPlayer();
         }
-        
-        totalMoveCount++;
-        updateMoveCounter();
-        // 切換玩家
-        currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
-        updatePlayerIndicator();
-        status.textContent = `輪到玩家 ${currentPlayer.toUpperCase()} 下棋`;
-        resetTimer();
+        updateTimerDisplay();
+      }, 100);
+    }
+    
+    function autoSwitchPlayer() {
+      status.textContent = `時間到！輪到玩家 ${currentPlayer === 'x' ? 'O' : 'X'} 下棋`;
+      currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
+      updatePlayerIndicator();
+      resetTimer();
+    }
+    
+    function updateTimerDisplay() {
+      timerElement.textContent = `${timeLeft.toFixed(1)}秒`;
+      if (timeLeft <= 3) {
+        timerElement.classList.add('time-warning');
+      } else {
+        timerElement.classList.remove('time-warning');
+      }
+    }
+    
+    function updateMoveCounter() {
+      moveCounter.textContent = `總回合: ${totalMoveCount}`;
+    }
+    
+    function updatePlayerIndicator() {
+      if (currentPlayer === 'x') {
+        playerXIndicator.classList.add('active');
+        playerOIndicator.classList.remove('active');
+      } else {
+        playerOIndicator.classList.add('active');
+        playerXIndicator.classList.remove('active');
+      }
+    }
+    
+    function handleCellClick(e) {
+      const cell = e.target;
+      const index = cell.dataset.index;
+      
+      // 如果該格已有旗子或遊戲結束則返回
+      if (cell.classList.contains('x') || cell.classList.contains('o') || !gameActive) {
+        return;
       }
       
-      function checkWin() {
-        // 構造一個 3x3 的棋盤陣列
-        const boardState = Array(9).fill('');
-        cells.forEach(cell => {
-          if (cell.classList.contains('x')) {
-            boardState[parseInt(cell.dataset.index)] = 'x';
-          } else if (cell.classList.contains('o')) {
-            boardState[parseInt(cell.dataset.index)] = 'o';
-          }
-        });
-        
-        const winPatterns = [
-          [0, 1, 2], // 橫向上排
-          [3, 4, 5], // 橫中排
-          [6, 7, 8], // 橫下排
-          [0, 3, 6], // 直向左排
-          [1, 4, 7], // 直向中排
-          [2, 5, 8], // 直向右排
-          [0, 4, 8], // 斜線主對角
-          [2, 4, 6]  // 斜線副對角
-        ];
-        
-        for (const pattern of winPatterns) {
-          const [a, b, c] = pattern;
-          if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
-            // 高亮獲勝的格子
-            pattern.forEach(idx => {
-              cells[idx].style.backgroundColor = '#2ecc71';
-              cells[idx].classList.add('shake');
-            });
-            return true;
-          }
-        }
-        return false;
-      }
+      // 下子，記錄進 moveQueue
+      cell.classList.add(currentPlayer, 'appear');
+      moveQueue.push({ index, player: currentPlayer });
       
-      function showWinAnimation() {
-        for (let i = 0; i < 100; i++) {
-          createConfetti();
-        }
-      }
-      
-      function createConfetti() {
-        const confetti = document.createElement('div');
-        confetti.classList.add('confetti');
-        const colors = ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        confetti.style.background = randomColor;
-        const startLeft = Math.random() * window.innerWidth;
-        confetti.style.left = `${startLeft}px`;
-        confetti.style.top = '-20px';
-        const size = Math.random() * 10 + 5;
-        confetti.style.width = `${size}px`;
-        confetti.style.height = `${size * 1.5}px`;
-        confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
-        winAnimation.appendChild(confetti);
-        const duration = Math.random() * 2 + 2;
-        confetti.style.animation = `
-          fall ${duration}s linear forwards,
-          sway ${duration / 2}s ease-in-out infinite alternate
-        `;
-        const keyframes = `
-          @keyframes fall {
-            0% { transform: translateY(0) rotate(0); opacity: 1; }
-            70% { opacity: 1; }
-            100% { transform: translateY(${window.innerHeight + 100}px) rotate(${Math.random() * 360 + 180}deg); opacity: 0; }
-          }
-          @keyframes sway {
-            0% { transform: translateX(0) rotate(0); }
-            100% { transform: translateX(${(Math.random() - 0.5) * 200}px) rotate(${(Math.random() - 0.5) * 100}deg); }
-          }
-        `;
-        const styleElement = document.createElement('style');
-        styleElement.textContent = keyframes;
-        document.head.appendChild(styleElement);
+      // 從第7回合開始，場上超過 7 顆旗子時先進先出移除最早的旗子
+      if (totalMoveCount >= 7 && moveQueue.length > 7) {
+        const oldMove = moveQueue.shift();
+        const oldCell = document.querySelector(`.cell[data-index="${oldMove.index}"]`);
+        oldCell.classList.add('vanish');
         setTimeout(() => {
-          confetti.remove();
-          styleElement.remove();
-        }, duration * 1000);
+          oldCell.classList.remove(oldMove.player, 'vanish');
+        }, 500);
       }
       
-      function endGame(message) {
-        gameActive = false;
-        gameOverMessage.textContent = message;
-        setTimeout(() => {
-          gameOver.classList.add('show');
-        }, 1000);
+      // 檢查是否獲勝：橫、直、斜全有算
+      if (checkWin()) {
+        clearInterval(timerInterval);
+        endGame(`玩家 ${currentPlayer.toUpperCase()} 獲勝！`);
+        showWinAnimation();
+        return;
       }
       
-      restart.addEventListener('click', initGame);
-      restartOverlay.addEventListener('click', initGame);
-    });
+      totalMoveCount++;
+      updateMoveCounter();
+      // 切換玩家
+      currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
+      updatePlayerIndicator();
+      status.textContent = `輪到玩家 ${currentPlayer.toUpperCase()} 下棋`;
+      resetTimer();
+    }
+    
+    function checkWin() {
+      // 重建棋盤陣列，讀取最新 cells
+      const boardState = Array(9).fill('');
+      cells.forEach(cell => {
+        const idx = parseInt(cell.dataset.index);
+        if (cell.classList.contains('x')) {
+          boardState[idx] = 'x';
+        } else if (cell.classList.contains('o')) {
+          boardState[idx] = 'o';
+        }
+      });
+      
+      const winPatterns = [
+        [0, 1, 2], // 橫向上排
+        [3, 4, 5], // 橫中排
+        [6, 7, 8], // 橫下排
+        [0, 3, 6], // 直向左排
+        [1, 4, 7], // 直向中排
+        [2, 5, 8], // 直向右排
+        [0, 4, 8], // 斜線主對角
+        [2, 4, 6]  // 斜線副對角
+      ];
+      
+      for (const pattern of winPatterns) {
+        const [a, b, c] = pattern;
+        if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
+          // 高亮獲勝的格子
+          pattern.forEach(idx => {
+            cells[idx].style.backgroundColor = '#2ecc71';
+            cells[idx].classList.add('shake');
+          });
+          return true;
+        }
+      }
+      return false;
+    }
+    
+    function showWinAnimation() {
+      for (let i = 0; i < 100; i++) {
+        createConfetti();
+      }
+    }
+    
+    function createConfetti() {
+      const confetti = document.createElement('div');
+      confetti.classList.add('confetti');
+      const colors = ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.background = randomColor;
+      const startLeft = Math.random() * window.innerWidth;
+      confetti.style.left = `${startLeft}px`;
+      confetti.style.top = '-20px';
+      const size = Math.random() * 10 + 5;
+      confetti.style.width = `${size}px`;
+      confetti.style.height = `${size * 1.5}px`;
+      confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+      winAnimation.appendChild(confetti);
+      const duration = Math.random() * 2 + 2;
+      confetti.style.animation = `
+        fall ${duration}s linear forwards,
+        sway ${duration / 2}s ease-in-out infinite alternate
+      `;
+      const keyframes = `
+        @keyframes fall {
+          0% { transform: translateY(0) rotate(0); opacity: 1; }
+          70% { opacity: 1; }
+          100% { transform: translateY(${window.innerHeight + 100}px) rotate(${Math.random() * 360 + 180}deg); opacity: 0; }
+        }
+        @keyframes sway {
+          0% { transform: translateX(0) rotate(0); }
+          100% { transform: translateX(${(Math.random() - 0.5) * 200}px) rotate(${(Math.random() - 0.5) * 100}deg); }
+        }
+      `;
+      const styleElement = document.createElement('style');
+      styleElement.textContent = keyframes;
+      document.head.appendChild(styleElement);
+      setTimeout(() => {
+        confetti.remove();
+        styleElement.remove();
+      }, duration * 1000);
+    }
+    
+    function endGame(message) {
+      gameActive = false;
+      gameOverMessage.textContent = message;
+      setTimeout(() => {
+        gameOver.classList.add('show');
+      }, 1000);
+    }
+    
+    restart.addEventListener('click', initGame);
+    restartOverlay.addEventListener('click', initGame);
   </script>
 </body>
 </html>
