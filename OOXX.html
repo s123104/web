@@ -274,7 +274,7 @@
       
       let currentPlayer = 'x';
       let gameActive = true;
-      // 維護一個總體先進先出佇列，場上最多只能有7顆旗子
+      // 維護一個先進先出佇列，場上最多出現7顆旗子（總回合計）
       let moveQueue = [];
       let totalMoveCount = 1;
       let timeLeft = 10.0;
@@ -287,7 +287,6 @@
           cell.classList.remove('x', 'o', 'vanish', 'appear', 'shake');
           cell.replaceWith(cell.cloneNode(true));
         });
-        // 重新取得 cell 參考（因 cloneNode 重建了）
         const newCells = document.querySelectorAll('.cell');
         newCells.forEach(cell => {
           cell.addEventListener('click', handleCellClick);
@@ -362,7 +361,7 @@
           return;
         }
         
-        // 在該格下子並記錄進 moveQueue
+        // 下子，記錄進 moveQueue
         cell.classList.add(currentPlayer, 'appear');
         moveQueue.push({ index, player: currentPlayer });
         
@@ -376,7 +375,7 @@
           }, 500);
         }
         
-        // 檢查是否獲勝
+        // 檢查是否獲勝：橫、直、斜全有算
         if (checkWin()) {
           clearInterval(timerInterval);
           endGame(`玩家 ${currentPlayer.toUpperCase()} 獲勝！`);
@@ -384,9 +383,9 @@
           return;
         }
         
-        // 切換玩家
         totalMoveCount++;
         updateMoveCounter();
+        // 切換玩家
         currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
         updatePlayerIndicator();
         status.textContent = `輪到玩家 ${currentPlayer.toUpperCase()} 下棋`;
@@ -394,25 +393,31 @@
       }
       
       function checkWin() {
-        const winPatterns = [
-          [0, 1, 2], [3, 4, 5], [6, 7, 8], // 橫行
-          [0, 3, 6], [1, 4, 7], [2, 5, 8], // 直行
-          [0, 4, 8], [2, 4, 6]             // 對角線
-        ];
-        const boardState = [];
+        // 構造一個 3x3 的棋盤陣列
+        const boardState = Array(9).fill('');
         cells.forEach(cell => {
           if (cell.classList.contains('x')) {
-            boardState.push('x');
+            boardState[parseInt(cell.dataset.index)] = 'x';
           } else if (cell.classList.contains('o')) {
-            boardState.push('o');
-          } else {
-            boardState.push('');
+            boardState[parseInt(cell.dataset.index)] = 'o';
           }
         });
+        
+        const winPatterns = [
+          [0, 1, 2], // 橫向上排
+          [3, 4, 5], // 橫中排
+          [6, 7, 8], // 橫下排
+          [0, 3, 6], // 直向左排
+          [1, 4, 7], // 直向中排
+          [2, 5, 8], // 直向右排
+          [0, 4, 8], // 斜線主對角
+          [2, 4, 6]  // 斜線副對角
+        ];
         
         for (const pattern of winPatterns) {
           const [a, b, c] = pattern;
           if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
+            // 高亮獲勝的格子
             pattern.forEach(idx => {
               cells[idx].style.backgroundColor = '#2ecc71';
               cells[idx].classList.add('shake');
