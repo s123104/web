@@ -1,462 +1,643 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <title>SQL 夜市大冒險：全能攤位秀</title>
-  <style>
-    /* Reset & 基本樣式 */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: "微軟正黑體", sans-serif;
-    }
-    body {
-      background: #fdf6e3;
-      color: #333;
-      overflow: hidden;
-    }
-    header {
-      background: #ff6f61;
-      color: #fff;
-      padding: 15px;
-      text-align: center;
-      font-size: 1.4em;
-      font-weight: bold;
-    }
-    /* 左側資料庫結構看板 */
-    #sidebar {
-      position: absolute;
-      top: 60px;
-      left: 0;
-      width: 25%;
-      height: calc(100% - 60px);
-      background: #eee;
-      border-right: 2px solid #ccc;
-      overflow-y: auto;
-      padding: 10px;
-    }
-    #sidebar h2 {
-      margin-bottom: 10px;
-      text-align: center;
-    }
-    .table-list {
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      background: #fff;
-      border-radius: 4px;
-      padding: 5px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    .table-list:hover {
-      background: #f7f7f7;
-    }
-    .table-title {
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #d84a38;
-    }
-    .table-details {
-      display: none;
-      font-size: 0.9em;
-      line-height: 1.4;
-      padding-left: 10px;
-    }
-    /* 右側主要互動區域 */
-    #main {
-      position: absolute;
-      top: 60px;
-      right: 0;
-      width: 75%;
-      height: calc(100% - 60px);
-      padding: 10px;
-      overflow-y: auto;
-      background: #fafafa;
-    }
-    /* 控制面板 */
-    #controls {
-      margin-bottom: 15px;
-      text-align: center;
-    }
-    #controls button {
-      margin: 5px;
-      padding: 10px 15px;
-      background: #ff6f61;
-      border: none;
-      border-radius: 4px;
-      color: #fff;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    #controls button:hover {
-      background: #e55a4f;
-    }
-    /* 對話劇場 */
-    #dialogue {
-      margin-top: 15px;
-      border-top: 1px dashed #ccc;
-      padding-top: 10px;
-      max-height: 200px;
-      overflow-y: auto;
-      font-size: 1.1em;
-    }
-    .dialogue-line {
-      margin-bottom: 8px;
-    }
-    .wolf {
-      color: #d84a38;
-      font-weight: bold;
-    }
-    .rabbit {
-      color: #4a90e2;
-      font-weight: bold;
-    }
-    /* 動畫效果 */
-    .fadeIn {
-      animation: fadeIn 0.5s ease-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    /* 模擬彈窗 */
-    #modal {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      width: 400px;
-      padding: 20px;
-      background: #fff;
-      border: 2px solid #ff6f61;
-      border-radius: 8px;
-      transform: translate(-50%, -50%);
-      z-index: 1000;
-      display: none;
-    }
-    #modal h3 {
-      margin-bottom: 10px;
-    }
-    #modal input, #modal select {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    #modal button {
-      background: #ff6f61;
-      color: #fff;
-      padding: 8px 12px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    /* 遮罩 */
-    #overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.4);
-      z-index: 900;
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL 夜市大冒險 - 互動學習體驗</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash/4.17.21/lodash.min.js"></script>
+    <style>
+        :root {
+            --primary: #ff4757;
+            --secondary: #2ed573;
+            --accent: #ffa502;
+            --dark: #2f3542;
+            --light: #f1f2f6;
+            --text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        body {
+            background: #1a1a1a;
+            color: var(--light);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* 主要市場背景 */
+        .market-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+                url('/api/placeholder/1920/1080') center/cover;
+            z-index: -1;
+        }
+
+        /* 燈籠動畫 */
+        .lantern {
+            position: absolute;
+            width: 40px;
+            height: 60px;
+            background: #ff4757;
+            border-radius: 20px;
+            box-shadow: 0 0 20px #ff4757;
+            animation: swing 3s infinite ease-in-out;
+        }
+
+        @keyframes swing {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(10px); }
+        }
+
+        /* 頭部設計 */
+        .header {
+            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.6));
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 3px solid var(--accent);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            color: var(--accent);
+            text-shadow: var(--text-shadow);
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            color: var(--light);
+            font-size: 1.2rem;
+            text-shadow: var(--text-shadow);
+        }
+
+        /* 攤位容器 */
+        .stalls-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 攤位卡片設計 */
+        .stall-card {
+            background: rgba(47, 53, 66, 0.9);
+            border-radius: 15px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease;
+            border: 2px solid var(--accent);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stall-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(255, 165, 2, 0.3);
+        }
+
+        .stall-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stall-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--accent);
+            border-radius: 50%;
+            margin-right: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stall-title {
+            font-size: 1.5rem;
+            color: var(--accent);
+            text-shadow: var(--text-shadow);
+        }
+
+        .stall-content {
+            background: rgba(0,0,0,0.3);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        /* 互動按鈕設計 */
+        .action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-shadow: var(--text-shadow);
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .action-btn:hover {
+            background: #ff6b81;
+            transform: translateY(-2px);
+        }
+
+        /* 對話框設計 */
+        .dialog-box {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(47, 53, 66, 0.95);
+            padding: 1.5rem;
+            border-radius: 15px;
+            max-width: 400px;
+            border: 2px solid var(--accent);
+            transform-origin: bottom right;
+            animation: popIn 0.3s ease-out;
+            z-index: 1000;
+        }
+
+        .character-dialog {
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+        }
+
+        .character-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+        }
+
+        .dialog-content {
+            flex: 1;
+        }
+
+        .character-name {
+            color: var(--accent);
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        /* 表格設計 */
+        .sql-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .sql-table th, .sql-table td {
+            padding: 0.8rem;
+            border: 1px solid var(--accent);
+            text-align: left;
+        }
+
+        .sql-table th {
+            background: var(--accent);
+            color: var(--dark);
+        }
+
+        /* 動畫 */
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* RWD 設計 */
+        @media (max-width: 768px) {
+            .stalls-container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .dialog-box {
+                left: 1rem;
+                right: 1rem;
+                bottom: 1rem;
+                max-width: none;
+            }
+        }
+
+        /* 資料庫操作表單 */
+        .operation-form {
+            background: rgba(0,0,0,0.5);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid var(--accent);
+            border-radius: 5px;
+            background: rgba(255,255,255,0.1);
+            color: var(--light);
+        }
+
+        /* 結果展示區域 */
+        .result-area {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            border: 1px solid var(--accent);
+        }
+    </style>
 </head>
 <body>
-  <header>SQL 夜市大冒險：全能攤位秀</header>
-  <div id="sidebar">
-    <h2>資料庫結構</h2>
-    <!-- 使用者攤位 -->
-    <div class="table-list" data-table="users">
-      <div class="table-title">小吃攤 (users)</div>
-      <div class="table-details">
-        <div>user_id: INT (PK, AUTO_INCREMENT)</div>
-        <div>name: VARCHAR(50) NOT NULL</div>
-        <div>email: VARCHAR(100) UNIQUE</div>
-        <div>reg_date: DATE DEFAULT CURRENT_DATE</div>
-        <div>phone: VARCHAR(20) (新增欄位)</div>
-      </div>
-    </div>
-    <!-- 訂單攤 -->
-    <div class="table-list" data-table="orders">
-      <div class="table-title">訂單攤 (orders)</div>
-      <div class="table-details">
-        <div>order_id: INT (PK, AUTO_INCREMENT)</div>
-        <div>order_date: DATETIME DEFAULT CURRENT_TIMESTAMP</div>
-        <div>user_id: INT (FK → users.user_id)</div>
-        <div>total: DECIMAL(10,2) CHECK(total>=0)</div>
-      </div>
-    </div>
-    <!-- 其他攤位可視需求增加 -->
-  </div>
-  <div id="main">
-    <div id="controls">
-      <!-- 基本 DDL -->
-      <button onclick="createDatabase()">建立夜市資料庫</button>
-      <button onclick="alterTable()">調整攤位 (ALTER)</button>
-      <button onclick="dropTable()">收攤 (DROP)</button>
-      <!-- DML 操作 -->
-      <button onclick="insertData()">上新商品 (INSERT)</button>
-      <button onclick="queryData()">查詢攤位 (SELECT)</button>
-      <button onclick="updateData()">調價更新 (UPDATE)</button>
-      <button onclick="deleteData()">下架清空 (DELETE)</button>
-      <!-- 進階功能 -->
-      <button onclick="orderByData()">排序展示 (ORDER BY)</button>
-      <button onclick="joinTables()">聯盟套餐 (JOIN/UNION)</button>
-      <button onclick="groupByData()">銷量排行榜 (GROUP BY/HAVING)</button>
-      <button onclick="subqueryDemo()">子查詢 (SUBQUERY)</button>
-      <button onclick="windowFunctionDemo()">實時排名 (Window Function)</button>
-      <button onclick="transactionDemo()">交易控制 (Transaction)</button>
-      <button onclick="storedProcedureDemo()">自動促銷 (Procedure/Trigger)</button>
-      <button onclick="indexAndPrivileges()">索引與權限管理</button>
-    </div>
-    <div id="output" class="fadeIn"></div>
-    <div id="dialogue"></div>
-  </div>
-  <!-- 模擬彈窗與遮罩 -->
-  <div id="overlay"></div>
-  <div id="modal">
-    <h3>輸入新商品資料</h3>
-    <input type="text" id="newName" placeholder="攤主名稱">
-    <input type="email" id="newEmail" placeholder="電子信箱">
-    <input type="text" id="newPhone" placeholder="聯絡電話">
-    <button onclick="submitNewData()">確定上新</button>
-  </div>
-  
-  <script>
-    // 模擬資料庫（JS 物件模擬各資料表）
-    let db = {
-      database: "",
-      tables: {
-        users: [],
-        orders: []
-      },
-      autoIncrement: {
-        users: 1,
-        orders: 1
-      }
-    };
-
-    // 劇場對話記錄
-    const dialogueElem = document.getElementById("dialogue");
-    function addDialogue(speaker, message) {
-      const line = document.createElement("div");
-      line.className = "dialogue-line fadeIn";
-      line.innerHTML = `<span class="${speaker}">${speaker === 'wolf' ? '小狼' : '小兔'}：</span> ${message}`;
-      dialogueElem.appendChild(line);
-      dialogueElem.scrollTop = dialogueElem.scrollHeight;
-    }
-
-    // 初始化對話
-    addDialogue("wolf", "嗨嗨～各位資料庫狂人，歡迎來到 SQL 夜市！每個攤位就是一張資料表，今天咱們要從零打造你夢想中的夜市～ (ฅ´ω`ฅ)♪");
-    addDialogue("rabbit", "靠夭～小狼，你這話說得跟我媽的夜市攤位一樣有味道，我迫不及待要開始 SQL 大冒險了！ (ﾉ>ω<)ﾉ");
-
-    // DDL 操作模擬
-    function createDatabase() {
-      db.database = "NightMarket";
-      addDialogue("wolf", "夜市資料庫建立成功！攤位們準備就緒～");
-      printOutput("-- CREATE DATABASE NightMarket;\nUSE NightMarket;");
-    }
-    function alterTable() {
-      addDialogue("wolf", "在 users 攤位新增聯絡電話欄位，調整完畢！");
-      printOutput("-- ALTER TABLE users ADD COLUMN phone VARCHAR(20);");
-    }
-    function dropTable() {
-      addDialogue("wolf", "收攤！舊攤位已下市～");
-      printOutput("-- DROP TABLE IF EXISTS old_products;");
-    }
-
-    // DML 操作模擬
-    function insertData() {
-      showModal();
-    }
-    function submitNewData() {
-      const name = document.getElementById("newName").value;
-      const email = document.getElementById("newEmail").value;
-      const phone = document.getElementById("newPhone").value;
-      if(name && email && phone) {
-        const newUser = {
-          user_id: db.autoIncrement.users++,
-          name, email, phone,
-          reg_date: new Date().toISOString().slice(0,10)
-        };
-        db.tables.users.push(newUser);
-        addDialogue("wolf", `攤主 ${name} 上新成功！`);
-        printOutput(`-- INSERT INTO users (name, email, phone)\nVALUES ('${name}', '${email}', '${phone}');`);
-      } else {
-        addDialogue("wolf", "輸入資料不全，請重新確認！");
-      }
-      hideModal();
-    }
-    function queryData() {
-      addDialogue("wolf", "查詢所有攤位資料～");
-      let output = "-- SELECT * FROM users;\n";
-      db.tables.users.forEach(user => {
-        output += `ID: ${user.user_id} | 名稱: ${user.name} | 電話: ${user.phone}\n`;
-      });
-      printOutput(output);
-    }
-    function updateData() {
-      // 模擬更新第一筆使用者的電話
-      if(db.tables.users.length > 0) {
-        const user = db.tables.users[0];
-        user.phone = "0987654321";
-        addDialogue("wolf", `${user.name} 的聯絡電話已更新～`);
-        printOutput(`-- UPDATE users SET phone = '0987654321' WHERE name = '${user.name}';`);
-      } else {
-        addDialogue("wolf", "沒有人上新，更新失敗！");
-      }
-    }
-    function deleteData() {
-      // 模擬刪除第一筆訂單（若有）
-      if(db.tables.orders.length > 0) {
-        const order = db.tables.orders.shift();
-        addDialogue("wolf", `訂單編號 ${order.order_id} 下架成功～`);
-        printOutput(`-- DELETE FROM orders WHERE order_id = ${order.order_id};`);
-      } else {
-        addDialogue("wolf", "沒有訂單可下架！");
-      }
-    }
-    // 進階操作模擬
-    function orderByData() {
-      // 模擬依照 name 升冪排序 users
-      db.tables.users.sort((a, b) => a.name.localeCompare(b.name));
-      addDialogue("wolf", "攤位已依名稱排序，井然有序！");
-      printOutput("-- SELECT * FROM users ORDER BY name ASC;");
-    }
-    function joinTables() {
-      // 模擬 JOIN: 將 users 與 orders 結合，僅顯示有訂單的攤主
-      let output = "-- INNER JOIN users & orders\n";
-      db.tables.users.forEach(user => {
-        const userOrders = db.tables.orders.filter(o => o.user_id === user.user_id);
-        if(userOrders.length > 0) {
-          userOrders.forEach(o => {
-            output += `攤主: ${user.name} | 訂單日期: ${o.order_date} | 總金額: ${o.total}\n`;
-          });
-        }
-      });
-      addDialogue("wolf", "聯合套餐搞定，攤位生意興隆！");
-      printOutput(output);
-    }
-    function groupByData() {
-      // 模擬 GROUP BY: 計算每個攤主的訂單數量
-      let groups = {};
-      db.tables.orders.forEach(o => {
-        groups[o.user_id] = (groups[o.user_id] || 0) + 1;
-      });
-      let output = "-- GROUP BY users\n";
-      db.tables.users.forEach(u => {
-        if(groups[u.user_id]) {
-          output += `攤主: ${u.name} | 訂單數: ${groups[u.user_id]}\n`;
-        }
-      });
-      addDialogue("wolf", "統計完成，銷量排行榜出爐！");
-      printOutput(output);
-    }
-    function subqueryDemo() {
-      // 模擬子查詢：找出訂單總金額大於平均值的訂單
-      if(db.tables.orders.length > 0) {
-        const avg = db.tables.orders.reduce((sum, o) => sum + parseFloat(o.total||0), 0) / db.tables.orders.length;
-        const filtered = db.tables.orders.filter(o => o.total > avg);
-        let output = `-- SELECT * FROM orders WHERE total > (SELECT AVG(total) FROM orders);\n平均值: ${avg.toFixed(2)}\n`;
-        filtered.forEach(o => {
-          output += `訂單ID: ${o.order_id} | 總金額: ${o.total}\n`;
-        });
-        addDialogue("wolf", "子查詢搞定，查到內幕消息！");
-        printOutput(output);
-      } else {
-        addDialogue("wolf", "沒有訂單，子查詢無法執行！");
-      }
-    }
-    function windowFunctionDemo() {
-      // 模擬 Window Function：為訂單依 total 排名
-      let orders = [...db.tables.orders];
-      orders.sort((a, b) => parseFloat(b.total) - parseFloat(a.total));
-      let output = "-- RANK() OVER (ORDER BY total DESC)\n";
-      orders.forEach((o, i) => {
-        output += `訂單ID: ${o.order_id} | 總金額: ${o.total} | 排名: ${i+1}\n`;
-      });
-      addDialogue("wolf", "實時排名出爐，誰最搶手？");
-      printOutput(output);
-    }
-    function transactionDemo() {
-      // 模擬 Transaction：簡單模擬轉帳操作
-      addDialogue("wolf", "開始轉帳交易...");
-      // 假設 accounts 資料不在這裡，只模擬成功或回滾訊息
-      const success = Math.random() > 0.3; // 70% 成功
-      if(success) {
-        addDialogue("wolf", "交易成功，轉帳完畢！");
-        printOutput("-- TRANSACTION COMMIT;");
-      } else {
-        addDialogue("wolf", "交易失敗，操作回滾！");
-        printOutput("-- ROLLBACK;");
-      }
-    }
-    function storedProcedureDemo() {
-      // 模擬 Stored Procedure 與 Trigger
-      addDialogue("wolf", "設定自動促銷程序與新訂單通知觸發器啟動！");
-      printOutput("-- CREATE PROCEDURE auto_discount() ...\n-- CREATE TRIGGER after_order_insert ...\n-- CREATE VIEW popular_users AS ...");
-    }
-    function indexAndPrivileges() {
-      addDialogue("wolf", "建立索引與權限管理，保證夜市安全運行！");
-      printOutput("-- CREATE INDEX idx_users_email ON users(email);\n-- GRANT SELECT, INSERT, UPDATE ...\n-- REVOKE UPDATE ...");
-    }
+    <div class="market-background"></div>
     
-    // 輔助函式：輸出區更新
-    function printOutput(text) {
-      const outputElem = document.getElementById("output");
-      outputElem.textContent = text;
-    }
+    <!-- 燈籠裝飾 -->
+    <div class="lantern" style="top: 20px; left: 10%"></div>
+    <div class="lantern" style="top: 40px; left: 20%"></div>
+    <div class="lantern" style="top: 30px; left: 80%"></div>
+    
+    <header class="header">
+        <h1>SQL 夜市大冒險</h1>
+        <p>和小狼、小兔一起探索SQL的奇妙世界！</p>
+    </header>
 
-    // 模擬 PHP 操作區（僅展示模擬指令）
-    function phpDemo() {
-      let phpCode = `<?php
-// 連線設定
-$host = 'localhost';
-$user = 'root';
-$pass = '你的密碼';
-$db   = 'NightMarket';
+    <main class="stalls-container">
+        <!-- 基本操作攤位 -->
+        <div class="stall-card" id="basic-operations">
+            <div class="stall-header">
+                <div class="stall-icon">📝</div>
+                <h2 class="stall-title">基礎SQL操作</h2>
+            </div>
+            <div class="stall-content">
+                <div class="operation-form">
+                    <div class="form-group">
+                        <input type="text" class="form-input" placeholder="輸入表格名稱" id="table-name">
+                    </div>
+                    <button class="action-btn" onclick="createTable()">建立新表格</button>
+                </div>
+                <div class="result-area" id="basic-result"></div>
+            </div>
+        </div>
 
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) {
-    die("連線失敗: " . $conn->connect_error);
-}
+        <!-- 查詢攤位 -->
+        <div class="stall-card" id="query-stall">
+            <div class="stall-header">
+                <div class="stall-icon">🔍</div>
+                <h2 class="stall-title">資料查詢攤</h2>
+            </div>
+            <div class="stall-content">
+                <select class="form-input" id="query-type">
+                    <option value="select">SELECT 查詢</option>
+                    <option value="join">JOIN 查詢</option>
+                    <option value="group">GROUP BY 查詢</option>
+                </select>
+                <button class="action-btn" onclick="performQuery()">執行查詢</button>
+                <div class="result-area" id="query-result"></div>
+            </div>
+        </div>
 
-// 查詢
-\$sql = "SELECT * FROM users ORDER BY name ASC";
-\$result = \$conn->query(\$sql);
-// ... 其他操作 ...
+        <!-- 進階功能攤位 -->
+        <div class="stall-card" id="advanced-features">
+            <div class="stall-header">
+                <div class="stall-icon">⚡</div>
+                <h2 class="stall-title">進階功能區</h2>
+            </div>
+            <div class="stall-content">
+                <button class="action-btn" onclick="showTransaction()">交易示範</button>
+                <button class="action-btn" onclick="showTrigger()">觸發器示範</button>
+                <div class="result-area" id="advanced-result"></div>
+            </div>
+        </div>
+    </main>
 
-\$conn->close();
-?>`;
-      printOutput(phpCode);
-      addDialogue("wolf", "PHP 與 SQL 整合示範搞定！");
-    }
+    <!-- 對話框 -->
+    <div class="dialog-box" id="dialog" style="display: none;">
+        <div class="character-dialog">
+            <img src="/api/placeholder/60/60" alt="角色頭像" class="character-avatar">
+            <div class="dialog-content">
+                <div class="character-name" id="speaker-name">小狼</div>
+                <div id="dialog-text">歡迎來到SQL夜市！</div>
+            </div>
+        </div>
+    </div>
 
-    // 模擬彈窗相關
-    function showModal() {
-      document.getElementById("overlay").style.display = "block";
-      document.getElementById("modal").style.display = "block";
-    }
-    function hideModal() {
-      document.getElementById("overlay").style.display = "none";
-      document.getElementById("modal").style.display = "none";
-      document.getElementById("newName").value = "";
-      document.getElementById("newEmail").value = "";
-      document.getElementById("newPhone").value = "";
-    }
+    <script>
+        // 模擬資料庫
+        let database = {
+            tables: {},
+            queries: [],
+            transactions: []
+        };
 
-    // 點擊 sidebar 展開詳細資料
-    const tableLists = document.querySelectorAll(".table-list");
-    tableLists.forEach(item => {
-      item.addEventListener("click", () => {
-        const details = item.querySelector(".table-details");
-        details.style.display = details.style.display === "block" ? "none" : "block";
-      });
-    });
-  </script>
+        // 顯示對話
+        function showDialog(character, text) {
+            const dialog = document.getElementById('dialog');
+            const speakerName = document.getElementById('speaker-name');
+            const dialogText = document.getElementById('dialog-text');
+            
+            speakerName.textContent = character;
+            dialogText.textContent = text;
+            dialog.style.display = 'block';
+            
+            setTimeout(() => {
+                dialog.style.display = 'none';
+            }, 3000);
+        }
+
+        // 建立表格
+        function createTable() {
+            const tableName = document.getElementById('table-name').value;
+            if (!tableName) {
+                showDialog('小狼', '欸～表格名稱不能為空啦！');
+                return;
+            }
+
+            database.tables[tableName] = {
+                columns: ['id', 'name', 'value'],
+                data: []
+            };
+
+            const resultArea = document.getElementById('basic-result');
+            resultArea.innerHTML = `
+                <div style="animation: fadeIn 0.5s">
+                    <h3>表格 ${tableName} 創建成功！</h3>
+                    <div class="sql-code">
+                        CREATE TABLE ${tableName} (
+                            id INT PRIMARY KEY,
+                            name VARCHAR(50),
+                            value INT
+                        );
+                    </div>
+                </div>
+            `;
+
+            showDialog('小狼', `表格 ${tableName} 建立成功！你終於開始展現實力了！`);
+        }
+
+        // 執行查詢
+        function performQuery() {
+            const queryType = document.getElementById('query-type').value;
+            const resultArea = document.getElementById('query-result');
+            let sqlQuery = '';
+            let result = '';
+
+            switch(queryType) {
+                case 'select':
+                    sqlQuery = 'SELECT * FROM users WHERE age > 20';
+                    result = '模擬SELECT查詢結果';
+                    break;
+                case 'join':
+                    sqlQuery = 'SELECT users.name, orders.total FROM users JOIN orders ON users.id = orders.user_id';
+                    result = '模擬JOIN查詢結果';
+                    break;
+                case 'group':
+                    sqlQuery = 'SELECT category, COUNT(*) as count FROM products GROUP BY category';
+                    result = '模擬GROUP BY查詢結果';
+                    break;
+            }
+
+            resultArea.innerHTML = `
+                <div style="animation: fadeIn 0.5s">
+                    <h3>SQL查詢</h3>
+                    <code>${sqlQuery}</code>
+                    <h3>查詢結果</h3>
+                    <p>${result}</p>
+                </div>
+            `;
+
+            showDialog('小兔', '哇！查詢結果也太完美了吧！');
+        }
+
+        // 展示交易
+        function showTransaction() {
+            const resultArea = document.getElementById('advanced-result');
+            resultArea.innerHTML = `
+                <div style="animation: fadeIn 0.5s">
+                    <h3>交易示範</h3>
+                    <code>
+                        BEGIN TRANSACTION;</antArtifact>
+                        [Previous HTML and CSS code remains the same until the script section]
+
+<script>
+        // 展示交易（續）
+        function showTransaction() {
+            const resultArea = document.getElementById('advanced-result');
+            resultArea.innerHTML = `
+                <div style="animation: fadeIn 0.5s">
+                    <h3>交易示範</h3>
+                    <code>
+                        BEGIN TRANSACTION;
+                        UPDATE accounts SET balance = balance - 500 WHERE user_id = 1;
+                        UPDATE accounts SET balance = balance + 500 WHERE user_id = 2;
+                        COMMIT;
+                    </code>
+                    <div class="transaction-simulation">
+                        <h4>交易進行中...</h4>
+                        <div class="progress-bar"></div>
+                    </div>
+                </div>
+            `;
+
+            showDialog('小狼', '交易處理得比老闆算錢還準確！');
+        }
+
+        // 展示觸發器
+        function showTrigger() {
+            const resultArea = document.getElementById('advanced-result');
+            resultArea.innerHTML = `
+                <div style="animation: fadeIn 0.5s">
+                    <h3>觸發器示範</h3>
+                    <code>
+                        CREATE TRIGGER after_order_insert
+                        AFTER INSERT ON orders
+                        FOR EACH ROW
+                        BEGIN
+                            INSERT INTO notifications(message)
+                            VALUES (CONCAT('新訂單：', NEW.order_id));
+                        END;
+                    </code>
+                    <div class="trigger-demo">
+                        <button onclick="simulateTrigger()" class="action-btn">模擬新訂單</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 模擬觸發器效果
+        function simulateTrigger() {
+            const orderId = Math.floor(Math.random() * 1000);
+            showDialog('小兔', `觸發器成功！訂單 #${orderId} 已通知系統`);
+        }
+
+        // 隨機故事生成器
+        const stories = [
+            "SQL查詢比媽媽的滷肉飯還要香！",
+            "這個JOIN操作比夜市牽手還要緊密～",
+            "WHERE條件比挑水果還要挑剔！",
+            "GROUP BY整理得比收攤還要快！"
+        ];
+
+        function tellStory() {
+            const randomStory = stories[Math.floor(Math.random() * stories.length)];
+            showDialog('小狼', randomStory);
+        }
+
+        // 新增資料模擬
+        function insertData() {
+            const table = document.querySelector('.sql-table');
+            const newRow = table.insertRow(-1);
+            const cells = [
+                Math.floor(Math.random() * 1000),
+                '商品_' + Math.floor(Math.random() * 100),
+                Math.floor(Math.random() * 1000)
+            ];
+
+            cells.forEach(cellData => {
+                const cell = newRow.insertCell(-1);
+                cell.textContent = cellData;
+            });
+
+            showDialog('小兔', '新資料插入成功！比插隊還快！');
+        }
+
+        // 動態生成表格
+        function generateTable(data) {
+            return `
+                <table class="sql-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>名稱</th>
+                            <th>價格</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(row => `
+                            <tr>
+                                <td>${row.id}</td>
+                                <td>${row.name}</td>
+                                <td>${row.price}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // 視覺效果增強
+        function addVisualEffects() {
+            // 燈籠搖晃效果
+            document.querySelectorAll('.lantern').forEach(lantern => {
+                lantern.style.animationDelay = Math.random() * 2 + 's';
+            });
+
+            // 攤位卡片懸停效果
+            document.querySelectorAll('.stall-card').forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-5px)';
+                    card.style.boxShadow = '0 8px 15px rgba(255, 165, 2, 0.4)';
+                });
+
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                    card.style.boxShadow = 'none';
+                });
+            });
+        }
+
+        // 模擬SQL執行動畫
+        function simulateQueryExecution(query) {
+            const resultArea = document.getElementById('query-result');
+            resultArea.innerHTML = '<div class="loading">執行查詢中...</div>';
+            
+            setTimeout(() => {
+                const sampleData = [
+                    {id: 1, name: '炒麵', price: 60},
+                    {id: 2, name: '滷肉飯', price: 45},
+                    {id: 3, name: '珍珠奶茶', price: 50}
+                ];
+                
+                resultArea.innerHTML = generateTable(sampleData);
+                showDialog('小狼', '查詢結果出爐啦！比廚師炒菜還快！');
+            }, 1000);
+        }
+
+        // 初始化應用
+        document.addEventListener('DOMContentLoaded', () => {
+            addVisualEffects();
+            // 每隔一段時間隨機講故事
+            setInterval(tellStory, 10000);
+            
+            // 初始化示範資料
+            const sampleData = [
+                {id: 1, name: '炒麵', price: 60},
+                {id: 2, name: '滷肉飯', price: 45},
+                {id: 3, name: '珍珠奶茶', price: 50}
+            ];
+            
+            const queryResult = document.getElementById('query-result');
+            queryResult.innerHTML = generateTable(sampleData);
+        });
+
+        // 新增響應式設計處理
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const stallsContainer = document.querySelector('.stalls-container');
+            
+            if (width < 768) {
+                stallsContainer.style.gridTemplateColumns = '1fr';
+            } else {
+                stallsContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+            }
+        });
+
+        // 模擬實時數據更新
+        setInterval(() => {
+            const randomPrice = Math.floor(Math.random() * 100) + 30;
+            const rows = document.querySelectorAll('.sql-table tbody tr');
+            if (rows.length > 0) {
+                const randomRow = rows[Math.floor(Math.random() * rows.length)];
+                const priceCell = randomRow.cells[2];
+                const oldPrice = parseInt(priceCell.textContent);
+                priceCell.textContent = randomPrice;
+                
+                if (randomPrice > oldPrice) {
+                    priceCell.style.color = '#2ed573';
+                } else {
+                    priceCell.style.color = '#ff4757';
+                }
+                
+                setTimeout(() => {
+                    priceCell.style.color = '';
+                }, 1000);
+            }
+        }, 5000);
+    </script>
 </body>
 </html>
