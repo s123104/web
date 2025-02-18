@@ -132,7 +132,7 @@
 
       /* Container 置中 */
       .container {
-        max-width: 900px;
+        max-width: 1000px;
         margin: calc(var(--nav-height) + 20px) auto;
         padding: 20px;
         text-align: left;
@@ -662,35 +662,41 @@
           會拿來存放日常資訊就很夠啦(☞ﾟ∀ﾟ)☞
         </p>
 
-        <!-- 2.3 PRIMARY KEY, AUTO_INCREMENT, FOREIGN KEY -->
-        <h3>2.3 PRIMARY KEY、AUTO_INCREMENT、FOREIGN KEY</h3>
+        <!-- 2.3 資料庫常見約束條件 -->
+        <h3>2.3 資料庫常見約束條件</h3>
         <p>
-          狼：接下來，就讓我這隻小狼再帶你更進一步認識三個關鍵字～
-          <strong>PRIMARY KEY、AUTO_INCREMENT、FOREIGN KEY</strong>，
-          讓你的資料表在管理上更順暢！
+          狼：接下來，就讓我這隻小狼再帶你更進一步認識幾個重要的關鍵字與約束條件，
+          讓你的資料表管理更順暢，也更能確保資料的正確性！
         </p>
         <ol>
           <li>
-            <strong>PRIMARY KEY (主鍵)</strong
-            >：表格中用來唯一識別該筆紀錄的欄位， 例如 <code>id</code>。<br />
-            假設 <code>id</code> 是 <strong>PRIMARY KEY</strong>，那就代表
-            <code>id</code> 不可重複，並且用它就能找到對應的一筆資料。
+            <strong>PRIMARY KEY (主鍵)</strong>： 用來唯一識別該筆紀錄，如
+            <code>id</code>。不可重複，且用它就能快速定位一筆資料。
           </li>
           <li>
             <strong>AUTO_INCREMENT (自動遞增)</strong>：
-            讓數值欄位在每次新增資料時，自動加 1。<br />
-            通常和 <strong>PRIMARY KEY</strong>
-            搭配，如建立一個自動遞增的主鍵欄位，每筆新增資料都會自動分配到新的
-            <code>id</code> 值。
+            讓數值欄位在每次新增資料時自動 +1，常跟
+            <code>PRIMARY KEY</code> 搭配。
           </li>
           <li>
             <strong>FOREIGN KEY (外鍵)</strong>：
-            用於連結其他表格的主鍵，幫助我們建立關聯性。<br />
-            有了 <code>FOREIGN KEY</code>，可以保證在插入資料時，
-            參照的那個主鍵一定是真實存在的，避免「空指標」或「孤兒資料」。
+            用於連結其他表格的主鍵，幫助我們建立「表與表之間」的關聯。
+          </li>
+          <li><strong>NOT NULL</strong>： 不允許此欄位為空值 (NULL)。</li>
+          <li>
+            <strong>UNIQUE</strong>： 保證該欄位內容不可重複 (例：Email
+            通常要唯一)。
+          </li>
+          <li>
+            <strong>CHECK</strong>：
+            設定欄位必須符合某條件(部分資料庫支援度不同)， 例如年齡不能小於0。
+          </li>
+          <li>
+            <strong>DEFAULT</strong>： 欄位預設值，若 INSERT
+            時沒給，就自動套用。
           </li>
         </ol>
-        <p>兔：欸嘿～有了這三把鑰匙，就能更安全、更有系統地管理資料表囉！</p>
+        <p>兔：哇～這樣就能好好管控資料，避免資料出現亂七八糟的情況了 (•̀ω•́)b</p>
 
         <p>以下示範一組簡單的資料庫與表格建立流程：</p>
         <div class="code-block">
@@ -734,12 +740,27 @@ SELECT * FROM orders;
         </div>
         <p>
           狼：看吧，小兔，這樣子我們就能同時維護好
-          <strong>主鍵</strong> (PRIMARY KEY)、<strong>外鍵</strong> (FOREIGN
-          KEY)， 還順便自動幫 <strong>id</strong> 增加序號 (AUTO_INCREMENT)，
+          <strong>主鍵</strong>(PRIMARY KEY)、<strong>外鍵</strong>(FOREIGN
+          KEY)， 還順便自動幫 <strong>id</strong> 編號 (AUTO_INCREMENT)，
           管理資料就是這麼輕鬆♪
         </p>
 
-        <!-- 2.4 狼兔劇場 - 資料庫關聯 (一對多、多對一、多對多) -->
+        <!-- 新增常見約束條件的示範 -->
+        <div class="code-block">
+          <button class="copy-button"><i class="fas fa-copy"></i> Copy</button>
+          <pre><code class="language-sql">CREATE TABLE members (
+    member_id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,  -- 不能空，且不得重複
+    age INT CHECK(age >= 0),               -- 年齡不得小於 0
+    join_date DATE DEFAULT CURRENT_DATE    -- 如果不給值，就用當天日期
+);</code></pre>
+        </div>
+        <p>
+          狼：這些小管家能幫我們預先把好關，不讓怪怪的資料混進來。<br />
+          兔：對呀，有人年齡填負數那怎麼行！一定要擋掉～ (•̀ω•́)b
+        </p>
+
+        <!-- 2.4 狼兔劇場 - 資料表關聯 -->
         <h3>2.4 狼兔劇場 - 資料表關聯</h3>
         <p>
           狼：最後來分享一下，表格和表格之間要是有關聯的話，該怎麼表達？(╯°ω°)╯
@@ -1187,22 +1208,33 @@ $stmt = sqlsrv_query($conn, $query);
         <h2>6. ⚡ 快速記憶法</h2>
         <ol>
           <li>
-            開冰箱/金庫：MySQL 用 <code>mysql -u root -p</code>；MS SQL 用
-            <code>sqlcmd -S server -U user -P pass</code>
+            開冰箱/金庫：
+            <code>mysql -u root -p</code> (MySQL)；
+            <code>sqlcmd -S server -U user -P pass</code> (MS SQL)
           </li>
-          <li>建立資料庫：<code>CREATE DATABASE Kitchen;</code></li>
+          <li>建立資料庫：<code>CREATE DATABASE</code></li>
           <li>建立資料表：<code>CREATE TABLE</code></li>
           <li>新增資料：<code>INSERT INTO</code></li>
           <li>查詢資料：<code>SELECT *</code></li>
           <li>更新資料：<code>UPDATE ... SET ... WHERE ...</code></li>
           <li>刪除資料：<code>DELETE ... WHERE ...</code></li>
+          <li>排序：<code>ORDER BY</code> (可用 ASC 升冪、DESC 降冪)</li>
           <li>
-            排序：<code>ORDER BY</code> 想 ASC 升冪或 DESC 降冪都行 (ﾉ>ω<)ﾉ
+            <strong>約束條件 (Constraints)</strong>：PK (唯一識別)、FK
+            (關聯)、NOT NULL、UNIQUE、CHECK、DEFAULT...<br />
+            <em>小撇步：</em>PK → 不可重複的身分證號；FK →
+            拿來連結其他表主鍵；NOT NULL → 不可空白！
+          </li>
+          <li>
+            <strong>表關聯 (Relationships)</strong>：一對多、多對多...
+            <br />
+            <em>小撇步：</em>想像「一隻狼對多隻兔子」，主鍵-外鍵的關係就像「狼 →
+            兔子」；若彼此互相關聯則需要中介表來儲存兩邊的 id。
           </li>
         </ol>
         <p>
-          狼：這些指令都記熟之後，就能輕鬆管理龐大資料囉，小兔加油！
-          資料庫知識就是我們的冒險寶藏(ฅ´ω`ฅ)♪
+          狼：這些指令與概念都記熟之後，就能輕鬆管理龐大資料囉，小兔加油！
+          資料庫知識就是我們的冒險寶藏 (ฅ´ω`ฅ)♪
         </p>
       </article>
     </div>
