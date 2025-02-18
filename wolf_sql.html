@@ -3,426 +3,627 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SQL 夜市大冒險：全能攤位秀</title>
+  <title>SQL 夜市大冒險 - 沉浸式學習體驗</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash/4.17.21/lodash.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    /* Reset 與基本樣式 */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --stall-primary: #ff9234;
+      --stall-secondary: #ffcd3c;
+      --text-light: #f1f2f6;
+      --text-dark: #2f3542;
+      --neon-red: #ff4757;
+      --neon-blue: #70a1ff;
+      --neon-green: #2ed573;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Noto Sans TC', sans-serif;
+    }
     body {
-      font-family: '微軟正黑體', sans-serif;
-      background: #fdf6e3;
-      color: #333;
-      line-height: 1.6;
+      background: #1a1a1a;
+      color: var(--text-light);
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-    header {
-      background: #ff9800;
-      color: white;
-      padding: 20px;
-      text-align: center;
-      font-size: 1.8em;
+    /* 夜市背景效果 */
+    .market-scene {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+        url('https://picsum.photos/1920/1080') center/cover;
+      z-index: -1;
+    }
+    /* 霓虹燈效果 */
+    .neon-sign {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 2.5rem;
       font-weight: bold;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      color: var(--neon-red);
+      text-shadow: 
+        0 0 5px var(--neon-red),
+        0 0 10px var(--neon-red),
+        0 0 20px var(--neon-red);
+      animation: neonFlicker 1.5s infinite alternate;
     }
+    @keyframes neonFlicker {
+      0%, 18%, 22%, 25%, 53%, 57%, 100% {
+        text-shadow: 
+          0 0 5px var(--neon-red),
+          0 0 10px var(--neon-red),
+          0 0 20px var(--neon-red);
+      }
+      20%, 24%, 55% {
+        text-shadow: none;
+      }
+    }
+    /* 夜市入口說明 */
+    .market-entrance {
+      text-align: center;
+      margin-top: 100px;
+      padding: 1rem;
+    }
+    .entrance-desc {
+      font-size: 1.2rem;
+      margin-top: 10px;
+      color: var(--neon-blue);
+    }
+    /* 互動區塊 */
     .container {
       display: flex;
-      min-height: calc(100vh - 80px);
-    }
-    /* 左側：資料庫結構展示 */
-    .sidebar {
-      width: 25%;
-      background: #fff3e0;
-      border-right: 2px solid #ffcc80;
-      padding: 20px;
-      overflow-y: auto;
-    }
-    .sidebar h2 {
-      margin-bottom: 15px;
-      color: #e65100;
-    }
-    .db-table {
-      margin-bottom: 15px;
-      padding: 10px;
-      border: 1px solid #ffcc80;
-      background: #fff8e1;
-      border-radius: 5px;
-    }
-    .db-table h3 {
-      margin-bottom: 5px;
-      font-size: 1.1em;
-      color: #bf360c;
-    }
-    .db-table ul {
-      list-style: none;
-      padding-left: 10px;
-    }
-    .db-table li {
-      font-size: 0.9em;
-      color: #5d4037;
-    }
-    /* 右側：互動區 */
-    .main-content {
-      flex: 1;
-      padding: 20px;
-      background: #fffde7;
-      display: flex;
-      flex-direction: column;
-    }
-    .action-buttons {
-      display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 20px;
+      justify-content: center;
+      padding: 2rem;
+      gap: 2rem;
     }
-    .action-buttons button {
-      flex: 1 1 150px;
-      padding: 10px;
-      font-size: 1em;
-      border: none;
-      background: #ff9800;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background 0.3s;
+    .market-stall {
+      background: linear-gradient(45deg, var(--stall-primary), var(--stall-secondary));
+      border-radius: 15px;
+      padding: 2rem;
+      width: 320px;
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transform-style: preserve-3d;
+      transition: transform 0.3s ease;
     }
-    .action-buttons button:hover {
-      background: #e65100;
+    .stall-canopy {
+      position: absolute;
+      top: -20px;
+      left: 0;
+      right: 0;
+      height: 30px;
+      background: repeating-linear-gradient(
+          45deg,
+          var(--stall-primary),
+          var(--stall-primary) 10px,
+          var(--stall-secondary) 10px,
+          var(--stall-secondary) 20px
+      );
+      border-radius: 10px 10px 0 0;
+      transform: perspective(100px) rotateX(5deg);
     }
-    .output {
-      flex: 1;
-      background: #fff;
-      border: 2px dashed #ffcc80;
-      padding: 15px;
-      border-radius: 5px;
-      overflow-y: auto;
-      font-family: monospace;
-      white-space: pre-wrap;
-      margin-bottom: 20px;
+    .stall-counter {
+      background: rgba(255,255,255,0.1);
+      padding: 1.5rem;
+      border-radius: 10px;
+      backdrop-filter: blur(5px);
+      margin-top: 1rem;
     }
-    .dialogue {
-      background: #ffe0b2;
-      border: 1px solid #ffcc80;
-      padding: 10px;
-      border-radius: 5px;
-      font-style: italic;
-      color: #bf360c;
-    }
-    footer {
+    .sql-learning-area h3 {
+      margin-bottom: 1rem;
+      font-size: 1.4rem;
+      color: var(--stall-secondary);
       text-align: center;
-      padding: 10px;
-      background: #ff9800;
-      color: white;
+    }
+    .sql-code {
+      background: #2f3542;
+      padding: 1rem;
+      border-radius: 10px;
+      font-family: monospace;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .sql-code::before {
+      content: 'SQL';
+      position: absolute;
+      top: -10px;
+      left: 10px;
+      background: var(--neon-blue);
+      padding: 2px 10px;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      color: var(--text-dark);
+    }
+    .stall-btn {
+      background: var(--neon-green);
+      color: var(--text-dark);
+      border: none;
+      padding: 0.8rem 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    .stall-btn:hover::after {
+      left: 100%;
+    }
+    .stall-btn::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+          transparent,
+          rgba(255,255,255,0.2),
+          transparent
+      );
+      transform: rotate(45deg);
+      transition: 0.5s;
+    }
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .product-card {
+      background: rgba(255,255,255,0.1);
+      padding: 1rem;
+      border-radius: 10px;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+    .product-card:hover {
+      transform: translateY(-5px);
+    }
+    .product-image {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto;
+      background: var(--stall-secondary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .result-display {
+      background: rgba(0,0,0,0.9);
+      padding: 1rem;
+      border-radius: 10px;
+      margin-top: 1rem;
+      border: 1px solid var(--neon-blue);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+    .result-display.show {
+      opacity: 1;
+      transform: translateY(0);
     }
     /* RWD */
     @media (max-width: 768px) {
-      .container { flex-direction: column; }
-      .sidebar {
-        width: 100%;
-        border-right: none;
-        border-bottom: 2px solid #ffcc80;
+      .market-stall {
+        width: 90%;
+        padding: 1rem;
       }
     }
-    /* 簡單的淡入動畫 */
-    .fade-in {
-      animation: fadeIn 0.5s ease-in-out;
+    /* 動態效果 */
+    .stall-animation {
+      animation: stallAppear 0.5s ease-out;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+    @keyframes stallAppear {
+      from { opacity: 0; transform: translateY(50px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* 劇情對話 */
+    .dialogue {
+      text-align: center;
+      margin: 1rem;
+      font-size: 1.1rem;
+      color: var(--neon-blue);
     }
   </style>
 </head>
 <body>
-  <header>
-    SQL 夜市大冒險：全能攤位秀
+  <div class="market-scene"></div>
+  <!-- 夜市入口 -->
+  <header class="market-entrance">
+    <div class="neon-sign">SQL 夜市大冒險</div>
+    <p class="entrance-desc">和小狼、小兔一起探索 SQL 的美味世界～</p>
   </header>
+  
+  <!-- 互動攤位 -->
   <div class="container">
-    <!-- 資料庫結構展示區 -->
-    <aside class="sidebar">
-      <h2>NightMarket 資料庫結構</h2>
-      <div id="dbStructure">
-        <!-- 動態注入內容 -->
+    <!-- SELECT 查詢攤位 -->
+    <section class="market-stall stall-animation">
+      <div class="stall-canopy"></div>
+      <h2>🍜 查詢小館</h2>
+      <div class="sql-learning-area">
+        <h3>SELECT 查詢基礎</h3>
+        <div class="sql-code">
+          SELECT column1, column2<br>
+          FROM table_name<br>
+          WHERE condition;
+        </div>
+        <div class="product-grid">
+          <div class="product-card">
+            <div class="product-image">🍜</div>
+            <h4>基礎查詢</h4>
+            <button class="stall-btn" onclick="demonstrateSelect('basic')">試試看</button>
+          </div>
+          <div class="product-card">
+            <div class="product-image">🥘</div>
+            <h4>條件查詢</h4>
+            <button class="stall-btn" onclick="demonstrateSelect('where')">試試看</button>
+          </div>
+        </div>
+        <div class="result-display" id="select-result"></div>
       </div>
-    </aside>
-    <!-- 互動主區 -->
-    <main class="main-content">
-      <div class="action-buttons">
-        <button id="btnCreateDB">建立夜市資料庫</button>
-        <button id="btnCreateTables">建立攤位</button>
-        <button id="btnAlterTable">修改攤位</button>
-        <button id="btnDropTable">刪除攤位</button>
-        <button id="btnInsertData">上新商品</button>
-        <button id="btnSelectData">查詢攤位</button>
-        <button id="btnUpdateData">調價更新</button>
-        <button id="btnDeleteData">下架清空</button>
-        <button id="btnSortData">排序展示</button>
-        <button id="btnJoinUnion">聯盟套餐</button>
-        <button id="btnGroupBy">銷量排行榜</button>
-        <button id="btnSubQuery">內幕查詢</button>
-        <button id="btnWindowFunc">排名功能</button>
-        <button id="btnTransaction">交易控制</button>
-        <button id="btnProcTrigger">自動促銷</button>
-        <button id="btnIndexPerm">索引與權限</button>
+    </section>
+    
+    <!-- JOIN 關聯攤位 -->
+    <section class="market-stall stall-animation">
+      <div class="stall-canopy"></div>
+      <h2>🍲 關聯餐館</h2>
+      <div class="sql-learning-area">
+        <h3>JOIN 查詢</h3>
+        <div class="sql-code">
+          SELECT a.column1, b.column2<br>
+          FROM table1 a<br>
+          JOIN table2 b ON a.id = b.id;
+        </div>
+        <div class="product-grid">
+          <div class="product-card">
+            <div class="product-image">🤝</div>
+            <h4>INNER JOIN</h4>
+            <button class="stall-btn" onclick="demonstrateJoin('inner')">試試看</button>
+          </div>
+          <div class="product-card">
+            <div class="product-image">🔄</div>
+            <h4>LEFT JOIN</h4>
+            <button class="stall-btn" onclick="demonstrateJoin('left')">試試看</button>
+          </div>
+        </div>
+        <div class="result-display" id="join-result"></div>
       </div>
-      <div class="output" id="outputArea">
-        <!-- 顯示模擬 SQL 指令輸出 -->
+    </section>
+    
+    <!-- 其他功能可用 action-buttons 模擬（不重複攤位外觀） -->
+    <section class="market-stall stall-animation">
+      <div class="stall-canopy"></div>
+      <h2>🔧 進階操作攤</h2>
+      <div class="sql-learning-area">
+        <h3>進階功能展示</h3>
+        <div class="product-grid">
+          <div class="product-card">
+            <div class="product-image">↕️</div>
+            <h4>排序 (ORDER BY)</h4>
+            <button class="stall-btn" onclick="demonstrateSort()">試試看</button>
+          </div>
+          <div class="product-card">
+            <div class="product-image">📊</div>
+            <h4>銷量排行榜</h4>
+            <button class="stall-btn" onclick="demonstrateGroupBy()">試試看</button>
+          </div>
+          <div class="product-card">
+            <div class="product-image">🔍</div>
+            <h4>子查詢</h4>
+            <button class="stall-btn" onclick="demonstrateSubQuery()">試試看</button>
+          </div>
+          <div class="product-card">
+            <div class="product-image">🏆</div>
+            <h4>排名功能</h4>
+            <button class="stall-btn" onclick="demonstrateWindowFunc()">試試看</button>
+          </div>
+          <div class="product-card">
+            <div class="product-image">💰</div>
+            <h4>交易控制</h4>
+            <button class="stall-btn" onclick="demonstrateTransaction()">試試看</button>
+          </div>
+          <div class="product-card">
+            <div class="product-image">⚙️</div>
+            <h4>自動促銷</h4>
+            <button class="stall-btn" onclick="demonstrateProcTrigger()">試試看</button>
+          </div>
+          <div class="product-card">
+            <div class="product-image">🔑</div>
+            <h4>索引與權限</h4>
+            <button class="stall-btn" onclick="demonstrateIndexPerm()">試試看</button>
+          </div>
+        </div>
+        <div class="result-display" id="advanced-result"></div>
       </div>
-      <div class="dialogue" id="dialogueBox">
-        <!-- 劇情對話 -->
-        小狼：嗨嗨～各位資料庫狂人，歡迎來到 SQL 夜市！<br>
-        小兔：靠夭～小狼，你這話說得跟我媽的夜市攤位一樣有味道！
-      </div>
-    </main>
+    </section>
   </div>
-  <footer>
-    SQL 夜市大冒險 &copy; 2025
-  </footer>
-
+  
+  <!-- 劇情對話區 -->
+  <div class="dialogue" id="dialogueBox">
+    <strong>小狼</strong>：嗨嗨～各位資料庫狂人，歡迎來到 SQL 夜市！<br>
+    <strong>小兔</strong>：靠夭～小狼，你這話說得跟我媽的夜市攤位一樣有味道！
+  </div>
+  
   <script>
-    // =============================
-    // 模擬 SQL 夜市大冒險的 JS 部分
-    // =============================
-    
-    const outputArea = document.getElementById('outputArea');
-    const dialogueBox = document.getElementById('dialogueBox');
-    const dbStructureDiv = document.getElementById('dbStructure');
-    
     // 模擬資料庫物件
     let db = {
       name: "",
       tables: {}
     };
-    
-    // 更新輸出區域（模擬 SQL 指令輸出）
-    function logOutput(text) {
-      outputArea.textContent += text + "\n";
-      outputArea.scrollTop = outputArea.scrollHeight;
+
+    function logOutput(selector, text) {
+      document.querySelector(selector).innerHTML = `
+        <h4>SQL語法：</h4>
+        <div class="sql-code">${text}</div>
+      `;
+      document.querySelector(selector).classList.add('show');
     }
-    
-    // 更新劇情對話
+
     function updateDialogue(speaker, message) {
-      dialogueBox.innerHTML = `<strong>${speaker}</strong>：${message}`;
+      document.getElementById('dialogueBox').innerHTML = `<strong>${speaker}</strong>：${message}`;
     }
-    
-    // 更新左側資料庫結構展示
+
     function updateDBStructure() {
-      dbStructureDiv.innerHTML = "";
-      if (!db.name) {
-        dbStructureDiv.innerHTML = "<p>資料庫尚未建立！</p>";
-        return;
-      }
-      const dbTitle = document.createElement("p");
-      dbTitle.textContent = "資料庫：" + db.name;
-      dbTitle.style.fontWeight = "bold";
-      dbStructureDiv.appendChild(dbTitle);
-      for (let tableName in db.tables) {
-        const tableDiv = document.createElement("div");
-        tableDiv.className = "db-table fade-in";
-        const tableTitle = document.createElement("h3");
-        tableTitle.textContent = tableName;
-        tableDiv.appendChild(tableTitle);
-        const ul = document.createElement("ul");
-        db.tables[tableName].columns.forEach(col => {
-          const li = document.createElement("li");
-          li.textContent = col;
-          ul.appendChild(li);
-        });
-        tableDiv.appendChild(ul);
-        dbStructureDiv.appendChild(tableDiv);
-      }
+      // 可擴充左側資料庫結構展示（此處略）
     }
-    
-    // -------------------------------
-    // 1. 資料庫結構（DDL）模擬
-    // -------------------------------
-    
-    // 建立夜市資料庫
-    document.getElementById('btnCreateDB').addEventListener('click', () => {
-      db.name = "NightMarket";
-      db.tables = {};  // 重置所有攤位
-      logOutput("CREATE DATABASE NightMarket;\nUSE NightMarket;");
-      updateDialogue("小狼", "夜市資料庫建立成功，你這 SQL 小白，趕緊動手！");
-      updateDBStructure();
-    });
-    
-    // 建立攤位（建立 users 與 orders 表）
-    document.getElementById('btnCreateTables').addEventListener('click', () => {
-      if (!db.name) {
-        logOutput("請先建立資料庫！");
-        updateDialogue("小狼", "沒夜市資料庫，哪來攤位？先建立再說！");
-        return;
+
+    // SELECT 查詢示範
+    function demonstrateSelect(type) {
+      const queryResult = document.getElementById('select-result');
+      let query = '', explanation = '';
+      if (type === 'basic') {
+        query = `SELECT dish_name, price FROM menu;`;
+        explanation = '查詢菜單中的菜名和價格';
+      } else if (type === 'where') {
+        query = `SELECT dish_name, price FROM menu WHERE price < 100;`;
+        explanation = '查詢價格 100 元以下的菜品';
       }
-      // 建立 users 攤位
-      db.tables["users"] = {
-        columns: [
-          "user_id INT PRIMARY KEY AUTO_INCREMENT",
-          "name VARCHAR(50) NOT NULL",
-          "email VARCHAR(100) UNIQUE",
-          "reg_date DATE DEFAULT CURRENT_DATE"
-        ]
-      };
-      // 建立 orders 攤位
-      db.tables["orders"] = {
-        columns: [
-          "order_id INT PRIMARY KEY AUTO_INCREMENT",
-          "order_date DATETIME DEFAULT CURRENT_TIMESTAMP",
-          "user_id INT",
-          "total DECIMAL(10,2) CHECK(total >= 0)",
-          "FOREIGN KEY (user_id) REFERENCES users(user_id)"
-        ]
-      };
-      logOutput(`-- 創建 "users" 攤位
-CREATE TABLE users (
-    user_id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) UNIQUE,
-    reg_date DATE DEFAULT CURRENT_DATE
-);
--- 創建 "orders" 攤位
-CREATE TABLE orders (
-    order_id INT PRIMARY KEY AUTO_INCREMENT,
-    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    user_id INT,
-    total DECIMAL(10,2) CHECK(total >= 0),
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
-);`);
-      updateDialogue("小狼", "攤位創建成功，每個攤位的菜單都整整齊齊！");
-      updateDBStructure();
-    });
-    
-    // 修改攤位（ALTER TABLE，新增聯絡電話）
-    document.getElementById('btnAlterTable').addEventListener('click', () => {
-      if (!db.tables["users"]) {
-        logOutput("尚未建立 'users' 攤位！");
-        updateDialogue("小狼", "沒有攤位怎麼改？先創建攤位再來動手！");
-        return;
+      queryResult.innerHTML = `
+        <h4>SQL語法：</h4>
+        <div class="sql-code">${query}</div>
+        <p>${explanation}</p>
+        <div class="sample-result">
+          <table border="1" cellpadding="5">
+            <tr><th>菜名</th><th>價格</th></tr>
+            <tr><td>炒麵</td><td>80</td></tr>
+            <tr><td>滷肉飯</td><td>60</td></tr>
+          </table>
+        </div>
+      `;
+      queryResult.classList.add('show');
+      updateDialogue("小狼", "SELECT 查詢完成！看來菜單資訊都很清楚了。");
+    }
+
+    // JOIN 查詢示範
+    function demonstrateJoin(type) {
+      const joinResult = document.getElementById('join-result');
+      let query = '', explanation = '';
+      if (type === 'inner') {
+        query = `SELECT m.dish_name, c.category_name
+FROM menu m
+INNER JOIN categories c ON m.category_id = c.id;`;
+        explanation = '查詢所有菜品及其分類（INNER JOIN）';
+      } else if (type === 'left') {
+        query = `SELECT m.dish_name, o.order_count
+FROM menu m
+LEFT JOIN orders o ON m.id = o.menu_id;`;
+        explanation = '查詢所有菜品的訂單數量，包括未被訂購的菜品（LEFT JOIN）';
       }
-      db.tables["users"].columns.push("phone VARCHAR(20)");
-      logOutput("ALTER TABLE users ADD COLUMN phone VARCHAR(20);");
-      updateDialogue("小狼", "聯絡電話已加，攤位菜單更完整了！");
-      updateDBStructure();
-    });
-    
-    // 刪除攤位（DROP TABLE 模擬）
-    document.getElementById('btnDropTable').addEventListener('click', () => {
-      logOutput("DROP TABLE IF EXISTS old_products;");
-      updateDialogue("小狼", "舊攤位已收攤，記得別手滑砍掉重要攤位！");
-    });
-    
-    // -------------------------------
-    // 2. 資料操作（DML）模擬
-    // -------------------------------
-    
-    // 新增資料（INSERT 模擬）
-    document.getElementById('btnInsertData').addEventListener('click', () => {
-      logOutput("-- 新增使用者（攤主上新貨）\nINSERT INTO users (name, email, phone) VALUES ('Alice', 'alice@example.com', '0912345678');");
-      logOutput("-- 新增訂單：客人下單，總金額 199.99 元\nINSERT INTO orders (user_id, total) VALUES (1, 199.99);");
-      updateDialogue("小狼", "新貨到！攤位上的小吃上架成功！");
-    });
-    
-    // 查詢資料（SELECT 模擬）
-    document.getElementById('btnSelectData').addEventListener('click', () => {
-      logOutput("-- 查詢攤位上的所有使用者資料\nSELECT * FROM users;");
-      updateDialogue("小狼", "查詢完成，攤位清單已展示！");
-    });
-    
-    // 更新資料（UPDATE 模擬）
-    document.getElementById('btnUpdateData').addEventListener('click', () => {
-      logOutput("-- 更新：Alice 的聯絡電話改版\nUPDATE users SET phone = '0987654321' WHERE name = 'Alice';");
-      updateDialogue("小狼", "電話更新成功，就像換新號碼一樣！");
-    });
-    
-    // 刪除資料（DELETE 模擬）
-    document.getElementById('btnDeleteData').addEventListener('click', () => {
-      logOutput("-- 刪除：某筆訂單取消，下架清空\nDELETE FROM orders WHERE order_id = 1;");
-      updateDialogue("小狼", "訂單下架成功，操作時務必小心！");
-    });
-    
-    // -------------------------------
-    // 3. 進階功能模擬
-    // -------------------------------
-    
-    // 3.1 排序功能（ORDER BY）
-    document.getElementById('btnSortData').addEventListener('click', () => {
-      logOutput("-- 按使用者名稱升冪排序\nSELECT * FROM users ORDER BY name ASC;");
-      logOutput("-- 多層排序：先依訂單總金額降冪，再按訂單日期升冪\nSELECT * FROM orders ORDER BY total DESC, order_date ASC;");
-      updateDialogue("小狼", "排序完成！這排列比明星紅毯還有條理！");
-    });
-    
-    // 3.2 JOIN 與 UNION
-    document.getElementById('btnJoinUnion').addEventListener('click', () => {
-      logOutput("-- 內部聯結：查詢每個訂單的攤主姓名與訂單日期\nSELECT u.name, o.order_date, o.total FROM users u INNER JOIN orders o ON u.user_id = o.user_id;");
-      logOutput("-- UNION：合併兩個攤位資料，去除重複\nSELECT name, email FROM users UNION SELECT name, email FROM old_users;");
-      updateDialogue("小狼", "攤位聯手，套餐組合搞定！");
-    });
-    
-    // 3.3 群組統計與篩選（GROUP BY / HAVING）
-    document.getElementById('btnGroupBy').addEventListener('click', () => {
-      logOutput("-- 統計每個攤位的訂單數量，只顯示有銷售的攤位\nSELECT u.name, COUNT(o.order_id) AS order_count FROM users u LEFT JOIN orders o ON u.user_id = o.user_id GROUP BY u.user_id, u.name HAVING COUNT(o.order_id) > 0;");
-      updateDialogue("小狼", "統計完畢！哪家攤位人氣爆棚，排行榜出爐！");
-    });
-    
-    // 3.4 子查詢與嵌套查詢
-    document.getElementById('btnSubQuery').addEventListener('click', () => {
-      logOutput("-- 查詢訂單總金額大於所有訂單平均值的攤主\nSELECT name, total FROM orders WHERE total > (SELECT AVG(total) FROM orders);");
-      updateDialogue("小狼", "內幕查詢完成，這查詢深度比夜市迷宮還複雜！");
-    });
-    
-    // 3.5 Window Functions（即時排名）
-    document.getElementById('btnWindowFunc').addEventListener('click', () => {
-      logOutput("-- 為訂單按總金額排名，顯示累計排名\nSELECT order_id, total, RANK() OVER (ORDER BY total DESC) AS rank FROM orders;");
-      updateDialogue("小狼", "即時排行榜展示中！");
-    });
-    
-    // 3.6 交易控制（Transaction）
-    document.getElementById('btnTransaction').addEventListener('click', () => {
-      logOutput("-- 模擬轉帳交易\nSTART TRANSACTION;\n    UPDATE accounts SET balance = balance - 500 WHERE user_id = 1;\n    UPDATE accounts SET balance = balance + 500 WHERE user_id = 2;\nCOMMIT;");
-      updateDialogue("小狼", "交易控制成功，所有操作全有或全無！");
-    });
-    
-    // 3.7 儲存程序、觸發器與檢視表
-    document.getElementById('btnProcTrigger').addEventListener('click', () => {
-      logOutput("-- 儲存程序：設定自動折扣促銷\nDELIMITER $$\nCREATE PROCEDURE auto_discount()\nBEGIN\n    UPDATE products SET price = price * 0.9 WHERE stock > 100;\nEND $$\nDELIMITER ;");
-      logOutput("-- 觸發器：新訂單插入後自動通知\nDELIMITER $$\nCREATE TRIGGER after_order_insert\nAFTER INSERT ON orders\nFOR EACH ROW\nBEGIN\n    INSERT INTO notifications(message) VALUES (CONCAT('新訂單來了！訂單編號：', NEW.order_id));\nEND $$\nDELIMITER ;");
-      logOutput("-- 檢視表：建立人氣排行榜檢視表\nCREATE VIEW popular_users AS\nSELECT u.name, COUNT(o.order_id) AS orders_count FROM users u JOIN orders o ON u.user_id = o.user_id GROUP BY u.user_id, u.name HAVING COUNT(o.order_id) > 5;");
+      joinResult.innerHTML = `
+        <h4>SQL語法：</h4>
+        <div class="sql-code">${query}</div>
+        <p>${explanation}</p>
+        <div class="sample-result">
+          <table border="1" cellpadding="5">
+            <tr><th>菜名</th><th>分類/訂單數</th></tr>
+            <tr><td>炒麵</td><td>主食 / 25</td></tr>
+            <tr><td>滷肉飯</td><td>主食 / 30</td></tr>
+          </table>
+        </div>
+      `;
+      joinResult.classList.add('show');
+      updateDialogue("小狼", "JOIN 查詢完成！攤位合作，套餐組合搞定。");
+    }
+
+    // 排序功能示範（ORDER BY）
+    function demonstrateSort() {
+      const advResult = document.getElementById('advanced-result');
+      const query = `SELECT * FROM menu ORDER BY price ASC;`;
+      const explanation = '依價格升冪排序，讓你一眼看出最划算的菜品';
+      advResult.innerHTML = `
+        <h4>SQL語法：</h4>
+        <div class="sql-code">${query}</div>
+        <p>${explanation}</p>
+        <div class="sample-result">
+          <table border="1" cellpadding="5">
+            <tr><th>菜名</th><th>價格</th></tr>
+            <tr><td>滷肉飯</td><td>60</td></tr>
+            <tr><td>炒麵</td><td>80</td></tr>
+            <tr><td>牛肉麵</td><td>120</td></tr>
+          </table>
+        </div>
+      `;
+      advResult.classList.add('show');
+      updateDialogue("小狼", "排序完成！這排列就像夜市燈箱，光彩奪目。");
+    }
+
+    // 群組統計與篩選示範（GROUP BY / HAVING）
+    function demonstrateGroupBy() {
+      const advResult = document.getElementById('advanced-result');
+      const query = `SELECT category, COUNT(*) AS dish_count
+FROM menu
+GROUP BY category
+HAVING COUNT(*) > 0;`;
+      const explanation = '統計各分類菜品數量，製作銷量排行榜';
+      advResult.innerHTML = `
+        <h4>SQL語法：</h4>
+        <div class="sql-code">${query}</div>
+        <p>${explanation}</p>
+        <div class="sample-result">
+          <table border="1" cellpadding="5">
+            <tr><th>分類</th><th>菜品數量</th></tr>
+            <tr><td>主食</td><td>10</td></tr>
+            <tr><td>小吃</td><td>8</td></tr>
+          </table>
+        </div>
+      `;
+      advResult.classList.add('show');
+      updateDialogue("小狼", "銷量排行榜出爐！攤位人氣一覽無遺。");
+    }
+
+    // 子查詢示範
+    function demonstrateSubQuery() {
+      const advResult = document.getElementById('advanced-result');
+      const query = `SELECT dish_name, price
+FROM menu
+WHERE price > (SELECT AVG(price) FROM menu);`;
+      const explanation = '查詢價格高於平均值的菜品，找出高端選擇';
+      advResult.innerHTML = `
+        <h4>SQL語法：</h4>
+        <div class="sql-code">${query}</div>
+        <p>${explanation}</p>
+        <div class="sample-result">
+          <table border="1" cellpadding="5">
+            <tr><th>菜名</th><th>價格</th></tr>
+            <tr><td>牛肉麵</td><td>120</td></tr>
+            <tr><td>招牌炒飯</td><td>110</td></tr>
+          </table>
+        </div>
+      `;
+      advResult.classList.add('show');
+      updateDialogue("小狼", "子查詢完成！內幕消息已揭露。");
+    }
+
+    // Window Functions 示範
+    function demonstrateWindowFunc() {
+      const advResult = document.getElementById('advanced-result');
+      const query = `SELECT dish_name, price,
+       RANK() OVER (ORDER BY price DESC) AS rank
+FROM menu;`;
+      const explanation = '依照價格排名，顯示各菜品的市場排名';
+      advResult.innerHTML = `
+        <h4>SQL語法：</h4>
+        <div class="sql-code">${query}</div>
+        <p>${explanation}</p>
+        <div class="sample-result">
+          <table border="1" cellpadding="5">
+            <tr><th>菜名</th><th>價格</th><th>排名</th></tr>
+            <tr><td>牛肉麵</td><td>120</td><td>1</td></tr>
+            <tr><td>招牌炒飯</td><td>110</td><td>2</td></tr>
+            <tr><td>炒麵</td><td>80</td><td>3</td></tr>
+          </table>
+        </div>
+      `;
+      advResult.classList.add('show');
+      updateDialogue("小狼", "即時排名展示完畢！你看這市場競爭，多激烈！");
+    }
+
+    // 交易控制示範（Transaction）
+    function demonstrateTransaction() {
+      const advResult = document.getElementById('advanced-result');
+      const query = `START TRANSACTION;
+    UPDATE accounts SET balance = balance - 500 WHERE user_id = 1;
+    UPDATE accounts SET balance = balance + 500 WHERE user_id = 2;
+COMMIT;`;
+      const explanation = '模擬轉帳交易，確保所有操作要嘛全做，要嘛全撤';
+      advResult.innerHTML = `
+        <h4>SQL語法：</h4>
+        <div class="sql-code">${query}</div>
+        <p>${explanation}</p>
+      `;
+      advResult.classList.add('show');
+      updateDialogue("小狼", "交易控制成功！操作就像點貨一樣精準。");
+    }
+
+    // 儲存程序、觸發器與檢視表示範
+    function demonstrateProcTrigger() {
+      const advResult = document.getElementById('advanced-result');
+      const query = `-- 儲存程序：設定自動折扣促銷
+DELIMITER $$
+CREATE PROCEDURE auto_discount()
+BEGIN
+    UPDATE products SET price = price * 0.9 WHERE stock > 100;
+END $$
+DELIMITER ;
+
+-- 觸發器：新訂單插入後自動通知
+DELIMITER $$
+CREATE TRIGGER after_order_insert
+AFTER INSERT ON orders
+FOR EACH ROW
+BEGIN
+    INSERT INTO notifications(message) VALUES (CONCAT('新訂單來了！訂單編號：', NEW.order_id));
+END $$
+DELIMITER ;
+
+-- 檢視表：建立人氣排行榜檢視表
+CREATE VIEW popular_users AS
+SELECT u.name, COUNT(o.order_id) AS orders_count
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+GROUP BY u.user_id, u.name
+HAVING COUNT(o.order_id) > 5;`;
+      const explanation = '設定自動促銷、觸發通知及人氣排行榜檢視表';
+      advResult.innerHTML = `
+        <h4>SQL語法：</h4>
+        <div class="sql-code">${query}</div>
+        <p>${explanation}</p>
+      `;
+      advResult.classList.add('show');
       updateDialogue("小狼", "自動促銷與觸發器設定完畢，完全自動化！");
-    });
-    
-    // 3.8 索引與權限管理
-    document.getElementById('btnIndexPerm').addEventListener('click', () => {
-      logOutput("-- 建立索引，加速查詢\nCREATE INDEX idx_users_email ON users (email);");
-      logOutput("-- 權限管理：授權攤位助理操作\nGRANT SELECT, INSERT, UPDATE ON NightMarket.* TO 'assistant_user'@'localhost' IDENTIFIED BY 'secret';");
-      logOutput("-- 收回權限\nREVOKE UPDATE ON NightMarket.orders FROM 'assistant_user'@'localhost';");
-      updateDialogue("小狼", "索引與權限管理搞定，資料庫運行如夜市保全！");
-    });
-    
-    // -------------------------------
-    // 4. PHP 與 SQL 整合示範（僅展示程式碼）
-    // -------------------------------
-    // 此部分僅供參考，不作互動
-    function showPHPCode() {
-      logOutput(`<?php
-// 資料庫連線設定
-$host = 'localhost';
-$user = 'root';
-$pass = '你的密碼';
-$db   = 'NightMarket';
-
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) {
-    die('連線失敗: ' . $conn->connect_error);
-}
-
-// 查詢所有使用者
-$sql = 'SELECT * FROM users ORDER BY name ASC';
-$result = $conn->query($sql);
-
-// 新增、更新、刪除操作...
-$conn->close();
-?>`);
-      updateDialogue("小狼", "PHP 與 SQL 整合示範展示完畢，點外賣操作簡單高效！");
     }
-    
-    // 如果需要，可額外新增一個按鈕來呼叫 showPHPCode()
-    
+
+    // 索引與權限管理示範
+    function demonstrateIndexPerm() {
+      const advResult = document.getElementById('advanced-result');
+      const query = `-- 建立索引，加速查詢
+CREATE INDEX idx_users_email ON users (email);
+
+-- 權限管理：授權操作
+GRANT SELECT, INSERT, UPDATE ON NightMarket.* TO 'assistant_user'@'localhost' IDENTIFIED BY 'secret';
+
+-- 收回權限
+REVOKE UPDATE ON NightMarket.orders FROM 'assistant_user'@'localhost';`;
+      const explanation = '透過索引優化查詢，並設定權限管理確保安全';
+      advResult.innerHTML = `
+        <h4>SQL語法：</h4>
+        <div class="sql-code">${query}</div>
+        <p>${explanation}</p>
+      `;
+      advResult.classList.add('show');
+      updateDialogue("小狼", "索引與權限管理搞定，資料庫運作如同夜市保安般嚴密！");
+    }
+
+    // DOMContentLoaded 事件，添加視覺效果
+    document.addEventListener('DOMContentLoaded', () => {
+      // 霓虹燈閃爍效果（已內建於 CSS）
+      // 攤位懸停效果
+      const stalls = document.querySelectorAll('.market-stall');
+      stalls.forEach(stall => {
+        stall.addEventListener('mouseenter', () => {
+          stall.style.transform = 'scale(1.02)';
+        });
+        stall.addEventListener('mouseleave', () => {
+          stall.style.transform = 'scale(1)';
+        });
+      });
+    });
   </script>
 </body>
 </html>
