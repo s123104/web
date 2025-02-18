@@ -1,601 +1,1029 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SQL 夜市大冒險 - 現代化沉浸式體驗</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      /* 色彩設定 */
-      --primary-color: #ff9234;
-      --secondary-color: #ffcd3c;
-      --bg-dark: #1a1a1a;
-      --text-light: #f1f2f6;
-      --accent-neon: #ff4757;
-      --accent-blue: #70a1ff;
-      --accent-green: #2ed573;
-      --overlay-dark: rgba(0, 0, 0, 0.7);
-    }
-    /* Reset 與基本樣式 */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: 'Noto Sans TC', sans-serif;
-      background: var(--bg-dark);
-      color: var(--text-light);
-      line-height: 1.5;
-      overflow-x: hidden;
-    }
-    /* 背景與霓虹效果 */
-    .market-scene {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: 
-        linear-gradient(var(--overlay-dark), var(--overlay-dark)),
-        url('https://picsum.photos/1920/1080?grayscale') center/cover no-repeat;
-      z-index: -2;
-    }
-    .neon-sign {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 2.8rem;
-      font-weight: bold;
-      color: var(--accent-neon);
-      text-shadow: 0 0 5px var(--accent-neon), 0 0 10px var(--accent-neon), 0 0 20px var(--accent-neon);
-      animation: neonFlicker 1.5s infinite alternate;
-    }
-    @keyframes neonFlicker {
-      0%, 18%, 22%, 25%, 53%, 57%, 100% {
-        text-shadow: 0 0 5px var(--accent-neon), 0 0 10px var(--accent-neon), 0 0 20px var(--accent-neon);
-      }
-      20%, 24%, 55% {
-        text-shadow: none;
-      }
-    }
-    /* Header 入口 */
-    header {
-      text-align: center;
-      padding: 100px 1rem 20px;
-    }
-    .entrance-desc {
-      font-size: 1.2rem;
-      color: var(--accent-blue);
-      margin-top: 10px;
-    }
-    /* 主體佈局 */
-    .container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 2rem;
-      padding: 2rem;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    /* 攤位卡片 */
-    .market-stall {
-      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-      border-radius: 15px;
-      padding: 2rem;
-      position: relative;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      overflow: hidden;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .market-stall:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
-    }
-    .stall-canopy {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 40px;
-      background: repeating-linear-gradient(45deg, var(--primary-color), var(--primary-color) 10px, var(--secondary-color) 10px, var(--secondary-color) 20px);
-      border-radius: 15px 15px 0 0;
-      transform: translateY(-100%);
-      animation: canopySlide 0.6s forwards;
-    }
-    @keyframes canopySlide {
-      to { transform: translateY(0); }
-    }
-    .market-stall h2 {
-      text-align: center;
-      margin-bottom: 1rem;
-      font-size: 1.8rem;
-    }
-    /* SQL 教學區域 */
-    .sql-learning-area {
-      background: rgba(0, 0, 0, 0.8);
-      padding: 1.5rem;
-      border-radius: 10px;
-      margin-top: 1rem;
-    }
-    .sql-learning-area h3 {
-      text-align: center;
-      margin-bottom: 1rem;
-      font-size: 1.4rem;
-      color: var(--secondary-color);
-    }
-    .sql-code {
-      background: #2f3542;
-      padding: 1rem;
-      border-radius: 8px;
-      font-family: monospace;
-      margin-bottom: 1rem;
-      position: relative;
-      overflow-x: auto;
-    }
-    .sql-code::before {
-      content: 'SQL';
-      position: absolute;
-      top: -10px;
-      left: 10px;
-      background: var(--accent-blue);
-      padding: 2px 8px;
-      border-radius: 5px;
-      font-size: 0.8rem;
-      color: var(--bg-dark);
-    }
-    /* 互動按鈕 */
-    .stall-btn {
-      background: var(--accent-green);
-      color: var(--bg-dark);
-      border: none;
-      padding: 0.8rem 1.2rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background 0.3s ease, transform 0.3s ease;
-      width: 100%;
-      margin-top: 0.5rem;
-    }
-    .stall-btn:hover {
-      background: #27ae60;
-      transform: translateY(-2px);
-    }
-    /* 產品展示網格 */
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-    .product-card {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 1rem;
-      border-radius: 8px;
-      text-align: center;
-      transition: transform 0.3s ease;
-    }
-    .product-card:hover {
-      transform: translateY(-3px);
-    }
-    .product-image {
-      width: 70px;
-      height: 70px;
-      margin: 0 auto 0.5rem;
-      background: var(--secondary-color);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-    }
-    /* 結果展示區 */
-    .result-display {
-      background: rgba(0, 0, 0, 0.95);
-      padding: 1rem;
-      border-radius: 8px;
-      margin-top: 1rem;
-      border: 1px solid var(--accent-blue);
-      font-size: 0.9rem;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: all 0.3s ease;
-      overflow-x: auto;
-    }
-    .result-display.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    /* 劇情對話區 */
-    .dialogue {
-      background: rgba(0, 0, 0, 0.85);
-      padding: 1rem;
-      border-radius: 8px;
-      text-align: center;
-      font-size: 1.1rem;
-      margin: 1.5rem auto;
-      max-width: 800px;
-      border: 1px solid var(--accent-blue);
-    }
-    /* RWD 調整 */
-    @media (max-width: 768px) {
-      .container {
-        padding: 1rem;
-        gap: 1.5rem;
-      }
-      .market-stall {
-        padding: 1.5rem;
-      }
-      .neon-sign {
-        font-size: 2rem;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL 夜市大冒險 - 沉浸式學習體驗</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Caveat:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash/4.17.21/lodash.min.js"></script>
+    <style>
+        :root {
+            --stall-primary: #ff9234;
+            --stall-secondary: #ffcd3c;
+            --text-light: #f1f2f6;
+            --text-dark: #2f3542;
+            --neon-red: #ff4757;
+            --neon-blue: #70a1ff;
+            --neon-green: #2ed573;
+            --neon-red-rgb: 255, 71, 87;
+            --neon-blue-rgb: 112, 161, 255;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans TC', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: #1a1a1a url('https://images.unsplash.com/photo-1533089855198-5a32583c9494?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center/cover fixed;
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 夜市背景效果 */
+        .market-scene {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: -1;
+        }
+
+        .market-scene::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://images.unsplash.com/photo-1603386781299-93524d7fd534?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center/cover;
+            opacity: 0.4;
+            animation: subtleLightMovement 30s linear infinite;
+        }
+
+        @keyframes subtleLightMovement {
+            0% { transform: translateX(0); }
+            50% { transform: translateX(10%); }
+            100% { transform: translateX(0); }
+        }
+
+
+        /* 夜市入口 */
+        .market-entrance {
+            text-align: center;
+            padding: 5rem 2rem;
+        }
+
+        .neon-sign {
+            position: relative;
+            display: inline-block;
+            padding: 15px 30px;
+            font-size: 3rem;
+            font-family: 'Caveat', cursive;
+            font-weight: bold;
+            color: var(--text-light);
+            text-shadow:
+                0 0 8px var(--neon-red),
+                0 0 15px var(--neon-red),
+                0 0 25px var(--neon-red),
+                0 0 40px var(--neon-red);
+            animation: neonFlicker 1.5s infinite alternate,
+                       increaseSize 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes increaseSize {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+
+        @keyframes neonFlicker {
+            0%, 18%, 22%, 25%, 53%, 57%, 100% {
+                text-shadow:
+                    0 0 8px var(--neon-red),
+                    0 0 15px var(--neon-red),
+                    0 0 25px var(--neon-red),
+                    0 0 40px var(--neon-red);
+            }
+            20%, 24%, 55% {
+                text-shadow: none;
+                color: var(--text-light);
+            }
+        }
+
+        .entrance-desc {
+            font-size: 1.2rem;
+            margin-top: 1rem;
+            color: var(--text-light);
+            opacity: 0.8;
+        }
+
+
+        /* 攤位設計 */
+        .market-stall {
+            background: rgba(20, 20, 20, 0.85);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin: 2.5rem auto;
+            max-width: 90%;
+            position: relative;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+            border: 2px solid var(--neon-red);
+            overflow: hidden;
+        }
+
+        .market-stall::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: inherit;
+            box-shadow: 0 0 50px var(--neon-red);
+            opacity: 0.7;
+            z-index: -1;
+        }
+
+        .stall-canopy {
+            position: absolute;
+            top: -30px;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: url('https://www.transparenttextures.com/patterns/fabric-dark.png') repeat;
+            background-color: var(--stall-primary);
+            background-blend-mode: multiply;
+            border-radius: 10px 10px 0 0;
+            transform: perspective(120px) rotateX(7deg);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+        }
+
+        .stall-title {
+            color: var(--text-light);
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 3px rgba(0,0,0,0.5);
+        }
+
+
+        .stall-counter {
+            background: rgba(255,255,255,0.05);
+            padding: 2rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            margin-top: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* SQL 教學區域 */
+        .sql-learning-area {
+            background: rgba(20, 20, 20, 0.9);
+            padding: 2.5rem;
+            border-radius: 20px;
+            margin: 1.5rem 0;
+            border: 2px solid var(--neon-blue);
+            box-shadow: 0 0 30px rgba(var(--neon-blue-rgb), 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sql-learning-area::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: inherit;
+            box-shadow: 0 0 40px var(--neon-blue);
+            opacity: 0.6;
+            z-index: -1;
+        }
+
+        .learning-title {
+            color: var(--text-light);
+            font-size: 1.5rem;
+            margin-bottom: 1.2rem;
+            letter-spacing: 0.8px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+
+        .sql-code {
+            background: #3a4252;
+            padding: 2rem;
+            border-radius: 15px;
+            font-family: 'Courier New', monospace;
+            margin: 1.5rem 0;
+            position: relative;
+            box-shadow: inset 0 3px 8px rgba(0,0,0,0.2);
+            color: #f8f8f2;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .sql-code::before {
+            content: 'SQL 範例';
+            position: absolute;
+            top: -12px;
+            left: 15px;
+            background: var(--neon-blue);
+            padding: 4px 12px;
+            border-radius: 7px;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 互動按鈕 */
+        .stall-btn {
+            background: var(--neon-green);
+            color: var(--text-dark);
+            border: none;
+            padding: 1.2rem 2.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .stall-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: inherit;
+            border: 2px solid var(--text-dark);
+            z-index: -1;
+            opacity: 0.8;
+        }
+
+        .stall-btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                transparent,
+                rgba(255,255,255,0.3),
+                transparent
+            );
+            transform: rotate(45deg);
+            transition: left 0.7s ease-out;
+        }
+
+        .stall-btn:hover::after {
+            left: 120%;
+        }
+
+        .stall-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        .stall-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+
+        /* 攤位商品展示 */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .product-card {
+            background: rgba(255,255,255,0.08);
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s ease;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+        }
+
+        .product-image {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1.5rem;
+            background: var(--stall-secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-dark);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            border: 2px solid rgba(0,0,0,0.1);
+        }
+
+        /* 結果展示區 */
+        .result-display {
+            background: rgba(20, 20, 20, 0.95);
+            padding: 2rem;
+            border-radius: 15px;
+            margin-top: 2rem;
+            border: 2px solid var(--neon-blue);
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            box-shadow: 0 0 40px rgba(var(--neon-blue-rgb), 0.6);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-display::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: inherit;
+            box-shadow: 0 0 50px var(--neon-blue);
+            opacity: 0.7;
+            z-index: -1;
+        }
+
+        .result-display.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .result-title {
+            font-size: 1.3rem;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .sample-result {
+            overflow-x: auto;
+        }
+
+        .sample-result table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .sample-result th, .sample-result td {
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .sample-result th {
+            background-color: rgba(255,255,255,0.05);
+            font-weight: bold;
+        }
+
+
+        /* 行動裝置適配 */
+        @media (max-width: 768px) {
+            .market-entrance {
+                padding: 3rem 1rem;
+            }
+
+            .neon-sign {
+                font-size: 2rem;
+                padding: 10px 20px;
+            }
+
+            .entrance-desc {
+                font-size: 1rem;
+            }
+
+            .market-stall {
+                margin: 1.5rem;
+                padding: 1.5rem;
+                border-radius: 15px;
+            }
+
+            .stall-canopy {
+                top: -15px;
+                height: 25px;
+            }
+
+            .stall-title {
+                font-size: 1.8rem;
+                margin-bottom: 1rem;
+            }
+
+            .stall-counter {
+                padding: 1.2rem;
+                border-radius: 10px;
+                margin-top: 1rem;
+            }
+
+            .sql-learning-area {
+                padding: 1.5rem;
+                border-radius: 15px;
+                margin: 1rem 0;
+            }
+
+            .learning-title {
+                font-size: 1.3rem;
+                margin-bottom: 1rem;
+            }
+
+            .sql-code {
+                padding: 1.2rem;
+                border-radius: 10px;
+                font-size: 1rem;
+                margin: 1rem 0;
+            }
+
+            .stall-btn {
+                padding: 1rem 2rem;
+                border-radius: 8px;
+                font-size: 1rem;
+            }
+
+            .product-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                margin-top: 1.5rem;
+            }
+
+            .product-card {
+                padding: 1.2rem;
+                border-radius: 10px;
+            }
+
+            .product-image {
+                width: 100px;
+                height: 100px;
+                font-size: 2rem;
+                margin-bottom: 1rem;
+            }
+
+            .result-display {
+                padding: 1.2rem;
+                border-radius: 10px;
+                margin-top: 1.5rem;
+            }
+
+            .result-title {
+                font-size: 1.2rem;
+                margin-bottom: 0.8rem;
+            }
+
+            .sample-result th, .sample-result td {
+                padding: 0.6rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* 動態效果 */
+        .stall-animation {
+            animation: stallAppear 0.5s ease-out;
+        }
+
+        @keyframes stallAppear {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 工具提示 (Tooltip) - 可以根據需要添加 */
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+
+        .tooltip.show {
+            opacity: 1;
+        }
+    </style>
 </head>
 <body>
-  <div class="market-scene"></div>
-  <!-- 入口區 -->
-  <header>
-    <div class="neon-sign">SQL 夜市大冒險</div>
-    <p class="entrance-desc">跟著小狼與小兔，一起探索資料庫的美味世界！</p>
-  </header>
-  
-  <!-- 主互動區 -->
-  <div class="container">
-    <!-- SELECT 查詢攤位 -->
-    <section class="market-stall">
-      <div class="stall-canopy"></div>
-      <h2>🍜 查詢小館</h2>
-      <div class="sql-learning-area">
-        <h3>SELECT 查詢基礎</h3>
-        <div class="sql-code">
-          SELECT column1, column2<br>
-          FROM table_name<br>
-          WHERE condition;
+    <div class="market-scene"></div>
+
+    <header class="market-entrance" id="entrance-section">
+        <div class="neon-sign">SQL 夜市大冒險</div>
+        <p class="entrance-desc">和小狼、小兔一起探索SQL的美味世界！</p>
+    </header>
+
+    <section class="market-stall stall-animation" id="select-stall">
+        <div class="stall-canopy"></div>
+        <h2 class="stall-title">🍜 查詢小館</h2>
+
+        <div class="sql-learning-area">
+            <h3 class="learning-title">SELECT 查詢基礎</h3>
+            <div class="sql-code">
+                SELECT column1, column2
+                FROM table_name
+                WHERE condition;
+            </div>
+
+            <div class="stall-counter">
+                <div class="product-grid">
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-bowl-food"></i></div>
+                        <h4>基礎查詢</h4>
+                        <button class="stall-btn" onclick="demonstrateSelect('basic')">試試看</button>
+                    </div>
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-hot-pepper"></i></div>
+                        <h4>條件查詢</h4>
+                        <button class="stall-btn" onclick="demonstrateSelect('where')">試試看</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-display" id="select-result">
+                <h4 class="result-title">範例結果</h4>
+                <div class="sample-result">
+                    <p>點擊 "試試看" 按鈕，即可在此區域顯示 SQL 語法和執行結果範例。</p>
+                </div>
+            </div>
         </div>
-        <div class="product-grid">
-          <div class="product-card">
-            <div class="product-image">🍜</div>
-            <h4>基礎查詢</h4>
-            <button class="stall-btn" onclick="demonstrateSelect('basic')">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image">🥘</div>
-            <h4>條件查詢</h4>
-            <button class="stall-btn" onclick="demonstrateSelect('where')">試試看</button>
-          </div>
-        </div>
-        <div class="result-display" id="select-result"></div>
-      </div>
     </section>
-    
-    <!-- JOIN 查詢攤位 -->
-    <section class="market-stall">
-      <div class="stall-canopy"></div>
-      <h2>🍲 關聯餐館</h2>
-      <div class="sql-learning-area">
-        <h3>JOIN 查詢</h3>
-        <div class="sql-code">
-          SELECT a.column1, b.column2<br>
-          FROM table1 a<br>
-          JOIN table2 b ON a.id = b.id;
+
+    <section class="market-stall stall-animation" id="join-stall">
+        <div class="stall-canopy"></div>
+        <h2 class="stall-title">🍲 關聯餐館</h2>
+
+        <div class="sql-learning-area">
+            <h3 class="learning-title">JOIN 查詢</h3>
+            <div class="sql-code">
+                SELECT a.column1, b.column2
+                FROM table1 a
+                JOIN table2 b ON a.id = b.id;
+            </div>
+
+            <div class="stall-counter">
+                <div class="product-grid">
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-handshake-angle"></i></div>
+                        <h4>INNER JOIN</h4>
+                        <button class="stall-btn" onclick="demonstrateJoin('inner')">試試看</button>
+                    </div>
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
+                        <h4>LEFT JOIN</h4>
+                        <button class="stall-btn" onclick="demonstrateJoin('left')">試試看</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-display" id="join-result">
+                <h4 class="result-title">範例結果</h4>
+                <div class="sample-result">
+                     <p>點擊 "試試看" 按鈕，即可在此區域顯示 SQL 語法和執行結果範例。</p>
+                </div>
+            </div>
         </div>
-        <div class="product-grid">
-          <div class="product-card">
-            <div class="product-image">🤝</div>
-            <h4>INNER JOIN</h4>
-            <button class="stall-btn" onclick="demonstrateJoin('inner')">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image">🔄</div>
-            <h4>LEFT JOIN</h4>
-            <button class="stall-btn" onclick="demonstrateJoin('left')">試試看</button>
-          </div>
-        </div>
-        <div class="result-display" id="join-result"></div>
-      </div>
     </section>
-    
-    <!-- 進階功能攤 -->
-    <section class="market-stall">
-      <div class="stall-canopy"></div>
-      <h2>🔧 進階操作攤</h2>
-      <div class="sql-learning-area">
-        <h3>進階功能展示</h3>
-        <div class="product-grid">
-          <div class="product-card">
-            <div class="product-image">↕️</div>
-            <h4>排序 (ORDER BY)</h4>
-            <button class="stall-btn" onclick="demonstrateSort()">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image">📊</div>
-            <h4>銷量排行榜</h4>
-            <button class="stall-btn" onclick="demonstrateGroupBy()">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image">🔍</div>
-            <h4>子查詢</h4>
-            <button class="stall-btn" onclick="demonstrateSubQuery()">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image">🏆</div>
-            <h4>排名功能</h4>
-            <button class="stall-btn" onclick="demonstrateWindowFunc()">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image">💰</div>
-            <h4>交易控制</h4>
-            <button class="stall-btn" onclick="demonstrateTransaction()">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image">⚙️</div>
-            <h4>自動促銷</h4>
-            <button class="stall-btn" onclick="demonstrateProcTrigger()">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image">🔑</div>
-            <h4>索引與權限</h4>
-            <button class="stall-btn" onclick="demonstrateIndexPerm()">試試看</button>
-          </div>
+
+    <section class="market-stall stall-animation" id="groupby-stall">
+        <div class="stall-canopy"></div>
+        <h2 class="stall-title">🍹 特調飲品吧</h2>
+
+        <div class="sql-learning-area">
+            <h3 class="learning-title">GROUP BY 分組查詢</h3>
+            <div class="sql-code">
+                SELECT category, COUNT(*) AS total
+                FROM sales
+                GROUP BY category
+                ORDER BY total DESC;
+            </div>
+
+            <div class="stall-counter">
+                <div class="product-grid">
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-filter"></i></div>
+                        <h4>基礎分組</h4>
+                        <button class="stall-btn" onclick="demonstrateGroupBy('basic')">試試看</button>
+                    </div>
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-sort-numeric-down"></i></div>
+                        <h4>排序分組</h4>
+                        <button class="stall-btn" onclick="demonstrateGroupBy('order')">試試看</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-display" id="groupby-result">
+                <h4 class="result-title">範例結果</h4>
+                <div class="sample-result">
+                     <p>點擊 "試試看" 按鈕，即可在此區域顯示 SQL 語法和執行結果範例。</p>
+                </div>
+            </div>
         </div>
-        <div class="result-display" id="advanced-result"></div>
-      </div>
     </section>
-  </div>
-  
-  <!-- 劇情對話區 -->
-  <div class="dialogue" id="dialogueBox">
-    <strong>小狼</strong>：嗨嗨～各位資料庫狂人，歡迎來到 SQL 夜市！<br>
-    <strong>小兔</strong>：靠夭～小狼，你這話說得跟我媽的夜市攤位一樣有味道！
-  </div>
-  
-  <script>
-    // 模擬資料庫物件 (可擴充)
-    let db = {
-      name: "NightMarket",
-      tables: {}
-    };
 
-    // 更新對話框訊息
-    function updateDialogue(speaker, message) {
-      document.getElementById('dialogueBox').innerHTML = `<strong>${speaker}</strong>：${message}`;
-    }
-    
-    // SELECT 示範
-    function demonstrateSelect(type) {
-      const resultDisplay = document.getElementById('select-result');
-      let query = '', explanation = '';
-      if (type === 'basic') {
-        query = `SELECT dish_name, price FROM menu;`;
-        explanation = '查詢菜單中的菜名和價格';
-      } else if (type === 'where') {
-        query = `SELECT dish_name, price FROM menu WHERE price < 100;`;
-        explanation = '查詢價格低於 100 元的菜品';
-      }
-      resultDisplay.innerHTML = `
-        <h4>SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">
-          <table border="1" cellpadding="5">
-            <tr><th>菜名</th><th>價格</th></tr>
-            <tr><td>炒麵</td><td>80</td></tr>
-            <tr><td>滷肉飯</td><td>60</td></tr>
-          </table>
+     <section class="market-stall stall-animation" id="insert-stall">
+        <div class="stall-canopy"></div>
+        <h2 class="stall-title">🍦 創意冰品店</h2>
+
+        <div class="sql-learning-area">
+            <h3 class="learning-title">INSERT 新增資料</h3>
+            <div class="sql-code">
+                INSERT INTO customers (name, city)
+                VALUES ('小美', '台北');
+            </div>
+
+            <div class="stall-counter">
+                <div class="product-grid">
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-plus"></i></div>
+                        <h4>新增一筆</h4>
+                        <button class="stall-btn" onclick="demonstrateInsert('single')">試試看</button>
+                    </div>
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-table-columns"></i></div>
+                        <h4>新增多筆</h4>
+                        <button class="stall-btn" onclick="demonstrateInsert('multiple')">試試看</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-display" id="insert-result">
+                <h4 class="result-title">範例結果</h4>
+                <div class="sample-result">
+                     <p>點擊 "試試看" 按鈕，即可在此區域顯示 SQL 語法和執行結果範例。</p>
+                </div>
+            </div>
         </div>
-      `;
-      resultDisplay.classList.add('show');
-      updateDialogue("小狼", "SELECT 查詢完成！菜單資訊都在這兒了。");
-    }
+    </section>
 
-    // JOIN 示範
-    function demonstrateJoin(type) {
-      const resultDisplay = document.getElementById('join-result');
-      let query = '', explanation = '';
-      if (type === 'inner') {
-        query = `SELECT m.dish_name, c.category_name
-FROM menu m
-INNER JOIN categories c ON m.category_id = c.id;`;
-        explanation = '查詢所有菜品及其分類（INNER JOIN）';
-      } else if (type === 'left') {
-        query = `SELECT m.dish_name, o.order_count
-FROM menu m
-LEFT JOIN orders o ON m.id = o.menu_id;`;
-        explanation = '查詢所有菜品的訂單數量（LEFT JOIN）';
-      }
-      resultDisplay.innerHTML = `
-        <h4>SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">
-          <table border="1" cellpadding="5">
-            <tr><th>菜名</th><th>分類 / 訂單數</th></tr>
-            <tr><td>炒麵</td><td>主食 / 25</td></tr>
-            <tr><td>滷肉飯</td><td>主食 / 30</td></tr>
-          </table>
+    <section class="market-stall stall-animation" id="update-stall">
+        <div class="stall-canopy"></div>
+        <h2 class="stall-title">🧋 復古茶飲鋪</h2>
+
+        <div class="sql-learning-area">
+            <h3 class="learning-title">UPDATE 更新資料</h3>
+            <div class="sql-code">
+                UPDATE products
+                SET price = 90
+                WHERE product_name = '珍珠奶茶';
+            </div>
+
+            <div class="stall-counter">
+                <div class="product-grid">
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-pen-to-square"></i></div>
+                        <h4>更新價格</h4>
+                        <button class="stall-btn" onclick="demonstrateUpdate('price')">試試看</button>
+                    </div>
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-tags"></i></div>
+                        <h4>更新多欄位</h4>
+                        <button class="stall-btn" onclick="demonstrateUpdate('multiple')">試試看</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-display" id="update-result">
+                <h4 class="result-title">範例結果</h4>
+                <div class="sample-result">
+                     <p>點擊 "試試看" 按鈕，即可在此區域顯示 SQL 語法和執行結果範例。</p>
+                </div>
+            </div>
         </div>
-      `;
-      resultDisplay.classList.add('show');
-      updateDialogue("小狼", "JOIN 查詢完成！攤位聯手，套餐組合搞定。");
-    }
+    </section>
 
-    // 排序 (ORDER BY) 示範
-    function demonstrateSort() {
-      const resultDisplay = document.getElementById('advanced-result');
-      const query = `SELECT * FROM menu ORDER BY price ASC;`;
-      const explanation = '依價格升冪排序，找出最划算的菜品';
-      resultDisplay.innerHTML = `
-        <h4>SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">
-          <table border="1" cellpadding="5">
-            <tr><th>菜名</th><th>價格</th></tr>
-            <tr><td>滷肉飯</td><td>60</td></tr>
-            <tr><td>炒麵</td><td>80</td></tr>
-            <tr><td>牛肉麵</td><td>120</td></tr>
-          </table>
+    <section class="market-stall stall-animation" id="delete-stall">
+        <div class="stall-canopy"></div>
+        <h2 class="stall-title">🔥 香辣串烤攤</h2>
+
+        <div class="sql-learning-area">
+            <h3 class="learning-title">DELETE 刪除資料</h3>
+            <div class="sql-code">
+                DELETE FROM orders
+                WHERE order_date < '2024-01-01';
+            </div>
+
+            <div class="stall-counter">
+                <div class="product-grid">
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-trash-can"></i></div>
+                        <h4>刪除指定</h4>
+                        <button class="stall-btn" onclick="demonstrateDelete('specific')">試試看</button>
+                    </div>
+                    <div class="product-card">
+                        <div class="product-image"><i class="fa-solid fa-ban"></i></div>
+                        <h4>清空表格</h4>
+                        <button class="stall-btn" onclick="demonstrateDelete('all')">試試看</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-display" id="delete-result">
+                <h4 class="result-title">範例結果</h4>
+                <div class="sample-result">
+                     <p>點擊 "試試看" 按鈕，即可在此區域顯示 SQL 語法和執行結果範例。</p>
+                </div>
+            </div>
         </div>
-      `;
-      resultDisplay.classList.add('show');
-      updateDialogue("小狼", "排序完成！這排列就像夜市燈箱般醒目。");
-    }
+    </section>
 
-    // 群組統計 (GROUP BY / HAVING) 示範
-    function demonstrateGroupBy() {
-      const resultDisplay = document.getElementById('advanced-result');
-      const query = `SELECT category, COUNT(*) AS dish_count
-FROM menu
-GROUP BY category
-HAVING COUNT(*) > 0;`;
-      const explanation = '統計各分類菜品數量，製作銷量排行榜';
-      resultDisplay.innerHTML = `
-        <h4>SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">
-          <table border="1" cellpadding="5">
-            <tr><th>分類</th><th>菜品數量</th></tr>
-            <tr><td>主食</td><td>10</td></tr>
-            <tr><td>小吃</td><td>8</td></tr>
-          </table>
-        </div>
-      `;
-      resultDisplay.classList.add('show');
-      updateDialogue("小狼", "銷量排行榜出爐！攤位人氣盡收眼底。");
-    }
 
-    // 子查詢示範
-    function demonstrateSubQuery() {
-      const resultDisplay = document.getElementById('advanced-result');
-      const query = `SELECT dish_name, price
-FROM menu
-WHERE price > (SELECT AVG(price) FROM menu);`;
-      const explanation = '查詢價格高於平均值的菜品，找出高端選擇';
-      resultDisplay.innerHTML = `
-        <h4>SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">
-          <table border="1" cellpadding="5">
-            <tr><th>菜名</th><th>價格</th></tr>
-            <tr><td>牛肉麵</td><td>120</td></tr>
-            <tr><td>招牌炒飯</td><td>110</td></tr>
-          </table>
-        </div>
-      `;
-      resultDisplay.classList.add('show');
-      updateDialogue("小狼", "子查詢完成！內幕消息揭曉。");
-    }
+    <script>
+        // SELECT 查詢示範
+        function demonstrateSelect(type) {
+            const resultDisplay = document.getElementById('select-result');
+            let query = '';
+            let explanation = '';
+            let sampleTable = '';
 
-    // Window Functions (排名) 示範
-    function demonstrateWindowFunc() {
-      const resultDisplay = document.getElementById('advanced-result');
-      const query = `SELECT dish_name, price,
-RANK() OVER (ORDER BY price DESC) AS rank
-FROM menu;`;
-      const explanation = '依價格排名，顯示各菜品的市場排名';
-      resultDisplay.innerHTML = `
-        <h4>SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">
-          <table border="1" cellpadding="5">
-            <tr><th>菜名</th><th>價格</th><th>排名</th></tr>
-            <tr><td>牛肉麵</td><td>120</td><td>1</td></tr>
-            <tr><td>招牌炒飯</td><td>110</td><td>2</td></tr>
-            <tr><td>炒麵</td><td>80</td><td>3</td></tr>
-          </table>
-        </div>
-      `;
-      resultDisplay.classList.add('show');
-      updateDialogue("小狼", "即時排名展示完成！市場競爭激烈。");
-    }
+            if (type === 'basic') {
+                query = `SELECT dish_name, price FROM menu;`;
+                explanation = '查詢菜單中的菜名和價格';
+                sampleTable = `
+                    <table>
+                        <tr><th>菜名</th><th>價格</th></tr>
+                        <tr><td>炒麵</td><td>80</td></tr>
+                        <tr><td>滷肉飯</td><td>60</td></tr>
+                        <tr><td>肉羹湯</td><td>45</td></tr>
+                        <tr><td>燙青菜</td><td>30</td></tr>
+                    </table>
+                `;
+            } else if (type === 'where') {
+                query = `SELECT dish_name, price
+                        FROM menu
+                        WHERE price < 60;`;
+                explanation = '查詢價格低於60元的菜品';
+                sampleTable = `
+                    <table>
+                        <tr><th>菜名</th><th>價格</th></tr>
+                        <tr><td>滷肉飯</td><td>60</td></tr>
+                        <tr><td>肉羹湯</td><td>45</td></tr>
+                        <tr><td>燙青菜</td><td>30</td></tr>
+                    </table>
+                `;
+            }
 
-    // 交易控制示範
-    function demonstrateTransaction() {
-      const resultDisplay = document.getElementById('advanced-result');
-      const query = `START TRANSACTION;
-  UPDATE accounts SET balance = balance - 500 WHERE user_id = 1;
-  UPDATE accounts SET balance = balance + 500 WHERE user_id = 2;
-COMMIT;`;
-      const explanation = '模擬轉帳交易，確保所有操作全做或全撤';
-      resultDisplay.innerHTML = `
-        <h4>SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-      `;
-      resultDisplay.classList.add('show');
-      updateDialogue("小狼", "交易控制成功！操作精準無誤。");
-    }
+            resultDisplay.innerHTML = `
+                <h4 class="result-title">SQL 語法：</h4>
+                <div class="sql-code">${query}</div>
+                <p>${explanation}</p>
+                <div class="sample-result">${sampleTable}</div>
+            `;
 
-    // 儲存程序、觸發器與檢視表示範
-    function demonstrateProcTrigger() {
-      const resultDisplay = document.getElementById('advanced-result');
-      const query = `-- 儲存程序：設定自動折扣促銷
-DELIMITER $$
-CREATE PROCEDURE auto_discount()
-BEGIN
-    UPDATE products SET price = price * 0.9 WHERE stock > 100;
-END $$
-DELIMITER ;
+            resultDisplay.classList.add('show');
+            scrollToResult('select-result'); // 滑動到結果區域
+        }
 
--- 觸發器：新訂單插入後自動通知
-DELIMITER $$
-CREATE TRIGGER after_order_insert
-AFTER INSERT ON orders
-FOR EACH ROW
-BEGIN
-    INSERT INTO notifications(message) VALUES (CONCAT('新訂單來了！訂單編號：', NEW.order_id));
-END $$
-DELIMITER ;
+        // JOIN 查詢示範
+        function demonstrateJoin(type) {
+            const resultDisplay = document.getElementById('join-result');
+            let query = '';
+            let explanation = '';
+            let sampleTable = '';
 
--- 檢視表：建立人氣排行榜檢視表
-CREATE VIEW popular_users AS
-SELECT u.name, COUNT(o.order_id) AS orders_count
-FROM users u
-JOIN orders o ON u.user_id = o.user_id
-GROUP BY u.user_id, u.name
-HAVING COUNT(o.order_id) > 5;`;
-      const explanation = '設定自動促銷、觸發通知及人氣排行榜檢視表';
-      resultDisplay.innerHTML = `
-        <h4>SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-      `;
-      resultDisplay.classList.add('show');
-      updateDialogue("小狼", "自動促銷與觸發器設定完畢，完全自動化！");
-    }
+            if (type === 'inner') {
+                query = `SELECT m.dish_name, c.category_name
+                        FROM menu m
+                        INNER JOIN categories c
+                        ON m.category_id = c.id;`;
+                explanation = '查詢所有菜品及其所屬分類';
+                sampleTable = `
+                    <table>
+                        <tr><th>菜名</th><th>分類</th></tr>
+                        <tr><td>炒麵</td><td>主食</td></tr>
+                        <tr><td>滷肉飯</td><td>主食</td></tr>
+                        <tr><td>肉羹湯</td><td>湯品</td></tr>
+                        <tr><td>燙青菜</td><td>蔬菜</td></tr>
+                    </table>
+                `;
+            } else if (type === 'left') {
+                query = `SELECT m.dish_name, o.order_count
+                        FROM menu m
+                        LEFT JOIN orders o
+                        ON m.id = o.menu_id;`;
+                explanation = '查詢所有菜品的訂單數量 (包含未被訂購的菜品)';
+                sampleTable = `
+                    <table>
+                        <tr><th>菜名</th><th>訂單數</th></tr>
+                        <tr><td>炒麵</td><td>25</td></tr>
+                        <tr><td>滷肉飯</td><td>30</td></tr>
+                        <tr><td>肉羹湯</td><td>15</td></tr>
+                        <tr><td>燙青菜</td><td>NULL</td></tr>
+                    </table>
+                `;
+            }
 
-    // 索引與權限管理示範
-    function demonstrateIndexPerm() {
-      const resultDisplay = document.getElementById('advanced-result');
-      const query = `-- 建立索引，加速查詢
-CREATE INDEX idx_users_email ON users (email);
+            resultDisplay.innerHTML = `
+                <h4 class="result-title">SQL 語法：</h4>
+                <div class="sql-code">${query}</div>
+                <p>${explanation}</p>
+                <div class="sample-result">${sampleTable}</div>
+            `;
 
--- 權限管理：授權操作
-GRANT SELECT, INSERT, UPDATE ON NightMarket.* TO 'assistant_user'@'localhost' IDENTIFIED BY 'secret';
+            resultDisplay.classList.add('show');
+            scrollToResult('join-result'); // 滑動到結果區域
+        }
 
--- 收回權限
-REVOKE UPDATE ON NightMarket.orders FROM 'assistant_user'@'localhost';`;
-      const explanation = '透過索引優化查詢，並設定權限管理以確保安全';
-      resultDisplay.innerHTML = `
-        <h4>SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-      `;
-      resultDisplay.classList.add('show');
-      updateDialogue("小狼", "索引與權限管理搞定，資料庫運作嚴謹如夜市保安。");
-    }
+        // GROUP BY 查詢示範 (新增)
+        function demonstrateGroupBy(type) {
+            const resultDisplay = document.getElementById('groupby-result');
+            let query = '';
+            let explanation = '';
+            let sampleTable = '';
 
-    // DOMContentLoaded：加上懸停效果
-    document.addEventListener('DOMContentLoaded', () => {
-      // 所有攤位懸停效果已在 CSS 中定義
-      // 如有需要可加入額外互動
-    });
-  </script>
+            if (type === 'basic') {
+                query = `SELECT category, COUNT(*) AS total_items
+                         FROM products
+                         GROUP BY category;`;
+                explanation = '根據產品類別分組，計算每個類別的產品總數';
+                sampleTable = `
+                    <table>
+                        <tr><th>類別</th><th>產品總數</th></tr>
+                        <tr><td>飲品</td><td>8</td></tr>
+                        <tr><td>冰品</td><td>5</td></tr>
+                        <tr><td>串烤</td><td>12</td></tr>
+                    </table>
+                `;
+            } else if (type === 'order') {
+                query = `SELECT category, AVG(price) AS average_price
+                         FROM products
+                         GROUP BY category
+                         ORDER BY average_price DESC;`;
+                explanation = '根據產品類別分組，計算平均價格，並依平均價格由高到低排序';
+                sampleTable = `
+                    <table>
+                        <tr><th>類別</th><th>平均價格</th></tr>
+                        <tr><td>串烤</td><td>45</td></tr>
+                        <tr><td>冰品</td><td>35</td></tr>
+                        <tr><td>飲品</td><td>25</td></tr>
+                    </table>
+                `;
+            }
+
+            resultDisplay.innerHTML = `
+                <h4 class="result-title">SQL 語法：</h4>
+                <div class="sql-code">${query}</div>
+                <p>${explanation}</p>
+                <div class="sample-result">${sampleTable}</div>
+            `;
+
+            resultDisplay.classList.add('show');
+            scrollToResult('groupby-result');
+        }
+
+
+        // INSERT 示範 (新增)
+        function demonstrateInsert(type) {
+            const resultDisplay = document.getElementById('insert-result');
+            let query = '';
+            let explanation = '';
+            let sampleResult = '';
+
+            if (type === 'single') {
+                query = `INSERT INTO customers (name, city) VALUES ('小美', '台北');`;
+                explanation = '新增一筆客戶資料，包含姓名和小美，城市為台北';
+                sampleResult = `<p>成功新增一筆客戶資料。</p>`;
+            } else if (type === 'multiple') {
+                query = `INSERT INTO products (product_name, category, price) VALUES
+                         ('珍珠奶茶', '飲品', 55),
+                         ('芒果冰', '冰品', 70),
+                         ('烤肉串', '串烤', 40);`;
+                explanation = '一次新增多筆產品資料，包含產品名稱、類別和價格';
+                sampleResult = `<p>成功新增三筆產品資料。</p>`;
+            }
+
+            resultDisplay.innerHTML = `
+                <h4 class="result-title">SQL 語法：</h4>
+                <div class="sql-code">${query}</div>
+                <p>${explanation}</p>
+                <div class="sample-result">${sampleResult}</div>
+            `;
+
+            resultDisplay.classList.add('show');
+            scrollToResult('insert-result');
+        }
+
+        // UPDATE 示範 (新增)
+        function demonstrateUpdate(type) {
+            const resultDisplay = document.getElementById('update-result');
+            let query = '';
+            let explanation = '';
+            let sampleResult = '';
+
+            if (type === 'price') {
+                query = `UPDATE products SET price = 60 WHERE product_name = '珍珠奶茶';`;
+                explanation = '將產品名稱為珍珠奶茶的價格更新為 60 元';
+                sampleResult = `<p>成功更新產品資料，珍珠奶茶價格已調整為 60 元。</p>`;
+            } else if (type === 'multiple') {
+                query = `UPDATE products SET price = 85, category = '冰品' WHERE product_name = '芒果冰';`;
+                explanation = '將產品名稱為芒果冰的價格更新為 85 元，同時將類別更新為冰品';
+                sampleResult = `<p>成功更新產品資料，芒果冰價格調整為 85 元，類別更新為冰品。</p>`;
+            }
+
+            resultDisplay.innerHTML = `
+                <h4 class="result-title">SQL 語法：</h4>
+                <div class="sql-code">${query}</div>
+                <p>${explanation}</p>
+                <div class="sample-result">${sampleResult}</div>
+            `;
+
+            resultDisplay.classList.add('show');
+            scrollToResult('update-result');
+        }
+
+         // DELETE 示範 (新增)
+         function demonstrateDelete(type) {
+            const resultDisplay = document.getElementById('delete-result');
+            let query = '';
+            let explanation = '';
+            let sampleResult = '';
+
+            if (type === 'specific') {
+                query = `DELETE FROM orders WHERE order_date < '2023-01-01';`;
+                explanation = '刪除所有 2023 年 1 月 1 日之前的訂單紀錄';
+                sampleResult = `<p>成功刪除符合條件的訂單紀錄。</p>`;
+            } else if (type === 'all') {
+                query = `DELETE FROM products;`;
+                explanation = '清空產品表格，刪除所有產品資料 (請謹慎使用)';
+                sampleResult = `<p>已清空產品表格，所有產品資料皆已刪除。</p>`;
+            }
+
+            resultDisplay.innerHTML = `
+                <h4 class="result-title">SQL 語法：</h4>
+                <div class="sql-code">${query}</div>
+                <p>${explanation}</p>
+                <div class="sample-result">${sampleResult}</div>
+            `;
+
+            resultDisplay.classList.add('show');
+            scrollToResult('delete-result');
+        }
+
+
+        // 滑動到結果顯示區
+        function scrollToResult(resultId) {
+            const resultSection = document.getElementById(resultId);
+            if (resultSection) {
+                resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+
+        // 添加視覺效果 (保留)
+        document.addEventListener('DOMContentLoaded', () => {
+            // 霓虹燈閃爍效果
+            const neonSigns = document.querySelectorAll('.neon-sign');
+            neonSigns.forEach(sign => {
+                setInterval(() => {
+                    sign.style.opacity = Math.random() < 0.1 ? 0.7 : 1;
+                }, 100);
+            });
+
+            // 攤位懸停效果
+            const stalls = document.querySelectorAll('.market-stall');
+            stalls.forEach(stall => {
+                stall.addEventListener('mouseenter', () => {
+                    stall.style.transform = 'scale(1.02)';
+                });
+                stall.addEventListener('mouseleave', () => {
+                    stall.style.transform = 'scale(1)';
+                });
+            });
+        });
+    </script>
 </body>
 </html>
