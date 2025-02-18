@@ -662,6 +662,138 @@
           會拿來存放日常資訊就很夠啦(☞ﾟ∀ﾟ)☞
         </p>
 
+        <!-- 2.3 PRIMARY KEY, AUTO_INCREMENT, FOREIGN KEY -->
+        <h3>2.3 PRIMARY KEY、AUTO_INCREMENT、FOREIGN KEY</h3>
+        <p>
+          狼：接下來，就讓我這隻小狼再帶你更進一步認識三個關鍵字～
+          <strong>PRIMARY KEY、AUTO_INCREMENT、FOREIGN KEY</strong>，
+          讓你的資料表在管理上更順暢！
+        </p>
+        <ol>
+          <li>
+            <strong>PRIMARY KEY (主鍵)</strong
+            >：表格中用來唯一識別該筆紀錄的欄位， 例如 <code>id</code>。<br />
+            假設 <code>id</code> 是 <strong>PRIMARY KEY</strong>，那就代表
+            <code>id</code> 不可重複，並且用它就能找到對應的一筆資料。
+          </li>
+          <li>
+            <strong>AUTO_INCREMENT (自動遞增)</strong>：
+            讓數值欄位在每次新增資料時，自動加 1。<br />
+            通常和 <strong>PRIMARY KEY</strong>
+            搭配，如建立一個自動遞增的主鍵欄位，每筆新增資料都會自動分配到新的
+            <code>id</code> 值。
+          </li>
+          <li>
+            <strong>FOREIGN KEY (外鍵)</strong>：
+            用於連結其他表格的主鍵，幫助我們建立關聯性。<br />
+            有了 <code>FOREIGN KEY</code>，可以保證在插入資料時，
+            參照的那個主鍵一定是真實存在的，避免「空指標」或「孤兒資料」。
+          </li>
+        </ol>
+        <p>兔：欸嘿～有了這三把鑰匙，就能更安全、更有系統地管理資料表囉！</p>
+
+        <p>以下示範一組簡單的資料庫與表格建立流程：</p>
+        <div class="code-block">
+          <button class="copy-button"><i class="fas fa-copy"></i> Copy</button>
+          <pre><code class="language-sql">-- 建立新的資料庫
+CREATE DATABASE DemoDB;
+USE DemoDB;
+
+-- 建立「使用者」表 users，id 設為主鍵 + 自動增值
+CREATE TABLE users (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50),
+    email VARCHAR(100)
+);
+
+-- 建立「訂單」表 orders，order_id 同樣是主鍵 + 自動增值
+-- 同時用 user_id 作為外鍵，參照 users 表的 user_id
+CREATE TABLE orders (
+    order_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_date DATE,
+    user_id INT,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- 新增一些使用者
+INSERT INTO users (name, email)
+VALUES
+('Alice', 'alice@example.com'),
+('Bob',   'bob@example.com');
+
+-- 新增一些訂單，並指定對應的 user_id
+INSERT INTO orders (order_date, user_id)
+VALUES
+('2025-03-15', 1),
+('2025-03-16', 2);
+
+-- 查詢看看
+SELECT * FROM users;
+SELECT * FROM orders;
+</code></pre>
+        </div>
+        <p>
+          狼：看吧，小兔，這樣子我們就能同時維護好
+          <strong>主鍵</strong> (PRIMARY KEY)、<strong>外鍵</strong> (FOREIGN
+          KEY)， 還順便自動幫 <strong>id</strong> 增加序號 (AUTO_INCREMENT)，
+          管理資料就是這麼輕鬆♪
+        </p>
+
+        <!-- 2.4 狼兔劇場 - 資料庫關聯 (一對多、多對一、多對多) -->
+        <h3>2.4 狼兔劇場 - 資料表關聯</h3>
+        <p>
+          狼：最後來分享一下，表格和表格之間要是有關聯的話，該怎麼表達？(╯°ω°)╯
+          <br />
+          兔：對啊！像我們狼跟兔子是好朋友，可以互相認識，這樣的情況就是一種關聯對吧
+          (•̀ᄇ•́)و✧
+        </p>
+        <p>
+          一般常見有：
+          <strong>一對多 (One-to-Many)</strong>、
+          <strong>多對一 (Many-to-One)</strong>、
+          <strong>多對多 (Many-to-Many)</strong> 三種情境：
+        </p>
+        <ol>
+          <li>
+            <strong>一對多 (One-to-Many)</strong>：
+            一隻狼可以對好幾隻兔子很感興趣 (同學會、同事關係之類)，
+            資料庫上就是「狼表」的主鍵 (wolf_id) 放在「兔表」裡當外鍵。
+          </li>
+          <li>
+            <strong>多對一 (Many-to-One)</strong>：
+            與「一對多」只是視角不同，有很多兔子歸屬同一隻狼～ 在「兔表」裡存
+            <code>wolf_id</code> 指向「狼表」的 id。
+          </li>
+          <li>
+            <strong>多對多 (Many-to-Many)</strong>：
+            若狼和兔子之間可以彼此互相認識、結成好搭檔， 就需要一張「中介表
+            (junction table)」來同時記錄狼與兔的 id。
+          </li>
+        </ol>
+        <p>
+          例如下方簡單範例，建立 <strong>wolves</strong> 表與
+          <strong>rabbits</strong> 表，再用 <code>wolf_id</code> 來連結：
+        </p>
+        <div class="code-block">
+          <button class="copy-button"><i class="fas fa-copy"></i> Copy</button>
+          <pre><code class="language-sql">-- 建立「狼表」
+CREATE TABLE wolves (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(50)
+);
+
+-- 建立「兔表」，使用 wolf_id 當外鍵
+CREATE TABLE rabbits (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(50),
+  wolf_id INT,
+  FOREIGN KEY (wolf_id) REFERENCES wolves(id)
+);</code></pre>
+        </div>
+        <p>
+          狼：這樣就能知道每隻兔子跟哪隻狼有關係啦，資料在更新時也能保持連動，方便又安全！
+        </p>
+
         <!-- 3. MySQL 速成教學 -->
         <h2 id="mysql">3. MySQL 速成教學</h2>
         <p>
@@ -724,7 +856,7 @@ VALUES ('Eggs', 12, '2025-02-28');</code></pre>
 SET quantity = 10
 WHERE name = 'Eggs';</code></pre>
         </div>
-        <p>雞蛋數量從 12 SET 改成 10，可能是剛才料理掉幾顆 (๑•̆૩•̆)</p>
+        <p>雞蛋數量從 12 SET 改成 10，可能是剛才料理掉幾顆 (๑•̆३•̆)</p>
 
         <h3>3.7 刪除資料 🗑️ (Discard Expired Items)</h3>
         <div class="code-block">
@@ -1051,63 +1183,8 @@ $stmt = sqlsrv_query($conn, $query);
 ?&gt;</code></pre>
         </div>
 
-        <!-- 6. 狼兔劇場 - 資料庫關聯 (一對多、多對一、多對多) -->
-        <h2>6. 狼兔劇場 - 資料表關聯</h2>
-        <p>
-          狼：最後來分享一下，表格和表格之間要是有關聯的話，該怎麼表達？(╯°ω°)╯
-          <br />
-          兔：對啊！像我們狼跟兔子是好朋友，可以互相認識，這樣的情況就是一種關聯對吧
-          (•̀ᄇ•́)و✧
-        </p>
-        <p>
-          一般常見有：
-          <strong>一對多 (One-to-Many)</strong>、
-          <strong>多對一 (Many-to-One)</strong>、
-          <strong>多對多 (Many-to-Many)</strong> 三種情境：
-        </p>
-        <ol>
-          <li>
-            <strong>一對多 (One-to-Many)</strong>：
-            一隻狼可以對好幾隻兔子很感興趣 (同學會、同事關係之類)，
-            資料庫上就是「狼表」的主鍵 (wolf_id) 放在「兔表」裡當外鍵。
-          </li>
-          <li>
-            <strong>多對一 (Many-to-One)</strong>：
-            與「一對多」只是視角不同，有很多兔子歸屬同一隻狼～ 在「兔表」裡存
-            <code>wolf_id</code> 指向「狼表」的 id。
-          </li>
-          <li>
-            <strong>多對多 (Many-to-Many)</strong>：
-            若狼和兔子之間可以彼此互相認識、結成好搭檔， 就需要一張「中介表
-            (junction table)」來同時記錄狼與兔的 id。
-          </li>
-        </ol>
-        <p>
-          例如下方簡單範例，建立 <strong>wolves</strong> 表與
-          <strong>rabbits</strong> 表，再用 <code>wolf_id</code> 來連結：
-        </p>
-        <div class="code-block">
-          <button class="copy-button"><i class="fas fa-copy"></i> Copy</button>
-          <pre><code class="language-sql">-- 建立「狼表」
-CREATE TABLE wolves (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(50)
-);
-
--- 建立「兔表」，使用 wolf_id 當外鍵
-CREATE TABLE rabbits (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(50),
-  wolf_id INT,
-  FOREIGN KEY (wolf_id) REFERENCES wolves(id)
-);</code></pre>
-        </div>
-        <p>
-          狼：這樣就能知道每隻兔子跟哪隻狼有關係啦，資料在更新時也能保持連動，方便又安全！
-        </p>
-
-        <!-- 7. ⚡ 快速記憶法 -->
-        <h2>7. ⚡ 快速記憶法</h2>
+        <!-- 6. ⚡ 快速記憶法 -->
+        <h2>6. ⚡ 快速記憶法</h2>
         <ol>
           <li>
             開冰箱/金庫：MySQL 用 <code>mysql -u root -p</code>；MS SQL 用
