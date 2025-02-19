@@ -1,1068 +1,1626 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SQL 夜市大冒險 - 完整沉浸式體驗</title>
+  <head>
+    <meta charset="UTF-8" />
+    <title>SQL 夜市大冒險 - 全面互動終極版 (改造)</title>
 
-  <!-- 字型與圖示 (可依需求增減) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Caveat:wght@700&family=Press+Start+2P&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <!-- Google Fonts & Font Awesome -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
 
-  <style>
-    /*---------------------------------
-     1. 變數、基本設定
-    ---------------------------------*/
-    :root {
-      /* 霓虹/夜市主題色 */
-      --primary: #FF2D55;
-      --secondary: #5856D6;
-      --accent: #FFD60A;
-      --dark: #2C2C2E;
-      --light: #F2F2F7;
+    <!-- Animate.css (可自行移除) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+    />
 
-      /* 霓虹色彩 (用於光暈、陰影) */
-      --neon-red: #ff4757;
-      --neon-blue: #70a1ff;
-      --neon-green: #2ed573;
-      --neon-pink: #FF2E63;
-      --neon-purple: #9C27B0;
-      --neon-yellow: #FFEB3B;
+    <style>
+      :root {
+        --dark-bg: #121212;
+        --dark-overlay: rgba(0, 0, 0, 0.6);
+        --light: #f8f9fa;
+        --accent: #fed766;
+        --primary: #ff577f;
+        --secondary: #4ecdc4;
 
-      /* RGB 用於 box-shadow 或半透明 */
-      --neon-red-rgb: 255, 71, 87;
-      --neon-blue-rgb: 112, 161, 255;
-      --neon-green-rgb: 46, 213, 115;
-      --neon-pink-rgb: 255, 46, 99;
+        /* 攤位霓虹色 */
+        --stall-select: #ff4d6d;
+        --stall-insert: #32e0c4;
+        --stall-delete: #f72585;
+        --stall-update: #546de5;
+        --stall-join: #00adb5;
+        --stall-groupby: #ffc107;
+        --stall-distinct: #ff6fb5;
+        --stall-index: #af98ff;
+        --stall-transaction: #ff7f50;
 
-      /* 依 SQL 功能區分攤位色 */
-      --stall-select: #FF2E63;
-      --stall-join: #00B8A9;
-      --stall-groupby: #F9A826;
-      --stall-insert: #4CAF50;
-      --stall-update: #7158E2;
-      --stall-delete: #FF3838;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Noto Sans TC', sans-serif;
-      scroll-behavior: smooth;
-    }
-
-    body {
-      background: #121212
-        url('https://images.unsplash.com/photo-1533089855198-5a32583c9494?q=80&w=2070&auto=format&fit=crop')
-        center/cover
-        fixed;
-      color: var(--light);
-      min-height: 100vh;
-      overflow-x: hidden;
-      position: relative;
-    }
-
-    /*---------------------------------
-     2. 夜市背景、粒子效果
-    ---------------------------------*/
-    .market-scene {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7);
-      z-index: -1;
-      overflow: hidden;
-    }
-
-    /* 背景柔和移動 */
-    .market-scene::before {
-      content: '';
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: url('https://images.unsplash.com/photo-1603386781299-93524d7fd534?q=80&w=2070&auto=format&fit=crop')
-        center/cover no-repeat;
-      opacity: 0.3;
-      animation: subtleLightMovement 30s linear infinite;
-    }
-    @keyframes subtleLightMovement {
-      0% { transform: scale(1.1) translateX(0) translateY(0); }
-      25% { transform: scale(1.15) translateX(2%) translateY(-1%); }
-      50% { transform: scale(1.1) translateX(1%) translateY(-2%); }
-      75% { transform: scale(1.15) translateX(-1%) translateY(-1%); }
-      100% { transform: scale(1.1) translateX(0) translateY(0); }
-    }
-
-    /* 粒子飄動 (可依需求增刪) */
-    .particles {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none;
-      z-index: 1;
-    }
-    .particle {
-      position: absolute;
-      background: var(--neon-blue);
-      border-radius: 50%;
-      width: 3px;
-      height: 3px;
-      opacity: 0.6;
-      animation: particleFloat 6s infinite linear;
-    }
-    @keyframes particleFloat {
-      0% {
-        transform: translateY(0) rotate(0deg);
-        opacity: 0.2;
+        /* Toast 顏色 */
+        --toast-bg: #444;
       }
-      50% {
-        opacity: 0.8;
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Noto Sans TC", sans-serif;
       }
-      100% {
-        transform: translateY(-100vh) rotate(360deg);
-        opacity: 0.2;
+
+      body {
+        background: var(--dark-bg)
+          url("https://images.unsplash.com/photo-1533089855198-5a32583c9494?q=80&w=2070&auto=format&fit=crop")
+          center/cover no-repeat fixed;
+        color: var(--light);
+        min-height: 100vh;
+        position: relative;
       }
-    }
 
-    /*---------------------------------
-     3. 夜市入口 (標題、角色…)
-    ---------------------------------*/
-    .market-entrance {
-      text-align: center;
-      padding: 6rem 2rem 4rem;
-      position: relative;
-    }
-
-    .game-title {
-      position: relative;
-      display: inline-block;
-      font-family: 'Press Start 2P', cursive;
-      font-size: 2.5rem;
-      color: var(--accent);
-      text-shadow:
-        0 0 10px var(--neon-red),
-        0 0 20px var(--neon-red),
-        0 0 30px var(--neon-red);
-      animation: titlePulse 2s infinite alternate;
-      z-index: 1;
-    }
-    @keyframes titlePulse {
-      0% {
-        text-shadow:
-          0 0 10px var(--neon-red),
-          0 0 20px var(--neon-red);
-        transform: scale(1);
-      }
-      100% {
-        text-shadow:
-          0 0 15px var(--neon-red),
-          0 0 25px var(--neon-red),
-          0 0 35px var(--neon-red);
-        transform: scale(1.03);
-      }
-    }
-
-    .entrance-desc {
-      font-size: 1.2rem;
-      margin: 1.5rem 0;
-      color: var(--light);
-      opacity: 0.9;
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
-    }
-
-    /* 範例角色飄浮動效 */
-    .game-character {
-      position: absolute;
-      bottom: -50px;
-      width: 100px; height: 100px;
-      background-size: contain;
-      background-repeat: no-repeat;
-      z-index: 10;
-    }
-    .char-wolf {
-      left: 10%;
-      /* 範例可改為真實圖片路徑 */
-      background-image: url('https://placehold.co/100x100?text=Wolf');
-      transform: scaleX(-1);
-      animation: charFloat 3s ease-in-out infinite;
-    }
-    .char-rabbit {
-      right: 10%;
-      background-image: url('https://placehold.co/100x100?text=Rabbit');
-      animation: charFloat 3s ease-in-out infinite 1.5s;
-    }
-    @keyframes charFloat {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-15px); }
-    }
-
-    /*---------------------------------
-     4. 攤位列表、卡片式設計
-    ---------------------------------*/
-    /* 主要容器 (課程中將每個攤位都獨立一個 section) */
-    .market-stall {
-      background: rgba(20, 20, 20, 0.85);
-      border-radius: 20px;
-      padding: 2rem;
-      margin: 2rem auto;
-      max-width: 90%;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.3s ease;
-      overflow: hidden;
-      box-shadow: 0 15px 40px rgba(0,0,0,0.7);
-    }
-    .market-stall:hover {
-      transform: scale(1.02) translateY(-5px);
-      z-index: 1;
-    }
-
-    /* 攤位頂棚 */
-    .stall-canopy {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 40px;
-      border-radius: 20px 20px 0 0;
-      background-size: 100px 100px;
-      transform: perspective(120px) rotateX(5deg);
-      z-index: -1;
-    }
-    /* 不同攤位不同顏色(以 SELECT 攤、JOIN 攤…區分) */
-    .select-stall { border: 2px solid var(--stall-select); box-shadow: 0 0 20px rgba(255, 46, 99, 0.5); }
-    .select-stall .stall-canopy {
-      background: repeating-linear-gradient(90deg, var(--stall-select), var(--stall-select) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
-    }
-
-    .join-stall { border: 2px solid var(--stall-join); box-shadow: 0 0 20px rgba(0, 184, 169, 0.5); }
-    .join-stall .stall-canopy {
-      background: repeating-linear-gradient(90deg, var(--stall-join), var(--stall-join) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
-    }
-
-    .groupby-stall { border: 2px solid var(--stall-groupby); box-shadow: 0 0 20px rgba(249, 168, 38, 0.5); }
-    .groupby-stall .stall-canopy {
-      background: repeating-linear-gradient(90deg, var(--stall-groupby), var(--stall-groupby) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
-    }
-
-    .insert-stall { border: 2px solid var(--stall-insert); box-shadow: 0 0 20px rgba(76, 175, 80, 0.5); }
-    .insert-stall .stall-canopy {
-      background: repeating-linear-gradient(90deg, var(--stall-insert), var(--stall-insert) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
-    }
-
-    .update-stall { border: 2px solid var(--stall-update); box-shadow: 0 0 20px rgba(113, 88, 226, 0.5); }
-    .update-stall .stall-canopy {
-      background: repeating-linear-gradient(90deg, var(--stall-update), var(--stall-update) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
-    }
-
-    .delete-stall { border: 2px solid var(--stall-delete); box-shadow: 0 0 20px rgba(255, 56, 56, 0.5); }
-    .delete-stall .stall-canopy {
-      background: repeating-linear-gradient(90deg, var(--stall-delete), var(--stall-delete) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
-    }
-
-    /* 攤位燈籠 */
-    .stall-lantern {
-      position: absolute;
-      top: -20px;
-      width: 40px; height: 55px;
-      border-radius: 50% 50% 5px 5px;
-      box-shadow: 0 0 15px rgba(255,255,255,0.5);
-      animation: lanternGlow 2s infinite alternate;
-      z-index: 10;
-    }
-    .stall-lantern.lantern-left { left: 15%; }
-    .stall-lantern.lantern-right { right: 15%; }
-    @keyframes lanternGlow {
-      0% { opacity: 0.7; }
-      100% { opacity: 1; }
-    }
-
-    /* 不同攤位 lantern 顏色 */
-    .select-stall .stall-lantern { background: var(--stall-select); }
-    .join-stall .stall-lantern { background: var(--stall-join); }
-    .groupby-stall .stall-lantern { background: var(--stall-groupby); }
-    .insert-stall .stall-lantern { background: var(--stall-insert); }
-    .update-stall .stall-lantern { background: var(--stall-update); }
-    .delete-stall .stall-lantern { background: var(--stall-delete); }
-
-    .stall-title {
-      color: var(--light);
-      font-size: 1.8rem;
-      margin-bottom: 1.5rem;
-      text-align: center;
-      letter-spacing: 1px;
-      padding-top: 15px;
-      text-shadow: 2px 2px 5px rgba(0,0,0,0.7);
-      position: relative;
-      z-index: 1;
-    }
-    .stall-title::after {
-      content: '';
-      display: block;
-      width: 50px; height: 3px;
-      background: currentColor;
-      margin: 0.5rem auto 0;
-    }
-
-    /*---------------------------------
-     5. SQL 區塊 (教學、按鈕、結果)
-    ---------------------------------*/
-    .sql-learning-area {
-      background: rgba(20, 20, 20, 0.6);
-      padding: 2rem;
-      border-radius: 15px;
-      margin: 2rem 0;
-      position: relative;
-      overflow: hidden;
-    }
-    /* 各攤位不同色調邊框、陰影 */
-    .select-stall .sql-learning-area {
-      border: 1px solid var(--stall-select);
-      box-shadow: 0 0 20px rgba(255, 46, 99, 0.2);
-    }
-    .join-stall .sql-learning-area {
-      border: 1px solid var(--stall-join);
-      box-shadow: 0 0 20px rgba(0, 184, 169, 0.2);
-    }
-    .groupby-stall .sql-learning-area {
-      border: 1px solid var(--stall-groupby);
-      box-shadow: 0 0 20px rgba(249, 168, 38, 0.2);
-    }
-    .insert-stall .sql-learning-area {
-      border: 1px solid var(--stall-insert);
-      box-shadow: 0 0 20px rgba(76, 175, 80, 0.2);
-    }
-    .update-stall .sql-learning-area {
-      border: 1px solid var(--stall-update);
-      box-shadow: 0 0 20px rgba(113, 88, 226, 0.2);
-    }
-    .delete-stall .sql-learning-area {
-      border: 1px solid var(--stall-delete);
-      box-shadow: 0 0 20px rgba(255, 56, 56, 0.2);
-    }
-
-    .learning-title {
-      font-size: 1.5rem;
-      margin-bottom: 1.5rem;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    .sql-code {
-      background: #1E1E2E;
-      padding: 1.5rem;
-      border-radius: 10px;
-      font-family: 'Courier New', monospace;
-      margin: 1.5rem 0;
-      position: relative;
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
-      color: #f8f8f2;
-      font-size: 1.1rem;
-      line-height: 1.6;
-      overflow-x: auto;
-    }
-    .sql-code::before {
-      content: 'SQL 範例';
-      position: absolute; top: -12px; left: 15px;
-      background: var(--neon-blue);
-      padding: 4px 12px;
-      border-radius: 7px;
-      font-size: 0.9rem;
-      color: var(--dark);
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    /* 產品區(例如示範按鈕) */
-    .stall-counter {
-      background: rgba(255,255,255,0.05);
-      padding: 2rem;
-      border-radius: 15px;
-      margin-top: 1.5rem;
-      border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
-    }
-
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1.5rem;
-      margin-top: 2rem;
-    }
-    .product-card {
-      background: rgba(255,255,255,0.08);
-      padding: 1.5rem;
-      border-radius: 15px;
-      text-align: center;
-      transition: transform 0.3s ease;
-      box-shadow: 0 5px 10px rgba(0,0,0,0.2);
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-    .product-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 8px 15px rgba(0,0,0,0.3);
-    }
-    .product-image {
-      width: 80px; height: 80px;
-      margin: 0 auto 1rem;
-      background: rgba(255,255,255,0.1);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      margin-bottom: 1rem;
-      color: var(--light);
-      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
-      border: 2px solid rgba(0,0,0,0.1);
-    }
-    .product-card h4 {
-      margin-bottom: 0.8rem;
-    }
-
-    /* 按鈕 */
-    .stall-btn {
-      background: var(--neon-green);
-      color: var(--dark);
-      border: none;
-      padding: 1rem 2rem;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      font-size: 1rem;
-      letter-spacing: 1px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    }
-    .stall-btn::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      border-radius: inherit;
-      border: 2px solid var(--dark);
-      z-index: -1;
-      opacity: 0.8;
-    }
-    .stall-btn::after {
-      content: '';
-      position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-      background: linear-gradient(
-        transparent,
-        rgba(255,255,255,0.3),
-        transparent
-      );
-      transform: rotate(45deg);
-      transition: left 0.7s ease-out;
-    }
-    .stall-btn:hover::after {
-      left: 120%;
-    }
-    .stall-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-    }
-    .stall-btn:active {
-      transform: translateY(0);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-
-    /* 查詢結果顯示區 */
-    .result-display {
-      background: rgba(20, 20, 20, 0.95);
-      padding: 2rem;
-      border-radius: 15px;
-      margin-top: 2rem;
-      border: 2px solid var(--neon-blue);
-      opacity: 0; transform: translateY(30px);
-      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-      box-shadow: 0 0 40px rgba(var(--neon-blue-rgb), 0.6);
-      position: relative;
-      overflow: hidden;
-    }
-    .result-display::after {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      border-radius: inherit;
-      box-shadow: 0 0 50px var(--neon-blue);
-      opacity: 0.5;
-      z-index: -1;
-    }
-    .result-display.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .result-title {
-      font-size: 1.3rem;
-      color: var(--light);
-      margin-bottom: 1rem;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    }
-    .sample-result {
-      overflow-x: auto;
-      margin-top: 1rem;
-    }
-    .sample-result table {
-      width: 100%;
-      border-collapse: collapse;
-      color: var(--light);
-    }
-    .sample-result th, .sample-result td {
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 0.8rem;
-      text-align: left;
-    }
-    .sample-result th {
-      background-color: rgba(255,255,255,0.05);
-      font-weight: bold;
-    }
-
-    /*---------------------------------
-     6. RWD
-    ---------------------------------*/
-    @media (max-width: 768px) {
-      .market-entrance {
+      header {
+        text-align: center;
         padding: 3rem 1rem;
       }
-      .game-title {
-        font-size: 1.8rem;
+      .title {
+        font-size: 2.2rem;
+        margin-bottom: 1rem;
+        color: var(--accent);
+        text-shadow: 1px 1px 8px rgba(255, 255, 255, 0.5);
+        font-family: "Press Start 2P", cursive;
       }
-      .entrance-desc {
+      .desc {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        max-width: 700px;
+        margin: 0 auto;
+        opacity: 0.9;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+      }
+
+      .stall-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2rem;
+        max-width: 96%;
+        margin: 2rem auto;
+      }
+
+      .stall-card {
+        background: rgba(20, 20, 20, 0.8);
+        border-radius: 10px;
+        width: 550px;
+        padding: 1rem;
+        position: relative;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .stall-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      }
+      .stall-header {
+        display: flex;
+        gap: 0.6rem;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.3rem;
+        margin-bottom: 0.8rem;
+        position: relative;
+      }
+      .stall-header::after {
+        content: "";
+        position: absolute;
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        height: 2px;
+        width: 40%;
+        background: currentColor;
+      }
+
+      /* 各種攤位邊框 */
+      .insert-stall {
+        border: 2px solid var(--stall-insert);
+        box-shadow: 0 0 12px var(--stall-insert);
+      }
+      .delete-stall {
+        border: 2px solid var(--stall-delete);
+        box-shadow: 0 0 12px var(--stall-delete);
+      }
+      .update-stall {
+        border: 2px solid var(--stall-update);
+        box-shadow: 0 0 12px var(--stall-update);
+      }
+      .select-stall {
+        border: 2px solid var(--stall-select);
+        box-shadow: 0 0 12px var(--stall-select);
+      }
+      .join-stall {
+        border: 2px solid var(--stall-join);
+        box-shadow: 0 0 12px var(--stall-join);
+      }
+      .groupby-stall {
+        border: 2px solid var(--stall-groupby);
+        box-shadow: 0 0 12px var(--stall-groupby);
+      }
+      .distinct-stall {
+        border: 2px solid var(--stall-distinct);
+        box-shadow: 0 0 12px var(--stall-distinct);
+      }
+      .index-stall {
+        border: 2px solid var(--stall-index);
+        box-shadow: 0 0 12px var(--stall-index);
+      }
+      .transaction-stall {
+        border: 2px solid var(--stall-transaction);
+        box-shadow: 0 0 12px var(--stall-transaction);
+      }
+
+      /* 商品層架 */
+      .product-shelf {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+      }
+      .shelf-title {
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+      }
+      .product-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+        justify-content: center;
+      }
+      .product-item {
+        width: 90px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 6px;
+        text-align: center;
+        padding: 0.6rem;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .product-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.6);
+      }
+      .icon-box {
+        font-size: 1.4rem;
+        margin-bottom: 0.3rem;
+      }
+      .product-name {
+        font-weight: bold;
+        font-size: 0.9rem;
+      }
+      .product-price {
+        font-size: 0.8rem;
+        opacity: 0.8;
+      }
+
+      /* 對話框: 預設顯示 */
+      .dialogue {
+        background: var(--dark-overlay);
+        border-radius: 8px;
+        padding: 0.8rem;
+        margin-bottom: 0.8rem;
+        font-size: 0.9rem;
+
+        max-height: none; /* 直接顯示 */
+        opacity: 1; /* 不隱藏 */
+        overflow: auto; /* 可以捲動 */
+        transition: none; /* 取消動畫 */
+      }
+      .dialog-line {
+        margin-bottom: 0.4rem;
+      }
+      .speaker {
+        font-weight: bold;
+        color: var(--accent);
+        margin-right: 0.3rem;
+      }
+
+      /* 按鈕 */
+      .stall-buttons {
+        margin-bottom: 0.8rem;
+      }
+      .stall-btn {
+        background: var(--accent);
+        color: #000;
+        border: none;
+        border-radius: 6px;
+        padding: 0.6rem 0.9rem;
+        font-size: 0.85rem;
+        font-weight: bold;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .stall-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.4);
+      }
+
+      /* 內聯顯示SQL/PHP */
+      .inline-sql-box {
+        position: relative;
+        background: #2e2e3e;
+        margin: 0.5rem 0;
+        border-radius: 6px;
+        padding: 0.6rem;
+        font-size: 0.85rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+      }
+      .inline-sql-title {
+        font-weight: bold;
+        margin-bottom: 0.3rem;
+      }
+      .inline-sql-copy {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(255, 255, 255, 0.15);
+        border: none;
+        font-size: 0.7rem;
+        padding: 4px 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        opacity: 0.8;
+      }
+      .inline-sql-copy:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      /* Modal */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 999;
+      }
+      .modal-overlay.show {
+        display: flex;
+      }
+      .modal-content {
+        background: #1e1e2e;
+        color: #f8f8f2;
+        padding: 1rem;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 600px;
+        position: relative;
+        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.5);
+      }
+      .modal-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+        border: none;
+        font-size: 0.9rem;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .modal-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+      .modal-title {
+        font-weight: bold;
+        margin-bottom: 0.6rem;
         font-size: 1rem;
       }
-      .stall-title {
-        font-size: 1.5rem;
+      .modal-pre {
+        position: relative;
+        background: #2e2e3e;
+        border-radius: 6px;
+        padding: 0.8rem;
+        margin-bottom: 1rem;
+        font-size: 0.85rem;
       }
-      .sql-learning-area { padding: 1rem; margin: 1rem 0; }
-      .learning-title { font-size: 1.3rem; }
-      .sql-code { padding: 1rem; font-size: 1rem; }
-      .product-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+      .modal-pre .copy-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(255, 255, 255, 0.15);
+        border: none;
+        font-size: 0.7rem;
+        padding: 4px 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        opacity: 0.8;
       }
-      .product-card { padding: 1rem; }
-      .product-image { width: 64px; height: 64px; font-size: 1.5rem; margin-bottom: 0.8rem; }
-      .stall-btn { padding: 0.8rem 1.2rem; font-size: 0.9rem; }
-      .result-display { padding: 1rem; }
-      .result-title { font-size: 1.2rem; }
-      .sample-result th, .sample-result td { padding: 0.5rem; font-size: 0.85rem; }
-    }
-  </style>
-</head>
+      .modal-pre .copy-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
 
-<body>
-  <!-- 粒子背景層 (可自行增減數量) -->
-  <div class="market-scene">
-    <div class="particles">
-      <!-- 範例生成幾個粒子 -->
-      <div class="particle" style="left: 20%; animation-delay: 0s;"></div>
-      <div class="particle" style="left: 50%; animation-delay: 1s;"></div>
-      <div class="particle" style="left: 80%; animation-delay: 2s;"></div>
-      <div class="particle" style="left: 30%; animation-delay: 3s;"></div>
-      <div class="particle" style="left: 60%; animation-delay: 4s;"></div>
-    </div>
-  </div>
+      /* Toast */
+      .toast-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        z-index: 9999;
+        pointer-events: none;
+      }
+      .toast {
+        background: var(--toast-bg);
+        color: #fff;
+        padding: 0.8rem 1rem;
+        border-radius: 6px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+        opacity: 0.9;
+        pointer-events: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toastContainer"></div>
 
-  <!-- 夜市入口 (標題、角色) -->
-  <header class="market-entrance">
-    <div class="game-title">SQL 夜市大冒險</div>
-    <p class="entrance-desc">跟著小狼與小兔，一起輕鬆學習 SQL 吧！</p>
+    <header>
+      <h1 class="title">SQL 夜市大冒險 - 9 大攤位整合版 (改造)</h1>
+      <p class="desc">
+        這裡有 INSERT、DELETE、UPDATE、SELECT、JOIN、GROUP
+        BY、DISTINCT/UNION、INDEX、Transaction 等超完整的 SQL 功能示範！
+        <strong>小狼、小兔</strong>走訪夜市，輕鬆點選按鈕即可預覽
+        <strong>SQL/PHP語法</strong>與操作效果～偶爾還有熱心攤主教學。
+        30秒沒動作就會自動復原攤販，也可以手動「復原攤販」，慢慢逛別著急呦！
+      </p>
+    </header>
 
-    <!-- 角色示意 -->
-    <div class="game-character char-wolf"></div>
-    <div class="game-character char-rabbit"></div>
-  </header>
+    <main class="stall-container" id="stallArea"></main>
 
-  <!-- 查詢攤位 (SELECT) -->
-  <section class="market-stall select-stall">
-    <div class="stall-canopy"></div>
-    <div class="stall-lantern lantern-left"></div>
-    <div class="stall-lantern lantern-right"></div>
-
-    <h2 class="stall-title">🍜 查詢小館 (SELECT)</h2>
-    <div class="sql-learning-area">
-      <h3 class="learning-title">SELECT 查詢基礎</h3>
-      <div class="sql-code">
-        SELECT column1, column2<br>
-        FROM table_name<br>
-        WHERE condition;
-      </div>
-
-      <div class="stall-counter">
-        <div class="product-grid">
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-bowl-food"></i></div>
-            <h4>基礎查詢</h4>
-            <button class="stall-btn" onclick="demonstrateSelect('basic')">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-hot-pepper"></i></div>
-            <h4>條件查詢</h4>
-            <button class="stall-btn" onclick="demonstrateSelect('where')">試試看</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="result-display" id="select-result">
-        <h4 class="result-title">範例結果</h4>
-        <div class="sample-result">
-          <p>點擊「試試看」後，這裡將顯示 SELECT 查詢的範例結果</p>
-        </div>
+    <!-- Modal (顯示建表秘方) -->
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal-content" id="modalContent">
+        <button class="modal-close" id="modalClose">關閉</button>
+        <h3 class="modal-title" id="modalTitle"></h3>
+        <!-- 動態插入多個 pre 區塊 -->
       </div>
     </div>
-  </section>
 
-  <!-- JOIN 攤位 -->
-  <section class="market-stall join-stall">
-    <div class="stall-canopy"></div>
-    <div class="stall-lantern lantern-left"></div>
-    <div class="stall-lantern lantern-right"></div>
+    <script>
+      // =========== 攤位資料 (隨機批量上架會使用) ===========
+      const randomIceFlavors = [
+        { name: "抹茶豆花", price: 60 },
+        { name: "巧克力棉花", price: 75 },
+        { name: "焦糖奶霜", price: 80 },
+        { name: "菠蘿冰沙", price: 70 },
+        { name: "oreo雪泥", price: 85 },
+      ];
 
-    <h2 class="stall-title">🍲 關聯餐館 (JOIN)</h2>
-    <div class="sql-learning-area">
-      <h3 class="learning-title">JOIN 查詢</h3>
-      <div class="sql-code">
-        SELECT a.column1, b.column2<br>
-        FROM table1 a<br>
-        JOIN table2 b ON a.id = b.id;
-      </div>
+      // 幫不同動作預先準備好相關的 SQL/PHP 片段
+      // 用 \n 轉義, 並確保 onclick 時能正確複製
+      const codeSnippets = {
+        insertSingle: {
+          sql: `INSERT INTO ice_creams (flavor, price)\nVALUES ('香草泡芙冰',80);`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "INSERT INTO ice_creams (flavor, price) VALUES ('香草泡芙冰',80)";\nmysqli_query($conn, $sql);\n?>`,
+        },
+        insertBatch: {
+          sql: `INSERT INTO ice_creams (flavor, price)\nVALUES\n('抹茶豆花',60),\n('巧克力棉花',75);`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "INSERT INTO ice_creams (flavor, price)\\nVALUES\\n('抹茶豆花',60),\\n('巧克力棉花',75)";\nmysqli_query($conn, $sql);\n?>`,
+        },
+        deleteItem: {
+          sql: `DELETE FROM skewers\nWHERE item_name='烤香腸';`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "DELETE FROM skewers WHERE item_name='烤香腸'";\nmysqli_query($conn, $sql);\n?>`,
+        },
+        deleteAll: {
+          sql: `DELETE FROM skewers; -- 清空整張表資料`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "DELETE FROM skewers"; // 清空全部\nmysqli_query($conn, $sql);\n?>`,
+        },
+        updatePrice: {
+          sql: `UPDATE tea_products\nSET price=65\nWHERE product_name='珍珠奶茶';`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "UPDATE tea_products SET price=65 WHERE product_name='珍珠奶茶'";\nmysqli_query($conn, $sql);\n?>`,
+        },
+        updateAll: {
+          sql: `UPDATE tea_products\nSET price = price + 5; -- 全部+5元`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "UPDATE tea_products SET price = price + 5";\nmysqli_query($conn, $sql);\n?>`,
+        },
+        selectMain: {
+          sql: `SELECT dish_name, price\nFROM menu\nWHERE category_id=1;`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT dish_name, price FROM menu WHERE category_id=1";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['dish_name'].":".$row['price']."<br>";\n}\n?>`,
+        },
+        selectSoup: {
+          sql: `SELECT dish_name, price\nFROM menu\nWHERE category_id=2;`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT dish_name, price FROM menu WHERE category_id=2";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['dish_name'].":".$row['price']."<br>";\n}\n?>`,
+        },
+        joinInner: {
+          sql: `SELECT m.dish_name, c.category_name\nFROM menu m\nJOIN categories c\nON m.category_id=c.id;`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT m.dish_name, c.category_name\\nFROM menu m\\nJOIN categories c\\nON m.category_id=c.id";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['dish_name']." / ".$row['category_name']."<br>";\n}\n?>`,
+        },
+        joinLeft: {
+          sql: `SELECT m.dish_name, c.category_name\nFROM menu m\nLEFT JOIN categories c\nON m.category_id=c.id;`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT m.dish_name, c.category_name\\nFROM menu m\\nLEFT JOIN categories c\\nON m.category_id=c.id";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['dish_name']." / ".$row['category_name']."<br>";\n}\n?>`,
+        },
+        groupBy: {
+          sql: `SELECT category, COUNT(*) AS total\nFROM drinks\nGROUP BY category\nORDER BY total DESC;`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT category, COUNT(*) AS total\\nFROM drinks\\nGROUP BY category\\nORDER BY total DESC";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['category']."-".$row['total']."<br>";\n}\n?>`,
+        },
+        groupBySort: {
+          sql: `SELECT category, COUNT(*) AS total\nFROM drinks\nGROUP BY category\nORDER BY total ASC;`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT category, COUNT(*) AS total\\nFROM drinks\\nGROUP BY category\\nORDER BY total ASC";\n$result = mysqli_query($conn, $sql);\n?>`,
+        },
+        distinctTest: {
+          sql: `SELECT DISTINCT category\nFROM products;`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT DISTINCT category FROM products";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['category']."<br>";\n}\n?>`,
+        },
+        unionTest: {
+          sql: `SELECT colA FROM table1\nUNION\nSELECT colA FROM table2;`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT colA FROM table1\\nUNION\\nSELECT colA FROM table2";\n$result = mysqli_query($conn, $sql);\n?>`,
+        },
+        indexCreate: {
+          sql: `CREATE INDEX idx_item\nON big_data (item_name);`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "CREATE INDEX idx_item ON big_data(item_name)";\nmysqli_query($conn, $sql);\n?>`,
+        },
+        indexDrop: {
+          sql: `DROP INDEX idx_item\nON big_data;`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "DROP INDEX idx_item ON big_data";\nmysqli_query($conn, $sql);\n?>`,
+        },
+        transactionCommit: {
+          sql: `START TRANSACTION;\nINSERT INTO orders (product, qty) VALUES ('金幣包',2);\nUPDATE customers SET balance=balance-200 WHERE id=123;\nCOMMIT;`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\nmysqli_begin_transaction($conn);\ntry {\n  $sql1 = "INSERT INTO orders (product, qty) VALUES ('金幣包',2)";\n  mysqli_query($conn, $sql1);\n\n  $sql2 = "UPDATE customers SET balance=balance-200 WHERE id=123";\n  mysqli_query($conn, $sql2);\n\n  mysqli_commit($conn);\n} catch(Exception $e){\n  mysqli_rollback($conn);\n}\n?>`,
+        },
+        transactionRollback: {
+          sql: `ROLLBACK; -- 交易失敗`,
+          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n// 發生錯誤就rollback\nmysqli_rollback($conn);\n?>`,
+        },
+      };
 
-      <div class="stall-counter">
-        <div class="product-grid">
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-handshake-angle"></i></div>
-            <h4>INNER JOIN</h4>
-            <button class="stall-btn" onclick="demonstrateJoin('inner')">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
-            <h4>LEFT JOIN</h4>
-            <button class="stall-btn" onclick="demonstrateJoin('left')">試試看</button>
-          </div>
-        </div>
-      </div>
+      // 9 大攤位
+      const stallsData = [
+        {
+          id: "insert",
+          className: "insert-stall",
+          icon: "fa-solid fa-ice-cream",
+          title: "創意冰品店 (INSERT)",
+          productShelfTitle: "冰品名單",
+          dialogues: [
+            {
+              speaker: "冰品店老闆",
+              text: "哈囉～小狼、小兔歡迎來嚐鮮，我們的冰品口味獨一無二唷！",
+            },
+            {
+              speaker: "小兔",
+              text: "聽起來好可口，快來新增幾樣吧，讓我大飽口福～",
+            },
+          ],
+          products: [
+            { icon: "fa-solid fa-ice-cream", name: "芒果雪花冰", price: 70 },
+            { icon: "fa-solid fa-ice-cream", name: "草莓冰淇淋", price: 65 },
+          ],
+          operationButtons: [
+            {
+              label: "上架新品",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "冰品店老闆",
+                  text: "沒問題！『香草泡芙冰』甜而不膩，一次滿足。",
+                });
+                const newItem = {
+                  icon: "fa-solid fa-ice-cream",
+                  name: "香草泡芙冰",
+                  price: 80,
+                };
+                stallObj.products.push(newItem);
+                stallObj.filtered = stallObj.products;
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-      <div class="result-display" id="join-result">
-        <h4 class="result-title">範例結果</h4>
-        <div class="sample-result">
-          <p>點擊「試試看」後，這裡將顯示 JOIN 查詢的範例結果</p>
-        </div>
-      </div>
-    </div>
-  </section>
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.insertSingle.sql,
+                  codeSnippets.insertSingle.php
+                );
+              },
+            },
+            {
+              label: "批量上架(隨機)",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "冰品店老闆",
+                  text: "好耶～給你多口味選擇，一次上好幾款！",
+                });
+                for (let i = 0; i < 2; i++) {
+                  const rand =
+                    randomIceFlavors[
+                      Math.floor(Math.random() * randomIceFlavors.length)
+                    ];
+                  stallObj.products.push({
+                    icon: "fa-solid fa-ice-cream",
+                    name: "新品 - " + rand.name,
+                    price: rand.price,
+                  });
+                }
+                stallObj.filtered = stallObj.products;
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-  <!-- GROUP BY 攤位 -->
-  <section class="market-stall groupby-stall">
-    <div class="stall-canopy"></div>
-    <div class="stall-lantern lantern-left"></div>
-    <div class="stall-lantern lantern-right"></div>
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.insertBatch.sql,
+                  codeSnippets.insertBatch.php
+                );
+              },
+            },
+          ],
+          secretSQL: `CREATE TABLE ice_creams (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    flavor VARCHAR(100),
+    price INT
+);
+-- 單筆新增
+INSERT INTO ice_creams (flavor, price) VALUES ('香草泡芙冰',80);
+-- 批量多筆
+INSERT INTO ice_creams (flavor, price) VALUES
+('抹茶豆花',60),('巧克力棉花',75);`,
+          secretPHP: `<?php
+$conn = mysqli_connect("localhost","root","","testdb");
 
-    <h2 class="stall-title">🍹 特調飲品吧 (GROUP BY)</h2>
-    <div class="sql-learning-area">
-      <h3 class="learning-title">GROUP BY 分組查詢</h3>
-      <div class="sql-code">
-        SELECT category, COUNT(*) AS total<br>
-        FROM sales<br>
-        GROUP BY category<br>
-        ORDER BY total DESC;
-      </div>
+$sql = "INSERT INTO ice_creams (flavor, price) VALUES ('香草泡芙冰',80)";
+mysqli_query($conn, $sql);
+?>`,
+        },
+        {
+          id: "delete",
+          className: "delete-stall",
+          icon: "fa-solid fa-trash-can",
+          title: "香辣串烤攤 (DELETE)",
+          productShelfTitle: "串烤菜單",
+          dialogues: [
+            {
+              speaker: "串烤攤老闆",
+              text: "小狼、小兔，你們口味刁鑽嗎？沒關係，不愛的就刪掉～",
+            },
+            {
+              speaker: "小狼",
+              text: "哈～先把不受歡迎的下架好了，省得佔空間。",
+            },
+          ],
+          products: [
+            { icon: "fa-solid fa-drumstick-bite", name: "烤雞翅", price: 45 },
+            { icon: "fa-solid fa-hotdog", name: "烤香腸", price: 35 },
+            { icon: "fa-solid fa-fish", name: "烤秋刀魚", price: 55 },
+          ],
+          operationButtons: [
+            {
+              label: "刪除香腸",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "串烤攤老闆",
+                  text: "好的，先幫您刪除香腸，讓菜單更清爽。",
+                });
+                stallObj.products = stallObj.products.filter(
+                  (p) => p.name !== "烤香腸"
+                );
+                stallObj.filtered = stallObj.products;
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-      <div class="stall-counter">
-        <div class="product-grid">
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-filter"></i></div>
-            <h4>基礎分組</h4>
-            <button class="stall-btn" onclick="demonstrateGroupBy('basic')">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-sort-numeric-down"></i></div>
-            <h4>排序分組</h4>
-            <button class="stall-btn" onclick="demonstrateGroupBy('order')">試試看</button>
-          </div>
-        </div>
-      </div>
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.deleteItem.sql,
+                  codeSnippets.deleteItem.php
+                );
+              },
+            },
+            {
+              label: "清空全部",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "小兔",
+                  text: "啊～一次都不留，這可是大膽的決定呢！",
+                });
+                stallObj.products = [];
+                stallObj.filtered = [];
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-      <div class="result-display" id="groupby-result">
-        <h4 class="result-title">範例結果</h4>
-        <div class="sample-result">
-          <p>點擊「試試看」後，這裡將顯示 GROUP BY 範例結果</p>
-        </div>
-      </div>
-    </div>
-  </section>
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.deleteAll.sql,
+                  codeSnippets.deleteAll.php
+                );
+              },
+            },
+          ],
+          secretSQL: `CREATE TABLE skewers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    item_name VARCHAR(100),
+    price INT
+);
+INSERT INTO skewers (item_name, price) VALUES
+('烤雞翅',45),('烤香腸',35),('烤秋刀魚',55);
+-- 刪除
+DELETE FROM skewers
+WHERE item_name='烤香腸';`,
+          secretPHP: `<?php
+$conn = mysqli_connect("localhost","root","","testdb");
 
-  <!-- INSERT 攤位 -->
-  <section class="market-stall insert-stall">
-    <div class="stall-canopy"></div>
-    <div class="stall-lantern lantern-left"></div>
-    <div class="stall-lantern lantern-right"></div>
+$sql = "DELETE FROM skewers WHERE item_name='烤香腸'";
+mysqli_query($conn, $sql);
+?>`,
+        },
+        {
+          id: "update",
+          className: "update-stall",
+          icon: "fa-solid fa-pen-to-square",
+          title: "復古茶飲鋪 (UPDATE)",
+          productShelfTitle: "茶飲清單",
+          dialogues: [
+            {
+              speaker: "茶飲鋪老闆",
+              text: "歡迎～最近原料費上升，想調整價錢，請幫我看看。",
+            },
+            {
+              speaker: "小狼",
+              text: "沒問題，我們來 UPDATE 一下，順便把整體調整好。",
+            },
+          ],
+          products: [
+            { icon: "fa-solid fa-mug-hot", name: "珍珠奶茶", price: 55 },
+            { icon: "fa-solid fa-mug-hot", name: "綠茶", price: 25 },
+          ],
+          operationButtons: [
+            {
+              label: "調漲珍奶",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "茶飲鋪老闆",
+                  text: "好的，珍奶調漲，成本高啊，請見諒。",
+                });
+                stallObj.products = stallObj.products.map((p) => {
+                  if (p.name === "珍珠奶茶") {
+                    return { ...p, price: p.price + 10 };
+                  }
+                  return p;
+                });
+                stallObj.filtered = stallObj.products;
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-    <h2 class="stall-title">🍦 創意冰品店 (INSERT)</h2>
-    <div class="sql-learning-area">
-      <h3 class="learning-title">INSERT 新增資料</h3>
-      <div class="sql-code">
-        INSERT INTO customers (name, city)<br>
-        VALUES ('小美', '台北');
-      </div>
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.updatePrice.sql,
+                  codeSnippets.updatePrice.php
+                );
+              },
+            },
+            {
+              label: "一次改多項",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "小狼",
+                  text: "行，那就一起更新，多一點彈性空間嘛。",
+                });
+                stallObj.products = stallObj.products.map((p) => {
+                  return { ...p, price: p.price + 5 };
+                });
+                stallObj.filtered = stallObj.products;
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-      <div class="stall-counter">
-        <div class="product-grid">
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-plus"></i></div>
-            <h4>新增一筆</h4>
-            <button class="stall-btn" onclick="demonstrateInsert('single')">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-table-columns"></i></div>
-            <h4>新增多筆</h4>
-            <button class="stall-btn" onclick="demonstrateInsert('multiple')">試試看</button>
-          </div>
-        </div>
-      </div>
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.updateAll.sql,
+                  codeSnippets.updateAll.php
+                );
+              },
+            },
+          ],
+          secretSQL: `CREATE TABLE tea_products (
+    product_name VARCHAR(100),
+    price INT
+);
+INSERT INTO tea_products (product_name, price) VALUES
+('珍珠奶茶',55),('綠茶',25);
+-- UPDATE
+UPDATE tea_products
+SET price=65
+WHERE product_name='珍珠奶茶';`,
+          secretPHP: `<?php
+$conn = mysqli_connect("localhost","root","","testdb");
 
-      <div class="result-display" id="insert-result">
-        <h4 class="result-title">範例結果</h4>
-        <div class="sample-result">
-          <p>點擊「試試看」後，這裡將顯示 INSERT 新增結果</p>
-        </div>
-      </div>
-    </div>
-  </section>
+$sql = "UPDATE tea_products SET price=65
+        WHERE product_name='珍珠奶茶'";
+mysqli_query($conn, $sql);
+?>`,
+        },
+        {
+          id: "select",
+          className: "select-stall",
+          icon: "fa-solid fa-bowl-food",
+          title: "查詢小館 (SELECT)",
+          productShelfTitle: "查詢小館精選美食",
+          dialogues: [
+            {
+              speaker: "小兔",
+              text: "聽說這攤啥都能查，主食、湯品應有盡有～",
+            },
+            {
+              speaker: "攤位老闆",
+              text: "沒錯！隨你 SELECT，來看看想吃哪種類～",
+            },
+          ],
+          products: [
+            {
+              icon: "fa-solid fa-utensils",
+              name: "炒麵",
+              price: 80,
+              category: "主食",
+            },
+            {
+              icon: "fa-solid fa-burger",
+              name: "滷肉飯",
+              price: 60,
+              category: "主食",
+            },
+            {
+              icon: "fa-solid fa-mug-saucer",
+              name: "肉羹湯",
+              price: 45,
+              category: "湯品",
+            },
+            {
+              icon: "fa-solid fa-leaf",
+              name: "燙青菜",
+              price: 30,
+              category: "青菜",
+            },
+          ],
+          operationButtons: [
+            {
+              label: "查主食",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "小兔",
+                  text: "想先看主食，吃飽了才有力氣逛別攤！",
+                });
+                stallObj.filtered = stallObj.products.filter(
+                  (p) => p.category === "主食"
+                );
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-  <!-- UPDATE 攤位 -->
-  <section class="market-stall update-stall">
-    <div class="stall-canopy"></div>
-    <div class="stall-lantern lantern-left"></div>
-    <div class="stall-lantern lantern-right"></div>
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.selectMain.sql,
+                  codeSnippets.selectMain.php
+                );
+              },
+            },
+            {
+              label: "查湯品",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "攤位老闆",
+                  text: "那就來碗熱呼呼的湯吧～最溫暖不過了！",
+                });
+                stallObj.filtered = stallObj.products.filter(
+                  (p) => p.category === "湯品"
+                );
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-    <h2 class="stall-title">🧋 復古茶飲鋪 (UPDATE)</h2>
-    <div class="sql-learning-area">
-      <h3 class="learning-title">UPDATE 更新資料</h3>
-      <div class="sql-code">
-        UPDATE products<br>
-        SET price = 90<br>
-        WHERE product_name = '珍珠奶茶';
-      </div>
-
-      <div class="stall-counter">
-        <div class="product-grid">
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-pen-to-square"></i></div>
-            <h4>更新價格</h4>
-            <button class="stall-btn" onclick="demonstrateUpdate('price')">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-tags"></i></div>
-            <h4>更新多欄位</h4>
-            <button class="stall-btn" onclick="demonstrateUpdate('multiple')">試試看</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="result-display" id="update-result">
-        <h4 class="result-title">範例結果</h4>
-        <div class="sample-result">
-          <p>點擊「試試看」後，這裡將顯示 UPDATE 更新結果</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- DELETE 攤位 -->
-  <section class="market-stall delete-stall">
-    <div class="stall-canopy"></div>
-    <div class="stall-lantern lantern-left"></div>
-    <div class="stall-lantern lantern-right"></div>
-
-    <h2 class="stall-title">🔥 香辣串烤攤 (DELETE)</h2>
-    <div class="sql-learning-area">
-      <h3 class="learning-title">DELETE 刪除資料</h3>
-      <div class="sql-code">
-        DELETE FROM orders<br>
-        WHERE order_date &lt; '2024-01-01';
-      </div>
-
-      <div class="stall-counter">
-        <div class="product-grid">
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-trash-can"></i></div>
-            <h4>刪除指定</h4>
-            <button class="stall-btn" onclick="demonstrateDelete('specific')">試試看</button>
-          </div>
-          <div class="product-card">
-            <div class="product-image"><i class="fa-solid fa-ban"></i></div>
-            <h4>清空表格</h4>
-            <button class="stall-btn" onclick="demonstrateDelete('all')">試試看</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="result-display" id="delete-result">
-        <h4 class="result-title">範例結果</h4>
-        <div class="sample-result">
-          <p>點擊「試試看」後，這裡將顯示 DELETE 刪除結果</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 
-    範例: 如需再新增攤位 (例如 "TRUNCATE 攤位")，可複製一段類似結構 
-    <section class="market-stall ....-stall"> ... </section>
-    並加上對應的 JS 函式示範即可 
-  -->
-
-  <script>
-    /* -------------------------------------
-       以下為 JS 互動邏輯 (示範查詢 + 結果)
-       與原先的 demonstrateXXX 函式類似
-    ----------------------------------------*/
-
-    // 1. SELECT 查詢
-    function demonstrateSelect(type) {
-      const resultDisplay = document.getElementById('select-result');
-      let query = '';
-      let explanation = '';
-      let sampleTable = '';
-
-      if (type === 'basic') {
-        query = `SELECT dish_name, price FROM menu;`;
-        explanation = '查詢菜單中的菜名和價格';
-        sampleTable = `
-          <table>
-            <tr><th>菜名</th><th>價格</th></tr>
-            <tr><td>炒麵</td><td>80</td></tr>
-            <tr><td>滷肉飯</td><td>60</td></tr>
-            <tr><td>肉羹湯</td><td>45</td></tr>
-            <tr><td>燙青菜</td><td>30</td></tr>
-          </table>
-        `;
-      } else if (type === 'where') {
-        query = `SELECT dish_name, price
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.selectSoup.sql,
+                  codeSnippets.selectSoup.php
+                );
+              },
+            },
+          ],
+          secretSQL: `CREATE TABLE menu (
+    dish_name VARCHAR(100),
+    price INT,
+    category_id INT
+);
+INSERT INTO menu (dish_name, price, category_id) VALUES
+('炒麵',80,1),('滷肉飯',60,1),('肉羹湯',45,2),('燙青菜',30,3);
+-- SELECT
+SELECT dish_name, price
 FROM menu
-WHERE price < 60;`;
-        explanation = '查詢價格低於 60 元的菜品';
-        sampleTable = `
-          <table>
-            <tr><th>菜名</th><th>價格</th></tr>
-            <tr><td>肉羹湯</td><td>45</td></tr>
-            <tr><td>燙青菜</td><td>30</td></tr>
-          </table>
-        `;
-      }
+WHERE category_id=1;`,
+          secretPHP: `<?php
+$conn = mysqli_connect("localhost","root","","testdb");
 
-      resultDisplay.innerHTML = `
-        <h4 class="result-title">SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">${sampleTable}</div>
-      `;
-      resultDisplay.classList.add('show');
-      scrollToResult('select-result');
-    }
+$sql = "SELECT dish_name, price FROM menu WHERE category_id=1";
+$result = mysqli_query($conn, $sql);
+while($row = mysqli_fetch_assoc($result)){
+  echo $row['dish_name'].":".$row['price']."<br>";
+}
+?>`,
+        },
+        {
+          id: "join",
+          className: "join-stall",
+          icon: "fa-solid fa-handshake-angle",
+          title: "關聯餐館 (JOIN)",
+          productShelfTitle: "關聯餐館混搭菜色",
+          dialogues: [
+            {
+              speaker: "小狼",
+              text: "哇～據說這裡能把隔壁的資料一起關聯，感覺很厲害！",
+            },
+            {
+              speaker: "餐館老闆",
+              text: "是的，用 JOIN 把品項合併，讓菜單更豐富唷～",
+            },
+          ],
+          products: [
+            {
+              icon: "fa-solid fa-utensils",
+              name: "炒米粉",
+              price: 70,
+              category: "主食",
+            },
+            {
+              icon: "fa-solid fa-burger",
+              name: "漢堡排",
+              price: 120,
+              category: "西式",
+            },
+            {
+              icon: "fa-solid fa-mug-saucer",
+              name: "味噌湯",
+              price: 40,
+              category: "湯品",
+            },
+          ],
+          operationButtons: [
+            {
+              label: "INNER JOIN測試",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "餐館老闆",
+                  text: "用 INNER JOIN，把主廚的私藏菜單合併進來囉！",
+                });
+                stallObj.filtered = stallObj.products.map((p) => {
+                  return {
+                    ...p,
+                    name: p.name + " (JOINed)",
+                  };
+                });
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-    // 2. JOIN 查詢
-    function demonstrateJoin(type) {
-      const resultDisplay = document.getElementById('join-result');
-      let query = '';
-      let explanation = '';
-      let sampleTable = '';
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.joinInner.sql,
+                  codeSnippets.joinInner.php
+                );
+              },
+            },
+            {
+              label: "LEFT JOIN測試",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "小狼",
+                  text: "Left Join 試試看，看有沒有遺漏的菜色？",
+                });
+                stallObj.filtered = stallObj.products.map((p) => {
+                  return {
+                    ...p,
+                    name: p.name + " (LeftJOINed)",
+                  };
+                });
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-      if (type === 'inner') {
-        query = `SELECT m.dish_name, c.category_name
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.joinLeft.sql,
+                  codeSnippets.joinLeft.php
+                );
+              },
+            },
+          ],
+          secretSQL: `CREATE TABLE categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category_name VARCHAR(100)
+);
+CREATE TABLE menu (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    dish_name VARCHAR(100),
+    category_id INT,
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+-- JOIN
+SELECT m.dish_name, c.category_name
 FROM menu m
-INNER JOIN categories c
-ON m.category_id = c.id;`;
-        explanation = '查詢所有菜品及其所屬分類 (INNER JOIN)';
-        sampleTable = `
-          <table>
-            <tr><th>菜名</th><th>分類</th></tr>
-            <tr><td>炒麵</td><td>主食</td></tr>
-            <tr><td>滷肉飯</td><td>主食</td></tr>
-            <tr><td>肉羹湯</td><td>湯品</td></tr>
-            <tr><td>燙青菜</td><td>蔬菜</td></tr>
-          </table>
-        `;
-      } else if (type === 'left') {
-        query = `SELECT m.dish_name, o.order_count
-FROM menu m
-LEFT JOIN orders o
-ON m.id = o.menu_id;`;
-        explanation = '查詢所有菜品的訂單數量 (LEFT JOIN)';
-        sampleTable = `
-          <table>
-            <tr><th>菜名</th><th>訂單數</th></tr>
-            <tr><td>炒麵</td><td>25</td></tr>
-            <tr><td>滷肉飯</td><td>30</td></tr>
-            <tr><td>肉羹湯</td><td>15</td></tr>
-            <tr><td>燙青菜</td><td>NULL</td></tr>
-          </table>
-        `;
-      }
+JOIN categories c ON m.category_id=c.id;`,
+          secretPHP: `<?php
+$conn = mysqli_connect("localhost","root","","testdb");
 
-      resultDisplay.innerHTML = `
-        <h4 class="result-title">SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">${sampleTable}</div>
-      `;
-      resultDisplay.classList.add('show');
-      scrollToResult('join-result');
-    }
+$sql = "SELECT m.dish_name, c.category_name
+        FROM menu m
+        JOIN categories c
+        ON m.category_id=c.id";
+$result = mysqli_query($conn, $sql);
+?>`,
+        },
+        {
+          id: "groupby",
+          className: "groupby-stall",
+          icon: "fa-solid fa-chart-column",
+          title: "特調飲品吧 (GROUP BY)",
+          productShelfTitle: "飲品分組統計",
+          dialogues: [
+            {
+              speaker: "小兔",
+              text: "好想知道目前哪類飲品賣得多，或是有沒有其他分類？",
+            },
+            {
+              speaker: "飲品吧老闆",
+              text: "GROUP BY 一下就清楚囉，馬上分組給你看！",
+            },
+          ],
+          products: [
+            {
+              icon: "fa-solid fa-cocktail",
+              name: "珍珠奶茶",
+              price: 55,
+              category: "飲品",
+            },
+            {
+              icon: "fa-solid fa-cocktail",
+              name: "紅茶",
+              price: 25,
+              category: "飲品",
+            },
+            {
+              icon: "fa-solid fa-cocktail",
+              name: "綠茶",
+              price: 25,
+              category: "飲品",
+            },
+            {
+              icon: "fa-solid fa-ice-cream",
+              name: "芒果冰沙",
+              price: 70,
+              category: "冰品",
+            },
+          ],
+          operationButtons: [
+            {
+              label: "分組統計",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "飲品吧老闆",
+                  text: "計算中～來看看飲品和冰品各有多少！",
+                });
+                const drinkCount = stallObj.products.filter(
+                  (p) => p.category === "飲品"
+                ).length;
+                const iceCount = stallObj.products.filter(
+                  (p) => p.category === "冰品"
+                ).length;
+                stallObj.filtered = [
+                  {
+                    icon: "fa-solid fa-cocktail",
+                    name: "飲品類",
+                    price: drinkCount + " 項",
+                  },
+                  {
+                    icon: "fa-solid fa-ice-cream",
+                    name: "冰品類",
+                    price: iceCount + " 項",
+                  },
+                ];
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-    // 3. GROUP BY 查詢
-    function demonstrateGroupBy(type) {
-      const resultDisplay = document.getElementById('groupby-result');
-      let query = '';
-      let explanation = '';
-      let sampleTable = '';
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.groupBy.sql,
+                  codeSnippets.groupBy.php
+                );
+              },
+            },
+            {
+              label: "排序後統計",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "小兔",
+                  text: "再幫我排個順序，一目了然～",
+                });
+                stallObj.filtered = [
+                  {
+                    icon: "fa-solid fa-cocktail",
+                    name: "飲品類",
+                    price: "3項 (排序1)",
+                  },
+                  {
+                    icon: "fa-solid fa-ice-cream",
+                    name: "冰品類",
+                    price: "1項 (排序2)",
+                  },
+                ];
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
 
-      if (type === 'basic') {
-        query = `SELECT category, COUNT(*) AS total_items
-FROM products
-GROUP BY category;`;
-        explanation = '根據產品類別分組，計算每個類別的產品總數';
-        sampleTable = `
-          <table>
-            <tr><th>類別</th><th>產品總數</th></tr>
-            <tr><td>飲品</td><td>8</td></tr>
-            <tr><td>冰品</td><td>5</td></tr>
-            <tr><td>串烤</td><td>12</td></tr>
-          </table>
-        `;
-      } else if (type === 'order') {
-        query = `SELECT category, AVG(price) AS average_price
-FROM products
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.groupBySort.sql,
+                  codeSnippets.groupBySort.php
+                );
+              },
+            },
+          ],
+          secretSQL: `CREATE TABLE drinks (
+    product_name VARCHAR(100),
+    category VARCHAR(50),
+    price INT
+);
+INSERT INTO drinks (product_name, category, price) VALUES
+('珍珠奶茶','飲品',55),
+('紅茶','飲品',25),
+('綠茶','飲品',25),
+('芒果冰沙','冰品',70);
+-- GROUP BY
+SELECT category, COUNT(*) AS total
+FROM drinks
 GROUP BY category
-ORDER BY average_price DESC;`;
-        explanation = '計算平均價格，並依平均價格由高到低排序';
-        sampleTable = `
-          <table>
-            <tr><th>類別</th><th>平均價格</th></tr>
-            <tr><td>串烤</td><td>45</td></tr>
-            <tr><td>冰品</td><td>35</td></tr>
-            <tr><td>飲品</td><td>25</td></tr>
-          </table>
+ORDER BY total DESC;`,
+          secretPHP: `<?php
+$conn = mysqli_connect("localhost","root","","testdb");
+
+$sql = "SELECT category, COUNT(*) AS total
+        FROM drinks
+        GROUP BY category
+        ORDER BY total DESC";
+$result = mysqli_query($conn, $sql);
+?>`,
+        },
+        {
+          id: "distinct",
+          className: "distinct-stall",
+          icon: "fa-solid fa-code-branch",
+          title: "獨特/合併攤 (DISTINCT / UNION)",
+          productShelfTitle: "查詢合併 & 過濾重複",
+          dialogues: [
+            {
+              speaker: "小狼",
+              text: "我看到重複的品項有點混淆，可以幫我去重或合併嗎？",
+            },
+            {
+              speaker: "老闆",
+              text: "那就用 DISTINCT 跟 UNION 吧！乾淨俐落～",
+            },
+          ],
+          products: [
+            { icon: "fa-solid fa-code-branch", name: "項目A", price: 0 },
+            { icon: "fa-solid fa-code-branch", name: "項目B", price: 0 },
+            { icon: "fa-solid fa-code-branch", name: "項目A", price: 0 },
+          ],
+          operationButtons: [
+            {
+              label: "DISTINCT測試",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "小狼",
+                  text: "讚讚！要是都不重複就一目了然囉。",
+                });
+                const seen = new Set();
+                stallObj.filtered = stallObj.products.filter((p) => {
+                  if (seen.has(p.name)) return false;
+                  seen.add(p.name);
+                  return true;
+                });
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
+
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.distinctTest.sql,
+                  codeSnippets.distinctTest.php
+                );
+              },
+            },
+            {
+              label: "UNION模擬",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "老闆",
+                  text: "合併另一份清單囉，看能否彙整更完整！",
+                });
+                const secondSet = [
+                  { icon: "fa-solid fa-code-branch", name: "項目C", price: 0 },
+                  { icon: "fa-solid fa-code-branch", name: "項目B", price: 0 },
+                ];
+                stallObj.filtered = [...stallObj.products, ...secondSet];
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
+
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.unionTest.sql,
+                  codeSnippets.unionTest.php
+                );
+              },
+            },
+          ],
+          secretSQL: `-- DISTINCT/UNION
+SELECT DISTINCT category
+FROM products;
+
+SELECT colA FROM table1
+UNION
+SELECT colA FROM table2;`,
+          secretPHP: `<?php
+$conn = mysqli_connect("localhost","root","","testdb");
+
+// DISTINCT
+$sql = "SELECT DISTINCT category FROM products";
+$result = mysqli_query($conn, $sql);
+
+// UNION
+$sql2 = "SELECT colA FROM table1
+         UNION
+         SELECT colA FROM table2";
+$result2 = mysqli_query($conn, $sql2);
+?>`,
+        },
+        {
+          id: "index",
+          className: "index-stall",
+          icon: "fa-solid fa-search",
+          title: "神速索引舖 (INDEX)",
+          productShelfTitle: "索引資料展示",
+          dialogues: [
+            {
+              speaker: "老闆",
+              text: "資料一多，查詢可能會變慢，我們用 INDEX 加速就行～",
+            },
+            {
+              speaker: "小兔",
+              text: "好啊好啊，試試看建立索引後是不是飛快！",
+            },
+          ],
+          products: [
+            { icon: "fa-solid fa-search", name: "大資料 A", price: 999 },
+            { icon: "fa-solid fa-search", name: "大資料 B", price: 888 },
+          ],
+          operationButtons: [
+            {
+              label: "建立索引",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "老闆",
+                  text: "好的，INDEX on！查詢有如坐雲霄飛車喔～",
+                });
+                showToast(stallObj, "已模擬「建立索引」!");
+                // 在列表中加一個「Index狀態」
+                stallObj.products.push({
+                  icon: "fa-solid fa-bolt",
+                  name: "索引狀態: ON",
+                  price: 0,
+                });
+                stallObj.filtered = stallObj.products;
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
+
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.indexCreate.sql,
+                  codeSnippets.indexCreate.php
+                );
+              },
+            },
+            {
+              label: "移除索引",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "小兔",
+                  text: "那就先關閉吧，看看沒有索引時速度如何～",
+                });
+                showToast(stallObj, "已模擬「移除索引」!");
+                stallObj.products = stallObj.products.filter(
+                  (p) => p.name !== "索引狀態: ON"
+                );
+                stallObj.filtered = stallObj.products;
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
+
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.indexDrop.sql,
+                  codeSnippets.indexDrop.php
+                );
+              },
+            },
+          ],
+          secretSQL: `CREATE TABLE big_data (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    item_name VARCHAR(255)
+);
+-- 建立索引
+CREATE INDEX idx_item
+ON big_data (item_name);`,
+          secretPHP: `<?php
+$conn = mysqli_connect("localhost","root","","testdb");
+
+$sql = "CREATE INDEX idx_item ON big_data(item_name)";
+mysqli_query($conn, $sql);
+?>`,
+        },
+        {
+          id: "transaction",
+          className: "transaction-stall",
+          icon: "fa-solid fa-coins",
+          title: "交易行 (Transaction)",
+          productShelfTitle: "交易商品(模擬)",
+          dialogues: [
+            {
+              speaker: "小狼",
+              text: "想一次買多筆，請問能確保全部成功或全部失敗嗎？",
+            },
+            {
+              speaker: "老闆",
+              text: "沒問題！Transaction 出馬，幫你打包票～",
+            },
+          ],
+          products: [
+            { icon: "fa-solid fa-coins", name: "金幣包", price: 100 },
+            { icon: "fa-solid fa-coins", name: "銀幣袋", price: 50 },
+          ],
+          operationButtons: [
+            {
+              label: "進行交易",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "老闆",
+                  text: "交易成功！再添個紀念品，象徵圓滿。",
+                });
+                showToast(stallObj, "Transaction: Commit 成功!");
+                stallObj.products.push({
+                  icon: "fa-solid fa-check",
+                  name: "成交成功！",
+                  price: 999,
+                });
+                stallObj.filtered = stallObj.products;
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
+
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.transactionCommit.sql,
+                  codeSnippets.transactionCommit.php
+                );
+              },
+            },
+            {
+              label: "交易失敗",
+              onClick: (stallObj) => {
+                addDialogue(stallObj, {
+                  speaker: "小狼",
+                  text: "呀～出了一些意外，我想要 Rollback。",
+                });
+                showToast(stallObj, "Transaction: Rollback!");
+                stallObj.products = stallObj.products.filter(
+                  (p) => p.name !== "成交成功！"
+                );
+                stallObj.filtered = stallObj.products;
+                stallObj.renderProducts();
+                resetAutoRevert(stallObj);
+
+                showInlineSQL(
+                  stallObj,
+                  codeSnippets.transactionRollback.sql,
+                  codeSnippets.transactionRollback.php
+                );
+              },
+            },
+          ],
+          secretSQL: `START TRANSACTION;
+INSERT INTO orders (product, qty) VALUES ('金幣包', 2);
+UPDATE customers SET balance=balance-200 WHERE id=123;
+COMMIT;
+
+-- 若失敗
+ROLLBACK;`,
+          secretPHP: `<?php
+$conn = mysqli_connect("localhost","root","","testdb");
+
+mysqli_begin_transaction($conn);
+try {
+  // ...
+  mysqli_commit($conn);
+} catch(Exception $e){
+  mysqli_rollback($conn);
+}
+?>`,
+        },
+      ];
+
+      // =========== DOM 生成 ===========
+
+      const stallArea = document.getElementById("stallArea");
+      stallsData.forEach((stall) => {
+        // 外層
+        const stallCard = document.createElement("section");
+        stallCard.className = `stall-card ${stall.className}`;
+        stallCard.id = `${stall.id}-card`;
+
+        // 標題
+        const headerDiv = document.createElement("div");
+        headerDiv.className = "stall-header";
+        headerDiv.innerHTML = `<i class="${stall.icon}"></i> <span>${stall.title}</span>`;
+        stallCard.appendChild(headerDiv);
+
+        // 商品層架
+        const shelf = document.createElement("div");
+        shelf.className = "product-shelf";
+        shelf.innerHTML = `<div class="shelf-title">${stall.productShelfTitle}</div>`;
+        const productGrid = document.createElement("div");
+        productGrid.className = "product-grid";
+
+        stall.filtered = stall.products.slice();
+        stall.original = stall.products.slice();
+
+        stall.renderProducts = function () {
+          productGrid.innerHTML = "";
+          this.filtered.forEach((item) => {
+            const itemDiv = document.createElement("div");
+            itemDiv.className = "product-item";
+            const priceTxt =
+              typeof item.price === "number" ? `${item.price} 元` : item.price;
+            itemDiv.innerHTML = `
+              <div class="icon-box"><i class="${item.icon}"></i></div>
+              <div class="product-name">${item.name}</div>
+              <div class="product-price">${priceTxt}</div>
+            `;
+            productGrid.appendChild(itemDiv);
+          });
+        };
+        stall.renderProducts();
+
+        shelf.appendChild(productGrid);
+        stallCard.appendChild(shelf);
+
+        // 對話 (預設顯示)
+        const dialogueDiv = document.createElement("div");
+        dialogueDiv.className = "dialogue";
+        dialogueDiv.id = `${stall.id}-dialogue`;
+        let dHTML = "";
+        stall.dialogues.forEach((d) => {
+          dHTML += `
+            <div class="dialog-line">
+              <span class="speaker">${d.speaker}</span>：${d.text}
+            </div>
+          `;
+        });
+        dialogueDiv.innerHTML = dHTML;
+        stallCard.appendChild(dialogueDiv);
+
+        // 按鈕容器
+        const btnContainer = document.createElement("div");
+        btnContainer.className = "stall-buttons";
+
+        // 秘方按鈕
+        const secretBtn = document.createElement("button");
+        secretBtn.className = "stall-btn";
+        secretBtn.textContent = "取得秘方";
+        secretBtn.addEventListener("click", () => {
+          // 用 modal 顯示 stall.secretSQL / stall.secretPHP
+          showModal(stall.title + " - 完整建表/資料", [
+            {
+              codeType: "SQL 建立&範例資料",
+              content: stall.secretSQL,
+            },
+            {
+              codeType: "PHP 範例",
+              content: stall.secretPHP,
+            },
+          ]);
+        });
+        btnContainer.appendChild(secretBtn);
+
+        // 其餘 operationButtons
+        stall.operationButtons.forEach((op) => {
+          const opBtn = document.createElement("button");
+          opBtn.className = "stall-btn";
+          opBtn.textContent = op.label;
+          opBtn.addEventListener("click", () => {
+            op.onClick(stall);
+          });
+          btnContainer.appendChild(opBtn);
+        });
+
+        // 復原攤位
+        const revertBtn = document.createElement("button");
+        revertBtn.className = "stall-btn";
+        revertBtn.textContent = "復原攤販";
+        revertBtn.addEventListener("click", () => {
+          revertStall(stall);
+        });
+        btnContainer.appendChild(revertBtn);
+
+        stallCard.appendChild(btnContainer);
+
+        // 容器：內聯的 SQL/PHP 區塊
+        const inlineSQLContainer = document.createElement("div");
+        inlineSQLContainer.id = `${stall.id}-inline-sql-container`;
+        stallCard.appendChild(inlineSQLContainer);
+
+        stallArea.appendChild(stallCard);
+      });
+
+      // =========== 函式 ===========
+
+      // 新增對話
+      function addDialogue(stallObj, { speaker, text }) {
+        const dialogueEl = document.getElementById(`${stallObj.id}-dialogue`);
+        const lineDiv = document.createElement("div");
+        lineDiv.className = "dialog-line";
+        lineDiv.innerHTML = `<span class="speaker">${speaker}</span>：${text}`;
+        dialogueEl.appendChild(lineDiv);
+      }
+
+      // 顯示內聯SQL
+      function showInlineSQL(stallObj, sqlText, phpText) {
+        const container = document.getElementById(
+          `${stallObj.id}-inline-sql-container`
+        );
+        // 先清除上一段
+        container.innerHTML = "";
+
+        const blockSQL = document.createElement("div");
+        blockSQL.className = "inline-sql-box";
+        blockSQL.innerHTML = `
+          <button class="inline-sql-copy" onclick="copyCode(this, \`${sqlText}\`)">Copy</button>
+          <div class="inline-sql-title">SQL 語法</div>
+          <pre>${sqlText}</pre>
         `;
+        container.appendChild(blockSQL);
+
+        const blockPHP = document.createElement("div");
+        blockPHP.className = "inline-sql-box";
+        blockPHP.innerHTML = `
+          <button class="inline-sql-copy" onclick="copyCode(this, \`${phpText}\`)">Copy</button>
+          <div class="inline-sql-title">PHP 範例</div>
+          <pre>${phpText}</pre>
+        `;
+        container.appendChild(blockPHP);
       }
 
-      resultDisplay.innerHTML = `
-        <h4 class="result-title">SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">${sampleTable}</div>
-      `;
-      resultDisplay.classList.add('show');
-      scrollToResult('groupby-result');
-    }
-
-    // 4. INSERT 新增
-    function demonstrateInsert(type) {
-      const resultDisplay = document.getElementById('insert-result');
-      let query = '';
-      let explanation = '';
-      let sampleResult = '';
-
-      if (type === 'single') {
-        query = `INSERT INTO customers (name, city)
-VALUES ('小美', '台北');`;
-        explanation = '新增一筆客戶資料 (小美 / 台北)';
-        sampleResult = `<p>成功新增一筆客戶資料：小美 / 台北。</p>`;
-      } else if (type === 'multiple') {
-        query = `INSERT INTO products (product_name, category, price) VALUES
-('珍珠奶茶', '飲品', 55),
-('芒果冰', '冰品', 70),
-('烤肉串', '串烤', 40);`;
-        explanation = '一次新增三筆產品：珍珠奶茶、芒果冰、烤肉串。';
-        sampleResult = `<p>成功新增：珍珠奶茶(飲品)、芒果冰(冰品)、烤肉串(串烤)。</p>`;
+      // Copy
+      function copyCode(btn, text) {
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            btn.textContent = "Copied!";
+            btn.classList.add("copied");
+            setTimeout(() => {
+              btn.textContent = "Copy";
+              btn.classList.remove("copied");
+            }, 1500);
+          })
+          .catch((err) => {
+            console.error("複製失敗：", err);
+            showToast(null, "複製失敗，請手動複製");
+          });
       }
 
-      resultDisplay.innerHTML = `
-        <h4 class="result-title">SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">${sampleResult}</div>
-      `;
-      resultDisplay.classList.add('show');
-      scrollToResult('insert-result');
-    }
+      // Modal
+      const modalOverlay = document.getElementById("modalOverlay");
+      const modalContent = document.getElementById("modalContent");
+      const modalClose = document.getElementById("modalClose");
+      modalClose.addEventListener("click", () => {
+        modalOverlay.classList.remove("show");
+      });
 
-    // 5. UPDATE 更新
-    function demonstrateUpdate(type) {
-      const resultDisplay = document.getElementById('update-result');
-      let query = '';
-      let explanation = '';
-      let sampleResult = '';
+      function showModal(title, codeBlocks) {
+        modalOverlay.classList.add("show");
+        modalContent.querySelector("#modalTitle").textContent = title;
+        // 清除舊的 pre
+        modalContent
+          .querySelectorAll(".modal-pre, .modal-title + pre")
+          .forEach((el) => el.remove());
 
-      if (type === 'price') {
-        query = `UPDATE products
-SET price = 60
-WHERE product_name = '珍珠奶茶';`;
-        explanation = '將珍珠奶茶的價格更新為 60 元';
-        sampleResult = `<p>珍珠奶茶的價格已更新為 60 元。</p>`;
-      } else if (type === 'multiple') {
-        query = `UPDATE products
-SET price = 85, category = '冰品'
-WHERE product_name = '芒果冰';`;
-        explanation = '同時更新價格(85) 與類別(冰品)';
-        sampleResult = `<p>芒果冰的價格與類別已更新 (85, 冰品)。</p>`;
+        // 生成多段 pre
+        codeBlocks.forEach((block) => {
+          const preDiv = document.createElement("div");
+          preDiv.className = "modal-pre";
+          const copyBtn = document.createElement("button");
+          copyBtn.className = "copy-btn";
+          copyBtn.textContent = "Copy";
+          copyBtn.onclick = () => copyCode(copyBtn, block.content);
+
+          const codeTitle = document.createElement("div");
+          codeTitle.style.fontWeight = "bold";
+          codeTitle.style.marginBottom = "0.5rem";
+          codeTitle.textContent = block.codeType;
+
+          const textPre = document.createElement("pre");
+          textPre.style.position = "relative";
+          textPre.textContent = block.content;
+
+          preDiv.appendChild(copyBtn);
+          preDiv.appendChild(codeTitle);
+          preDiv.appendChild(textPre);
+
+          modalContent.appendChild(preDiv);
+        });
       }
 
-      resultDisplay.innerHTML = `
-        <h4 class="result-title">SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">${sampleResult}</div>
-      `;
-      resultDisplay.classList.add('show');
-      scrollToResult('update-result');
-    }
+      // Toast
+      const toastContainer = document.getElementById("toastContainer");
+      function showToast(stallObj, message) {
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.textContent = stallObj
+          ? `[${stallObj.title}] ${message}`
+          : `[系統] ${message}`;
+        toastContainer.appendChild(toast);
 
-    // 6. DELETE 刪除
-    function demonstrateDelete(type) {
-      const resultDisplay = document.getElementById('delete-result');
-      let query = '';
-      let explanation = '';
-      let sampleResult = '';
-
-      if (type === 'specific') {
-        query = `DELETE FROM orders
-WHERE order_date < '2023-01-01';`;
-        explanation = '刪除 2023-01-01 之前的舊訂單紀錄';
-        sampleResult = `<p>成功刪除符合條件的歷史訂單。</p>`;
-      } else if (type === 'all') {
-        query = `DELETE FROM products;`;
-        explanation = '清空整個產品表格 (請謹慎使用)';
-        sampleResult = `<p>products 表格已清空，所有產品被刪除。</p>`;
+        setTimeout(() => {
+          toast.classList.add("fade-out");
+          toast.style.transition = "opacity 0.5s ease";
+          toast.style.opacity = 0;
+          setTimeout(() => {
+            toastContainer.removeChild(toast);
+          }, 500);
+        }, 2000);
       }
 
-      resultDisplay.innerHTML = `
-        <h4 class="result-title">SQL 語法：</h4>
-        <div class="sql-code">${query}</div>
-        <p>${explanation}</p>
-        <div class="sample-result">${sampleResult}</div>
-      `;
-      resultDisplay.classList.add('show');
-      scrollToResult('delete-result');
-    }
-
-    /* 滑動到結果顯示處 */
-    function scrollToResult(resultId) {
-      const resultSection = document.getElementById(resultId);
-      if (resultSection) {
-        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // 自動復原
+      let revertTimers = {};
+      function resetAutoRevert(stallObj) {
+        const sid = stallObj.id;
+        if (revertTimers[sid]) {
+          clearTimeout(revertTimers[sid]);
+        }
+        revertTimers[sid] = setTimeout(() => {
+          revertStall(stallObj);
+        }, 30000);
       }
-    }
 
-    /* 頁面載入後若想加一些霓虹閃爍或動態，可自行加上 */
-    document.addEventListener('DOMContentLoaded', () => {
-      // 您也可以在此進行粒子動態生成或角色動畫
-    });
-  </script>
-</body>
+      function revertStall(stallObj) {
+        // 還原商品
+        stallObj.products = stallObj.original.slice();
+        stallObj.filtered = stallObj.original.slice();
+        stallObj.renderProducts();
+
+        // 還原對話
+        const dialogueEl = document.getElementById(`${stallObj.id}-dialogue`);
+        dialogueEl.innerHTML = "";
+        stallObj.dialogues.forEach((d) => {
+          const lineDiv = document.createElement("div");
+          lineDiv.className = "dialog-line";
+          lineDiv.innerHTML = `<span class="speaker">${d.speaker}</span>：${d.text}`;
+          dialogueEl.appendChild(lineDiv);
+        });
+
+        // 清除內聯SQL
+        const container = document.getElementById(
+          `${stallObj.id}-inline-sql-container`
+        );
+        container.innerHTML = "";
+
+        showToast(stallObj, "已恢復原始商品 & 對話！");
+      }
+    </script>
+  </body>
 </html>
