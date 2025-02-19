@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <!-- 加入響應式設定 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SQL 夜市大冒險 - 全面互動終極版 (改造)</title>
+    <title>狼狼 SQL 夜市大冒險</title>
 
     <!-- Google Fonts & Font Awesome -->
     <link
@@ -33,7 +33,6 @@
         --accent: #fed766;
         --primary: #ff577f;
         --secondary: #4ecdc4;
-
         /* 攤位霓虹色 */
         --stall-select: #ff4d6d;
         --stall-insert: #32e0c4;
@@ -44,7 +43,6 @@
         --stall-distinct: #ff6fb5;
         --stall-index: #af98ff;
         --stall-transaction: #ff7f50;
-
         /* Toast 顏色 */
         --toast-bg: #444;
       }
@@ -57,15 +55,19 @@
       }
 
       body {
-        background: var(--dark-bg)
-          url("https://images.unsplash.com/photo-1533089855198-5a32583c9494?q=80&w=2070&auto=format&fit=crop")
-          center/cover no-repeat fixed;
+        background: var(--dark-bg) url(img/bg.png) center/cover no-repeat fixed;
         color: var(--light);
         min-height: 100vh;
         position: relative;
       }
 
       header {
+        background: rgba(0, 0, 0, 0.895);
+        box-shadow: 0 0 12px var(--light);
+        border: 2px solid var(--light);
+        border-radius: 6px;
+        max-width: 800px;
+        margin: 0 auto;
         text-align: center;
         padding: 3rem 1rem;
       }
@@ -90,12 +92,12 @@
         flex-wrap: wrap;
         justify-content: center;
         gap: 2rem;
-        max-width: 96%;
+        max-width: 90%;
         margin: 2rem auto;
       }
 
       .stall-card {
-        background: rgba(20, 20, 20, 0.8);
+        background: rgba(20, 20, 20, 0.909);
         border-radius: 10px;
         width: 550px;
         padding: 1rem;
@@ -167,7 +169,7 @@
 
       /* 商品層架 */
       .product-shelf {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.15);
         border-radius: 8px;
         padding: 1rem;
         margin-bottom: 1rem;
@@ -186,7 +188,7 @@
       }
       .product-item {
         width: 90px;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.421);
         border-radius: 6px;
         text-align: center;
         padding: 0.6rem;
@@ -210,18 +212,17 @@
         opacity: 0.8;
       }
 
-      /* 對話框: 預設顯示 */
+      /* 對話框 */
       .dialogue {
         background: var(--dark-overlay);
         border-radius: 8px;
         padding: 0.8rem;
         margin-bottom: 0.8rem;
         font-size: 0.9rem;
-
-        max-height: none; /* 直接顯示 */
-        opacity: 1; /* 不隱藏 */
-        overflow: auto; /* 可以捲動 */
-        transition: none; /* 取消動畫 */
+        max-height: none;
+        opacity: 1;
+        overflow: auto;
+        transition: none;
       }
       .dialog-line {
         margin-bottom: 0.4rem;
@@ -264,6 +265,10 @@
         padding: 0.6rem;
         font-size: 0.85rem;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+      }
+      .inline-sql-box pre {
+        max-height: 200px;
+        overflow-y: auto;
       }
       .inline-sql-title {
         font-weight: bold;
@@ -339,6 +344,10 @@
         margin-bottom: 1rem;
         font-size: 0.85rem;
       }
+      .modal-pre pre {
+        max-height: 200px;
+        overflow-y: auto;
+      }
       .modal-pre .copy-btn {
         position: absolute;
         top: 8px;
@@ -376,7 +385,7 @@
         pointer-events: auto;
       }
 
-      /* 簡易 RWD 設定 */
+      /* 簡易 RWD */
       @media (max-width: 768px) {
         .stall-card {
           width: 95%;
@@ -389,12 +398,12 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <header>
-      <h1 class="title">SQL 夜市大冒險 - 9 大攤位整合版 (改造)</h1>
+      <h1 class="title">SQL 夜市大冒險</h1>
       <p class="desc">
         這裡有 INSERT、DELETE、UPDATE、SELECT、JOIN、GROUP
         BY、DISTINCT/UNION、INDEX、Transaction 等超完整的 SQL 功能示範！
         <strong>小狼、小兔</strong>走訪夜市，輕鬆點選按鈕即可預覽
-        <strong>SQL/PHP語法</strong>與操作效果～偶爾還有熱心攤主教學。
+        <strong>SQL/PHP語法</strong> 與操作效果～偶爾還有熱心攤主教學。
         30秒沒動作就會自動復原攤販，也可以手動「復原攤販」，慢慢逛別著急呦！
       </p>
     </header>
@@ -411,7 +420,7 @@
     </div>
 
     <script>
-      // =========== 攤位資料 (隨機批量上架會使用) ===========
+      // =========== 攤位資料 (隨機批量上架用) ===========
       const randomIceFlavors = [
         { name: "抹茶豆花", price: 60 },
         { name: "巧克力棉花", price: 75 },
@@ -421,83 +430,263 @@
       ];
 
       // 幫不同動作預先準備好相關的 SQL/PHP 片段
-      // 用 \n 轉義, 並確保 onclick 時能正確複製
+      // PHP 部分移除了連線程式碼，並加入中文錯誤訊息及註解提示
       const codeSnippets = {
         insertSingle: {
           sql: `INSERT INTO ice_creams (flavor, price)\nVALUES ('香草泡芙冰',80);`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "INSERT INTO ice_creams (flavor, price) VALUES ('香草泡芙冰',80)";\nmysqli_query($conn, $sql);\n?>`,
+          php: `<?php
+// 執行單筆新增
+$sql = "INSERT INTO ice_creams (flavor, price) VALUES ('香草泡芙冰',80)";
+if(mysqli_query($conn, $sql)){
+    echo "新增成功。";
+} else {
+    echo "新增失敗：" . mysqli_error($conn);
+}
+?>`,
         },
         insertBatch: {
           sql: `INSERT INTO ice_creams (flavor, price)\nVALUES\n('抹茶豆花',60),\n('巧克力棉花',75);`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "INSERT INTO ice_creams (flavor, price)\\nVALUES\\n('抹茶豆花',60),\\n('巧克力棉花',75)";\nmysqli_query($conn, $sql);\n?>`,
+          php: `<?php
+// 執行批量新增
+$sql = "INSERT INTO ice_creams (flavor, price) VALUES ('抹茶豆花',60),('巧克力棉花',75)";
+if(mysqli_query($conn, $sql)){
+    echo "批量新增成功。";
+} else {
+    echo "批量新增失敗：" . mysqli_error($conn);
+}
+?>`,
         },
         deleteItem: {
           sql: `DELETE FROM skewers\nWHERE item_name='烤香腸';`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "DELETE FROM skewers WHERE item_name='烤香腸'";\nmysqli_query($conn, $sql);\n?>`,
+          php: `<?php
+// 刪除指定項目
+$sql = "DELETE FROM skewers WHERE item_name='烤香腸'";
+if(mysqli_query($conn, $sql)){
+    echo "刪除成功。";
+} else {
+    echo "刪除失敗：" . mysqli_error($conn);
+}
+?>`,
         },
         deleteAll: {
           sql: `DELETE FROM skewers; -- 清空整張表資料`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "DELETE FROM skewers"; // 清空全部\nmysqli_query($conn, $sql);\n?>`,
+          php: `<?php
+// 清空整張表
+$sql = "DELETE FROM skewers";
+if(mysqli_query($conn, $sql)){
+    echo "全部記錄已刪除。";
+} else {
+    echo "刪除失敗：" . mysqli_error($conn);
+}
+?>`,
         },
         updatePrice: {
           sql: `UPDATE tea_products\nSET price=65\nWHERE product_name='珍珠奶茶';`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "UPDATE tea_products SET price=65 WHERE product_name='珍珠奶茶'";\nmysqli_query($conn, $sql);\n?>`,
+          php: `<?php
+// 更新指定商品價格
+$sql = "UPDATE tea_products SET price=65 WHERE product_name='珍珠奶茶'";
+if(mysqli_query($conn, $sql)){
+    echo "價格更新成功。";
+} else {
+    echo "價格更新失敗：" . mysqli_error($conn);
+}
+?>`,
         },
         updateAll: {
           sql: `UPDATE tea_products\nSET price = price + 5; -- 全部+5元`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "UPDATE tea_products SET price = price + 5";\nmysqli_query($conn, $sql);\n?>`,
+          php: `<?php
+// 將所有商品價格加5
+$sql = "UPDATE tea_products SET price = price + 5";
+if(mysqli_query($conn, $sql)){
+    echo "全部價格更新成功。";
+} else {
+    echo "更新失敗：" . mysqli_error($conn);
+}
+?>`,
         },
         selectMain: {
           sql: `SELECT dish_name, price\nFROM menu\nWHERE category_id=1;`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT dish_name, price FROM menu WHERE category_id=1";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['dish_name'].":".$row['price']."<br>";\n}\n?>`,
+          php: `<?php
+// 查詢主食
+$sql = "SELECT dish_name, price FROM menu WHERE category_id=1";
+$result = mysqli_query($conn, $sql);
+if(!$result){
+    echo "查詢錯誤：" . mysqli_error($conn);
+} else {
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['dish_name'] . "：" . $row['price'] . " 元<br>";
+    }
+}
+?>`,
         },
         selectSoup: {
           sql: `SELECT dish_name, price\nFROM menu\nWHERE category_id=2;`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT dish_name, price FROM menu WHERE category_id=2";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['dish_name'].":".$row['price']."<br>";\n}\n?>`,
+          php: `<?php
+// 查詢湯品
+$sql = "SELECT dish_name, price FROM menu WHERE category_id=2";
+$result = mysqli_query($conn, $sql);
+if(!$result){
+    echo "查詢錯誤：" . mysqli_error($conn);
+} else {
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['dish_name'] . "：" . $row['price'] . " 元<br>";
+    }
+}
+?>`,
         },
         joinInner: {
           sql: `SELECT m.dish_name, c.category_name\nFROM menu m\nJOIN categories c\nON m.category_id=c.id;`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT m.dish_name, c.category_name\\nFROM menu m\\nJOIN categories c\\nON m.category_id=c.id";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['dish_name']." / ".$row['category_name']."<br>";\n}\n?>`,
+          php: `<?php
+// 使用 INNER JOIN 查詢
+$sql = "SELECT m.dish_name, c.category_name FROM menu m JOIN categories c ON m.category_id=c.id";
+$result = mysqli_query($conn, $sql);
+if(!$result){
+    echo "查詢錯誤：" . mysqli_error($conn);
+} else {
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['dish_name'] . " / " . $row['category_name'] . "<br>";
+    }
+}
+?>`,
         },
         joinLeft: {
           sql: `SELECT m.dish_name, c.category_name\nFROM menu m\nLEFT JOIN categories c\nON m.category_id=c.id;`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT m.dish_name, c.category_name\\nFROM menu m\\nLEFT JOIN categories c\\nON m.category_id=c.id";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['dish_name']." / ".$row['category_name']."<br>";\n}\n?>`,
+          php: `<?php
+// 使用 LEFT JOIN 查詢
+$sql = "SELECT m.dish_name, c.category_name FROM menu m LEFT JOIN categories c ON m.category_id=c.id";
+$result = mysqli_query($conn, $sql);
+if(!$result){
+    echo "查詢錯誤：" . mysqli_error($conn);
+} else {
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['dish_name'] . " / " . $row['category_name'] . "<br>";
+    }
+}
+?>`,
         },
         groupBy: {
           sql: `SELECT category, COUNT(*) AS total\nFROM drinks\nGROUP BY category\nORDER BY total DESC;`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT category, COUNT(*) AS total\\nFROM drinks\\nGROUP BY category\\nORDER BY total DESC";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['category']."-".$row['total']."<br>";\n}\n?>`,
+          php: `<?php
+// 使用 GROUP BY 進行統計查詢
+$sql = "SELECT category, COUNT(*) AS total FROM drinks GROUP BY category ORDER BY total DESC";
+$result = mysqli_query($conn, $sql);
+if(!$result){
+    echo "查詢錯誤：" . mysqli_error($conn);
+} else {
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['category'] . " - " . $row['total'] . " 項<br>";
+    }
+}
+?>`,
         },
         groupBySort: {
           sql: `SELECT category, COUNT(*) AS total\nFROM drinks\nGROUP BY category\nORDER BY total ASC;`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT category, COUNT(*) AS total\\nFROM drinks\\nGROUP BY category\\nORDER BY total ASC";\n$result = mysqli_query($conn, $sql);\n?>`,
+          php: `<?php
+// 使用 GROUP BY 並依升序排序統計
+$sql = "SELECT category, COUNT(*) AS total FROM drinks GROUP BY category ORDER BY total ASC";
+$result = mysqli_query($conn, $sql);
+if(!$result){
+    echo "查詢錯誤：" . mysqli_error($conn);
+} else {
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['category'] . " - " . $row['total'] . " 項<br>";
+    }
+}
+?>`,
         },
         distinctTest: {
           sql: `SELECT DISTINCT category\nFROM products;`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT DISTINCT category FROM products";\n$result = mysqli_query($conn, $sql);\nwhile($row = mysqli_fetch_assoc($result)){\n  echo $row['category']."<br>";\n}\n?>`,
+          php: `<?php
+// 使用 DISTINCT 去除重複
+$sql = "SELECT DISTINCT category FROM products";
+$result = mysqli_query($conn, $sql);
+if(!$result){
+    echo "查詢錯誤：" . mysqli_error($conn);
+} else {
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['category'] . "<br>";
+    }
+}
+?>`,
         },
         unionTest: {
           sql: `SELECT colA FROM table1\nUNION\nSELECT colA FROM table2;`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "SELECT colA FROM table1\\nUNION\\nSELECT colA FROM table2";\n$result = mysqli_query($conn, $sql);\n?>`,
+          php: `<?php
+// 使用 UNION 合併查詢結果
+$sql = "SELECT colA FROM table1 UNION SELECT colA FROM table2";
+$result = mysqli_query($conn, $sql);
+if(!$result){
+    echo "查詢錯誤：" . mysqli_error($conn);
+} else {
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['colA'] . "<br>";
+    }
+}
+?>`,
         },
         indexCreate: {
           sql: `CREATE INDEX idx_item\nON big_data (item_name);`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "CREATE INDEX idx_item ON big_data(item_name)";\nmysqli_query($conn, $sql);\n?>`,
+          php: `<?php
+// 建立索引
+$sql = "CREATE INDEX idx_item ON big_data(item_name)";
+if(mysqli_query($conn, $sql)){
+    echo "索引建立成功。";
+} else {
+    echo "索引建立失敗：" . mysqli_error($conn);
+}
+?>`,
         },
         indexDrop: {
           sql: `DROP INDEX idx_item\nON big_data;`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n$sql = "DROP INDEX idx_item ON big_data";\nmysqli_query($conn, $sql);\n?>`,
+          php: `<?php
+// 移除索引
+$sql = "DROP INDEX idx_item ON big_data";
+if(mysqli_query($conn, $sql)){
+    echo "索引移除成功。";
+} else {
+    echo "索引移除失敗：" . mysqli_error($conn);
+}
+?>`,
         },
         transactionCommit: {
           sql: `START TRANSACTION;\nINSERT INTO orders (product, qty) VALUES ('金幣包',2);\nUPDATE customers SET balance=balance-200 WHERE id=123;\nCOMMIT;`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\nmysqli_begin_transaction($conn);\ntry {\n  $sql1 = "INSERT INTO orders (product, qty) VALUES ('金幣包',2)";\n  mysqli_query($conn, $sql1);\n\n  $sql2 = "UPDATE customers SET balance=balance-200 WHERE id=123";\n  mysqli_query($conn, $sql2);\n\n  mysqli_commit($conn);\n} catch(Exception $e){\n  mysqli_rollback($conn);\n}\n?>`,
+          php: `<?php
+// 開始交易
+mysqli_begin_transaction($conn);
+try {
+    // 執行新增訂單
+    $sql1 = "INSERT INTO orders (product, qty) VALUES ('金幣包',2)";
+    if(!mysqli_query($conn, $sql1)){
+        throw new Exception(mysqli_error($conn));
+    }
+    // 執行扣款操作
+    $sql2 = "UPDATE customers SET balance=balance-200 WHERE id=123";
+    if(!mysqli_query($conn, $sql2)){
+        throw new Exception(mysqli_error($conn));
+    }
+    // 提交交易
+    mysqli_commit($conn);
+    echo "交易提交成功。";
+} catch(Exception $e){
+    mysqli_rollback($conn);
+    echo "交易失敗：" . $e->getMessage();
+}
+?>`,
         },
         transactionRollback: {
           sql: `ROLLBACK; -- 交易失敗`,
-          php: `<?php\n$conn = mysqli_connect("localhost","root","","testdb");\n\n// 發生錯誤就rollback\nmysqli_rollback($conn);\n?>`,
+          php: `<?php
+// 回滾交易
+if(mysqli_rollback($conn)){
+    echo "交易已回滾。";
+} else {
+    echo "回滾失敗：" . mysqli_error($conn);
+}
+?>`,
         },
       };
 
-      // 9 大攤位
+      // 9 大攤位資料
       const stallsData = [
         {
           id: "insert",
@@ -536,7 +725,6 @@
                 stallObj.filtered = stallObj.products;
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.insertSingle.sql,
@@ -565,7 +753,6 @@
                 stallObj.filtered = stallObj.products;
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.insertBatch.sql,
@@ -579,16 +766,20 @@
     flavor VARCHAR(100),
     price INT
 );
+INSERT INTO ice_creams (flavor, price)  VALUES ('芒果雪花冰',70),('草莓冰淇淋',75);
+
 -- 單筆新增
 INSERT INTO ice_creams (flavor, price) VALUES ('香草泡芙冰',80);
 -- 批量多筆
-INSERT INTO ice_creams (flavor, price) VALUES
-('抹茶豆花',60),('巧克力棉花',75);`,
+INSERT INTO ice_creams (flavor, price) VALUES ('抹茶豆花',60),('巧克力棉花',75);`,
           secretPHP: `<?php
-$conn = mysqli_connect("localhost","root","","testdb");
-
+// 執行單筆新增的 PHP 範例
 $sql = "INSERT INTO ice_creams (flavor, price) VALUES ('香草泡芙冰',80)";
-mysqli_query($conn, $sql);
+if(mysqli_query($conn, $sql)){
+    echo "新增成功。";
+} else {
+    echo "新增失敗：" . mysqli_error($conn);
+}
 ?>`,
         },
         {
@@ -626,7 +817,6 @@ mysqli_query($conn, $sql);
                 stallObj.filtered = stallObj.products;
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.deleteItem.sql,
@@ -645,7 +835,6 @@ mysqli_query($conn, $sql);
                 stallObj.filtered = [];
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.deleteAll.sql,
@@ -659,16 +848,17 @@ mysqli_query($conn, $sql);
     item_name VARCHAR(100),
     price INT
 );
-INSERT INTO skewers (item_name, price) VALUES
-('烤雞翅',45),('烤香腸',35),('烤秋刀魚',55);
+INSERT INTO skewers (item_name, price) VALUES ('烤雞翅',45),('烤香腸',35),('烤秋刀魚',55);
 -- 刪除
-DELETE FROM skewers
-WHERE item_name='烤香腸';`,
+DELETE FROM skewers WHERE item_name='烤香腸';`,
           secretPHP: `<?php
-$conn = mysqli_connect("localhost","root","","testdb");
-
+// 執行刪除香腸的 PHP 範例
 $sql = "DELETE FROM skewers WHERE item_name='烤香腸'";
-mysqli_query($conn, $sql);
+if(mysqli_query($conn, $sql)){
+    echo "刪除成功。";
+} else {
+    echo "刪除失敗：" . mysqli_error($conn);
+}
 ?>`,
         },
         {
@@ -708,7 +898,6 @@ mysqli_query($conn, $sql);
                 stallObj.filtered = stallObj.products;
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.updatePrice.sql,
@@ -723,13 +912,13 @@ mysqli_query($conn, $sql);
                   speaker: "小狼",
                   text: "行，那就一起更新，多一點彈性空間嘛。",
                 });
-                stallObj.products = stallObj.products.map((p) => {
-                  return { ...p, price: p.price + 5 };
-                });
+                stallObj.products = stallObj.products.map((p) => ({
+                  ...p,
+                  price: p.price + 5,
+                }));
                 stallObj.filtered = stallObj.products;
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.updateAll.sql,
@@ -742,18 +931,17 @@ mysqli_query($conn, $sql);
     product_name VARCHAR(100),
     price INT
 );
-INSERT INTO tea_products (product_name, price) VALUES
-('珍珠奶茶',55),('綠茶',25);
+INSERT INTO tea_products (product_name, price) VALUES ('珍珠奶茶',55),('綠茶',25);
 -- UPDATE
-UPDATE tea_products
-SET price=65
-WHERE product_name='珍珠奶茶';`,
+UPDATE tea_products SET price=65 WHERE product_name='珍珠奶茶';`,
           secretPHP: `<?php
-$conn = mysqli_connect("localhost","root","","testdb");
-
-$sql = "UPDATE tea_products SET price=65
-        WHERE product_name='珍珠奶茶'";
-mysqli_query($conn, $sql);
+// 執行更新價格的 PHP 範例
+$sql = "UPDATE tea_products SET price=65 WHERE product_name='珍珠奶茶'";
+if(mysqli_query($conn, $sql)){
+    echo "更新成功。";
+} else {
+    echo "更新失敗：" . mysqli_error($conn);
+}
 ?>`,
         },
         {
@@ -763,10 +951,7 @@ mysqli_query($conn, $sql);
           title: "查詢小館 (SELECT)",
           productShelfTitle: "查詢小館精選美食",
           dialogues: [
-            {
-              speaker: "小兔",
-              text: "聽說這攤啥都能查，主食、湯品應有盡有～",
-            },
+            { speaker: "小兔", text: "聽說這攤啥都能查，主食、湯品應有盡有～" },
             {
               speaker: "攤位老闆",
               text: "沒錯！隨你 SELECT，來看看想吃哪種類～",
@@ -811,7 +996,6 @@ mysqli_query($conn, $sql);
                 );
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.selectMain.sql,
@@ -831,7 +1015,6 @@ mysqli_query($conn, $sql);
                 );
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.selectSoup.sql,
@@ -845,19 +1028,19 @@ mysqli_query($conn, $sql);
     price INT,
     category_id INT
 );
-INSERT INTO menu (dish_name, price, category_id) VALUES
-('炒麵',80,1),('滷肉飯',60,1),('肉羹湯',45,2),('燙青菜',30,3);
+INSERT INTO menu (dish_name, price, category_id) VALUES ('炒麵',80,1),('滷肉飯',60,1),('肉羹湯',45,2),('燙青菜',30,3);
 -- SELECT
-SELECT dish_name, price
-FROM menu
-WHERE category_id=1;`,
+SELECT dish_name, price FROM menu WHERE category_id=1;`,
           secretPHP: `<?php
-$conn = mysqli_connect("localhost","root","","testdb");
-
+// 執行查詢主食的 PHP 範例
 $sql = "SELECT dish_name, price FROM menu WHERE category_id=1";
 $result = mysqli_query($conn, $sql);
-while($row = mysqli_fetch_assoc($result)){
-  echo $row['dish_name'].":".$row['price']."<br>";
+if(!$result){
+    echo "查詢錯誤：" . mysqli_error($conn);
+} else {
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['dish_name'] . "：" . $row['price'] . " 元<br>";
+    }
 }
 ?>`,
         },
@@ -905,15 +1088,12 @@ while($row = mysqli_fetch_assoc($result)){
                   speaker: "餐館老闆",
                   text: "用 INNER JOIN，把主廚的私藏菜單合併進來囉！",
                 });
-                stallObj.filtered = stallObj.products.map((p) => {
-                  return {
-                    ...p,
-                    name: p.name + " (JOINed)",
-                  };
-                });
+                stallObj.filtered = stallObj.products.map((p) => ({
+                  ...p,
+                  name: p.name + " (JOINed)",
+                }));
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.joinInner.sql,
@@ -926,17 +1106,14 @@ while($row = mysqli_fetch_assoc($result)){
               onClick: (stallObj) => {
                 addDialogue(stallObj, {
                   speaker: "小狼",
-                  text: "Left Join 試試看，看有沒有遺漏的菜色？",
+                  text: "Left JOIN 試試看，看有沒有遺漏的菜色？",
                 });
-                stallObj.filtered = stallObj.products.map((p) => {
-                  return {
-                    ...p,
-                    name: p.name + " (LeftJOINed)",
-                  };
-                });
+                stallObj.filtered = stallObj.products.map((p) => ({
+                  ...p,
+                  name: p.name + " (LeftJOINed)",
+                }));
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.joinLeft.sql,
@@ -956,17 +1133,18 @@ CREATE TABLE menu (
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 -- JOIN
-SELECT m.dish_name, c.category_name
-FROM menu m
-JOIN categories c ON m.category_id=c.id;`,
+SELECT m.dish_name, c.category_name FROM menu m JOIN categories c ON m.category_id=c.id;`,
           secretPHP: `<?php
-$conn = mysqli_connect("localhost","root","","testdb");
-
-$sql = "SELECT m.dish_name, c.category_name
-        FROM menu m
-        JOIN categories c
-        ON m.category_id=c.id";
+// 執行 JOIN 查詢的 PHP 範例
+$sql = "SELECT m.dish_name, c.category_name FROM menu m JOIN categories c ON m.category_id=c.id";
 $result = mysqli_query($conn, $sql);
+if(!$result){
+    echo "查詢錯誤：" . mysqli_error($conn);
+} else {
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['dish_name'] . " / " . $row['category_name'] . "<br>";
+    }
+}
 ?>`,
         },
         {
@@ -1039,7 +1217,6 @@ $result = mysqli_query($conn, $sql);
                 ];
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.groupBy.sql,
@@ -1058,17 +1235,16 @@ $result = mysqli_query($conn, $sql);
                   {
                     icon: "fa-solid fa-cocktail",
                     name: "飲品類",
-                    price: "3項 (排序1)",
+                    price: "3 項 (排序1)",
                   },
                   {
                     icon: "fa-solid fa-ice-cream",
                     name: "冰品類",
-                    price: "1項 (排序2)",
+                    price: "1 項 (排序2)",
                   },
                 ];
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.groupBySort.sql,
@@ -1083,23 +1259,20 @@ $result = mysqli_query($conn, $sql);
     price INT
 );
 INSERT INTO drinks (product_name, category, price) VALUES
-('珍珠奶茶','飲品',55),
-('紅茶','飲品',25),
-('綠茶','飲品',25),
-('芒果冰沙','冰品',70);
+('珍珠奶茶','飲品',55),('紅茶','飲品',25),('綠茶','飲品',25),('芒果冰沙','冰品',70);
 -- GROUP BY
-SELECT category, COUNT(*) AS total
-FROM drinks
-GROUP BY category
-ORDER BY total DESC;`,
+SELECT category, COUNT(*) AS total FROM drinks GROUP BY category ORDER BY total DESC;`,
           secretPHP: `<?php
-$conn = mysqli_connect("localhost","root","","testdb");
-
-$sql = "SELECT category, COUNT(*) AS total
-        FROM drinks
-        GROUP BY category
-        ORDER BY total DESC";
+// 執行 GROUP BY 統計查詢的 PHP 範例
+$sql = "SELECT category, COUNT(*) AS total FROM drinks GROUP BY category ORDER BY total DESC";
 $result = mysqli_query($conn, $sql);
+if(!$result){
+    echo "查詢錯誤：" . mysqli_error($conn);
+} else {
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['category'] . " - " . $row['total'] . " 項<br>";
+    }
+}
 ?>`,
         },
         {
@@ -1139,7 +1312,6 @@ $result = mysqli_query($conn, $sql);
                 });
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.distinctTest.sql,
@@ -1161,7 +1333,6 @@ $result = mysqli_query($conn, $sql);
                 stallObj.filtered = [...stallObj.products, ...secondSet];
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.unionTest.sql,
@@ -1171,24 +1342,32 @@ $result = mysqli_query($conn, $sql);
             },
           ],
           secretSQL: `-- DISTINCT/UNION
-SELECT DISTINCT category
-FROM products;
+SELECT DISTINCT category FROM products;
 
-SELECT colA FROM table1
-UNION
-SELECT colA FROM table2;`,
+SELECT colA FROM table1 UNION SELECT colA FROM table2;`,
           secretPHP: `<?php
-$conn = mysqli_connect("localhost","root","","testdb");
-
-// DISTINCT
+// 執行 DISTINCT 查詢
 $sql = "SELECT DISTINCT category FROM products";
 $result = mysqli_query($conn, $sql);
-
-// UNION
-$sql2 = "SELECT colA FROM table1
-         UNION
-         SELECT colA FROM table2";
+if(!$result){
+    echo "查詢錯誤 (DISTINCT)：" . mysqli_error($conn);
+} else {
+    echo "不同類別：<br>";
+    while($row = mysqli_fetch_assoc($result)){
+        echo $row['category'] . "<br>";
+    }
+}
+// 執行 UNION 查詢
+$sql2 = "SELECT colA FROM table1 UNION SELECT colA FROM table2";
 $result2 = mysqli_query($conn, $sql2);
+if(!$result2){
+    echo "查詢錯誤 (UNION)：" . mysqli_error($conn);
+} else {
+    echo "合併結果：<br>";
+    while($row = mysqli_fetch_assoc($result2)){
+        echo $row['colA'] . "<br>";
+    }
+}
 ?>`,
         },
         {
@@ -1202,10 +1381,7 @@ $result2 = mysqli_query($conn, $sql2);
               speaker: "老闆",
               text: "資料一多，查詢可能會變慢，我們用 INDEX 加速就行～",
             },
-            {
-              speaker: "小兔",
-              text: "好啊好啊，試試看建立索引後是不是飛快！",
-            },
+            { speaker: "小兔", text: "好啊好啊，試試看建立索引後是不是飛快！" },
           ],
           products: [
             { icon: "fa-solid fa-search", name: "大資料 A", price: 999 },
@@ -1220,7 +1396,6 @@ $result2 = mysqli_query($conn, $sql2);
                   text: "好的，INDEX on！查詢有如坐雲霄飛車喔～",
                 });
                 showToast(stallObj, "已模擬「建立索引」!");
-                // 在列表中加一個「Index狀態」
                 stallObj.products.push({
                   icon: "fa-solid fa-bolt",
                   name: "索引狀態: ON",
@@ -1229,7 +1404,6 @@ $result2 = mysqli_query($conn, $sql2);
                 stallObj.filtered = stallObj.products;
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.indexCreate.sql,
@@ -1251,7 +1425,6 @@ $result2 = mysqli_query($conn, $sql2);
                 stallObj.filtered = stallObj.products;
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.indexDrop.sql,
@@ -1265,13 +1438,15 @@ $result2 = mysqli_query($conn, $sql2);
     item_name VARCHAR(255)
 );
 -- 建立索引
-CREATE INDEX idx_item
-ON big_data (item_name);`,
+CREATE INDEX idx_item ON big_data (item_name);`,
           secretPHP: `<?php
-$conn = mysqli_connect("localhost","root","","testdb");
-
+// 執行建立索引的 PHP 範例
 $sql = "CREATE INDEX idx_item ON big_data(item_name)";
-mysqli_query($conn, $sql);
+if(mysqli_query($conn, $sql)){
+    echo "索引建立成功。";
+} else {
+    echo "索引建立失敗：" . mysqli_error($conn);
+}
 ?>`,
         },
         {
@@ -1285,10 +1460,7 @@ mysqli_query($conn, $sql);
               speaker: "小狼",
               text: "想一次買多筆，請問能確保全部成功或全部失敗嗎？",
             },
-            {
-              speaker: "老闆",
-              text: "沒問題！Transaction 出馬，幫你打包票～",
-            },
+            { speaker: "老闆", text: "沒問題！Transaction 出馬，幫你打包票～" },
           ],
           products: [
             { icon: "fa-solid fa-coins", name: "金幣包", price: 100 },
@@ -1302,7 +1474,7 @@ mysqli_query($conn, $sql);
                   speaker: "老闆",
                   text: "交易成功！再添個紀念品，象徵圓滿。",
                 });
-                showToast(stallObj, "Transaction: Commit 成功!");
+                showToast(stallObj, "交易提交成功！");
                 stallObj.products.push({
                   icon: "fa-solid fa-check",
                   name: "成交成功！",
@@ -1311,7 +1483,6 @@ mysqli_query($conn, $sql);
                 stallObj.filtered = stallObj.products;
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.transactionCommit.sql,
@@ -1326,14 +1497,13 @@ mysqli_query($conn, $sql);
                   speaker: "小狼",
                   text: "呀～出了一些意外，我想要 Rollback。",
                 });
-                showToast(stallObj, "Transaction: Rollback!");
+                showToast(stallObj, "交易已回滾！");
                 stallObj.products = stallObj.products.filter(
                   (p) => p.name !== "成交成功！"
                 );
                 stallObj.filtered = stallObj.products;
                 stallObj.renderProducts();
                 resetAutoRevert(stallObj);
-
                 showInlineSQL(
                   stallObj,
                   codeSnippets.transactionRollback.sql,
@@ -1350,35 +1520,39 @@ COMMIT;
 -- 若失敗
 ROLLBACK;`,
           secretPHP: `<?php
-$conn = mysqli_connect("localhost","root","","testdb");
-
+// 執行交易提交的 PHP 範例
 mysqli_begin_transaction($conn);
 try {
-  // ...
-  mysqli_commit($conn);
+    $sql1 = "INSERT INTO orders (product, qty) VALUES ('金幣包',2)";
+    if(!mysqli_query($conn, $sql1)){
+        throw new Exception(mysqli_error($conn));
+    }
+    $sql2 = "UPDATE customers SET balance=balance-200 WHERE id=123";
+    if(!mysqli_query($conn, $sql2)){
+        throw new Exception(mysqli_error($conn));
+    }
+    mysqli_commit($conn);
+    echo "交易提交成功。";
 } catch(Exception $e){
-  mysqli_rollback($conn);
+    mysqli_rollback($conn);
+    echo "交易失敗：" . $e->getMessage();
 }
 ?>`,
         },
       ];
 
       // =========== DOM 生成 ===========
-
       const stallArea = document.getElementById("stallArea");
       stallsData.forEach((stall) => {
-        // 外層
         const stallCard = document.createElement("section");
         stallCard.className = `stall-card ${stall.className}`;
         stallCard.id = `${stall.id}-card`;
 
-        // 標題
         const headerDiv = document.createElement("div");
         headerDiv.className = "stall-header";
         headerDiv.innerHTML = `<i class="${stall.icon}"></i> <span>${stall.title}</span>`;
         stallCard.appendChild(headerDiv);
 
-        // 商品層架
         const shelf = document.createElement("div");
         shelf.className = "product-shelf";
         shelf.innerHTML = `<div class="shelf-title">${stall.productShelfTitle}</div>`;
@@ -1404,49 +1578,43 @@ try {
           });
         };
         stall.renderProducts();
-
         shelf.appendChild(productGrid);
         stallCard.appendChild(shelf);
 
-        // 對話 (預設顯示)
         const dialogueDiv = document.createElement("div");
         dialogueDiv.className = "dialogue";
         dialogueDiv.id = `${stall.id}-dialogue`;
         let dHTML = "";
         stall.dialogues.forEach((d) => {
-          dHTML += `
-            <div class="dialog-line">
-              <span class="speaker">${d.speaker}</span>：${d.text}
-            </div>
-          `;
+          dHTML += `<div class="dialog-line"><span class="speaker">${d.speaker}</span>：${d.text}</div>`;
         });
         dialogueDiv.innerHTML = dHTML;
         stallCard.appendChild(dialogueDiv);
 
-        // 按鈕容器
         const btnContainer = document.createElement("div");
         btnContainer.className = "stall-buttons";
 
-        // 秘方按鈕
         const secretBtn = document.createElement("button");
         secretBtn.className = "stall-btn";
         secretBtn.textContent = "取得秘方";
         secretBtn.addEventListener("click", () => {
-          // 用 modal 顯示 stall.secretSQL / stall.secretPHP
+          // 傳入陣列依序為：SQL 建立&範例資料, PHP 連線範例, PHP 範例, PHP 結束連線範例
           showModal(stall.title + " - 完整建表/資料", [
+            { codeType: "SQL 建立&範例資料", content: stall.secretSQL },
             {
-              codeType: "SQL 建立&範例資料",
-              content: stall.secretSQL,
+              codeType: "PHP 連線範例",
+              content:
+                '$conn = mysqli_connect("localhost", "root", "", "testdb");\n// 檢查連線是否成功\nif(!$conn){\n    die("連線失敗：" . mysqli_connect_error());\n} else {\n    echo "連線成功";\n}',
             },
+            { codeType: "PHP 範例", content: stall.secretPHP },
             {
-              codeType: "PHP 範例",
-              content: stall.secretPHP,
+              codeType: "PHP 結束連線範例",
+              content: "mysqli_close($conn);\n// 關閉資料庫連線",
             },
           ]);
         });
         btnContainer.appendChild(secretBtn);
 
-        // 其餘 operationButtons
         stall.operationButtons.forEach((op) => {
           const opBtn = document.createElement("button");
           opBtn.className = "stall-btn";
@@ -1457,7 +1625,6 @@ try {
           btnContainer.appendChild(opBtn);
         });
 
-        // 復原攤位
         const revertBtn = document.createElement("button");
         revertBtn.className = "stall-btn";
         revertBtn.textContent = "復原攤販";
@@ -1468,7 +1635,6 @@ try {
 
         stallCard.appendChild(btnContainer);
 
-        // 容器：內聯的 SQL/PHP 區塊
         const inlineSQLContainer = document.createElement("div");
         inlineSQLContainer.id = `${stall.id}-inline-sql-container`;
         stallCard.appendChild(inlineSQLContainer);
@@ -1478,7 +1644,6 @@ try {
 
       // =========== 函式 ===========
 
-      // 新增對話
       function addDialogue(stallObj, { speaker, text }) {
         const dialogueEl = document.getElementById(`${stallObj.id}-dialogue`);
         const lineDiv = document.createElement("div");
@@ -1487,35 +1652,64 @@ try {
         dialogueEl.appendChild(lineDiv);
       }
 
-      // 顯示內聯SQL
+      function escapeHTML(text) {
+        var map = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        };
+        return text.replace(/[&<>"']/g, function (m) {
+          return map[m];
+        });
+      }
+
       function showInlineSQL(stallObj, sqlText, phpText) {
         const container = document.getElementById(
           `${stallObj.id}-inline-sql-container`
         );
-        // 先清除上一段
         container.innerHTML = "";
 
+        // SQL 區塊
         const blockSQL = document.createElement("div");
         blockSQL.className = "inline-sql-box";
-        blockSQL.innerHTML = `
-          <button class="inline-sql-copy" onclick="copyCode(this, \`${sqlText}\`)">Copy</button>
-          <div class="inline-sql-title">SQL 語法</div>
-          <pre>${sqlText}</pre>
-        `;
+        const btnSQL = document.createElement("button");
+        btnSQL.className = "inline-sql-copy";
+        btnSQL.textContent = "Copy";
+        btnSQL.addEventListener("click", function () {
+          copyCode(this, sqlText);
+        });
+        const titleSQL = document.createElement("div");
+        titleSQL.className = "inline-sql-title";
+        titleSQL.textContent = "SQL 語法";
+        const preSQL = document.createElement("pre");
+        preSQL.innerHTML = escapeHTML(sqlText);
+        blockSQL.appendChild(btnSQL);
+        blockSQL.appendChild(titleSQL);
+        blockSQL.appendChild(preSQL);
         container.appendChild(blockSQL);
 
+        // PHP 區塊
         const blockPHP = document.createElement("div");
         blockPHP.className = "inline-sql-box";
-        blockPHP.innerHTML = `
-          <!-- 修正後的正常可複製寫法 -->
-          <button class="inline-sql-copy" onclick="copyCode(this, \`${phpText}\`)">Copy</button>
-          <div class="inline-sql-title">PHP 範例</div>
-          <pre>${phpText}</pre>
-        `;
+        const btnPHP = document.createElement("button");
+        btnPHP.className = "inline-sql-copy";
+        btnPHP.textContent = "Copy";
+        btnPHP.addEventListener("click", function () {
+          copyCode(this, phpText);
+        });
+        const titlePHP = document.createElement("div");
+        titlePHP.className = "inline-sql-title";
+        titlePHP.textContent = "PHP 範例";
+        const prePHP = document.createElement("pre");
+        prePHP.innerHTML = escapeHTML(phpText);
+        blockPHP.appendChild(btnPHP);
+        blockPHP.appendChild(titlePHP);
+        blockPHP.appendChild(prePHP);
         container.appendChild(blockPHP);
       }
 
-      // Copy
       function copyCode(btn, text) {
         navigator.clipboard
           .writeText(text)
@@ -1533,7 +1727,7 @@ try {
           });
       }
 
-      // Modal
+      // Modal 部分：依序顯示 SQL 建立&範例資料, PHP 連線範例, PHP 範例, PHP 結束連線範例
       const modalOverlay = document.getElementById("modalOverlay");
       const modalContent = document.getElementById("modalContent");
       const modalClose = document.getElementById("modalClose");
@@ -1544,38 +1738,32 @@ try {
       function showModal(title, codeBlocks) {
         modalOverlay.classList.add("show");
         modalContent.querySelector("#modalTitle").textContent = title;
-        // 清除舊的 pre
         modalContent
           .querySelectorAll(".modal-pre, .modal-title + pre")
           .forEach((el) => el.remove());
-
-        // 生成多段 pre
         codeBlocks.forEach((block) => {
           const preDiv = document.createElement("div");
           preDiv.className = "modal-pre";
           const copyBtn = document.createElement("button");
           copyBtn.className = "copy-btn";
           copyBtn.textContent = "Copy";
-          copyBtn.onclick = () => copyCode(copyBtn, block.content);
-
+          copyBtn.addEventListener("click", function () {
+            copyCode(this, block.content);
+          });
           const codeTitle = document.createElement("div");
           codeTitle.style.fontWeight = "bold";
           codeTitle.style.marginBottom = "0.5rem";
           codeTitle.textContent = block.codeType;
-
           const textPre = document.createElement("pre");
           textPre.style.position = "relative";
-          textPre.textContent = block.content;
-
+          textPre.innerHTML = escapeHTML(block.content);
           preDiv.appendChild(copyBtn);
           preDiv.appendChild(codeTitle);
           preDiv.appendChild(textPre);
-
           modalContent.appendChild(preDiv);
         });
       }
 
-      // Toast
       const toastContainer = document.getElementById("toastContainer");
       function showToast(stallObj, message) {
         const toast = document.createElement("div");
@@ -1584,7 +1772,6 @@ try {
           ? `[${stallObj.title}] ${message}`
           : `[系統] ${message}`;
         toastContainer.appendChild(toast);
-
         setTimeout(() => {
           toast.classList.add("fade-out");
           toast.style.transition = "opacity 0.5s ease";
@@ -1595,7 +1782,6 @@ try {
         }, 2000);
       }
 
-      // 自動復原
       let revertTimers = {};
       function resetAutoRevert(stallObj) {
         const sid = stallObj.id;
@@ -1608,12 +1794,9 @@ try {
       }
 
       function revertStall(stallObj) {
-        // 還原商品
         stallObj.products = stallObj.original.slice();
         stallObj.filtered = stallObj.original.slice();
         stallObj.renderProducts();
-
-        // 還原對話
         const dialogueEl = document.getElementById(`${stallObj.id}-dialogue`);
         dialogueEl.innerHTML = "";
         stallObj.dialogues.forEach((d) => {
@@ -1622,15 +1805,18 @@ try {
           lineDiv.innerHTML = `<span class="speaker">${d.speaker}</span>：${d.text}`;
           dialogueEl.appendChild(lineDiv);
         });
-
-        // 清除內聯SQL
         const container = document.getElementById(
           `${stallObj.id}-inline-sql-container`
         );
         container.innerHTML = "";
-
         showToast(stallObj, "已恢復原始商品 & 對話！");
       }
     </script>
+
+    <script
+      src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
+      type="module"
+    ></script>
+    <script src="DinoRunner.js"></script>
   </body>
 </html>
