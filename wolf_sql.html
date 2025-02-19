@@ -1,30 +1,52 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SQL 夜市大冒險 - 完整沉浸式體驗</title>
 
-  <!-- 字型與圖示 -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Caveat:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- 字型與圖示 (可依需求增減) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Caveat:wght@700&family=Press+Start+2P&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
-  <!-- 建議：可視需要加上 animate.css 或其他前端套件 -->
   <style>
+    /*---------------------------------
+     1. 變數、基本設定
+    ---------------------------------*/
     :root {
-      /* 主題色彩 */
-      --stall-primary: #ff9234;
-      --stall-secondary: #ffcd3c;
-      --text-light: #f1f2f6;
-      --text-dark: #2f3542;
+      /* 霓虹/夜市主題色 */
+      --primary: #FF2D55;
+      --secondary: #5856D6;
+      --accent: #FFD60A;
+      --dark: #2C2C2E;
+      --light: #F2F2F7;
+
+      /* 霓虹色彩 (用於光暈、陰影) */
       --neon-red: #ff4757;
       --neon-blue: #70a1ff;
       --neon-green: #2ed573;
+      --neon-pink: #FF2E63;
+      --neon-purple: #9C27B0;
+      --neon-yellow: #FFEB3B;
+
+      /* RGB 用於 box-shadow 或半透明 */
       --neon-red-rgb: 255, 71, 87;
       --neon-blue-rgb: 112, 161, 255;
+      --neon-green-rgb: 46, 213, 115;
+      --neon-pink-rgb: 255, 46, 99;
+
+      /* 依 SQL 功能區分攤位色 */
+      --stall-select: #FF2E63;
+      --stall-join: #00B8A9;
+      --stall-groupby: #F9A826;
+      --stall-insert: #4CAF50;
+      --stall-update: #7158E2;
+      --stall-delete: #FF3838;
     }
+
     * {
       margin: 0;
       padding: 0;
@@ -32,154 +54,312 @@
       font-family: 'Noto Sans TC', sans-serif;
       scroll-behavior: smooth;
     }
+
     body {
-      background: #1a1a1a url('https://images.unsplash.com/photo-1533089855198-5a32583c9494?q=80&w=2070&auto=format&fit=crop') center/cover fixed;
-      color: var(--text-light);
+      background: #121212
+        url('https://images.unsplash.com/photo-1533089855198-5a32583c9494?q=80&w=2070&auto=format&fit=crop')
+        center/cover
+        fixed;
+      color: var(--light);
       min-height: 100vh;
       overflow-x: hidden;
       position: relative;
     }
-    /* 半透明遮罩，夜市效果 */
+
+    /*---------------------------------
+     2. 夜市背景、粒子效果
+    ---------------------------------*/
     .market-scene {
       position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6);
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
       z-index: -1;
+      overflow: hidden;
     }
-    /* 背景閃動 / 流動 */
+
+    /* 背景柔和移動 */
     .market-scene::before {
       content: '';
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: url('https://images.unsplash.com/photo-1603386781299-93524d7fd534?q=80&w=2070&auto=format&fit=crop') center/cover;
-      opacity: 0.4;
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: url('https://images.unsplash.com/photo-1603386781299-93524d7fd534?q=80&w=2070&auto=format&fit=crop')
+        center/cover no-repeat;
+      opacity: 0.3;
       animation: subtleLightMovement 30s linear infinite;
     }
     @keyframes subtleLightMovement {
-      0% { transform: translateX(0); }
-      50% { transform: translateX(10%); }
-      100% { transform: translateX(0); }
+      0% { transform: scale(1.1) translateX(0) translateY(0); }
+      25% { transform: scale(1.15) translateX(2%) translateY(-1%); }
+      50% { transform: scale(1.1) translateX(1%) translateY(-2%); }
+      75% { transform: scale(1.15) translateX(-1%) translateY(-1%); }
+      100% { transform: scale(1.1) translateX(0) translateY(0); }
     }
-    /* 夜市入口 + 霓虹效果 */
+
+    /* 粒子飄動 (可依需求增刪) */
+    .particles {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .particle {
+      position: absolute;
+      background: var(--neon-blue);
+      border-radius: 50%;
+      width: 3px;
+      height: 3px;
+      opacity: 0.6;
+      animation: particleFloat 6s infinite linear;
+    }
+    @keyframes particleFloat {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.2;
+      }
+      50% {
+        opacity: 0.8;
+      }
+      100% {
+        transform: translateY(-100vh) rotate(360deg);
+        opacity: 0.2;
+      }
+    }
+
+    /*---------------------------------
+     3. 夜市入口 (標題、角色…)
+    ---------------------------------*/
     .market-entrance {
       text-align: center;
-      padding: 5rem 2rem;
+      padding: 6rem 2rem 4rem;
+      position: relative;
     }
-    .neon-sign {
+
+    .game-title {
       position: relative;
       display: inline-block;
-      padding: 15px 30px;
-      font-size: 3rem;
-      font-family: 'Caveat', cursive;
-      font-weight: bold;
-      color: var(--text-light);
-      text-shadow: 
-        0 0 8px var(--neon-red),
-        0 0 15px var(--neon-red),
-        0 0 25px var(--neon-red),
-        0 0 40px var(--neon-red);
-      animation: neonFlicker 1.5s infinite alternate, 
-                 increaseSize 3s ease-in-out infinite alternate;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 2.5rem;
+      color: var(--accent);
+      text-shadow:
+        0 0 10px var(--neon-red),
+        0 0 20px var(--neon-red),
+        0 0 30px var(--neon-red);
+      animation: titlePulse 2s infinite alternate;
+      z-index: 1;
     }
-    @keyframes increaseSize {
-      0% { transform: scale(1); }
-      100% { transform: scale(1.05); }
-    }
-    @keyframes neonFlicker {
-      0%, 18%, 22%, 25%, 53%, 57%, 100% {
+    @keyframes titlePulse {
+      0% {
         text-shadow:
-          0 0 8px var(--neon-red),
+          0 0 10px var(--neon-red),
+          0 0 20px var(--neon-red);
+        transform: scale(1);
+      }
+      100% {
+        text-shadow:
           0 0 15px var(--neon-red),
           0 0 25px var(--neon-red),
-          0 0 40px var(--neon-red);
-      }
-      20%, 24%, 55% {
-        text-shadow: none;
-        color: var(--text-light);
+          0 0 35px var(--neon-red);
+        transform: scale(1.03);
       }
     }
+
     .entrance-desc {
       font-size: 1.2rem;
-      margin-top: 1rem;
-      color: var(--text-light);
-      opacity: 0.8;
+      margin: 1.5rem 0;
+      color: var(--light);
+      opacity: 0.9;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
     }
-    /* 攤位容器 */
+
+    /* 範例角色飄浮動效 */
+    .game-character {
+      position: absolute;
+      bottom: -50px;
+      width: 100px; height: 100px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      z-index: 10;
+    }
+    .char-wolf {
+      left: 10%;
+      /* 範例可改為真實圖片路徑 */
+      background-image: url('https://placehold.co/100x100?text=Wolf');
+      transform: scaleX(-1);
+      animation: charFloat 3s ease-in-out infinite;
+    }
+    .char-rabbit {
+      right: 10%;
+      background-image: url('https://placehold.co/100x100?text=Rabbit');
+      animation: charFloat 3s ease-in-out infinite 1.5s;
+    }
+    @keyframes charFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+    }
+
+    /*---------------------------------
+     4. 攤位列表、卡片式設計
+    ---------------------------------*/
+    /* 主要容器 (課程中將每個攤位都獨立一個 section) */
     .market-stall {
       background: rgba(20, 20, 20, 0.85);
       border-radius: 20px;
-      padding: 2.5rem;
-      margin: 2.5rem auto;
+      padding: 2rem;
+      margin: 2rem auto;
       max-width: 90%;
       position: relative;
-      box-shadow: 0 15px 40px rgba(0,0,0,0.7);
       transform-style: preserve-3d;
       transition: transform 0.3s ease;
-      border: 2px solid var(--neon-red);
       overflow: hidden;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.7);
     }
     .market-stall:hover {
-      transform: scale(1.02);
+      transform: scale(1.02) translateY(-5px);
+      z-index: 1;
     }
-    .market-stall::after {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      border-radius: inherit;
-      box-shadow: 0 0 50px var(--neon-red);
-      opacity: 0.7;
+
+    /* 攤位頂棚 */
+    .stall-canopy {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 40px;
+      border-radius: 20px 20px 0 0;
+      background-size: 100px 100px;
+      transform: perspective(120px) rotateX(5deg);
       z-index: -1;
     }
-    .stall-canopy {
-      position: absolute; top: -30px; left: 0; right: 0;
-      height: 40px;
-      background: url('https://www.transparenttextures.com/patterns/fabric-dark.png') repeat, var(--stall-primary);
-      background-blend-mode: multiply;
-      border-radius: 10px 10px 0 0;
-      transform: perspective(120px) rotateX(7deg);
-      box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+    /* 不同攤位不同顏色(以 SELECT 攤、JOIN 攤…區分) */
+    .select-stall { border: 2px solid var(--stall-select); box-shadow: 0 0 20px rgba(255, 46, 99, 0.5); }
+    .select-stall .stall-canopy {
+      background: repeating-linear-gradient(90deg, var(--stall-select), var(--stall-select) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
     }
+
+    .join-stall { border: 2px solid var(--stall-join); box-shadow: 0 0 20px rgba(0, 184, 169, 0.5); }
+    .join-stall .stall-canopy {
+      background: repeating-linear-gradient(90deg, var(--stall-join), var(--stall-join) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
+    }
+
+    .groupby-stall { border: 2px solid var(--stall-groupby); box-shadow: 0 0 20px rgba(249, 168, 38, 0.5); }
+    .groupby-stall .stall-canopy {
+      background: repeating-linear-gradient(90deg, var(--stall-groupby), var(--stall-groupby) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
+    }
+
+    .insert-stall { border: 2px solid var(--stall-insert); box-shadow: 0 0 20px rgba(76, 175, 80, 0.5); }
+    .insert-stall .stall-canopy {
+      background: repeating-linear-gradient(90deg, var(--stall-insert), var(--stall-insert) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
+    }
+
+    .update-stall { border: 2px solid var(--stall-update); box-shadow: 0 0 20px rgba(113, 88, 226, 0.5); }
+    .update-stall .stall-canopy {
+      background: repeating-linear-gradient(90deg, var(--stall-update), var(--stall-update) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
+    }
+
+    .delete-stall { border: 2px solid var(--stall-delete); box-shadow: 0 0 20px rgba(255, 56, 56, 0.5); }
+    .delete-stall .stall-canopy {
+      background: repeating-linear-gradient(90deg, var(--stall-delete), var(--stall-delete) 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);
+    }
+
+    /* 攤位燈籠 */
+    .stall-lantern {
+      position: absolute;
+      top: -20px;
+      width: 40px; height: 55px;
+      border-radius: 50% 50% 5px 5px;
+      box-shadow: 0 0 15px rgba(255,255,255,0.5);
+      animation: lanternGlow 2s infinite alternate;
+      z-index: 10;
+    }
+    .stall-lantern.lantern-left { left: 15%; }
+    .stall-lantern.lantern-right { right: 15%; }
+    @keyframes lanternGlow {
+      0% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+
+    /* 不同攤位 lantern 顏色 */
+    .select-stall .stall-lantern { background: var(--stall-select); }
+    .join-stall .stall-lantern { background: var(--stall-join); }
+    .groupby-stall .stall-lantern { background: var(--stall-groupby); }
+    .insert-stall .stall-lantern { background: var(--stall-insert); }
+    .update-stall .stall-lantern { background: var(--stall-update); }
+    .delete-stall .stall-lantern { background: var(--stall-delete); }
+
     .stall-title {
-      color: var(--text-light);
-      font-size: 2rem;
+      color: var(--light);
+      font-size: 1.8rem;
       margin-bottom: 1.5rem;
       text-align: center;
       letter-spacing: 1px;
-      text-shadow: 2px 2px 3px rgba(0,0,0,0.5);
+      padding-top: 15px;
+      text-shadow: 2px 2px 5px rgba(0,0,0,0.7);
+      position: relative;
+      z-index: 1;
     }
-    /* SQL 區 */
+    .stall-title::after {
+      content: '';
+      display: block;
+      width: 50px; height: 3px;
+      background: currentColor;
+      margin: 0.5rem auto 0;
+    }
+
+    /*---------------------------------
+     5. SQL 區塊 (教學、按鈕、結果)
+    ---------------------------------*/
     .sql-learning-area {
-      background: rgba(20, 20, 20, 0.9);
-      padding: 2.5rem;
-      border-radius: 20px;
-      margin: 1.5rem 0;
-      border: 2px solid var(--neon-blue);
-      box-shadow: 0 0 30px rgba(var(--neon-blue-rgb), 0.5);
+      background: rgba(20, 20, 20, 0.6);
+      padding: 2rem;
+      border-radius: 15px;
+      margin: 2rem 0;
       position: relative;
       overflow: hidden;
     }
-    .sql-learning-area::after {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      border-radius: inherit;
-      box-shadow: 0 0 40px var(--neon-blue);
-      opacity: 0.6;
-      z-index: -1;
+    /* 各攤位不同色調邊框、陰影 */
+    .select-stall .sql-learning-area {
+      border: 1px solid var(--stall-select);
+      box-shadow: 0 0 20px rgba(255, 46, 99, 0.2);
     }
+    .join-stall .sql-learning-area {
+      border: 1px solid var(--stall-join);
+      box-shadow: 0 0 20px rgba(0, 184, 169, 0.2);
+    }
+    .groupby-stall .sql-learning-area {
+      border: 1px solid var(--stall-groupby);
+      box-shadow: 0 0 20px rgba(249, 168, 38, 0.2);
+    }
+    .insert-stall .sql-learning-area {
+      border: 1px solid var(--stall-insert);
+      box-shadow: 0 0 20px rgba(76, 175, 80, 0.2);
+    }
+    .update-stall .sql-learning-area {
+      border: 1px solid var(--stall-update);
+      box-shadow: 0 0 20px rgba(113, 88, 226, 0.2);
+    }
+    .delete-stall .sql-learning-area {
+      border: 1px solid var(--stall-delete);
+      box-shadow: 0 0 20px rgba(255, 56, 56, 0.2);
+    }
+
     .learning-title {
-      color: var(--text-light);
       font-size: 1.5rem;
-      margin-bottom: 1.2rem;
-      letter-spacing: 0.8px;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+      margin-bottom: 1.5rem;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
+
     .sql-code {
-      background: #3a4252;
-      padding: 2rem;
-      border-radius: 15px;
+      background: #1E1E2E;
+      padding: 1.5rem;
+      border-radius: 10px;
       font-family: 'Courier New', monospace;
       margin: 1.5rem 0;
       position: relative;
-      box-shadow: inset 0 3px 8px rgba(0,0,0,0.2);
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
       color: #f8f8f2;
       font-size: 1.1rem;
       line-height: 1.6;
@@ -192,24 +372,72 @@
       padding: 4px 12px;
       border-radius: 7px;
       font-size: 0.9rem;
-      color: var(--text-dark);
+      color: var(--dark);
       font-weight: bold;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+
+    /* 產品區(例如示範按鈕) */
+    .stall-counter {
+      background: rgba(255,255,255,0.05);
+      padding: 2rem;
+      border-radius: 15px;
+      margin-top: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    .product-card {
+      background: rgba(255,255,255,0.08);
+      padding: 1.5rem;
+      border-radius: 15px;
+      text-align: center;
+      transition: transform 0.3s ease;
+      box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .product-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+    }
+    .product-image {
+      width: 80px; height: 80px;
+      margin: 0 auto 1rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--light);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+      border: 2px solid rgba(0,0,0,0.1);
+    }
+    .product-card h4 {
+      margin-bottom: 0.8rem;
+    }
+
     /* 按鈕 */
     .stall-btn {
       background: var(--neon-green);
-      color: var(--text-dark);
+      color: var(--dark);
       border: none;
-      padding: 1.2rem 2.5rem;
+      padding: 1rem 2rem;
       border-radius: 10px;
       cursor: pointer;
       font-weight: bold;
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
-      font-size: 1.1rem;
+      font-size: 1rem;
       letter-spacing: 1px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
@@ -217,7 +445,7 @@
       content: '';
       position: absolute; top: 0; left: 0; right: 0; bottom: 0;
       border-radius: inherit;
-      border: 2px solid var(--text-dark);
+      border: 2px solid var(--dark);
       z-index: -1;
       opacity: 0.8;
     }
@@ -243,50 +471,8 @@
       transform: translateY(0);
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
-    /* 產品 (卡片) */
-    .stall-counter {
-      background: rgba(255,255,255,0.05);
-      padding: 2rem;
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-      margin-top: 1.5rem;
-      border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1.5rem;
-      margin-top: 2rem;
-    }
-    .product-card {
-      background: rgba(255,255,255,0.08);
-      padding: 1.5rem;
-      border-radius: 15px;
-      text-align: center;
-      transition: transform 0.3s ease;
-      box-shadow: 0 5px 10px rgba(0,0,0,0.2);
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-    .product-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 8px 15px rgba(0,0,0,0.3);
-    }
-    .product-image {
-      width: 120px; height: 120px;
-      margin: 0 auto 1.5rem;
-      background: var(--stall-secondary);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.5rem;
-      margin-bottom: 1.5rem;
-      color: var(--text-dark);
-      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
-      border: 2px solid rgba(0,0,0,0.1);
-    }
-    /* 結果展示區 */
+
+    /* 查詢結果顯示區 */
     .result-display {
       background: rgba(20, 20, 20, 0.95);
       padding: 2rem;
@@ -304,7 +490,7 @@
       position: absolute; top: 0; left: 0; right: 0; bottom: 0;
       border-radius: inherit;
       box-shadow: 0 0 50px var(--neon-blue);
-      opacity: 0.7;
+      opacity: 0.5;
       z-index: -1;
     }
     .result-display.show {
@@ -313,7 +499,7 @@
     }
     .result-title {
       font-size: 1.3rem;
-      color: var(--text-light);
+      color: var(--light);
       margin-bottom: 1rem;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
     }
@@ -324,6 +510,7 @@
     .sample-result table {
       width: 100%;
       border-collapse: collapse;
+      color: var(--light);
     }
     .sample-result th, .sample-result td {
       border: 1px solid rgba(255,255,255,0.1);
@@ -334,91 +521,70 @@
       background-color: rgba(255,255,255,0.05);
       font-weight: bold;
     }
-    /* RWD */
+
+    /*---------------------------------
+     6. RWD
+    ---------------------------------*/
     @media (max-width: 768px) {
       .market-entrance {
         padding: 3rem 1rem;
       }
-      .neon-sign {
-        font-size: 2rem;
-        padding: 10px 20px;
+      .game-title {
+        font-size: 1.8rem;
       }
       .entrance-desc {
         font-size: 1rem;
       }
-      .market-stall {
-        margin: 1.5rem;
-        padding: 1.5rem;
-        border-radius: 15px;
-      }
-      .stall-canopy {
-        top: -15px;
-        height: 25px;
-      }
       .stall-title {
-        font-size: 1.8rem;
-        margin-bottom: 1rem;
+        font-size: 1.5rem;
       }
-      .stall-counter {
-        padding: 1.2rem; border-radius: 10px; margin-top: 1rem;
-      }
-      .sql-learning-area {
-        padding: 1.5rem; border-radius: 15px; margin: 1rem 0;
-      }
-      .learning-title {
-        font-size: 1.3rem; margin-bottom: 1rem;
-      }
-      .sql-code {
-        padding: 1.2rem; border-radius: 10px; font-size: 1rem; margin: 1rem 0;
-      }
-      .stall-btn {
-        padding: 1rem 2rem; border-radius: 8px; font-size: 1rem;
-      }
+      .sql-learning-area { padding: 1rem; margin: 1rem 0; }
+      .learning-title { font-size: 1.3rem; }
+      .sql-code { padding: 1rem; font-size: 1rem; }
       .product-grid {
         grid-template-columns: 1fr;
-        gap: 1rem; margin-top: 1.5rem;
+        gap: 1rem;
       }
-      .product-card {
-        padding: 1.2rem; border-radius: 10px;
-      }
-      .product-image {
-        width: 100px; height: 100px; font-size: 2rem; margin-bottom: 1rem;
-      }
-      .result-display {
-        padding: 1.2rem; border-radius: 10px; margin-top: 1.5rem;
-      }
-      .result-title {
-        font-size: 1.2rem; margin-bottom: 0.8rem;
-      }
-      .sample-result th, .sample-result td {
-        padding: 0.6rem; font-size: 0.9rem;
-      }
-    }
-    /* 攤位進場動畫 */
-    .stall-animation {
-      animation: stallAppear 0.5s ease-out;
-    }
-    @keyframes stallAppear {
-      from { opacity: 0; transform: translateY(50px); }
-      to { opacity: 1; transform: translateY(0); }
+      .product-card { padding: 1rem; }
+      .product-image { width: 64px; height: 64px; font-size: 1.5rem; margin-bottom: 0.8rem; }
+      .stall-btn { padding: 0.8rem 1.2rem; font-size: 0.9rem; }
+      .result-display { padding: 1rem; }
+      .result-title { font-size: 1.2rem; }
+      .sample-result th, .sample-result td { padding: 0.5rem; font-size: 0.85rem; }
     }
   </style>
 </head>
 
 <body>
-  <div class="market-scene"></div>
+  <!-- 粒子背景層 (可自行增減數量) -->
+  <div class="market-scene">
+    <div class="particles">
+      <!-- 範例生成幾個粒子 -->
+      <div class="particle" style="left: 20%; animation-delay: 0s;"></div>
+      <div class="particle" style="left: 50%; animation-delay: 1s;"></div>
+      <div class="particle" style="left: 80%; animation-delay: 2s;"></div>
+      <div class="particle" style="left: 30%; animation-delay: 3s;"></div>
+      <div class="particle" style="left: 60%; animation-delay: 4s;"></div>
+    </div>
+  </div>
 
-  <!-- 夜市入口區 -->
+  <!-- 夜市入口 (標題、角色) -->
   <header class="market-entrance">
-    <div class="neon-sign">SQL 夜市大冒險</div>
+    <div class="game-title">SQL 夜市大冒險</div>
     <p class="entrance-desc">跟著小狼與小兔，一起輕鬆學習 SQL 吧！</p>
+
+    <!-- 角色示意 -->
+    <div class="game-character char-wolf"></div>
+    <div class="game-character char-rabbit"></div>
   </header>
 
   <!-- 查詢攤位 (SELECT) -->
-  <section class="market-stall stall-animation">
+  <section class="market-stall select-stall">
     <div class="stall-canopy"></div>
-    <h2 class="stall-title">🍜 查詢小館</h2>
+    <div class="stall-lantern lantern-left"></div>
+    <div class="stall-lantern lantern-right"></div>
 
+    <h2 class="stall-title">🍜 查詢小館 (SELECT)</h2>
     <div class="sql-learning-area">
       <h3 class="learning-title">SELECT 查詢基礎</h3>
       <div class="sql-code">
@@ -452,10 +618,12 @@
   </section>
 
   <!-- JOIN 攤位 -->
-  <section class="market-stall stall-animation">
+  <section class="market-stall join-stall">
     <div class="stall-canopy"></div>
-    <h2 class="stall-title">🍲 關聯餐館</h2>
+    <div class="stall-lantern lantern-left"></div>
+    <div class="stall-lantern lantern-right"></div>
 
+    <h2 class="stall-title">🍲 關聯餐館 (JOIN)</h2>
     <div class="sql-learning-area">
       <h3 class="learning-title">JOIN 查詢</h3>
       <div class="sql-code">
@@ -489,10 +657,12 @@
   </section>
 
   <!-- GROUP BY 攤位 -->
-  <section class="market-stall stall-animation">
+  <section class="market-stall groupby-stall">
     <div class="stall-canopy"></div>
-    <h2 class="stall-title">🍹 特調飲品吧</h2>
+    <div class="stall-lantern lantern-left"></div>
+    <div class="stall-lantern lantern-right"></div>
 
+    <h2 class="stall-title">🍹 特調飲品吧 (GROUP BY)</h2>
     <div class="sql-learning-area">
       <h3 class="learning-title">GROUP BY 分組查詢</h3>
       <div class="sql-code">
@@ -527,10 +697,12 @@
   </section>
 
   <!-- INSERT 攤位 -->
-  <section class="market-stall stall-animation">
+  <section class="market-stall insert-stall">
     <div class="stall-canopy"></div>
-    <h2 class="stall-title">🍦 創意冰品店</h2>
+    <div class="stall-lantern lantern-left"></div>
+    <div class="stall-lantern lantern-right"></div>
 
+    <h2 class="stall-title">🍦 創意冰品店 (INSERT)</h2>
     <div class="sql-learning-area">
       <h3 class="learning-title">INSERT 新增資料</h3>
       <div class="sql-code">
@@ -563,10 +735,12 @@
   </section>
 
   <!-- UPDATE 攤位 -->
-  <section class="market-stall stall-animation">
+  <section class="market-stall update-stall">
     <div class="stall-canopy"></div>
-    <h2 class="stall-title">🧋 復古茶飲鋪</h2>
+    <div class="stall-lantern lantern-left"></div>
+    <div class="stall-lantern lantern-right"></div>
 
+    <h2 class="stall-title">🧋 復古茶飲鋪 (UPDATE)</h2>
     <div class="sql-learning-area">
       <h3 class="learning-title">UPDATE 更新資料</h3>
       <div class="sql-code">
@@ -600,10 +774,12 @@
   </section>
 
   <!-- DELETE 攤位 -->
-  <section class="market-stall stall-animation">
+  <section class="market-stall delete-stall">
     <div class="stall-canopy"></div>
-    <h2 class="stall-title">🔥 香辣串烤攤</h2>
+    <div class="stall-lantern lantern-left"></div>
+    <div class="stall-lantern lantern-right"></div>
 
+    <h2 class="stall-title">🔥 香辣串烤攤 (DELETE)</h2>
     <div class="sql-learning-area">
       <h3 class="learning-title">DELETE 刪除資料</h3>
       <div class="sql-code">
@@ -635,10 +811,17 @@
     </div>
   </section>
 
+  <!-- 
+    範例: 如需再新增攤位 (例如 "TRUNCATE 攤位")，可複製一段類似結構 
+    <section class="market-stall ....-stall"> ... </section>
+    並加上對應的 JS 函式示範即可 
+  -->
+
   <script>
-    // =============================
-    //  以下為 JS 互動邏輯 (SQL 模擬)
-    // =============================
+    /* -------------------------------------
+       以下為 JS 互動邏輯 (示範查詢 + 結果)
+       與原先的 demonstrateXXX 函式類似
+    ----------------------------------------*/
 
     // 1. SELECT 查詢
     function demonstrateSelect(type) {
@@ -788,15 +971,15 @@ ORDER BY average_price DESC;`;
       if (type === 'single') {
         query = `INSERT INTO customers (name, city)
 VALUES ('小美', '台北');`;
-        explanation = '新增一筆客戶資料，小美 / 台北';
-        sampleResult = `<p>成功新增一筆客戶資料 (小美, 台北)。</p>`;
+        explanation = '新增一筆客戶資料 (小美 / 台北)';
+        sampleResult = `<p>成功新增一筆客戶資料：小美 / 台北。</p>`;
       } else if (type === 'multiple') {
         query = `INSERT INTO products (product_name, category, price) VALUES
 ('珍珠奶茶', '飲品', 55),
 ('芒果冰', '冰品', 70),
 ('烤肉串', '串烤', 40);`;
         explanation = '一次新增三筆產品：珍珠奶茶、芒果冰、烤肉串。';
-        sampleResult = `<p>成功新增三筆產品：珍珠奶茶、芒果冰、烤肉串。</p>`;
+        sampleResult = `<p>成功新增：珍珠奶茶(飲品)、芒果冰(冰品)、烤肉串(串烤)。</p>`;
       }
 
       resultDisplay.innerHTML = `
@@ -826,8 +1009,8 @@ WHERE product_name = '珍珠奶茶';`;
         query = `UPDATE products
 SET price = 85, category = '冰品'
 WHERE product_name = '芒果冰';`;
-        explanation = '同時更新價格 (85) 與類別 (冰品)';
-        sampleResult = `<p>芒果冰的價格與類別已更新為 (85, 冰品)。</p>`;
+        explanation = '同時更新價格(85) 與類別(冰品)';
+        sampleResult = `<p>芒果冰的價格與類別已更新 (85, 冰品)。</p>`;
       }
 
       resultDisplay.innerHTML = `
@@ -855,7 +1038,7 @@ WHERE order_date < '2023-01-01';`;
       } else if (type === 'all') {
         query = `DELETE FROM products;`;
         explanation = '清空整個產品表格 (請謹慎使用)';
-        sampleResult = `<p>整個 products 表格已清空，所有產品被刪除。</p>`;
+        sampleResult = `<p>products 表格已清空，所有產品被刪除。</p>`;
       }
 
       resultDisplay.innerHTML = `
@@ -868,7 +1051,7 @@ WHERE order_date < '2023-01-01';`;
       scrollToResult('delete-result');
     }
 
-    // 滑動到結果顯示處
+    /* 滑動到結果顯示處 */
     function scrollToResult(resultId) {
       const resultSection = document.getElementById(resultId);
       if (resultSection) {
@@ -876,15 +1059,9 @@ WHERE order_date < '2023-01-01';`;
       }
     }
 
-    // 頁面載入後的一些特效或初始化
+    /* 頁面載入後若想加一些霓虹閃爍或動態，可自行加上 */
     document.addEventListener('DOMContentLoaded', () => {
-      // 霓虹燈閃爍效果 (可視需要保留)
-      const neonSigns = document.querySelectorAll('.neon-sign');
-      neonSigns.forEach(sign => {
-        setInterval(() => {
-          sign.style.opacity = Math.random() < 0.1 ? 0.7 : 1;
-        }, 100);
-      });
+      // 您也可以在此進行粒子動態生成或角色動畫
     });
   </script>
 </body>
