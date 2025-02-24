@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D迷宮遊戲展示</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #debug { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            color: white; 
+            background: rgba(0,0,0,0.5); 
+            padding: 5px; 
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="debug"></div>
+    <script>
+        // 場景設置
+        const canvas = document.getElementById('gameCanvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+            75, 
+            window.innerWidth / window.innerHeight, 
+            0.1, 
+            1000
+        );
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // 相機控制
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = false;
+        controls.minDistance = 5;
+        controls.maxDistance = 50;
+        controls.maxPolarAngle = Math.PI / 2;
+
+        // 照明
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444);
+        hemiLight.position.set(0, 20, 0);
+        scene.add(hemiLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff);
+        dirLight.position.set(3, 10, 3);
+        scene.add(dirLight);
+
+        // 地板紋理
+        function createFloorTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#8B4513'; // 棕色
+            ctx.fillRect(0, 0, 64, 64);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            for (let i = 0; i <= 64; i += 4) {
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, 64);
+                ctx.moveTo(0, i);
+                ctx.lineTo(64, i);
+            }
+            ctx.stroke();
+            return canvas;
+        }
+        const floorTexture = new THREE.CanvasTexture(createFloorTexture());
+        floorTexture.wrapS = THREE.RepeatWrapping;
+        floorTexture.wrapT = THREE.RepeatWrapping;
+        floorTexture.repeat.set(16, 16);
+        const floorGeometry = new THREE.PlaneGeometry(64, 64);
+        const floorMaterial = new THREE.MeshLambertMaterial({ map: floorTexture });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(32, 0, 32);
+        scene.add(floor);
+
+        // 牆壁紋理
+        function createWallTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#808080'; // 灰色
+            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillStyle = '#707070';
+            for (let i = 0; i < 100; i++) {
+                const x = Math.random() * 64;
+                const y = Math.random() * 64;
+                const size = Math.random() * 5;
+                ctx.fillRect(x, y, size, size);
+            }
+            return canvas;
+        }
+        const wallTexture = new THREE.CanvasTexture(createWallTexture());
+        const wallMaterial = new THREE.MeshLambertMaterial({ map: wallTexture });
+
+        // 迷宮生成
+        const gridSize = 16;
+        const cellSize = 4;
+        const maze = [];
+        for (let i = 0; i < gridSize; i++) {
+            maze[i] = [];
+            for (let j = 0; j < gridSize; j++) {
+                if (i === 0 || i === gridSize - 1 || j === 0 || j === gridSize - 1) {
+                    maze[i][j] = 1;
+                } else if (i >= 6 && i <= 9 && j >= 6 && j <= 9) {
+                    maze[i][j] = 0;
+                } else {
+                    maze[i][j] = Math.random() < 0.15 ? 1 : 0;
+                }
+            }
+        }
+
+        // 牆壁與碰撞盒
+        const wallBoxes = [];
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                if (maze[i][j] === 1) {
+                    const wall = new THREE.Mesh(
+                        new THREE.BoxGeometry(cellSize, cellSize, cellSize),
+                        wallMaterial
+                    );
+                    wall.position.set(
+                        (i + 0.5) * cellSize,
+                        cellSize / 2,
+                        (j + 0.5) * cellSize
+                    );
+                    scene.add(wall);
+                    const box = new THREE.Box3().setFromObject(wall);
+                    wallBoxes.push(box);
+                }
+            }
+        }
+
+        // 士兵角色與動畫
+        let soldier;
+        let mixer;
+        let idleAction, runAction;
+        let currentAction;
+        const loader = new THREE.GLTFLoader();
+        loader.load('https://threejs.org/examples/models/gltf/Soldier.glb', (gltf) => {
+            soldier = gltf.scene;
+            soldier.scale.set(2, 2, 2);
+            soldier.position.set(30, 0, 30);
+            scene.add(soldier);
+
+            mixer = new THREE.AnimationMixer(soldier);
+            const clips = gltf.animations;
+            idleAction = mixer.clipAction(clips.find(clip => clip.name === 'Idle'));
+            runAction = mixer.clipAction(clips.find(clip => clip.name === 'Run'));
+            idleAction.play();
+            currentAction = idleAction;
+
+            camera.position.set(30, 10, 40);
+            controls.target.set(30, 0, 30);
+            controls.update();
+
+            animate();
+        });
+
+        // 鍵盤控制
+        const keys = { w: false, a: false, s: false, d: false };
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = false;
+        });
+
+        // 動畫循環
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const deltaTime = clock.getDelta();
+            if (mixer) mixer.update(deltaTime);
+
+            if (soldier) {
+                const forward = new THREE.Vector3();
+                camera.getWorldDirection(forward);
+                forward.y = 0;
+                forward.normalize();
+                const left = new THREE.Vector3(-forward.z, 0, forward.x);
+
+                const moveDirection = new THREE.Vector3();
+                if (keys.w) moveDirection.add(forward);
+                if (keys.s) moveDirection.add(forward.clone().negate());
+                if (keys.a) moveDirection.add(left);
+                if (keys.d) moveDirection.add(left.clone().negate());
+
+                if (moveDirection.length() > 0) {
+                    moveDirection.normalize();
+                    const speed = 5;
+                    const newPosition = soldier.position.clone().add(
+                        moveDirection.multiplyScalar(speed * deltaTime)
+                    );
+
+                    const soldierSphere = new THREE.Sphere(newPosition, 1);
+                    let collision = false;
+                    for (const wallBox of wallBoxes) {
+                        if (wallBox.intersectsSphere(soldierSphere)) {
+                            collision = true;
+                            break;
+                        }
+                    }
+                    if (!collision) {
+                        soldier.position.copy(newPosition);
+                    }
+
+                    const angle = Math.atan2(moveDirection.x, moveDirection.z);
+                    soldier.rotation.y = angle + Math.PI;
+
+                    if (currentAction !== runAction) {
+                        currentAction = runAction;
+                        idleAction.fadeOut(0.2);
+                        runAction.reset().fadeIn(0.2).play();
+                    }
+                } else {
+                    if (currentAction !== idleAction) {
+                        currentAction = idleAction;
+                        runAction.fadeOut(0.2);
+                        idleAction.reset().fadeIn(0.2).play();
+                    }
+                }
+
+                controls.target.copy(soldier.position);
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+
+            if (soldier) {
+                const pos = soldier.position;
+                const rot = ((soldier.rotation.y * 180 / Math.PI) % 360).toFixed(2);
+                document.getElementById('debug').innerHTML = 
+                    `位置: ${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}<br>` +
+                    `旋轉: ${rot} 度`;
+            }
+        }
+
+        // 視窗大小調整
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
+​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​
