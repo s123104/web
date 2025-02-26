@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MarkView - 專業Markdown解析器</title>
-
     <!-- Font Awesome & highlight.js -->
     <link
       rel="stylesheet"
@@ -14,7 +13,6 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css"
     />
-
     <style>
       :root {
         --primary-color: #3b82f6;
@@ -129,9 +127,25 @@
         overflow-y: auto;
         transition: var(--transition);
       }
-      .sidebar-hidden .sidebar {
-        transform: translateX(-100%);
+      /* 於桌機狀態下採用原本樣式，於手機則以抽屜方式出現 */
+      @media (max-width: 768px) {
+        .sidebar {
+          position: fixed;
+          left: -100%;
+          top: var(--header-height);
+          width: 80%;
+          max-width: 300px;
+          height: calc(100vh - var(--header-height));
+          background-color: var(--card-bg);
+          z-index: 110;
+          transition: left 0.3s ease;
+        }
+        .app-container.sidebar-open .sidebar {
+          left: 0;
+        }
       }
+
+      /* sidebar 內內容 */
       .sidebar-title {
         font-size: 0.875rem;
         text-transform: uppercase;
@@ -143,7 +157,6 @@
       .doc-list {
         list-style: none;
       }
-
       .doc-item {
         padding: 0.75rem;
         border-radius: 0.375rem;
@@ -209,51 +222,21 @@
         margin-left: 0;
       }
 
-      /* homepage / no-docs */
-      .no-docs-message {
-        text-align: center;
-        padding: 3rem;
-        color: var(--secondary-color);
+      /* 首頁 view */
+      #homeView {
+        padding: 1rem;
       }
-      .no-docs-message i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-      }
-      .no-docs-message h3 {
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-      }
-
-      /* empty-state block */
-      .empty-state {
-        text-align: center;
-        padding: 3rem 1rem;
-        max-width: 600px;
-        margin: 0 auto;
-      }
-      .empty-state-icon {
-        font-size: 3rem;
-        color: var(--secondary-color);
-        opacity: 0.5;
-        margin-bottom: 1rem;
-      }
-      .empty-state-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-      }
-      .empty-state-description {
-        color: var(--secondary-color);
-        margin-bottom: 1.5rem;
-      }
-
-      /* homepage container(格狀) */
+      /* 歷史文件的格柵：桌機用多欄，手機(<=480px)則單欄 */
       .homepage-container {
         display: grid;
         gap: 1rem;
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
         margin-top: 1rem;
+      }
+      @media (max-width: 480px) {
+        .homepage-container {
+          grid-template-columns: 1fr;
+        }
       }
       .homepage-doc-card {
         background-color: var(--card-bg);
@@ -280,8 +263,44 @@
         font-size: 0.75rem;
         color: var(--secondary-color);
       }
+      /* 歡迎訊息區：上方歡迎詞與下方貼上匯入區 */
+      .welcome-top {
+        text-align: center;
+      }
+      .welcome-top h2 {
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+      }
+      .welcome-top p {
+        font-size: 1rem;
+        color: var(--secondary-color);
+        margin-bottom: 1rem;
+      }
 
-      /* document display */
+      /* 底部貼上區塊：與原.empty-state 保持一致 */
+      .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        max-width: 600px;
+        margin: 2rem auto 0 auto;
+      }
+      .empty-state-icon {
+        font-size: 3rem;
+        color: var(--secondary-color);
+        opacity: 0.5;
+        margin-bottom: 1rem;
+      }
+      .empty-state-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+      .empty-state-description {
+        color: var(--secondary-color);
+        margin-bottom: 1.5rem;
+      }
+
+      /* 文檔展示 */
       .md-actions {
         position: sticky;
         top: 0;
@@ -312,8 +331,12 @@
         font-size: 1rem;
         line-height: 1.8;
       }
+      /* 優化表格文字 */
+      .md-content table {
+        font-size: 0.9rem;
+      }
 
-      /* markdown styling */
+      /* Markdown 內容樣式 (保留原有) */
       .md-content h1,
       .md-content h2,
       .md-content h3,
@@ -401,7 +424,7 @@
         border-top: 1px solid var(--border-color);
       }
 
-      /* modal (只剩建立/編輯文件，無刪除confirm) */
+      /* modal (建立/編輯文件) */
       .modal-overlay {
         position: fixed;
         top: 0;
@@ -529,7 +552,7 @@
         color: var(--secondary-color);
       }
 
-      /* toggle sidebar */
+      /* toggle sidebar (漢堡按鈕) */
       .toggle-sidebar {
         position: fixed;
         bottom: 1rem;
@@ -551,7 +574,7 @@
         background-color: var(--primary-hover);
       }
 
-      /* category filter + search + sort */
+      /* 搜尋、分類與排序 */
       .search-container {
         position: relative;
         margin-bottom: 1rem;
@@ -591,7 +614,6 @@
       .sort-row input[type="radio"] {
         margin-right: 0.25rem;
       }
-
       .category-filter {
         margin-bottom: 1.5rem;
       }
@@ -623,7 +645,7 @@
         color: #fff;
       }
 
-      /* RWD */
+      /* 手機優化：調整文字大小 */
       @media (max-width: 768px) {
         :root {
           --sidebar-width: 240px;
@@ -635,8 +657,6 @@
           padding: 1.5rem;
         }
         .sidebar {
-          position: fixed;
-          z-index: 90;
           box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
         }
         .header-actions {
@@ -678,11 +698,15 @@
         .md-content {
           font-size: 0.9rem;
         }
+        /* 表格內文字 */
+        .md-content table {
+          font-size: 0.85rem;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="app-container sidebar-hidden">
+    <div class="app-container">
       <!-- header -->
       <header>
         <div class="logo" id="logoHome">
@@ -690,12 +714,12 @@
           <span>MarkView</span>
         </div>
         <div class="header-actions">
-          <!-- 貼上匯入(直接追加到當前文件底部並馬上解析) -->
+          <!-- 上排貼上匯入：直接從剪貼簿讀取並追加到當前檔案 -->
           <button class="btn btn-outline" id="clipboardPasteTopBtn">
             <i class="fas fa-paste"></i>
             <span>貼上匯入</span>
           </button>
-          <!-- 建立新文件 (彈出modal可填標題、分類、內容) -->
+          <!-- 建立新文件(彈modal) -->
           <button class="btn btn-primary" id="newDocBtn">
             <i class="fas fa-plus"></i>
             <span>建立新文件</span>
@@ -710,7 +734,7 @@
             <input type="text" class="search-input" placeholder="搜尋文件..." />
             <i class="fas fa-search search-icon"></i>
           </div>
-          <!-- sort by time -->
+          <!-- 時間排序 -->
           <div class="sort-row">
             <label
               ><input
@@ -724,7 +748,6 @@
               ><input type="radio" name="sortTime" value="asc" />最舊在上</label
             >
           </div>
-
           <div class="category-filter">
             <div class="category-filter-header">
               <div class="sidebar-title">分類</div>
@@ -736,25 +759,22 @@
               <div class="filter-chip active" data-category="all">全部</div>
             </div>
           </div>
-
           <div class="sidebar-title">我的文件</div>
           <ul class="doc-list"></ul>
         </aside>
 
         <!-- content area -->
         <div class="content-area" id="contentArea">
-          <!-- 首頁：顯示過去檔案（格狀） + 文章底部新區塊 -->
+          <!-- 首頁：上方歡迎詞 + 歷史檔案格柵 (桌機) / 條列 (手機) -->
           <div id="homeView">
-            <h2
-              class="empty-state-title"
-              style="text-align: center; margin-bottom: 1rem"
-            >
-              歡迎使用 MarkView
-            </h2>
-            <!-- 過去的檔案格狀 -->
+            <div class="welcome-top">
+              <h2 class="empty-state-title">歡迎使用 MarkView</h2>
+              <p class="empty-state-description">
+                這裡顯示您的歷史 Markdown 文件。
+              </p>
+            </div>
             <div class="homepage-container" id="homeGrid"></div>
-
-            <!-- 下方區塊：貼上匯入按鈕（保留原 .empty-state 風格） -->
+            <!-- 底部貼上匯入區塊 -->
             <div class="empty-state" id="bottomPasteBlock">
               <div class="empty-state-icon">
                 <i class="fas fa-file-alt"></i>
@@ -763,7 +783,7 @@
               <p class="empty-state-description">
                 開始建立或貼上匯入您的 Markdown 文件。
               </p>
-              <button class="btn btn-primary" id="clipboardPasteBottomBtn">
+              <button class="btn btn-primary" id="clipboardPasteBottomDocBtn">
                 <i class="fas fa-paste"></i> 貼上匯入
               </button>
             </div>
@@ -771,7 +791,7 @@
         </div>
       </div>
 
-      <!-- toggle sidebar btn (漢堡) -->
+      <!-- toggle sidebar 按鈕：手機用 -->
       <div class="toggle-sidebar" id="toggleSidebar">
         <i class="fas fa-bars"></i>
       </div>
@@ -880,7 +900,7 @@
         </div>
       </div>
 
-      <!-- Toast -->
+      <!-- Toast Notifications -->
       <div class="toast-container" id="toastContainer"></div>
     </div>
 
@@ -910,64 +930,57 @@
           contentArea: document.getElementById("contentArea"),
           homeView: document.getElementById("homeView"),
           homeGrid: document.getElementById("homeGrid"),
-
-          // 上排 & 底部 兩個「貼上匯入」按鈕
           clipboardPasteTopBtn: document.getElementById("clipboardPasteTopBtn"),
-          clipboardPasteBottomBtn: document.getElementById(
-            "clipboardPasteBottomBtn"
+          clipboardPasteBottomDocBtn: document.getElementById(
+            "clipboardPasteBottomDocBtn"
           ),
-
           newDocBtn: document.getElementById("newDocBtn"),
           importModal: document.getElementById("importModal"),
           documentTitle: document.getElementById("documentTitle"),
           documentCategory: document.getElementById("documentCategory"),
           markdownContent: document.getElementById("markdownContent"),
           saveDocumentBtn: document.getElementById("saveDocumentBtn"),
-
           editModal: document.getElementById("editModal"),
           editDocumentTitle: document.getElementById("editDocumentTitle"),
           editDocumentCategory: document.getElementById("editDocumentCategory"),
           editMarkdownContent: document.getElementById("editMarkdownContent"),
           updateDocumentBtn: document.getElementById("updateDocumentBtn"),
-
           categoryModal: document.getElementById("categoryModal"),
           newCategory: document.getElementById("newCategory"),
           saveCategoryBtn: document.getElementById("saveCategoryBtn"),
           addCategoryBtn: document.getElementById("addCategoryBtn"),
-
           docList: document.querySelector(".doc-list"),
           searchInput: document.querySelector(".search-input"),
           filterChips: document.querySelector(".filter-chips"),
           toastContainer: document.getElementById("toastContainer"),
-
           sortTimeRadios: document.getElementsByName("sortTime"),
         };
 
-        // 狀態
+        // 狀態管理
         const state = {
           documents: [],
           categories: [],
-          activeDocId: null, // 目前正在檢視/編輯的檔案
+          activeDocId: null, // 正在檢視/編輯的檔案 ID
           currentFilter: "all",
-          sortOrder: "desc", // desc(最新在上) or asc(最舊在上)
+          sortOrder: "desc", // desc: 最新在上, asc: 最舊在上
           editingDocId: null,
           isHome: true,
         };
 
-        // localStorage
+        // 讀取 localStorage
         function loadData() {
-          const sd = localStorage.getItem("markview_documents");
-          if (sd) {
+          const sDocs = localStorage.getItem("markview_documents");
+          if (sDocs) {
             try {
-              state.documents = JSON.parse(sd);
+              state.documents = JSON.parse(sDocs);
             } catch {
               state.documents = [];
             }
           }
-          const sc = localStorage.getItem("markview_categories");
-          if (sc) {
+          const sCats = localStorage.getItem("markview_categories");
+          if (sCats) {
             try {
-              state.categories = JSON.parse(sc);
+              state.categories = JSON.parse(sCats);
             } catch {
               state.categories = [];
             }
@@ -983,8 +996,7 @@
             JSON.stringify(state.categories)
           );
         }
-
-        // 日期字串
+        // 取得格式化日期字串
         function getDateString(ts) {
           const d = new Date(ts);
           const y = d.getFullYear();
@@ -995,10 +1007,9 @@
           return `${y}/${m}/${day} ${hh}:${mm}`;
         }
 
-        // render sidebar docList
+        // 渲染 sidebar 文件列表
         function renderDocList() {
           els.docList.innerHTML = "";
-          // 過濾
           const kw = els.searchInput.value.trim().toLowerCase();
           let filtered = state.documents.filter((doc) => {
             if (
@@ -1007,22 +1018,18 @@
                 doc.title.toLowerCase().includes(kw) ||
                 doc.content.toLowerCase().includes(kw)
               )
-            ) {
+            )
               return false;
-            }
             if (
               state.currentFilter !== "all" &&
               doc.category !== state.currentFilter
-            ) {
+            )
               return false;
-            }
             return true;
           });
-          // 時間排序
-          filtered.sort((a, b) => {
-            if (state.sortOrder === "desc") return b.id - a.id;
-            else return a.id - b.id;
-          });
+          filtered.sort((a, b) =>
+            state.sortOrder === "desc" ? b.id - a.id : a.id - b.id
+          );
           if (filtered.length === 0) {
             els.docList.innerHTML = `
             <div class="no-docs-message">
@@ -1035,9 +1042,7 @@
           filtered.forEach((doc) => {
             const li = document.createElement("li");
             li.className = "doc-item";
-            if (doc.id === state.activeDocId) {
-              li.classList.add("active");
-            }
+            if (doc.id === state.activeDocId) li.classList.add("active");
             const displayTitle = doc.title || getDateString(doc.id);
             li.innerHTML = `
             <div class="doc-item-header">
@@ -1059,12 +1064,10 @@
                 return;
               openDoc(doc.id);
             });
-            // 編輯
             li.querySelector(".edit-btn").addEventListener("click", (e) => {
               e.stopPropagation();
               openEditModal(doc.id);
             });
-            // 刪除(不提示)
             li.querySelector(".delete-btn").addEventListener("click", (e) => {
               e.stopPropagation();
               deleteDoc(doc.id);
@@ -1073,25 +1076,10 @@
           });
         }
 
-        // 顯示首頁(格狀檔案 + 底部貼上)
-        function showHome() {
-          state.isHome = true;
-          state.activeDocId = null;
-          els.contentArea.innerHTML = "";
-          els.homeView.style.display = "block";
-          renderHomeGrid();
-        }
-        function hideHome() {
-          els.homeView.style.display = "none";
-        }
-
-        // 首頁的格狀檔案
+        // 渲染首頁格柵（桌機）或條列（手機）
         function renderHomeGrid() {
           els.homeGrid.innerHTML = "";
-          if (state.documents.length === 0) {
-            return; //沒檔案就空
-          }
-          // 過濾 & 排序
+          if (state.documents.length === 0) return;
           let arr = [...state.documents];
           arr.sort((a, b) =>
             state.sortOrder === "desc" ? b.id - a.id : a.id - b.id
@@ -1122,19 +1110,19 @@
                   doc.category ? doc.category + " | " : ""
                 }${getDateString(doc.id)}</div>
               </div>
-            </div>`;
+            </div>
+          `;
           });
           els.homeGrid.innerHTML = htmlStr;
-          // 綁定卡片事件
           document.querySelectorAll(".homepage-doc-card").forEach((card) => {
             card.addEventListener("click", () => {
-              const docId = Number(card.dataset.id);
-              openDoc(docId);
+              const id = Number(card.dataset.id);
+              openDoc(id);
             });
           });
         }
 
-        // 開啟檔案
+        // 開啟檔案：設定 activeDocId 並切換到檔案檢視模式
         function openDoc(docId) {
           state.activeDocId = docId;
           state.isHome = false;
@@ -1142,21 +1130,17 @@
           renderDocList();
           renderActiveDoc();
         }
-
-        // 渲染當前檔案
+        // 渲染目前檔案內容
         function renderActiveDoc() {
           const doc = state.documents.find((d) => d.id === state.activeDocId);
           if (!doc) {
-            //若找不到，就回首頁
             showHome();
             return;
           }
           const html = marked.parse(doc.content || "");
-          const safe = DOMPurify.sanitize(html);
+          const safeHTML = DOMPurify.sanitize(html);
           els.contentArea.innerHTML = `
-          <div class="md-actions">
-            <div></div><div></div>
-          </div>
+          <div class="md-actions"><div></div><div></div></div>
           <div class="document-container">
             <h2 class="md-title">${doc.title || "(未命名文件)"}</h2>
             ${
@@ -1164,9 +1148,9 @@
                 ? `<div class="category-tag">${doc.category}</div>`
                 : ""
             }
-            <div class="md-content">${safe}</div>
+            <div class="md-content">${safeHTML}</div>
           </div>
-          <!-- 底部的貼上匯入區塊 (在文章之後) 可再按一次貼上匯入 -->
+          <!-- 文章底下的貼上新區塊：直接追加新內容 -->
           <div class="empty-state">
             <div class="empty-state-icon"><i class="fas fa-file-alt"></i></div>
             <h2 class="empty-state-title">歡迎使用 MarkView</h2>
@@ -1176,28 +1160,42 @@
             </button>
           </div>
         `;
-          // 綁定這個底部貼上
-          const docPasteBtn = document.getElementById(
+          const bottomBtn = document.getElementById(
             "clipboardPasteBottomDocBtn"
           );
-          if (docPasteBtn) {
-            docPasteBtn.addEventListener("click", () => {
+          if (bottomBtn) {
+            bottomBtn.addEventListener("click", () => {
               pasteToCurrentDoc();
             });
           }
         }
 
-        // 貼上匯入(如果已在文章中，就追加到底部；否則新建or回首頁)
+        // 如果目前無檔案，顯示首頁
+        function showHome() {
+          state.isHome = true;
+          state.activeDocId = null;
+          els.contentArea.innerHTML = "";
+          els.homeView.style.display = "block";
+          renderHomeGrid();
+        }
+        function hideHome() {
+          els.homeView.style.display = "none";
+        }
+
+        // 貼上功能：從剪貼簿讀取 Markdown 並追加到目前檔案內容，如果沒有檔案則建立一個空檔
         async function pasteToCurrentDoc() {
           try {
-            const text = await navigator.clipboard.readText();
-            if (!text.trim()) {
-              showToast("剪貼簿是空的", "沒內容可貼", "error");
+            if (!navigator.clipboard || !navigator.clipboard.readText) {
+              showToast("錯誤", "您的瀏覽器不支援剪貼簿讀取", "error");
               return;
             }
-            // 如果沒任何active doc -> 建一個空檔再貼
+            const text = await navigator.clipboard.readText();
+            if (!text.trim()) {
+              showToast("錯誤", "剪貼簿內沒有內容", "error");
+              return;
+            }
             if (state.isHome || !state.activeDocId) {
-              // 新增一個空的
+              // 若目前無檔案，則建立一個空檔
               const newDoc = {
                 id: Date.now(),
                 title: "",
@@ -1208,25 +1206,23 @@
               state.activeDocId = newDoc.id;
               saveData();
             }
-            // 在activeDoc底部追加
             const doc = state.documents.find((d) => d.id === state.activeDocId);
             if (!doc) return;
-            doc.content += "\n" + text; //追加Markdown
+            doc.content += "\n" + text;
             saveData();
-            showToast("匯入成功", "已將剪貼簿內容追加至文件底部", "success");
-            // 立即重新渲染
+            showToast("匯入成功", "已將剪貼簿內容追加到文件底部", "success");
             renderActiveDoc();
             renderDocList();
           } catch (err) {
-            showToast("讀取剪貼簿失敗", err.message, "error");
+            showToast("錯誤", err.message, "error");
           }
         }
 
-        // 直接刪除(不提示)
+        // 直接刪除檔案（不提示）
         function deleteDoc(docId) {
           state.documents = state.documents.filter((d) => d.id !== docId);
           saveData();
-          showToast("已刪除", "文件被刪除了", "success");
+          showToast("已刪除", "文件已刪除", "success");
           if (docId === state.activeDocId) {
             state.activeDocId = null;
             showHome();
@@ -1236,24 +1232,24 @@
           }
         }
 
-        // 建立新文件(Modal)
+        // 建立新文件 (Modal)
         function saveDocument() {
           const t = els.documentTitle.value.trim();
           const c = els.documentCategory.value.trim();
           const cont = els.markdownContent.value;
           if (!cont.trim()) {
-            showToast("內容不可空", "請至少貼入一些Markdown", "error");
+            showToast("錯誤", "內容不可空白", "error");
             return;
           }
-          const doc = {
+          const newDoc = {
             id: Date.now(),
             title: t || "",
             category: c || "",
             content: cont,
           };
-          state.documents.push(doc);
+          state.documents.push(newDoc);
           saveData();
-          showToast("文件已建立", "新文件已加入列表", "success");
+          showToast("成功", "文件已建立", "success");
           els.documentTitle.value = "";
           els.documentCategory.value = "";
           els.markdownContent.value = "";
@@ -1262,7 +1258,7 @@
           if (state.isHome) renderHomeGrid();
         }
 
-        // 編輯
+        // 編輯文件
         function openEditModal(docId) {
           const doc = state.documents.find((d) => d.id === docId);
           if (!doc) return;
@@ -1280,7 +1276,7 @@
           doc.category = els.editDocumentCategory.value.trim();
           doc.content = els.editMarkdownContent.value;
           saveData();
-          showToast("更新成功", "文件內容已更新", "success");
+          showToast("成功", "文件已更新", "success");
           closeModal("editModal");
           renderDocList();
           if (docId === state.activeDocId) {
@@ -1297,35 +1293,31 @@
             return;
           }
           if (state.categories.includes(val)) {
-            showToast("重複", "已有同名分類", "error");
+            showToast("錯誤", "分類名稱重複", "error");
             return;
           }
           state.categories.push(val);
           saveData();
           els.newCategory.value = "";
           closeModal("categoryModal");
-          showToast("新增分類", `成功新增「${val}」`, "success");
+          showToast("成功", `新增分類「${val}」`, "success");
           renderCategoryChips();
         }
         function renderCategoryChips() {
-          els.filterChips.innerHTML = `
-          <div class="filter-chip ${
+          els.filterChips.innerHTML = `<div class="filter-chip ${
             state.currentFilter === "all" ? "active" : ""
-          }" data-category="all">全部</div>
-        `;
+          }" data-category="all">全部</div>`;
           state.categories.forEach((cat) => {
             const chip = document.createElement("div");
             chip.className = "filter-chip";
             chip.textContent = cat;
             chip.dataset.category = cat;
-            if (state.currentFilter === cat) {
-              chip.classList.add("active");
-            }
+            if (state.currentFilter === cat) chip.classList.add("active");
             els.filterChips.appendChild(chip);
           });
         }
 
-        // modal
+        // Modal 開關
         function openModal(id) {
           document.getElementById(id).classList.add("active");
         }
@@ -1333,66 +1325,64 @@
           document.getElementById(id).classList.remove("active");
         }
 
-        // toast
+        // Toast 通知
         function showToast(title, msg, type = "success") {
           const t = document.createElement("div");
           t.classList.add("toast");
-          if (type === "success") t.classList.add("toast-success");
-          else t.classList.add("toast-error");
+          t.classList.add(type === "success" ? "toast-success" : "toast-error");
           t.innerHTML = `
-          <div class="toast-icon">
-            <i class="fas ${
-              type === "success" ? "fa-check-circle" : "fa-exclamation-circle"
-            }"></i>
-          </div>
+          <div class="toast-icon"><i class="fas ${
+            type === "success" ? "fa-check-circle" : "fa-exclamation-circle"
+          }"></i></div>
           <div class="toast-content">
             <div class="toast-title">${title}</div>
             <div class="toast-message">${msg}</div>
           </div>
         `;
           els.toastContainer.appendChild(t);
-          setTimeout(() => t.classList.add("show"), 10);
+          setTimeout(() => {
+            t.classList.add("show");
+          }, 10);
           setTimeout(() => {
             t.classList.remove("show");
-            setTimeout(() => els.toastContainer.removeChild(t), 300);
+            setTimeout(() => {
+              els.toastContainer.removeChild(t);
+            }, 300);
           }, 3000);
         }
 
         // 綁定事件
         function bindEvents() {
-          // logo -> 回首頁
+          // 點擊 logo 回首頁
           els.logoHome.addEventListener("click", () => {
             showHome();
             renderDocList();
           });
-          // sidebar toggle
+          // 手機側邊欄切換 (漢堡按鈕)
           els.toggleSidebar.addEventListener("click", () => {
             document
               .querySelector(".app-container")
-              .classList.toggle("sidebar-hidden");
+              .classList.toggle("sidebar-open");
           });
-
-          // 貼上匯入(上排 + 首頁下方) -> 追加到當前文件 或 建新檔
+          // 上排貼上匯入按鈕
           els.clipboardPasteTopBtn.addEventListener("click", () => {
             pasteToCurrentDoc();
           });
-          els.clipboardPasteBottomBtn.addEventListener("click", () => {
+          // 底部貼上匯入按鈕
+          els.clipboardPasteBottomDocBtn.addEventListener("click", () => {
             pasteToCurrentDoc();
           });
-
-          // 新文件modal
+          // 建立新文件 Modal
           els.newDocBtn.addEventListener("click", () => {
             openModal("importModal");
           });
           els.saveDocumentBtn.addEventListener("click", () => {
             saveDocument();
           });
-
-          // 編輯
+          // 編輯文件
           els.updateDocumentBtn.addEventListener("click", () => {
             updateDocument();
           });
-
           // 新增分類
           els.addCategoryBtn.addEventListener("click", () => {
             openModal("categoryModal");
@@ -1400,8 +1390,7 @@
           els.saveCategoryBtn.addEventListener("click", () => {
             addCategory();
           });
-
-          // modal 關閉
+          // Modal 關閉
           document.querySelectorAll(".modal-close").forEach((btn) => {
             btn.addEventListener("click", () => {
               btn.closest(".modal-overlay").classList.remove("active");
@@ -1412,30 +1401,27 @@
               btn.closest(".modal-overlay").classList.remove("active");
             });
           });
-
           // 搜尋
           els.searchInput.addEventListener("input", () => {
             renderDocList();
             if (state.isHome) renderHomeGrid();
           });
-
-          // 分類chips
+          // 分類 chips
           els.filterChips.addEventListener("click", (e) => {
             const chip = e.target.closest(".filter-chip");
             if (!chip) return;
-            document
-              .querySelectorAll(".filter-chip")
-              .forEach((c) => c.classList.remove("active"));
+            document.querySelectorAll(".filter-chip").forEach((c) => {
+              c.classList.remove("active");
+            });
             chip.classList.add("active");
             state.currentFilter = chip.dataset.category;
             renderDocList();
             if (state.isHome) renderHomeGrid();
           });
-
-          // sort radio
+          // 時間排序
           els.sortTimeRadios.forEach((radio) => {
             radio.addEventListener("change", () => {
-              state.sortOrder = radio.value; // asc or desc
+              state.sortOrder = radio.value;
               renderDocList();
               if (state.isHome) renderHomeGrid();
             });
@@ -1447,7 +1433,7 @@
           bindEvents();
           renderCategoryChips();
           renderDocList();
-          showHome(); // 進入首頁
+          showHome();
         }
         init();
       });
