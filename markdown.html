@@ -1,322 +1,1460 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>專業 Markdown 解析器 - 多版本分類儲存</title>
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <style>
-    /* Reset 與基本設定 */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Roboto', sans-serif;
-      background: #f4f7fc;
-      color: #333;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-    header {
-      background: #2c3e50;
-      color: #ecf0f1;
-      padding: 1rem;
-      text-align: center;
-      position: relative;
-    }
-    header h1 {
-      font-size: 1.8rem;
-      margin-bottom: 0.5rem;
-    }
-    header .upload-actions {
-      display: flex;
-      justify-content: center;
-      gap: 1rem;
-      margin-top: 0.5rem;
-    }
-    header input[type="file"],
-    header button {
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-    }
-    header input[type="file"] {
-      background: #3498db;
-      color: #fff;
-    }
-    header button {
-      background: #e67e22;
-      color: #fff;
-    }
-    .container {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-    }
-    .sidebar {
-      background: #ecf0f1;
-      width: 300px;
-      padding: 1rem;
-      border-right: 1px solid #bdc3c7;
-      overflow-y: auto;
-    }
-    .sidebar h2 {
-      font-size: 1.2rem;
-      margin-bottom: 0.5rem;
-    }
-    .sidebar ul {
-      list-style: none;
-    }
-    .sidebar li {
-      padding: 0.8rem;
-      margin-bottom: 0.5rem;
-      border-radius: 4px;
-      background: #fff;
-      cursor: pointer;
-      transition: background 0.3s;
-      border: 1px solid #ddd;
-    }
-    .sidebar li:hover, .sidebar li.active {
-      background: #dfe6e9;
-    }
-    .sidebar li .info {
-      font-size: 0.9rem;
-      color: #666;
-    }
-    .main {
-      flex: 1;
-      padding: 1rem;
-      overflow-y: auto;
-      background: #fff;
-    }
-    .markdown-preview {
-      max-width: 900px;
-      margin: auto;
-    }
-    /* Modal Styles */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .modal {
-      background: #fff;
-      padding: 2rem;
-      border-radius: 8px;
-      max-width: 600px;
-      width: 90%;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    }
-    .modal h3 {
-      margin-bottom: 1rem;
-    }
-    .modal label {
-      display: block;
-      margin: 0.8rem 0 0.4rem;
-    }
-    .modal input[type="text"],
-    .modal textarea {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-    .modal textarea {
-      height: 200px;
-      resize: vertical;
-    }
-    .modal .actions {
-      margin-top: 1.5rem;
-      text-align: right;
-    }
-    .modal .actions button {
-      padding: 0.5rem 1rem;
-      margin-left: 0.5rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-    }
-    .modal .actions .save-btn {
-      background: #27ae60;
-      color: #fff;
-    }
-    .modal .actions .cancel-btn {
-      background: #c0392b;
-      color: #fff;
-    }
-    /* RWD */
-    @media (max-width: 768px) {
-      .container {
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MarkView - 專業Markdown解析器</title>
+    <!-- Font Awesome & Highlight.js -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css"
+    />
+    <style>
+      :root {
+        --primary-color: #3b82f6;
+        --primary-hover: #2563eb;
+        --secondary-color: #64748b;
+        --bg-color: #f8fafc;
+        --card-bg: #ffffff;
+        --text-color: #334155;
+        --border-color: #e2e8f0;
+        --accent-color: #10b981;
+        --error-color: #ef4444;
+        --header-height: 60px;
+        --sidebar-width: 260px;
+        --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+        --transition: all 0.3s ease;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        line-height: 1.6;
+        overflow-x: hidden;
+      }
+      .app-container {
+        display: flex;
         flex-direction: column;
+        min-height: 100vh;
       }
-      .sidebar {
+      /* header */
+      header {
+        background-color: var(--card-bg);
+        height: var(--header-height);
+        border-bottom: 1px solid var(--border-color);
+        padding: 0 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: fixed;
+        top: 0;
         width: 100%;
-        border-right: none;
-        border-bottom: 1px solid #bdc3c7;
+        z-index: 100;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       }
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>Markdown 解析器</h1>
-    <div class="upload-actions">
-      <input type="file" id="fileInput" multiple accept=".md,.markdown">
-      <button id="pasteBtn">貼上匯入</button>
-    </div>
-  </header>
-  <div class="container">
-    <div class="sidebar">
-      <h2>Markdown 檔案</h2>
-      <ul id="fileList">
-        <!-- 匯入的 Markdown 檔案列表 -->
-      </ul>
-    </div>
-    <div class="main">
-      <div class="markdown-preview" id="markdownPreview">
-        <p>請從左側選擇檔案，或使用上方按鈕匯入 Markdown 檔案。</p>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Modal 區塊：貼上匯入 -->
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-      <h3>貼上匯入 Markdown</h3>
-      <label for="mdContent">內容：</label>
-      <textarea id="mdContent" placeholder="請貼上 Markdown 內容"></textarea>
-      <label for="mdName">檔案名稱 (留空則以日期命名)：</label>
-      <input type="text" id="mdName" placeholder="自訂名稱">
-      <label for="mdCategory">分類：</label>
-      <input type="text" id="mdCategory" placeholder="例如：技術、教學等">
-      <label for="mdVersion">版本：</label>
-      <input type="text" id="mdVersion" placeholder="例如：1.0, 2.0">
-      <div class="actions">
-        <button class="cancel-btn" id="cancelModal">取消</button>
-        <button class="save-btn" id="saveModal">儲存</button>
-      </div>
-    </div>
-  </div>
-  
-  <!-- 載入 marked.js -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script>
-    // 讀取 localStorage 中的 Markdown 資料
-    let markdownFiles = JSON.parse(localStorage.getItem('markdownFiles')) || [];
+      .logo {
+        display: flex;
+        align-items: center;
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: var(--primary-color);
+        cursor: pointer;
+      }
+      .logo i {
+        margin-right: 0.5rem;
+      }
+      .header-actions {
+        display: flex;
+        gap: 1rem;
+      }
+      .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: var(--transition);
+        font-size: 0.875rem;
+      }
+      .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+      }
+      .btn-primary:hover {
+        background-color: var(--primary-hover);
+      }
+      .btn-outline {
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+      }
+      .btn-outline:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+      }
 
-    function updateLocalStorage() {
-      localStorage.setItem('markdownFiles', JSON.stringify(markdownFiles));
-    }
+      /* main flex */
+      .main-content {
+        display: flex;
+        margin-top: var(--header-height);
+        flex: 1;
+      }
+      /* sidebar */
+      .sidebar {
+        width: var(--sidebar-width);
+        background-color: var(--card-bg);
+        border-right: 1px solid var(--border-color);
+        padding: 1.5rem;
+        height: calc(100vh - var(--header-height));
+        position: fixed;
+        left: 0;
+        top: var(--header-height);
+        overflow-y: auto;
+        transition: var(--transition);
+      }
+      .sidebar-hidden .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar-title {
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        color: var(--secondary-color);
+        margin-bottom: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+      }
+      .doc-list {
+        list-style: none;
+      }
+      .doc-item {
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: var(--transition);
+      }
+      .doc-item:hover {
+        background-color: rgba(59, 130, 246, 0.1);
+      }
+      .doc-item.active {
+        background-color: rgba(59, 130, 246, 0.1);
+        font-weight: 500;
+        color: var(--primary-color);
+      }
+      .doc-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .doc-item-title {
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 170px;
+      }
+      .doc-item-date {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+        margin-top: 0.25rem;
+      }
+      .doc-actions {
+        display: flex;
+        gap: 0.5rem;
+        opacity: 0.5;
+        transition: var(--transition);
+      }
+      .doc-item:hover .doc-actions {
+        opacity: 1;
+      }
+      .doc-action {
+        font-size: 0.75rem;
+        padding: 0.25rem;
+        color: var(--secondary-color);
+        cursor: pointer;
+        border-radius: 0.25rem;
+        transition: var(--transition);
+      }
+      .doc-action:hover {
+        color: var(--primary-color);
+        background-color: rgba(59, 130, 246, 0.1);
+      }
 
-    function renderFileList() {
-      const fileListEl = document.getElementById('fileList');
-      fileListEl.innerHTML = '';
-      markdownFiles.forEach((file, index) => {
-        const li = document.createElement('li');
-        li.innerHTML = '<strong>' + file.name + '</strong><br><span class="info">' +
-                       '分類: ' + (file.category || '未分類') + ' | 版本: ' + (file.version || 'N/A') +
-                       ' | 日期: ' + file.date + '</span>';
-        li.dataset.index = index;
-        li.addEventListener('click', () => {
-          document.querySelectorAll('#fileList li').forEach(item => item.classList.remove('active'));
-          li.classList.add('active');
-          renderMarkdown(file.content);
+      /* content area */
+      .content-area {
+        flex: 1;
+        padding: 2rem;
+        margin-left: var(--sidebar-width);
+        transition: var(--transition);
+      }
+      .sidebar-hidden .content-area {
+        margin-left: 0;
+      }
+
+      /* home / no-docs */
+      .no-docs-message {
+        text-align: center;
+        padding: 3rem;
+        color: var(--secondary-color);
+      }
+      .no-docs-message i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+      }
+      .no-docs-message h3 {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+      .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .empty-state-icon {
+        font-size: 3rem;
+        color: var(--secondary-color);
+        opacity: 0.5;
+        margin-bottom: 1rem;
+      }
+      .empty-state-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+      .empty-state-description {
+        color: var(--secondary-color);
+        margin-bottom: 1.5rem;
+      }
+      /* homepage container(格柵) */
+      .homepage-container {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        margin-top: 1rem;
+      }
+      .homepage-doc-card {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        padding: 1rem;
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        cursor: pointer;
+      }
+      .homepage-doc-card:hover {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      .homepage-doc-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .homepage-doc-meta {
+        font-size: 0.75rem;
+        color: var(--secondary-color);
+      }
+
+      /* doc display */
+      .md-actions {
+        position: sticky;
+        top: 0;
+        padding: 1rem 0;
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        background-color: var(--bg-color);
+        z-index: 10;
+      }
+      .document-container {
+        background-color: var(--card-bg);
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        padding: 2rem;
+        margin-bottom: 2rem;
+      }
+      .md-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text-color);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.75rem;
+      }
+      .md-content {
+        font-size: 1rem;
+        line-height: 1.8;
+      }
+
+      /* Markdown styling */
+      .md-content h1,
+      .md-content h2,
+      .md-content h3,
+      .md-content h4,
+      .md-content h5,
+      .md-content h6 {
+        margin-top: 1.5em;
+        margin-bottom: 0.75em;
+        font-weight: 600;
+      }
+      .md-content h1 {
+        font-size: 2rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+      }
+      .md-content h2 {
+        font-size: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+      }
+      .md-content h3 {
+        font-size: 1.25rem;
+      }
+      .md-content p {
+        margin-bottom: 1rem;
+      }
+      .md-content a {
+        color: var(--primary-color);
+        text-decoration: none;
+      }
+      .md-content a:hover {
+        text-decoration: underline;
+      }
+      .md-content pre {
+        margin: 1rem 0;
+        background-color: #282c34;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        overflow-x: auto;
+      }
+      .md-content code {
+        font-family: Consolas, Monaco, "Andale Mono", monospace;
+        font-size: 0.9em;
+        background-color: rgba(0, 0, 0, 0.05);
+        padding: 0.2em 0.4em;
+        border-radius: 3px;
+      }
+      .md-content pre code {
+        background-color: transparent;
+        padding: 0;
+        color: #abb2bf;
+      }
+      .md-content blockquote {
+        border-left: 4px solid var(--primary-color);
+        padding-left: 1rem;
+        margin: 1rem 0;
+        color: var(--secondary-color);
+      }
+      .md-content ul,
+      .md-content ol {
+        margin: 1rem 0 1rem 2rem;
+      }
+      .md-content img {
+        max-width: 100%;
+        border-radius: 0.375rem;
+        margin: 1rem 0;
+      }
+      .md-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+      }
+      .md-content table th,
+      .md-content table td {
+        border: 1px solid var(--border-color);
+        padding: 0.5rem;
+      }
+      .md-content table th {
+        background-color: rgba(0, 0, 0, 0.05);
+        font-weight: 600;
+      }
+      .md-content hr {
+        margin: 2rem 0;
+        border: none;
+        border-top: 1px solid var(--border-color);
+      }
+
+      /* modal */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: var(--transition);
+      }
+      .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+      .modal {
+        background-color: var(--card-bg);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        transform: translateY(-20px);
+        transition: var(--transition);
+      }
+      .modal-overlay.active .modal {
+        transform: translateY(0);
+      }
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      .modal-title {
+        font-weight: 600;
+        font-size: 1.25rem;
+      }
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.25rem;
+        cursor: pointer;
+        color: var(--secondary-color);
+      }
+      .modal-body {
+        margin-bottom: 1.5rem;
+      }
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+      .form-input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-family: var(--font-sans);
+        font-size: 0.875rem;
+        transition: var(--transition);
+      }
+      .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+      }
+      .textarea {
+        resize: vertical;
+        min-height: 150px;
+      }
+      .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
+
+      /* toast */
+      .toast-container {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        z-index: 1000;
+      }
+      .toast {
+        background-color: var(--card-bg);
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-top: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        transition: var(--transition);
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      .toast.show {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      .toast-icon {
+        font-size: 1rem;
+        flex-shrink: 0;
+      }
+      .toast-success .toast-icon {
+        color: var(--accent-color);
+      }
+      .toast-error .toast-icon {
+        color: var(--error-color);
+      }
+      .toast-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+      .toast-message {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+      }
+
+      /* toggle sidebar btn */
+      .toggle-sidebar {
+        position: fixed;
+        bottom: 1rem;
+        left: 1rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 50;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: var(--transition);
+      }
+      .toggle-sidebar:hover {
+        background-color: var(--primary-hover);
+      }
+
+      /* category filter */
+      .category-filter {
+        margin-bottom: 1.5rem;
+      }
+      .category-filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+      .filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .filter-chip {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        background-color: rgba(59, 130, 246, 0.1);
+        color: var(--primary-color);
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: var(--transition);
+      }
+      .filter-chip:hover {
+        background-color: rgba(59, 130, 246, 0.2);
+      }
+      .filter-chip.active {
+        background-color: var(--primary-color);
+        color: white;
+      }
+      /* search bar + sort by time */
+      .search-container {
+        position: relative;
+        margin-bottom: 1rem;
+      }
+      .search-input {
+        width: 100%;
+        padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+        font-family: var(--font-sans);
+        transition: var(--transition);
+        font-size: 0.875rem;
+      }
+      .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+      }
+      .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--secondary-color);
+      }
+      .sort-row {
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+      }
+      .sort-row label {
+        cursor: pointer;
+      }
+      .sort-row input[type="radio"] {
+        margin-right: 0.25rem;
+      }
+
+      /* RWD */
+      @media (max-width: 768px) {
+        :root {
+          --sidebar-width: 240px;
+        }
+        .content-area {
+          padding: 1rem;
+        }
+        .document-container {
+          padding: 1.5rem;
+        }
+        .sidebar {
+          position: fixed;
+          z-index: 90;
+          box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .header-actions {
+          gap: 0.5rem;
+        }
+        .btn {
+          padding: 0.5rem 0.75rem;
+          font-size: 0.75rem;
+        }
+        .logo span {
+          display: none;
+        }
+        .homepage-doc-title {
+          font-size: 0.9rem;
+        }
+        .md-title {
+          font-size: 1.25rem;
+        }
+        .md-content {
+          font-size: 0.95rem;
+        }
+      }
+      @media (max-width: 480px) {
+        .content-area {
+          padding: 1rem 0.5rem;
+        }
+        .document-container {
+          padding: 1rem;
+        }
+        .md-actions {
+          flex-direction: column;
+        }
+        .homepage-container {
+          grid-template-columns: 1fr;
+        }
+        .btn {
+          font-size: 0.75rem;
+        }
+        .md-content {
+          font-size: 0.9rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container sidebar-hidden">
+      <!-- header -->
+      <header>
+        <div class="logo" id="logoHome">
+          <i class="fas fa-file-alt"></i>
+          <span>MarkView</span>
+        </div>
+        <div class="header-actions">
+          <!-- 這裡直接從剪貼簿讀取Markdown -->
+          <button class="btn btn-outline" id="quickImportBtn">
+            <i class="fas fa-paste"></i>
+            <span>貼上匯入</span>
+          </button>
+          <button class="btn btn-primary" id="newDocBtn">
+            <i class="fas fa-plus"></i>
+            <span>建立新文件</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="main-content">
+        <!-- sidebar -->
+        <aside class="sidebar">
+          <div class="search-container">
+            <input type="text" class="search-input" placeholder="搜尋文件..." />
+            <i class="fas fa-search search-icon"></i>
+          </div>
+
+          <div class="sort-row">
+            <label
+              ><input
+                type="radio"
+                name="sortTime"
+                value="desc"
+                checked
+              />最新在上</label
+            >
+            <label
+              ><input type="radio" name="sortTime" value="asc" />最舊在上</label
+            >
+          </div>
+
+          <div class="category-filter">
+            <div class="category-filter-header">
+              <div class="sidebar-title">分類</div>
+              <div class="doc-action" id="addCategoryBtn" title="新增分類">
+                <i class="fas fa-plus"></i>
+              </div>
+            </div>
+            <div class="filter-chips">
+              <div class="filter-chip active" data-category="all">全部</div>
+            </div>
+          </div>
+
+          <div class="sidebar-title">我的文件</div>
+          <ul class="doc-list"></ul>
+        </aside>
+
+        <!-- content area -->
+        <div class="content-area" id="contentArea">
+          <!-- 首頁 (上方：過去檔案的格柵、下方：貼上匯入按鈕區塊) -->
+          <div id="homeView">
+            <h2
+              class="empty-state-title"
+              style="text-align: center; margin-bottom: 1rem"
+            >
+              歡迎使用 MarkView
+            </h2>
+            <!-- 這裡放檔案格柵 -->
+            <div class="homepage-container" id="homeGrid"></div>
+            <!-- 下方的空狀態區塊 + 貼上匯入按鈕 -->
+            <div class="empty-state" id="bottomImportBlock">
+              <div class="empty-state-icon">
+                <i class="fas fa-file-alt"></i>
+              </div>
+              <h2 class="empty-state-title">歡迎使用 MarkView</h2>
+              <p class="empty-state-description">
+                開始建立或貼上匯入您的 Markdown 文件。
+              </p>
+              <button class="btn btn-primary" id="emptyStateBtn2">
+                <i class="fas fa-paste"></i> 貼上匯入
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- toggle sidebar -->
+      <div class="toggle-sidebar" id="toggleSidebar">
+        <i class="fas fa-bars"></i>
+      </div>
+
+      <!-- 建立新文件 Modal -->
+      <div class="modal-overlay" id="importModal">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 class="modal-title">建立新文件</h3>
+            <button class="modal-close">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="documentTitle" class="form-label">文件標題</label>
+              <input
+                type="text"
+                id="documentTitle"
+                class="form-input"
+                placeholder="可輸入文件標題"
+              />
+            </div>
+            <div class="form-group">
+              <label for="documentCategory" class="form-label"
+                >分類 (選填)</label
+              >
+              <input
+                type="text"
+                id="documentCategory"
+                class="form-input"
+                placeholder="例如：筆記、教學、專案..."
+              />
+            </div>
+            <div class="form-group">
+              <label for="markdownContent" class="form-label"
+                >Markdown 內容</label
+              >
+              <textarea
+                id="markdownContent"
+                class="form-input textarea"
+                placeholder="在此貼上您的 Markdown 內容..."
+              ></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline modal-close-btn">取消</button>
+            <button class="btn btn-primary" id="saveDocumentBtn">儲存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Document Modal -->
+      <div class="modal-overlay" id="editModal">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 class="modal-title">編輯文件</h3>
+            <button class="modal-close">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="editDocumentTitle" class="form-label">文件標題</label>
+              <input type="text" id="editDocumentTitle" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label for="editDocumentCategory" class="form-label">分類</label>
+              <input type="text" id="editDocumentCategory" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label for="editMarkdownContent" class="form-label"
+                >Markdown 內容</label
+              >
+              <textarea
+                id="editMarkdownContent"
+                class="form-input textarea"
+              ></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline modal-close-btn">取消</button>
+            <button class="btn btn-primary" id="updateDocumentBtn">更新</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delete Confirmation Modal -->
+      <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 class="modal-title">確認刪除</h3>
+            <button class="modal-close">×</button>
+          </div>
+          <div class="modal-body">
+            <p>您確定要刪除這個文件嗎？此操作無法復原。</p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline modal-close-btn">取消</button>
+            <button class="btn btn-primary" id="confirmDeleteBtn">
+              確認刪除
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Category Modal -->
+      <div class="modal-overlay" id="categoryModal">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 class="modal-title">新增分類</h3>
+            <button class="modal-close">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="newCategory" class="form-label">分類名稱</label>
+              <input
+                type="text"
+                id="newCategory"
+                class="form-input"
+                placeholder="輸入新分類名稱"
+              />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline modal-close-btn">取消</button>
+            <button class="btn btn-primary" id="saveCategoryBtn">儲存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div class="toast-container" id="toastContainer"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        marked.setOptions({
+          renderer: new marked.Renderer(),
+          highlight: function (code, lang) {
+            const language = hljs.getLanguage(lang) ? lang : "plaintext";
+            return hljs.highlight(code, { language }).value;
+          },
+          langPrefix: "hljs language-",
+          gfm: true,
+          breaks: true,
+          headerIds: true,
+          xhtml: false,
         });
-        fileListEl.appendChild(li);
-      });
-    }
 
-    function renderMarkdown(content) {
-      const previewEl = document.getElementById('markdownPreview');
-      previewEl.innerHTML = marked.parse(content);
-    }
+        const els = {
+          logoHome: document.getElementById("logoHome"),
+          toggleSidebar: document.getElementById("toggleSidebar"),
 
-    // 檔案上傳處理
-    document.getElementById('fileInput').addEventListener('change', (event) => {
-      const files = event.target.files;
-      if (files.length) {
-        Array.from(files).forEach(file => {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            const fileName = file.name || new Date().toLocaleString();
-            const newFile = {
-              name: fileName,
-              category: '未分類',
-              version: 'N/A',
-              content: e.target.result,
-              date: new Date().toLocaleString()
+          quickImportBtn: document.getElementById("quickImportBtn"),
+          emptyStateBtn2: document.getElementById("emptyStateBtn2"),
+
+          newDocBtn: document.getElementById("newDocBtn"),
+          importModal: document.getElementById("importModal"),
+          documentTitle: document.getElementById("documentTitle"),
+          documentCategory: document.getElementById("documentCategory"),
+          markdownContent: document.getElementById("markdownContent"),
+          saveDocumentBtn: document.getElementById("saveDocumentBtn"),
+
+          editModal: document.getElementById("editModal"),
+          editDocumentTitle: document.getElementById("editDocumentTitle"),
+          editDocumentCategory: document.getElementById("editDocumentCategory"),
+          editMarkdownContent: document.getElementById("editMarkdownContent"),
+          updateDocumentBtn: document.getElementById("updateDocumentBtn"),
+
+          deleteModal: document.getElementById("deleteModal"),
+          confirmDeleteBtn: document.getElementById("confirmDeleteBtn"),
+
+          categoryModal: document.getElementById("categoryModal"),
+          newCategory: document.getElementById("newCategory"),
+          saveCategoryBtn: document.getElementById("saveCategoryBtn"),
+          addCategoryBtn: document.getElementById("addCategoryBtn"),
+
+          contentArea: document.getElementById("contentArea"),
+          homeView: document.getElementById("homeView"),
+          homeGrid: document.getElementById("homeGrid"),
+          docList: document.querySelector(".doc-list"),
+          searchInput: document.querySelector(".search-input"),
+          filterChips: document.querySelector(".filter-chips"),
+          toastContainer: document.getElementById("toastContainer"),
+
+          sortTimeRadios: document.getElementsByName("sortTime"),
+        };
+
+        const state = {
+          documents: [],
+          categories: [],
+          activeDocId: null,
+          currentFilter: "all",
+          sortOrder: "desc", // desc: 最新在上, asc: 最舊在上
+          editingDocId: null,
+          deletingDocId: null,
+          isHome: true,
+        };
+
+        function loadData() {
+          const sDocs = localStorage.getItem("markview_documents");
+          if (sDocs) {
+            try {
+              state.documents = JSON.parse(sDocs);
+            } catch {
+              state.documents = [];
+            }
+          }
+          const sCats = localStorage.getItem("markview_categories");
+          if (sCats) {
+            try {
+              state.categories = JSON.parse(sCats);
+            } catch {
+              state.categories = [];
+            }
+          }
+        }
+        function saveData() {
+          localStorage.setItem(
+            "markview_documents",
+            JSON.stringify(state.documents)
+          );
+          localStorage.setItem(
+            "markview_categories",
+            JSON.stringify(state.categories)
+          );
+        }
+        // 取得日期字串
+        function getDateString(timestamp) {
+          const d = new Date(timestamp);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          const hh = String(d.getHours()).padStart(2, "0");
+          const mm = String(d.getMinutes()).padStart(2, "0");
+          return `${y}/${m}/${day} ${hh}:${mm}`;
+        }
+
+        // 渲染左側文件列表
+        function renderDocList() {
+          els.docList.innerHTML = "";
+          let filteredDocs = state.documents.filter((doc) => {
+            const kw = els.searchInput.value.trim().toLowerCase();
+            if (
+              !(
+                doc.title.toLowerCase().includes(kw) ||
+                doc.content.toLowerCase().includes(kw)
+              )
+            ) {
+              return false;
+            }
+            if (
+              state.currentFilter !== "all" &&
+              doc.category !== state.currentFilter
+            ) {
+              return false;
+            }
+            return true;
+          });
+          // sort by time
+          filteredDocs.sort((a, b) => {
+            if (state.sortOrder === "desc") return b.id - a.id; // 最新在上
+            else return a.id - b.id; // 最舊在上
+          });
+          if (filteredDocs.length === 0) {
+            els.docList.innerHTML = `
+            <div class="no-docs-message">
+              <i class="fas fa-file-excel"></i>
+              <h3>沒有文件</h3>
+              <p>試試其他關鍵字或匯入新的吧</p>
+            </div>`;
+            return;
+          }
+          filteredDocs.forEach((doc) => {
+            const li = document.createElement("li");
+            li.className = "doc-item";
+            if (doc.id === state.activeDocId) {
+              li.classList.add("active");
+            }
+            const displayTitle = doc.title || getDateString(doc.id);
+            li.innerHTML = `
+            <div class="doc-item-header">
+              <span class="doc-item-title">${displayTitle}</span>
+              <div class="doc-actions">
+                <span class="doc-action edit-btn" title="編輯"><i class="fas fa-edit"></i></span>
+                <span class="doc-action delete-btn" title="刪除"><i class="fas fa-trash-alt"></i></span>
+              </div>
+            </div>
+            <div class="doc-item-date">${
+              doc.category ? doc.category + " | " : ""
+            }${getDateString(doc.id)}</div>
+          `;
+            li.addEventListener("click", (e) => {
+              if (
+                e.target.closest(".edit-btn") ||
+                e.target.closest(".delete-btn")
+              )
+                return;
+              handleDocClick(doc.id);
+            });
+            li.querySelector(".edit-btn").addEventListener("click", (e) => {
+              e.stopPropagation();
+              openEditModal(doc.id);
+            });
+            li.querySelector(".delete-btn").addEventListener("click", (e) => {
+              e.stopPropagation();
+              openDeleteModal(doc.id);
+            });
+            els.docList.appendChild(li);
+          });
+        }
+
+        // 首頁格柵
+        function renderHomeGrid() {
+          els.homeGrid.innerHTML = "";
+          if (state.documents.length === 0) {
+            // 沒有檔案就算了
+            return;
+          }
+          // 排序
+          const sortedDocs = [...state.documents];
+          if (state.sortOrder === "desc")
+            sortedDocs.sort((a, b) => b.id - a.id);
+          else sortedDocs.sort((a, b) => a.id - b.id);
+
+          // 再加搜尋&分類篩選 (同 sidebar 的條件)
+          const kw = els.searchInput.value.trim().toLowerCase();
+          const cat = state.currentFilter;
+          const filterDocs = sortedDocs.filter((doc) => {
+            if (
+              !(
+                doc.title.toLowerCase().includes(kw) ||
+                doc.content.toLowerCase().includes(kw)
+              )
+            )
+              return false;
+            if (cat !== "all" && doc.category !== cat) return false;
+            return true;
+          });
+          if (filterDocs.length === 0) {
+            // 就算首頁沒查到，其實我們也可顯示 "無檔案" 但就先不重複了XD
+            return;
+          }
+          let htmlStr = "";
+          filterDocs.forEach((doc) => {
+            const displayTitle = doc.title || getDateString(doc.id);
+            htmlStr += `
+            <div class="homepage-doc-card" data-docid="${doc.id}">
+              <div>
+                <div class="homepage-doc-title">${displayTitle}</div>
+                <div class="homepage-doc-meta">${
+                  doc.category ? doc.category + " | " : ""
+                }${getDateString(doc.id)}</div>
+              </div>
+            </div>
+          `;
+          });
+          els.homeGrid.innerHTML = htmlStr;
+          // 綁定事件
+          document.querySelectorAll(".homepage-doc-card").forEach((card) => {
+            card.addEventListener("click", () => {
+              const did = card.dataset.docid;
+              handleDocClick(Number(did));
+            });
+          });
+        }
+
+        // 點擊左側或首頁卡片 -> 顯示文件
+        function handleDocClick(docId) {
+          state.activeDocId = docId;
+          state.isHome = false;
+          hideHome();
+          renderDocList();
+          const doc = state.documents.find((d) => d.id === docId);
+          if (doc) renderDocument(doc);
+        }
+
+        // 顯示文件
+        function renderDocument(doc) {
+          const raw = doc.content || "";
+          const html = marked.parse(raw);
+          const safeHTML = DOMPurify.sanitize(html);
+          els.contentArea.innerHTML = `
+          <div class="md-actions"><div></div><div></div></div>
+          <div class="document-container">
+            <h2 class="md-title">${doc.title || "(未命名文件)"}</h2>
+            ${
+              doc.category
+                ? `<div class="category-tag">${doc.category}</div>`
+                : ""
+            }
+            <div class="md-content">${safeHTML}</div>
+          </div>
+        `;
+        }
+
+        // 回首頁
+        function showHome() {
+          state.isHome = true;
+          state.activeDocId = null;
+          els.contentArea.innerHTML = "";
+          els.homeView.style.display = "block";
+          renderHomeGrid();
+        }
+        function hideHome() {
+          els.homeView.style.display = "none";
+        }
+
+        // 開啟 + 關閉 modal
+        function openModal(id) {
+          document.getElementById(id).classList.add("active");
+        }
+        function closeModal(id) {
+          document.getElementById(id).classList.remove("active");
+        }
+
+        // 直接從剪貼簿抓Markdown
+        async function importFromClipboard() {
+          if (!navigator.clipboard || !navigator.clipboard.readText) {
+            showToast(
+              "無法讀取剪貼簿",
+              "您的瀏覽器不支援navigator.clipboard",
+              "error"
+            );
+            return;
+          }
+          try {
+            const text = await navigator.clipboard.readText();
+            if (!text.trim()) {
+              showToast("剪貼簿是空的", "沒東西可貼", "error");
+              return;
+            }
+            const newDoc = {
+              id: Date.now(),
+              title: "",
+              category: "",
+              content: text,
             };
-            markdownFiles.push(newFile);
-            updateLocalStorage();
-            renderFileList();
+            state.documents.push(newDoc);
+            saveData();
+            showToast("匯入成功", "已從剪貼簿直接建立新文件", "success");
+            renderDocList();
+            if (state.isHome) {
+              renderHomeGrid();
+            }
+          } catch (err) {
+            showToast("讀取失敗", "無法讀取剪貼簿內容", "error");
+          }
+        }
+
+        // 建立新文件(Modal)
+        function saveDocument() {
+          const title = els.documentTitle.value.trim();
+          const cat = els.documentCategory.value.trim();
+          const content = els.markdownContent.value;
+          if (!content.trim()) {
+            showToast("建立失敗", "至少要貼些Markdown吧", "error");
+            return;
+          }
+          const newDoc = {
+            id: Date.now(),
+            title: title || "",
+            category: cat || "",
+            content,
           };
-          reader.readAsText(file);
-        });
-      }
-    });
+          state.documents.push(newDoc);
+          saveData();
+          showToast("文件建立", "新文件已建立", "success");
+          //清空
+          els.documentTitle.value = "";
+          els.documentCategory.value = "";
+          els.markdownContent.value = "";
+          closeModal("importModal");
+          renderDocList();
+          if (state.isHome) {
+            renderHomeGrid();
+          }
+        }
 
-    // 貼上匯入 Modal 控制
-    const modalOverlay = document.getElementById('modalOverlay');
-    const pasteBtn = document.getElementById('pasteBtn');
-    const cancelModal = document.getElementById('cancelModal');
-    const saveModal = document.getElementById('saveModal');
+        // 編輯
+        function openEditModal(docId) {
+          const doc = state.documents.find((d) => d.id === docId);
+          if (!doc) return;
+          state.editingDocId = docId;
+          els.editDocumentTitle.value = doc.title || "";
+          els.editDocumentCategory.value = doc.category || "";
+          els.editMarkdownContent.value = doc.content || "";
+          openModal("editModal");
+        }
+        function updateDocument() {
+          const docId = state.editingDocId;
+          const doc = state.documents.find((d) => d.id === docId);
+          if (!doc) return;
+          doc.title = els.editDocumentTitle.value.trim();
+          doc.category = els.editDocumentCategory.value.trim();
+          doc.content = els.editMarkdownContent.value;
+          saveData();
+          showToast("更新成功", "文件內容已更新", "success");
+          closeModal("editModal");
+          renderDocList();
+          if (!state.isHome && docId === state.activeDocId) {
+            renderDocument(doc);
+          }
+          renderHomeGrid();
+        }
 
-    pasteBtn.addEventListener('click', () => {
-      modalOverlay.style.display = 'flex';
-    });
+        // 刪除
+        function openDeleteModal(docId) {
+          state.deletingDocId = docId;
+          openModal("deleteModal");
+        }
+        function deleteDocument() {
+          const did = state.deletingDocId;
+          state.documents = state.documents.filter((d) => d.id !== did);
+          saveData();
+          showToast("文件刪除", "該文件已被刪除了", "success");
+          closeModal("deleteModal");
+          if (did === state.activeDocId) {
+            state.activeDocId = null;
+            showHome();
+          } else {
+            renderDocList();
+            if (state.isHome) {
+              renderHomeGrid();
+            }
+          }
+        }
 
-    cancelModal.addEventListener('click', () => {
-      modalOverlay.style.display = 'none';
-      clearModal();
-    });
+        // 新增分類
+        function addCategory() {
+          const catName = els.newCategory.value.trim();
+          if (!catName) {
+            showToast("錯誤", "分類名稱不可空", "error");
+            return;
+          }
+          if (state.categories.includes(catName)) {
+            showToast("錯誤", "重複的分類名稱", "error");
+            return;
+          }
+          state.categories.push(catName);
+          saveData();
+          els.newCategory.value = "";
+          closeModal("categoryModal");
+          showToast("新增分類", `成功新增「${catName}」`, "success");
+          renderCategoryChips();
+        }
 
-    saveModal.addEventListener('click', () => {
-      const content = document.getElementById('mdContent').value.trim();
-      let name = document.getElementById('mdName').value.trim();
-      const category = document.getElementById('mdCategory').value.trim() || '未分類';
-      const version = document.getElementById('mdVersion').value.trim() || 'N/A';
+        // 渲染分類chips
+        function renderCategoryChips() {
+          els.filterChips.innerHTML = `
+          <div class="filter-chip ${
+            state.currentFilter === "all" ? "active" : ""
+          }" data-category="all">全部</div>
+        `;
+          state.categories.forEach((cat) => {
+            const div = document.createElement("div");
+            div.className = "filter-chip";
+            div.textContent = cat;
+            div.dataset.category = cat;
+            if (state.currentFilter === cat) {
+              div.classList.add("active");
+            }
+            els.filterChips.appendChild(div);
+          });
+        }
 
-      if (!content) {
-        alert('請貼上 Markdown 內容！');
-        return;
-      }
-      // 若未輸入名稱，則以當前日期作為名稱
-      if (!name) {
-        name = new Date().toLocaleString();
-      }
-      const newFile = {
-        name: name,
-        category: category,
-        version: version,
-        content: content,
-        date: new Date().toLocaleString()
-      };
-      markdownFiles.push(newFile);
-      updateLocalStorage();
-      renderFileList();
-      modalOverlay.style.display = 'none';
-      clearModal();
-    });
+        // Toast
+        function showToast(title, message, type = "success") {
+          const toast = document.createElement("div");
+          toast.classList.add("toast");
+          toast.classList.add(
+            type === "success" ? "toast-success" : "toast-error"
+          );
+          toast.innerHTML = `
+          <div class="toast-icon">
+            <i class="fas ${
+              type === "success" ? "fa-check-circle" : "fa-exclamation-circle"
+            }"></i>
+          </div>
+          <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+          </div>
+        `;
+          els.toastContainer.appendChild(toast);
+          setTimeout(() => toast.classList.add("show"), 10);
+          setTimeout(() => {
+            toast.classList.remove("show");
+            setTimeout(() => els.toastContainer.removeChild(toast), 300);
+          }, 3000);
+        }
 
-    function clearModal() {
-      document.getElementById('mdContent').value = '';
-      document.getElementById('mdName').value = '';
-      document.getElementById('mdCategory').value = '';
-      document.getElementById('mdVersion').value = '';
-    }
+        // 綁定事件
+        function bindEvents() {
+          // logo -> 回首頁
+          els.logoHome.addEventListener("click", () => {
+            showHome();
+            renderDocList(); // sidebar sync
+          });
+          // toggle sidebar
+          els.toggleSidebar.addEventListener("click", () => {
+            document
+              .querySelector(".app-container")
+              .classList.toggle("sidebar-hidden");
+          });
 
-    document.addEventListener('DOMContentLoaded', () => {
-      renderFileList();
-    });
-  </script>
-</body>
+          // 貼上匯入(剪貼簿)
+          els.quickImportBtn.addEventListener("click", () => {
+            importFromClipboard();
+          });
+          els.emptyStateBtn2.addEventListener("click", () => {
+            importFromClipboard();
+          });
+
+          // 建立新文件 Modal
+          els.newDocBtn.addEventListener("click", () => {
+            openModal("importModal");
+          });
+          els.saveDocumentBtn.addEventListener("click", () => {
+            saveDocument();
+          });
+
+          // 編輯
+          els.updateDocumentBtn.addEventListener("click", () => {
+            updateDocument();
+          });
+
+          // 刪除
+          els.confirmDeleteBtn.addEventListener("click", () => {
+            deleteDocument();
+          });
+
+          // 新增分類
+          els.addCategoryBtn.addEventListener("click", () => {
+            openModal("categoryModal");
+          });
+          els.saveCategoryBtn.addEventListener("click", () => {
+            addCategory();
+          });
+
+          // Modal關閉
+          document.querySelectorAll(".modal-close").forEach((btn) => {
+            btn.addEventListener("click", () =>
+              btn.closest(".modal-overlay").classList.remove("active")
+            );
+          });
+          document.querySelectorAll(".modal-close-btn").forEach((btn) => {
+            btn.addEventListener("click", () =>
+              btn.closest(".modal-overlay").classList.remove("active")
+            );
+          });
+
+          // 搜尋
+          els.searchInput.addEventListener("input", () => {
+            renderDocList();
+            if (state.isHome) renderHomeGrid();
+          });
+
+          // 分類chips
+          els.filterChips.addEventListener("click", (e) => {
+            const chip = e.target.closest(".filter-chip");
+            if (!chip) return;
+            document
+              .querySelectorAll(".filter-chip")
+              .forEach((c) => c.classList.remove("active"));
+            chip.classList.add("active");
+            state.currentFilter = chip.dataset.category;
+            renderDocList();
+            if (state.isHome) renderHomeGrid();
+          });
+
+          // 時間排序
+          els.sortTimeRadios.forEach((radio) => {
+            radio.addEventListener("change", () => {
+              state.sortOrder = radio.value; // asc / desc
+              renderDocList();
+              if (state.isHome) renderHomeGrid();
+            });
+          });
+        }
+
+        // init
+        function init() {
+          loadData();
+          bindEvents();
+          renderCategoryChips();
+          renderDocList();
+          showHome();
+        }
+        init();
+      });
+    </script>
+  </body>
 </html>
