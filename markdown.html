@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>專業 Markdown 解析器 - 多版本分類儲存</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Reset 與基本設定 */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #f4f7fc;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 1rem;
+      text-align: center;
+      position: relative;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+    }
+    header .upload-actions {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+    header input[type="file"],
+    header button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    header input[type="file"] {
+      background: #3498db;
+      color: #fff;
+    }
+    header button {
+      background: #e67e22;
+      color: #fff;
+    }
+    .container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .sidebar {
+      background: #ecf0f1;
+      width: 300px;
+      padding: 1rem;
+      border-right: 1px solid #bdc3c7;
+      overflow-y: auto;
+    }
+    .sidebar h2 {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+    .sidebar ul {
+      list-style: none;
+    }
+    .sidebar li {
+      padding: 0.8rem;
+      margin-bottom: 0.5rem;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      transition: background 0.3s;
+      border: 1px solid #ddd;
+    }
+    .sidebar li:hover, .sidebar li.active {
+      background: #dfe6e9;
+    }
+    .sidebar li .info {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    .main {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      background: #fff;
+    }
+    .markdown-preview {
+      max-width: 900px;
+      margin: auto;
+    }
+    /* Modal Styles */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 8px;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .modal h3 {
+      margin-bottom: 1rem;
+    }
+    .modal label {
+      display: block;
+      margin: 0.8rem 0 0.4rem;
+    }
+    .modal input[type="text"],
+    .modal textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    .modal textarea {
+      height: 200px;
+      resize: vertical;
+    }
+    .modal .actions {
+      margin-top: 1.5rem;
+      text-align: right;
+    }
+    .modal .actions button {
+      padding: 0.5rem 1rem;
+      margin-left: 0.5rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .modal .actions .save-btn {
+      background: #27ae60;
+      color: #fff;
+    }
+    .modal .actions .cancel-btn {
+      background: #c0392b;
+      color: #fff;
+    }
+    /* RWD */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #bdc3c7;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Markdown 解析器</h1>
+    <div class="upload-actions">
+      <input type="file" id="fileInput" multiple accept=".md,.markdown">
+      <button id="pasteBtn">貼上匯入</button>
+    </div>
+  </header>
+  <div class="container">
+    <div class="sidebar">
+      <h2>Markdown 檔案</h2>
+      <ul id="fileList">
+        <!-- 匯入的 Markdown 檔案列表 -->
+      </ul>
+    </div>
+    <div class="main">
+      <div class="markdown-preview" id="markdownPreview">
+        <p>請從左側選擇檔案，或使用上方按鈕匯入 Markdown 檔案。</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal 區塊：貼上匯入 -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3>貼上匯入 Markdown</h3>
+      <label for="mdContent">內容：</label>
+      <textarea id="mdContent" placeholder="請貼上 Markdown 內容"></textarea>
+      <label for="mdName">檔案名稱 (留空則以日期命名)：</label>
+      <input type="text" id="mdName" placeholder="自訂名稱">
+      <label for="mdCategory">分類：</label>
+      <input type="text" id="mdCategory" placeholder="例如：技術、教學等">
+      <label for="mdVersion">版本：</label>
+      <input type="text" id="mdVersion" placeholder="例如：1.0, 2.0">
+      <div class="actions">
+        <button class="cancel-btn" id="cancelModal">取消</button>
+        <button class="save-btn" id="saveModal">儲存</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 載入 marked.js -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    // 讀取 localStorage 中的 Markdown 資料
+    let markdownFiles = JSON.parse(localStorage.getItem('markdownFiles')) || [];
+
+    function updateLocalStorage() {
+      localStorage.setItem('markdownFiles', JSON.stringify(markdownFiles));
+    }
+
+    function renderFileList() {
+      const fileListEl = document.getElementById('fileList');
+      fileListEl.innerHTML = '';
+      markdownFiles.forEach((file, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = '<strong>' + file.name + '</strong><br><span class="info">' +
+                       '分類: ' + (file.category || '未分類') + ' | 版本: ' + (file.version || 'N/A') +
+                       ' | 日期: ' + file.date + '</span>';
+        li.dataset.index = index;
+        li.addEventListener('click', () => {
+          document.querySelectorAll('#fileList li').forEach(item => item.classList.remove('active'));
+          li.classList.add('active');
+          renderMarkdown(file.content);
+        });
+        fileListEl.appendChild(li);
+      });
+    }
+
+    function renderMarkdown(content) {
+      const previewEl = document.getElementById('markdownPreview');
+      previewEl.innerHTML = marked.parse(content);
+    }
+
+    // 檔案上傳處理
+    document.getElementById('fileInput').addEventListener('change', (event) => {
+      const files = event.target.files;
+      if (files.length) {
+        Array.from(files).forEach(file => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const fileName = file.name || new Date().toLocaleString();
+            const newFile = {
+              name: fileName,
+              category: '未分類',
+              version: 'N/A',
+              content: e.target.result,
+              date: new Date().toLocaleString()
+            };
+            markdownFiles.push(newFile);
+            updateLocalStorage();
+            renderFileList();
+          };
+          reader.readAsText(file);
+        });
+      }
+    });
+
+    // 貼上匯入 Modal 控制
+    const modalOverlay = document.getElementById('modalOverlay');
+    const pasteBtn = document.getElementById('pasteBtn');
+    const cancelModal = document.getElementById('cancelModal');
+    const saveModal = document.getElementById('saveModal');
+
+    pasteBtn.addEventListener('click', () => {
+      modalOverlay.style.display = 'flex';
+    });
+
+    cancelModal.addEventListener('click', () => {
+      modalOverlay.style.display = 'none';
+      clearModal();
+    });
+
+    saveModal.addEventListener('click', () => {
+      const content = document.getElementById('mdContent').value.trim();
+      let name = document.getElementById('mdName').value.trim();
+      const category = document.getElementById('mdCategory').value.trim() || '未分類';
+      const version = document.getElementById('mdVersion').value.trim() || 'N/A';
+
+      if (!content) {
+        alert('請貼上 Markdown 內容！');
+        return;
+      }
+      // 若未輸入名稱，則以當前日期作為名稱
+      if (!name) {
+        name = new Date().toLocaleString();
+      }
+      const newFile = {
+        name: name,
+        category: category,
+        version: version,
+        content: content,
+        date: new Date().toLocaleString()
+      };
+      markdownFiles.push(newFile);
+      updateLocalStorage();
+      renderFileList();
+      modalOverlay.style.display = 'none';
+      clearModal();
+    });
+
+    function clearModal() {
+      document.getElementById('mdContent').value = '';
+      document.getElementById('mdName').value = '';
+      document.getElementById('mdCategory').value = '';
+      document.getElementById('mdVersion').value = '';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderFileList();
+    });
+  </script>
+</body>
+</html>
