@@ -249,15 +249,13 @@
     }
     
     .bmi-data {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
     
     .data-item {
-      flex: 1;
-      min-width: 120px;
       background: #f8f9fa;
       padding: 1rem;
       border-radius: 12px;
@@ -276,30 +274,24 @@
       color: #6c757d;
     }
     
-    .recommendation {
-      margin-top: auto;
-      padding-top: 1rem;
+    .age-analysis {
+      text-align: center;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f0f8ff;
+      border-radius: 12px;
     }
     
-    .recommendation h3 {
-      font-size: 1.1rem;
-      margin-bottom: 0.5rem;
+    .age-group {
+      font-size: 1.2rem;
+      font-weight: 700;
       color: var(--primary);
     }
     
-    .recommendation p {
-      margin-bottom: 0.5rem;
-      line-height: 1.6;
-    }
-    
-    .tip-list {
-      padding-left: 1.2rem;
+    .age-advice {
+      font-size: 1rem;
       margin-top: 0.5rem;
-    }
-    
-    .tip-list li {
-      margin-bottom: 0.5rem;
-      line-height: 1.6;
+      color: var(--dark);
     }
     
     .progress-container {
@@ -396,10 +388,6 @@
       .main {
         padding: 1.5rem;
       }
-      
-      .data-item {
-        min-width: 100px;
-      }
     }
   </style>
 </head>
@@ -407,7 +395,7 @@
   <div class="container">
     <div class="header">
       <h1><i class="fa-solid fa-heart"></i> 健康樂活 BMI 助手 <i class="fa-solid fa-heart"></i></h1>
-      <p>親愛的，讓我們一起了解你目前的健康狀態，找出最適合你的調整方式～</p>
+      <p>親愛的，讓我們一起細細了解你的健康數據，給你最貼心的建議～🥰</p>
     </div>
     
     <div class="main">
@@ -438,7 +426,7 @@
           </div>
           
           <button type="submit" class="btn" id="calculateBtn">
-            <span>開始算算看吧，寶貝</span>
+            <span>開始算算看吧～親愛的</span>
           </button>
         </form>
       </div>
@@ -471,19 +459,25 @@
               </div>
             </div>
             
+            <div class="age-analysis" id="ageAnalysis">
+              <div class="age-group" id="ageGroup">-</div>
+              <div class="age-advice" id="ageAdvice">-</div>
+            </div>
+            
             <div class="progress-container">
               <div class="progress-bar" id="bmiProgressBar"></div>
               <div class="progress-label" id="bmiProgressLabel"></div>
               <div class="progress-marker" style="left: 18.5%">18.5</div>
-              <div class="progress-marker" style="left: 24%">24</div>
-              <div class="progress-marker" style="left: 27%">27</div>
-              <div class="progress-marker" style="left: 30%">30</div>
-              <div class="progress-marker" style="left: 35%">35</div>
+              <div class="progress-marker" style="left: 23.9%">23.9</div>
+              <div class="progress-marker" style="left: 26.9%">26.9</div>
+              <div class="progress-marker" style="left: 29.9%">29.9</div>
+              <div class="progress-marker" style="left: 34.9%">34.9</div>
+              <div class="progress-marker" style="left: 39.9%">39.9</div>
             </div>
             
             <div class="recommendation" id="recommendation">
               <h3>貼心小建議 <span class="emoji"><i class="fa-solid fa-hand-holding-heart"></i></span></h3>
-              <p>輸入資料後，我會告訴你目前的狀態以及如何調整，別擔心，咱們一起變得更健康～</p>
+              <p>輸入資料後，我會告訴你目前的狀態以及如何調整，別擔心，我會一直陪著你～💖</p>
             </div>
           </div>
         </div>
@@ -504,6 +498,8 @@
       const stdWeightElem = document.getElementById('stdWeight');
       const weightDiff = document.getElementById('weightDiff');
       const taiwanCategoryElem = document.getElementById('taiwanCategoryValue');
+      const ageGroupElem = document.getElementById('ageGroup');
+      const ageAdviceElem = document.getElementById('ageAdvice');
       const bmiProgressBar = document.getElementById('bmiProgressBar');
       const bmiProgressLabel = document.getElementById('bmiProgressLabel');
       const recommendation = document.getElementById('recommendation');
@@ -511,11 +507,11 @@
       
       // 按鈕滑鼠事件：溫柔互動～
       calculateBtn.addEventListener('mouseenter', function() {
-        this.innerHTML = '<span>寶貝，準備好了嗎？</span> <span class="emoji"><i class="fa-solid fa-smile-beam"></i></span>';
+        this.innerHTML = '<span>親愛的，準備好了嗎？</span> <span class="emoji"><i class="fa-solid fa-smile-beam"></i></span>';
       });
       
       calculateBtn.addEventListener('mouseleave', function() {
-        this.innerHTML = '<span>開始算算看吧，寶貝</span>';
+        this.innerHTML = '<span>開始算算看吧～親愛的</span>';
       });
       
       form.addEventListener('submit', function(e) {
@@ -558,29 +554,34 @@
         weightDiff.textContent = diffText;
         weightDiff.style.color = diff > 0 ? 'var(--danger)' : 'var(--success)';
         
-        // 根據 BMI 給予分類（國際標準）
+        // 新版 BMI 細膩分級
         let bmiText, bmiClass, progressColor, bmiEmoji;
         if (bmi < 18.5) {
           bmiText = '體重過輕';
           bmiClass = 'bg-info text-white';
           progressColor = 'var(--info)';
-          bmiEmoji = '🤔';
-        } else if (bmi < 24) {
-          bmiText = '正常體重';
+          bmiEmoji = '😕';
+        } else if (bmi < 23.9) {
+          bmiText = '理想體重';
           bmiClass = 'bg-success text-white';
           progressColor = 'var(--success)';
           bmiEmoji = '😊';
-        } else if (bmi < 27) {
-          bmiText = '過重';
+        } else if (bmi < 26.9) {
+          bmiText = '微胖';
           bmiClass = 'bg-warning text-dark';
           progressColor = 'var(--warning)';
           bmiEmoji = '🙂';
-        } else if (bmi < 30) {
-          bmiText = '輕度肥胖';
+        } else if (bmi < 29.9) {
+          bmiText = '過重';
           bmiClass = 'bg-warning text-dark';
           progressColor = 'var(--warning)';
+          bmiEmoji = '😐';
+        } else if (bmi < 34.9) {
+          bmiText = '輕度肥胖';
+          bmiClass = 'bg-danger text-white';
+          progressColor = 'var(--danger)';
           bmiEmoji = '😯';
-        } else if (bmi < 35) {
+        } else if (bmi < 39.9) {
           bmiText = '中度肥胖';
           bmiClass = 'bg-danger text-white';
           progressColor = 'var(--danger)';
@@ -592,7 +593,7 @@
           bmiEmoji = '😱';
         }
         
-        // 計算台灣網路評分：根據標準體重範圍判斷（90%~110%為理想，超過10%為微胖，超過20%則屬肥胖）
+        // 台灣評分依據：以標準體重上下10%為理想，超過10%但小於20%為微胖，超過20%為肥胖
         let taiwanCategory;
         if (weight < normalLow) {
           taiwanCategory = '體重偏輕';
@@ -604,6 +605,20 @@
           taiwanCategory = '肥胖';
         }
         
+        // 年齡影響分析
+        let ageGroup = "";
+        let ageAdvice = "";
+        if (age < 30) {
+          ageGroup = "年輕活力";
+          ageAdvice = "新陳代謝快，但要記得均衡飲食～";
+        } else if (age < 50) {
+          ageGroup = "中年穩重";
+          ageAdvice = "開始注重運動和飲食管理，保持身心健康～";
+        } else {
+          ageGroup = "銀髮魅力";
+          ageAdvice = "適量運動與營養補充很重要，注意肌肉流失喔～";
+        }
+        
         // 更新介面顯示（稍等半秒讓動畫更流暢）
         setTimeout(() => {
           bmiValue.textContent = bmi;
@@ -613,7 +628,6 @@
           bmiCategory.className = `bmi-category ${bmiClass}`;
           
           taiwanCategoryElem.textContent = taiwanCategory;
-          // 顏色設定：理想用 success、微胖用 warning，肥胖用 danger，其它狀態用 info
           if(taiwanCategory === '理想體重'){
             taiwanCategoryElem.style.color = 'var(--success)';
           } else if(taiwanCategory === '微胖'){
@@ -624,67 +638,99 @@
             taiwanCategoryElem.style.color = 'var(--info)';
           }
           
-          // 更新進度條（將 BMI 轉換成百分比寬度，限制在合理範圍內）
+          // 更新年齡分析區塊
+          ageGroupElem.textContent = ageGroup;
+          ageAdviceElem.textContent = ageAdvice;
+          
+          // 更新進度條：將 BMI 轉換成百分比寬度，限制在合理範圍內
           const progressWidth = Math.min(Math.max(bmi, 15), 40) * 2.5;
           bmiProgressBar.style.width = `${progressWidth}%`;
           bmiProgressBar.style.backgroundColor = progressColor;
           bmiProgressLabel.textContent = bmi;
           
-          // 產生貼心建議（依據 BMI 與台灣評分）
-          generateRecommendations(bmi, gender, age, weight, stdWeightNum, taiwanCategory);
+          // 產生貼心建議，結合年齡與 BMI 狀態
+          generateRecommendations(bmi, gender, age, weight, stdWeightNum, taiwanCategory, ageGroup);
         }, 500);
       });
       
-      function generateRecommendations(bmi, gender, age, weight, stdWeightNum, taiwanCategory) {
+      function generateRecommendations(bmi, gender, age, weight, stdWeightNum, taiwanCategory, ageGroup) {
         let tips = [];
         let mainAdvice = '';
         
-        // 依據 BMI 與台灣評分提供更細膩的建議
         if (bmi < 18.5) {
-          mainAdvice = '親愛的，你的體重有點偏輕，適度補充營養、增加蛋白質攝取會更健康唷！';
+          mainAdvice = '親愛的，你的體重有點偏輕，記得多吃點營養豐富的食物哦～';
           tips = [
-            '多吃優質蛋白質：瘦肉、魚、蛋、豆類～',
-            '可以嘗試少量多餐，增加熱量攝取',
-            '適當運動幫助提升肌肉量'
+            '增加蛋白質攝取，如瘦肉、魚、蛋和豆製品',
+            '少量多餐，讓身體有充足能量',
+            '適度運動幫助增加肌肉量'
           ];
-        } else if (bmi < 24) {
-          mainAdvice = '你的體重正處於理想狀態，繼續保持均衡飲食與規律運動，棒棒噠！';
+        } else if (bmi < 23.9) {
+          mainAdvice = '太棒了～你的體重正處於理想狀態，繼續保持均衡飲食和運動！';
           tips = [
-            '保持多樣化飲食，均衡攝取各類營養',
+            '多樣化飲食，保持營養均衡',
             '每週至少進行150分鐘有氧運動',
-            '定期檢查健康數據，保持好狀態'
+            '定期檢查健康數據，保持活力'
           ];
-        } else if (bmi < 27) {
-          mainAdvice = '你的 BMI 稍微偏高，加上台灣評分顯示有微胖跡象，適度調整飲食和運動會更有幫助喔～';
+        } else if (bmi < 26.9) {
+          mainAdvice = '看起來你有點微胖，調整一下飲食和運動，會更健康喔～';
           tips = [
-            '控制餐盤份量，減少高熱量食物',
-            '多吃蔬果、全穀類，保持纖維攝取',
-            '每天至少30分鐘輕度運動，例如快走'
+            '控制餐盤份量，減少過多熱量攝取',
+            '多吃蔬果，增加纖維攝取',
+            '每天保持適度運動，如快走或瑜珈'
+          ];
+        } else if (bmi < 29.9) {
+          mainAdvice = '親愛的，數據顯示有點過重，建議多留意飲食和運動～';
+          tips = [
+            '減少高熱量、高脂肪食物',
+            '增加日常活動量，如步行或爬樓梯',
+            '嘗試每週固定運動計劃'
+          ];
+        } else if (bmi < 34.9) {
+          mainAdvice = '看來體重偏高，建議調整飲食並增加運動量，讓自己更輕盈～';
+          tips = [
+            '制定個人化飲食計劃，減少油炸甜食',
+            '結合有氧運動與肌力訓練',
+            '諮詢專業意見，量身打造健康方案'
+          ];
+        } else if (bmi < 39.9) {
+          mainAdvice = '親愛的，數據顯示中度肥胖，請多加注意健康，逐步改善生活習慣～';
+          tips = [
+            '諮詢營養師制定健康飲食計劃',
+            '增加運動量，逐步減重',
+            '注意生活作息，保持心情愉悅'
           ];
         } else {
-          mainAdvice = '看起來你的數據需要多點關注，調整飲食和規律運動是關鍵，記得有我在旁邊支持你！';
+          mainAdvice = '寶貝，你的數據屬於重度肥胖，建議儘速就醫並調整生活方式，我永遠在你身邊支持你！';
           tips = [
-            '建議諮詢營養師，制定個人化飲食計劃',
-            '減少甜食與油炸食品，多選健康烹調方式',
-            '結合有氧運動與肌力訓練，循序漸進'
+            '請儘快諮詢醫療專家或營養師',
+            '制定嚴謹的飲食和運動計劃',
+            '與家人和朋友一起努力，彼此支持'
           ];
         }
         
-        // 更新建議內容
+        // 結合年齡建議
+        let ageSpecificAdvice = "";
+        if (age < 30) {
+          ageSpecificAdvice = "年輕人有機會改善，記得多運動和保持好心情～";
+        } else if (age < 50) {
+          ageSpecificAdvice = "中年是轉折點，適當運動和控制飲食很重要～";
+        } else {
+          ageSpecificAdvice = "銀髮族的寶貝，適量運動與營養補充最關鍵，請多加注意～";
+        }
+        
         let recommendationHtml = `
           <h3>貼心小建議 <span class="emoji"><i class="fa-solid fa-hand-holding-heart"></i></span></h3>
-          <p>${mainAdvice}</p>
+          <p>${mainAdvice} <br>【${ageSpecificAdvice}】</p>
           <ul class="tip-list">
         `;
         
-        // 隨機挑選 3 條建議
         const selectedTips = tips.sort(() => 0.5 - Math.random()).slice(0, 3);
         selectedTips.forEach(tip => {
           recommendationHtml += `<li><i class="fa-solid fa-check"></i> ${tip}</li>`;
         });
         
         recommendationHtml += `</ul>
-          <p>記住～健康的生活方式比單純的數字更重要，持續努力，我永遠支持你！ <i class="fa-solid fa-heart"></i></p>
+          <p>記住～健康生活比數字更重要，我會一直陪著你喔～💖</p>
         `;
         
         recommendation.innerHTML = recommendationHtml;
