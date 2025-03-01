@@ -2,20 +2,20 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <title>前端學習 - 簡潔完備版</title>
+    <title>前端學習 - 漢堡選單 + 單行搜尋列</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- 字體 & 圖示 -->
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
       rel="stylesheet"
     />
-    <!-- Font Awesome (示例用) -->
+    <!-- Font Awesome (僅作示例) -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
     />
     <style>
-      /* === Global === */
+      /* ===== Global Reset & Font ===== */
       * {
         margin: 0;
         padding: 0;
@@ -23,42 +23,46 @@
         font-family: "Noto Sans TC", sans-serif;
       }
       body {
-        background: #f7f9fc;
+        background: #f5f7fa;
         color: #333;
       }
+
+      /* ===== Header ===== */
       header {
-        width: 100%;
-        background: linear-gradient(to right, #4e77f8, #6c8ff8);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
         position: fixed;
         top: 0;
         left: 0;
+        width: 100%;
         z-index: 1000;
       }
       .header-top {
+        background: linear-gradient(to right, #4e77f8, #6c8ff8);
+        padding: 0.8rem 1rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.8rem 1rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
       }
-      .header-top .logo {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #fff;
+      .logo {
         display: flex;
         align-items: center;
         gap: 0.4rem;
+        color: #fff;
+        font-size: 1.2rem;
+        font-weight: 700;
+        text-decoration: none;
       }
-      .header-top .logo i {
-        font-size: 1.4rem;
+      .logo i {
+        font-size: 1.3rem;
       }
+      /* 導覽連結(桌機) */
       .nav-links {
         display: flex;
-        gap: 1rem;
+        gap: 1.2rem;
       }
       .nav-links a {
-        text-decoration: none;
         color: #fff;
+        text-decoration: none;
         font-size: 0.9rem;
         transition: opacity 0.2s;
       }
@@ -66,7 +70,63 @@
         opacity: 0.8;
       }
 
-      /* Filter Bar */
+      /* 漢堡按鈕(手機) */
+      .hamburger {
+        cursor: pointer;
+        width: 30px;
+        height: 22px;
+        position: relative;
+        display: none; /* 預設隱藏，僅手機時顯示 */
+      }
+      .hamburger span {
+        position: absolute;
+        height: 3px;
+        width: 100%;
+        background: #fff;
+        left: 0;
+        transition: 0.4s;
+      }
+      .hamburger span:nth-child(1) {
+        top: 0;
+      }
+      .hamburger span:nth-child(2) {
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .hamburger span:nth-child(3) {
+        bottom: 0;
+      }
+      /* 動畫: active 時改成 X */
+      .hamburger.active span:nth-child(1) {
+        transform: rotate(45deg);
+        top: 10px;
+      }
+      .hamburger.active span:nth-child(2) {
+        opacity: 0;
+      }
+      .hamburger.active span:nth-child(3) {
+        transform: rotate(-45deg);
+        bottom: 10px;
+      }
+
+      /* 小螢幕時 NavLinks 隱藏，點擊後展開 */
+      .mobile-nav {
+        display: none; /* 預設隱藏 */
+        background: #4e77f8;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0.5rem 1rem;
+      }
+      .mobile-nav a {
+        color: #fff;
+        text-decoration: none;
+        font-size: 1rem;
+      }
+      .mobile-nav.show {
+        display: flex; /* 切換顯示 */
+      }
+
+      /* ===== Filter Bar ===== */
       .filter-bar {
         display: flex;
         align-items: center;
@@ -92,6 +152,7 @@
         font-size: 0.9rem;
         cursor: pointer;
         transition: background-color 0.3s;
+        white-space: nowrap; /* 保持按鈕不換行 */
       }
       .filter-bar button:hover {
         background-color: #3b61c9;
@@ -101,7 +162,7 @@
         max-width: 1200px;
         margin: 0 auto;
         padding: 2rem 1rem;
-        margin-top: 130px; /* 預留 header 高度 */
+        margin-top: 130px; /* 預留 header */
       }
       .section-title {
         font-size: 1.5rem;
@@ -127,13 +188,13 @@
         padding: 0.8rem;
         border-radius: 4px;
       }
+
       /* 卡片區 */
       .card-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 1rem;
       }
-      /* 卡片樣式 */
       .card {
         background-color: #fff;
         border-radius: 6px;
@@ -379,42 +440,59 @@
         padding-bottom: 1.5rem;
       }
 
-      /* RWD */
-      @media (max-width: 576px) {
-        .header-top,
-        .filter-bar {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-        .header-top {
-          gap: 0.8rem;
-        }
+      /* ========== RWD ========== */
+      @media (max-width: 768px) {
+        /* 漢堡出現，桌機 NavLinks 隱藏 */
         .nav-links {
-          flex-wrap: wrap;
-          gap: 0.5rem;
+          display: none;
         }
-        .card-grid {
-          grid-template-columns: 1fr;
+        .hamburger {
+          display: block;
+        }
+
+        /* 小螢幕: 顯示 mobile-nav, 預設隱藏, .show 時顯示 */
+      }
+
+      /* 手機: FilterBar 單行橫向捲動 */
+      @media (max-width: 576px) {
+        .filter-bar {
+          white-space: nowrap; /* 不換行 */
+          overflow-x: auto;    /* 橫向捲動 */
         }
       }
     </style>
   </head>
   <body>
-    <!-- Header -->
     <header>
+      <!-- Header Top -->
       <div class="header-top">
-        <div class="logo">
-          <i class="fas fa-lightbulb"></i>
-          前端學習
-        </div>
-        <nav class="nav-links">
+        <a href="#" class="logo"
+          ><i class="fas fa-lightbulb"></i> 前端學習</a
+        >
+        <!-- 桌機導覽連結 -->
+        <nav class="nav-links" id="desktopNav">
           <a href="#learning">學習路徑</a>
           <a href="#practical">實戰應用</a>
           <a href="#functionality">功能實現</a>
           <a href="#integrated">綜合應用</a>
         </nav>
+        <!-- 漢堡按鈕 (手機) -->
+        <div class="hamburger" id="hamburgerBtn">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </div>
-      <div class="filter-bar">
+      <!-- 手機版 Nav, 預設隱藏 -->
+      <nav class="mobile-nav" id="mobileNav">
+        <a href="#learning">學習路徑</a>
+        <a href="#practical">實戰應用</a>
+        <a href="#functionality">功能實現</a>
+        <a href="#integrated">綜合應用</a>
+      </nav>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar" id="filterBar">
         <select id="categorySelect">
           <option value="">全部分類</option>
         </select>
@@ -440,21 +518,18 @@
         <div id="learning-overview" class="section-overview"></div>
         <div class="card-grid" id="learning-container"></div>
       </section>
-
       <!-- Practical -->
       <section id="practical">
         <h2 class="section-title">實戰應用 (Practical)</h2>
         <div id="practical-overview" class="section-overview"></div>
         <div class="card-grid" id="practical-container"></div>
       </section>
-
       <!-- Functionality -->
       <section id="functionality">
         <h2 class="section-title">功能實現 (Functionality)</h2>
         <div id="functionality-overview" class="section-overview"></div>
         <div class="card-grid" id="functionality-container"></div>
       </section>
-
       <!-- Integrated -->
       <section id="integrated">
         <h2 class="section-title">綜合應用 (Integrated)</h2>
@@ -477,9 +552,17 @@
       </div>
     </div>
 
-    <footer>&copy; 2025 前端學習 - 簡潔完備版</footer>
+    <footer>&copy; 2025 前端學習 - 漢堡選單 & 單行搜尋示例</footer>
 
     <script>
+      // ====== 漢堡動畫 + 手機版導覽切換 ======
+      const hamburgerBtn = document.getElementById("hamburgerBtn");
+      const mobileNav = document.getElementById("mobileNav");
+      hamburgerBtn.addEventListener("click", () => {
+        hamburgerBtn.classList.toggle("active");
+        mobileNav.classList.toggle("show");
+      });
+
       // ====== Toast 功能 ======
       function showToast(msg) {
         const toastContainer = document.getElementById("toastContainer");
@@ -503,46 +586,44 @@
         modalBody.innerHTML = "";
 
         // info-block
-        const info = document.createElement("div");
-        info.className = "info-block";
-
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "info-block";
         if (item.description) {
           const p = document.createElement("p");
-          p.innerHTML = `<strong>描述：</strong> ${item.description}`;
-          info.appendChild(p);
+          p.innerHTML = `<strong>描述：</strong>${item.description}`;
+          infoDiv.appendChild(p);
         }
         if (item.category) {
           const p = document.createElement("p");
-          p.innerHTML = `<strong>分類：</strong> ${item.category}`;
-          info.appendChild(p);
+          p.innerHTML = `<strong>分類：</strong>${item.category}`;
+          infoDiv.appendChild(p);
         }
         if (item.level) {
           const p = document.createElement("p");
-          p.innerHTML = `<strong>等級：</strong> ${levelToZh(item.level)}`;
-          info.appendChild(p);
+          p.innerHTML = `<strong>等級：</strong>${levelToZh(item.level)}`;
+          infoDiv.appendChild(p);
         }
-        if (item.keywords) {
+        if (Array.isArray(item.keywords)) {
           const p = document.createElement("p");
-          p.innerHTML = `<strong>關鍵字：</strong> ${item.keywords.join(", ")}`;
-          info.appendChild(p);
+          p.innerHTML = `<strong>關鍵字：</strong>${item.keywords.join(", ")}`;
+          infoDiv.appendChild(p);
         }
         if (item.suggestedTimeline) {
           const p = document.createElement("p");
-          p.innerHTML = `<strong>建議時程：</strong> ${item.suggestedTimeline}`;
-          info.appendChild(p);
+          p.innerHTML = `<strong>建議時程：</strong>${item.suggestedTimeline}`;
+          infoDiv.appendChild(p);
         }
         if (item.lastUpdated) {
           const p = document.createElement("p");
-          p.innerHTML = `<strong>最後更新：</strong> ${item.lastUpdated}`;
-          info.appendChild(p);
+          p.innerHTML = `<strong>最後更新：</strong>${item.lastUpdated}`;
+          infoDiv.appendChild(p);
         }
         if (item.applicationScenarios) {
           const p = document.createElement("p");
-          p.innerHTML = `<strong>應用場景：</strong> ${item.applicationScenarios.join("、")}`;
-          info.appendChild(p);
+          p.innerHTML = `<strong>應用場景：</strong>${item.applicationScenarios.join("、")}`;
+          infoDiv.appendChild(p);
         }
-
-        modalBody.appendChild(info);
+        modalBody.appendChild(infoDiv);
 
         // prompt
         if (item.prompt) {
@@ -550,20 +631,20 @@
           promptBlock.className = "prompt-block";
           promptBlock.innerHTML = `
             <strong>Prompt：</strong><br>
-            <p style="margin-top: 0.3rem;">${item.prompt}</p>
+            <p style="margin-top:0.3rem;">${item.prompt}</p>
           `;
           modalBody.appendChild(promptBlock);
 
-          const copyBtn = document.createElement("button");
-          copyBtn.className = "copy-btn";
-          copyBtn.textContent = "複製 Prompt";
-          copyBtn.addEventListener("click", () => {
+          const cbtn = document.createElement("button");
+          cbtn.className = "copy-btn";
+          cbtn.textContent = "複製 Prompt";
+          cbtn.addEventListener("click", () => {
             navigator.clipboard
               .writeText(item.prompt)
               .then(() => showToast("已複製 Prompt"))
               .catch((err) => console.error("複製失敗:", err));
           });
-          modalBody.appendChild(copyBtn);
+          modalBody.appendChild(cbtn);
         }
 
         // requiredInfo
@@ -581,6 +662,7 @@
 
         modalBackdrop.style.display = "flex";
       }
+
       function closeModal() {
         modalBackdrop.style.display = "none";
       }
@@ -618,9 +700,7 @@
         Testing: "fas fa-vial",
       };
 
-      // 解析 timeline
       function parseTimeline(str) {
-        // ex: "第 3 週，約 3 小時" -> (3 / 12) * 100
         const wm = str.match(/第\s*(\d+)\s*週/);
         if (!wm) return 0;
         const w = parseInt(wm[1], 10);
@@ -628,67 +708,61 @@
         return ratio > 100 ? 100 : ratio;
       }
 
-      // 卡片生成
+      // 卡片
       function createCard(item) {
         const card = document.createElement("div");
         card.className = "card";
 
         // header
-        const head = document.createElement("div");
-        head.className = "card-header";
+        const header = document.createElement("div");
+        header.className = "card-header";
+        const icon = document.createElement("i");
+        icon.className = categoryIconMap[item.category] || "fas fa-layer-group";
+        header.appendChild(icon);
 
-        // icon
-        const catIcon = document.createElement("i");
-        catIcon.className =
-          categoryIconMap[item.category] || "fas fa-layer-group";
-        head.appendChild(catIcon);
-
-        const h3 = document.createElement("h3");
-        h3.textContent = `${item.number}. ${item.title}`;
-        head.appendChild(h3);
+        const title = document.createElement("h3");
+        title.textContent = `${item.number}. ${item.title}`;
+        header.appendChild(title);
 
         if (item.level) {
-          const lvl = document.createElement("span");
-          lvl.classList.add("level-tag", item.level);
-          lvl.textContent = levelToZh(item.level);
-          head.appendChild(lvl);
+          const lvtag = document.createElement("span");
+          lvtag.classList.add("level-tag", item.level);
+          lvtag.textContent = levelToZh(item.level);
+          header.appendChild(lvtag);
         }
-        card.appendChild(head);
+        card.appendChild(header);
 
-        // description
-        const desc = document.createElement("div");
-        desc.className = "desc";
-        desc.textContent = item.description || "";
-        card.appendChild(desc);
+        // desc
+        const d = document.createElement("div");
+        d.className = "desc";
+        d.textContent = item.description || "";
+        card.appendChild(d);
 
-        // 進度條 (依 suggestedTimeline)
+        // 進度條
         if (item.suggestedTimeline) {
-          const progressDiv = document.createElement("div");
-          progressDiv.className = "progress-section";
+          const progressSec = document.createElement("div");
+          progressSec.className = "progress-section";
 
           const label = document.createElement("div");
           label.className = "progress-label";
-          const ratio = parseTimeline(item.suggestedTimeline);
-          // ex: 第 3 週 / 12 週
           label.textContent = item.suggestedTimeline;
-          progressDiv.appendChild(label);
+          progressSec.appendChild(label);
 
           const bar = document.createElement("div");
           bar.className = "progress-bar";
           const fill = document.createElement("div");
           fill.className = "progress-bar-fill";
-          fill.style.width = `${ratio}%`;
+          fill.style.width = `${parseTimeline(item.suggestedTimeline)}%`;
           bar.appendChild(fill);
-          progressDiv.appendChild(bar);
+          progressSec.appendChild(bar);
 
-          card.appendChild(progressDiv);
+          card.appendChild(progressSec);
         }
 
         // keywords
         if (Array.isArray(item.keywords) && item.keywords.length > 0) {
           const kwList = document.createElement("div");
           kwList.className = "keyword-list";
-
           item.keywords.forEach((kw) => {
             const pill = document.createElement("span");
             pill.className = "keyword-pill";
@@ -703,14 +777,14 @@
         }
 
         // btn-area
-        const btnArea = document.createElement("div");
-        btnArea.className = "btn-area";
+        const btnRow = document.createElement("div");
+        btnRow.className = "btn-area";
 
-        const moreBtn = document.createElement("button");
-        moreBtn.className = "btn";
-        moreBtn.textContent = "更多";
-        moreBtn.addEventListener("click", () => openModal(item));
-        btnArea.appendChild(moreBtn);
+        const detailBtn = document.createElement("button");
+        detailBtn.className = "btn";
+        detailBtn.textContent = "更多";
+        detailBtn.addEventListener("click", () => openModal(item));
+        btnRow.appendChild(detailBtn);
 
         if (item.prompt) {
           const copyBtn = document.createElement("button");
@@ -722,10 +796,10 @@
               .then(() => showToast("已複製 Prompt"))
               .catch((err) => console.error("複製失敗:", err));
           });
-          btnArea.appendChild(copyBtn);
+          btnRow.appendChild(copyBtn);
         }
 
-        card.appendChild(btnArea);
+        card.appendChild(btnRow);
 
         return card;
       }
@@ -770,7 +844,7 @@
         renderCards("integrated-container", dataIntegrated.filter(matchFn));
       }
 
-      // ============ Init ============
+      // 初始化
       document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("searchBtn").addEventListener("click", handleSearchAndFilter);
         document.getElementById("searchInput").addEventListener("keyup", (e) => {
@@ -784,23 +858,22 @@
         fetch("react_prompt.json")
           .then((res) => res.json())
           .then((json) => {
-            // Learning
+            // learning
             const l = json.learning || {};
             document.getElementById("learning-overview").textContent = l.overview || "";
             dataLearning = l.items || [];
 
-            // Practical
+            // practical
             const p = json.practicalApplication || {};
             document.getElementById("practical-overview").textContent = p.overview || "";
             dataPractical = p.items || [];
 
-            // Functionality
+            // functionality
             const f = json.functionality || {};
-            document.getElementById("functionality-overview").textContent =
-              f.overview || "";
+            document.getElementById("functionality-overview").textContent = f.overview || "";
             dataFunctionality = f.items || [];
 
-            // Integrated
+            // integrated
             const i = json.integratedExample || {};
             document.getElementById("integrated-overview").textContent = i.overview || "";
             dataIntegrated = i.items || [];
@@ -811,7 +884,7 @@
             renderCards("functionality-container", dataFunctionality);
             renderCards("integrated-container", dataIntegrated);
 
-            // Collect category
+            // 收集 category
             const allItems = [
               ...dataLearning,
               ...dataPractical,
