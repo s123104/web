@@ -296,7 +296,7 @@
         transform: translateY(0);
       }
       .filter-panel.collapsed {
-        transform: translateY(calc(-100% + 3rem));
+        transform: translateY(-100%);
       }
       .filter-section {
         margin-bottom: 1.5rem;
@@ -386,6 +386,7 @@
       }
 
       .card-grid {
+        margin-bottom: 1.5rem;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 1.5rem;
@@ -926,6 +927,55 @@
         </div>
       </section>
       <section class="filter-section">
+        <h5><i class="fas fa-cogs"></i> 應用功能</h5>
+        <div class="filter-options" id="funcOptions">
+          <div
+            class="filter-option"
+            data-value="狀態管理"
+            style="color: #4361ee"
+          >
+            <i class="fas fa-exchange-alt"></i> 狀態管理
+          </div>
+          <div class="filter-option" data-value="路由" style="color: #ff5722">
+            <i class="fas fa-arrow-right"></i> 路由
+          </div>
+          <div
+            class="filter-option"
+            data-value="API 查詢"
+            style="color: #6b6b6b"
+          >
+            <i class="fas fa-cloud"></i> API 查詢
+          </div>
+          <div
+            class="filter-option"
+            data-value="即時通訊"
+            style="color: #ffa500"
+          >
+            <i class="fas fa-comment-alt"></i> 即時通訊
+          </div>
+          <div class="filter-option" data-value="測試" style="color: #8e44ad">
+            <i class="fas fa-vial"></i> 測試
+          </div>
+          <div
+            class="filter-option"
+            data-value="效能優化"
+            style="color: #ff9800"
+          >
+            <i class="fas fa-tachometer-alt"></i> 效能優化
+          </div>
+          <div class="filter-option" data-value="部署" style="color: #bc67e2">
+            <i class="fas fa-rocket"></i> 部署
+          </div>
+          <div
+            class="filter-option"
+            data-value="主題樣式"
+            style="color: #2965f1"
+          >
+            <i class="fas fa-paint-brush"></i> 主題樣式
+          </div>
+        </div>
+      </section>
+      <section class="filter-section">
         <h5><i class="fas fa-lightbulb"></i> 應用場景</h5>
         <div class="filter-options" id="appOptions">
           <div
@@ -992,7 +1042,7 @@
             <i class="fas fa-comment-alt"></i> 即時聊天
           </div>
           <div class="filter-option" data-value="討論區" style="color: #ff9800">
-            <i class="fas fa-forumbee"></i> 討論區
+            <i class="fas fa-comments"></i> 討論區
           </div>
           <div
             class="filter-option"
@@ -1189,16 +1239,19 @@
       // 多選按鈕
       const levelOptions = document.getElementById("levelOptions").children;
       const techOptions = document.getElementById("techOptions").children;
+      const funcOptions = document.getElementById("funcOptions").children;
       const appOptions = document.getElementById("appOptions").children;
 
-      [levelOptions, techOptions, appOptions].forEach((options) => {
-        Array.from(options).forEach((option) => {
-          option.addEventListener("click", () => {
-            option.classList.toggle("selected");
-            handleSearchAndFilter();
+      [levelOptions, techOptions, funcOptions, appOptions].forEach(
+        (options) => {
+          Array.from(options).forEach((option) => {
+            option.addEventListener("click", () => {
+              option.classList.toggle("selected");
+              handleSearchAndFilter();
+            });
           });
-        });
-      });
+        }
+      );
 
       // Toast
       function showToast(msg) {
@@ -1229,6 +1282,7 @@
 
       function parsePrompt(prompt, inputs) {
         let result = prompt;
+        // 嘗試替換佔位符
         if (inputs.demand) {
           result = result.replace(
             /［請描述需求，如 '[^']*'］/,
@@ -1253,9 +1307,24 @@
               /（如 '[^']*'）/,
               `（如 '${inputs.result}'）`
             );
-          } else {
-            result += `（期望結果：${inputs.result}）`;
           }
+        }
+        // 若未完全替換，附加所有輸入資訊
+        let additionalInfo = "";
+        if (inputs.demand && !result.includes(`［${inputs.demand}］`)) {
+          additionalInfo += `\n- 功能需求：${inputs.demand}`;
+        }
+        if (
+          inputs.code &&
+          !result.includes(`\`\`\`javascript\n${inputs.code}\n\`\`\``)
+        ) {
+          additionalInfo += `\n- 目前程式碼：\`\`\`javascript\n${inputs.code}\n\`\`\``;
+        }
+        if (inputs.result && !result.includes(`（如 '${inputs.result}'）`)) {
+          additionalInfo += `\n- 期望結果：${inputs.result}`;
+        }
+        if (additionalInfo) {
+          result += `\n\n**用戶輸入資訊：**${additionalInfo}`;
         }
         return result;
       }
@@ -1506,7 +1575,7 @@
         客戶管理: "fas fa-address-book",
         全端部署: "fas fa-layer-group",
         即時聊天: "fas fa-comment-alt",
-        討論區: "fas fa-forumbee",
+        討論區: "fas fa-comments",
         旅遊指南: "fas fa-map",
         營收分析: "fas fa-money-bill",
         內容管理: "fas fa-edit",
@@ -1578,7 +1647,6 @@
         響應式設計: "fas fa-desktop",
         佈局優化: "fas fa-th",
         計數功能: "fas fa-plus-circle",
-        邏輯封裝: "fas fa-boxes",
         重用模組: "fas fa-recycle",
         資源打包: "fas fa-box",
         模組管理: "fas fa-cubes",
@@ -1891,6 +1959,9 @@
         const selectedTechs = Array.from(techOptions)
           .filter((opt) => opt.classList.contains("selected"))
           .map((opt) => opt.dataset.value);
+        const selectedFuncs = Array.from(funcOptions)
+          .filter((opt) => opt.classList.contains("selected"))
+          .map((opt) => opt.dataset.value);
         const selectedApps = Array.from(appOptions)
           .filter((opt) => opt.classList.contains("selected"))
           .map((opt) => opt.dataset.value);
@@ -1909,6 +1980,11 @@
           if (
             selectedTechs.length > 0 &&
             !selectedTechs.includes(item.category)
+          )
+            return false;
+          if (
+            selectedFuncs.length > 0 &&
+            !selectedFuncs.some((func) => item.title.includes(func))
           )
             return false;
           if (
