@@ -270,7 +270,7 @@
       #toast.show {
         visibility: visible;
       }
-      /* AI 控制介面 */
+      /* AI 控制介面，設定最小高度 */
       #ai-control {
         margin-top: 20px;
         padding: 10px;
@@ -280,6 +280,7 @@
         font-size: 14px;
         color: #776e65;
         display: none;
+        min-height: 50px;
       }
       #ai-control label {
         display: block;
@@ -540,6 +541,7 @@
           const originalBoard = JSON.parse(JSON.stringify(this.board));
           switch (direction) {
             case 0:
+              // 上方向只有在不得已時使用，評估中已有懲罰
               for (let col = 0; col < 4; col++)
                 this.processCellsUpDown(col, true, mergedTiles, movedTiles);
               break;
@@ -855,7 +857,8 @@
         return clone;
       }
 
-      // 評估函數：獎勵最大數字必須在左下角 & 最下排必須填滿（避免死路）
+      // 評估函數：優先獎勵左下最大、左邊與下排填滿，
+      // 並增加相鄰數字易合併的獎勵，確保未來步驟能連續合併
       function evaluateState(state) {
         let board = state.board;
         let score = state.score;
@@ -871,13 +874,26 @@
             }
           }
         }
-        // 如果最大數字在左下角 (row=3, col=0) 給獎勵，否則重罰
+        // 優先左下：如果最大數字在左下角 (row=3, col=0) 給獎勵，否則重罰
         if (maxRow === 3 && maxCol === 0) {
           score += maxTile * 10;
         } else {
           score -= maxTile * 20;
         }
-        // 檢查最下排是否填滿
+        // 優先左邊填滿：檢查左邊一整列是否填滿
+        let leftColumnFull = true;
+        for (let i = 0; i < 4; i++) {
+          if (board[i][0] === 0) {
+            leftColumnFull = false;
+            break;
+          }
+        }
+        if (leftColumnFull) {
+          score += 80;
+        } else {
+          score -= 40;
+        }
+        // 優先下排填滿：檢查最下排是否填滿
         let bottomRowFull = true;
         for (let j = 0; j < 4; j++) {
           if (board[3][j] === 0) {
@@ -890,6 +906,22 @@
         } else {
           score -= 50;
         }
+        // 獎勵相鄰相同的數字（易於合併）
+        let adjacentBonus = 0;
+        for (let i = 0; i < 4; i++) {
+          for (let j = 0; j < 4; j++) {
+            let value = board[i][j];
+            if (value !== 0) {
+              if (j < 3 && board[i][j + 1] === value) {
+                adjacentBonus += value * 2;
+              }
+              if (i < 3 && board[i + 1][j] === value) {
+                adjacentBonus += value * 2;
+              }
+            }
+          }
+        }
+        score += adjacentBonus;
         return score;
       }
 
@@ -927,6 +959,10 @@
             totalScore += simulateMoves(simState.getStateForAI(), depth);
           }
           let avgScore = totalScore / iterationsPerMove;
+          // 對上方向施加懲罰，除非不得已才用
+          if (direction === 0) {
+            avgScore *= 0.5;
+          }
           moveStats[direction] = avgScore;
           candidateMoves.push({ direction, avgScore });
           if (avgScore > bestScore) {
@@ -934,7 +970,7 @@
             bestMove = direction;
           }
         }
-        // 如果最佳移動是上（0），但其他非上方向有接近（>=95%）的得分，則選擇非上方向
+        // 如果最佳移動是上（0），但其他方向候選有接近 (>=95%) 得分，則選擇非上
         if (bestMove === 0) {
           for (let move of candidateMoves) {
             if (move.direction !== 0 && move.avgScore >= bestScore * 0.95) {
@@ -954,9 +990,9 @@
           !currentState.gameOver &&
           !(currentState.gameWon && !currentState.keepPlaying)
         ) {
-          // 如果分數超過 20000，模擬深度 10 步，否則 5 步
+          // 分數超過20000時模擬10步，否則模擬5步
           let depth = currentState.score >= 20000 ? 10 : 5;
-          let iterationsPerMove = 10; // 每個方向模擬 10 次
+          let iterationsPerMove = 10;
           let simulation = chooseBestMoveDeep(
             currentState,
             depth,
