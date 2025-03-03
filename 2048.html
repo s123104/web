@@ -2,16 +2,8 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <title>2048 甜心版</title>
-    <link rel="icon" href="img/wolf.ico" type="image/x-icon" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+QingKe+HuangYou&display=swap"
-      rel="stylesheet"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2048 AI 深度模式 (ai=2)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       * {
@@ -22,38 +14,37 @@
       html,
       body {
         height: 100%;
-        overflow: hidden; /* 取消整體捲軸 */
+        overflow: hidden;
       }
       body {
         font-family: "Noto Sans TC", sans-serif;
         background-color: #faf8ef;
         display: flex;
         justify-content: center;
-        align-items: center; /* 垂直置中 */
-        min-height: 100vh; /* 確保最小高度為視窗高度 */
+        align-items: center;
+        min-height: 100vh;
         margin: 0;
       }
       .container {
         width: 100%;
         max-width: 600px;
-        height: 90vh; /* 設定容器高度為 90vh */
+        height: 90vh;
         padding: 20px;
         background: #fff6ea;
         border-radius: 12px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        overflow-y: auto; /* 若內容超出則允許內部捲動 */
-        -webkit-overflow-scrolling: touch; /* 改善手機觸控滾動體驗 */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
-      /* 手機特定樣式 */
       @media screen and (max-width: 767px) {
         html,
         body {
           overflow: hidden;
-        } /* 手機端取消捲軸 */
+        }
         .container {
-          height: 90vh; /* 手機端固定為 90vh */
-          overflow-y: hidden; /* 手機端取消內部捲軸 */
-          padding: 10px; /* 減少手機端內邊距 */
+          height: 90vh;
+          overflow-y: hidden;
+          padding: 10px;
         }
       }
       .header {
@@ -263,90 +254,6 @@
         font-size: 14px;
         text-align: center;
       }
-      .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 999;
-        display: none;
-        justify-content: center;
-        align-items: center;
-      }
-      .modal-content {
-        background: #fff;
-        padding: 20px;
-        border-radius: 6px;
-        width: 90%;
-        max-width: 400px;
-        position: relative;
-        text-align: left;
-      }
-      .modal-content h2 {
-        margin-bottom: 15px;
-        color: #8f7a66;
-      }
-      .modal-content p {
-        color: #776e65;
-        margin-bottom: 10px;
-        line-height: 1.6;
-      }
-      .modal-icon {
-        font-size: 16px;
-        margin-right: 5px;
-        color: #8f7a66;
-      }
-      .modal-close {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: #bbb;
-        border: none;
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        font-weight: bold;
-        cursor: pointer;
-        color: #fff;
-      }
-      .prompt-guide {
-        margin-top: 20px;
-        background: #fefefe;
-        padding: 15px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-      }
-      .prompt-guide h3 {
-        margin-bottom: 10px;
-        color: #8f7a66;
-      }
-      .prompt-container {
-        position: relative;
-      }
-      #prompt-text {
-        width: 100%;
-        height: 120px;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-family: monospace;
-        resize: none;
-      }
-      .copy-button {
-        margin-top: 10px;
-        padding: 8px 16px;
-        background-color: #8f7a66;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-      }
-      .copy-button:hover {
-        background-color: #9f8b77;
-      }
       #toast {
         visibility: hidden;
         min-width: 250px;
@@ -408,6 +315,9 @@
         padding: 5px;
         text-align: center;
       }
+      #resultsTable th {
+        cursor: pointer;
+      }
       #pagination {
         margin-top: 10px;
         text-align: center;
@@ -467,6 +377,7 @@
   </head>
   <body>
     <div class="container">
+      <!-- 標題與分數 -->
       <div class="header">
         <div class="title">2048</div>
         <div class="scores-container">
@@ -480,22 +391,25 @@
           </div>
         </div>
       </div>
+      <!-- 遊戲上方說明與按鈕 -->
       <div class="above-game">
         <div class="game-intro">
           <p>
-            哎呀呀～小笨蛋～快來動動腦袋，把方塊湊成
-            <strong>2048</strong> 啦！(っ´ωc)💕
+            哎呀呀～小笨蛋～快來動動腦袋，把方塊湊成 <strong>2048</strong>
+            啦！(っ´ωc)💕
           </p>
         </div>
-        <div class="buttons-area">
+        <div class="buttons-area" style="text-align: center">
           <button class="restart-button" id="restart-button">重新開局✨</button>
           <button class="ai-help-button" id="ai-help-button">
             AI & 爬蟲說明💡
           </button>
         </div>
       </div>
+      <!-- 遊戲盤面 -->
       <div class="game-container">
         <div class="grid-container" id="grid-container">
+          <!-- 16個格子 -->
           <div class="grid-cell"></div>
           <div class="grid-cell"></div>
           <div class="grid-cell"></div>
@@ -514,7 +428,7 @@
           <div class="grid-cell"></div>
         </div>
         <div class="tile-container" id="tile-container"></div>
-        <div class="game-message" id="game-message">
+        <div class="game-message" id="game-message" style="display: none">
           <p id="message-text"></p>
           <div class="lower">
             <button class="retry-button" id="retry-button">再試一次</button>
@@ -524,10 +438,11 @@
           </div>
         </div>
       </div>
-      <div class="touch-instructions">
+      <div class="touch-instructions" style="text-align: center">
         <p>電腦玩家請用 ↑↓←→ 方向鍵；手機玩家用手指滑動。</p>
       </div>
-      <div id="ai-control">
+      <!-- AI 控制介面 -->
+      <div id="ai-control" style="display: none">
         <label for="speed-slider"
           >AI 速率 (ms)：<span id="speed-value">1</span></label
         >
@@ -541,7 +456,8 @@
         />
         <div id="ai-stats">AI 統計：無數據</div>
       </div>
-      <div id="learning-stats">
+      <!-- 學習統計區 (可選) -->
+      <div id="learning-stats" style="display: none">
         <h3>AI 學習曲線</h3>
         <canvas id="learningChart"></canvas>
         <h3>各局結果</h3>
@@ -557,159 +473,18 @@
         <div id="pagination"></div>
       </div>
     </div>
-    <div class="modal-overlay" id="ai-modal-overlay">
-      <div class="modal-content">
-        <button class="modal-close" id="modal-close">X</button>
-        <h2>AI & 爬蟲教學 (甜心版)</h2>
-        <p>
-          <span class="modal-icon">🤏</span
-          ><strong>(1) 小可愛先來偵查：</strong> 呼叫
-          <code>gameCore.getStateForAI()</code> 就能得到
-          <em>board</em>、<em>score</em>、<em>gameOver</em>…等資料唷！
-        </p>
-        <p>
-          <span class="modal-icon">🕹</span><strong>(2) 指令衝刺：</strong> 使用
-          <code>gameCore.applyMoveFromAI(direction)</code> 指定
-          0(上)、1(右)、2(下)、3(左) 來操作棋盤。甜心幫你執行！
-        </p>
-        <p>
-          <span class="modal-icon">⭐</span
-          ><strong>(3) 聰明學習：</strong> 只要用爬蟲或 Selenium
-          把遊戲狀態抓回去，稍微思考一下再把指令丟回來，就能自動玩到天荒地老～
-        </p>
-        <p>
-          <span class="modal-icon">🚀</span
-          ><strong>(4) 唉唷不錯喔：</strong> 快用 WebSocket 或 HTTP Post
-          與本頁互動，親愛的快闖關～甜心在旁邊幫你加油嘛 ( •̀ᄇ• ́)ﻭ✧
-        </p>
-        <div class="prompt-guide">
-          <h3>快速指引 Prompt</h3>
-          <div class="prompt-container">
-            <textarea id="prompt-text" readonly>
-【快速指引 Prompt】
-網站網址： https://s123104.github.io/web/2048.html
-接口說明：
-1. gameCore.getStateForAI() - 取得遊戲狀態 (board, score, gameOver, gameWon, keepPlaying)
-2. gameCore.applyMoveFromAI(direction) - 控制棋盤移動 (方向: 0: 上, 1: 右, 2: 下, 3: 左)
-使用範例：
-請幫我執行 gameCore.applyMoveFromAI(0) 操作！</textarea
-            >
-            <button id="copy-prompt-button" class="copy-button">
-              複製 Prompt
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div id="toast"></div>
+    <!-- Toast 訊息 -->
+    <div id="toast" style="visibility: hidden">訊息</div>
     <script>
-      function getQueryParams() {
-        var params = {};
-        window.location.search
-          .substring(1)
-          .split("&")
-          .forEach(function (pair) {
-            if (pair) {
-              var parts = pair.split("=");
-              params[parts[0]] = parts[1];
-            }
-          });
-        return params;
-      }
-
-      var learningChart;
-      function initLearningChart() {
-        var ctx = document.getElementById("learningChart").getContext("2d");
-        learningChart = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: [],
-            datasets: [
-              {
-                label: "得分",
-                data: [],
-                borderColor: "rgba(75,192,192,1)",
-                fill: false,
-                tension: 0.1,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            scales: {
-              x: { title: { display: true, text: "局數" } },
-              y: { title: { display: true, text: "得分" } },
-            },
-          },
-        });
-      }
-      function updateLearningChart() {
-        var labels = learningData.map((item) => item.run);
-        var scores = learningData.map((item) => item.score);
-        learningChart.data.labels = labels;
-        learningChart.data.datasets[0].data = scores;
-        learningChart.update();
-      }
-
-      var currentPage = 1;
-      var itemsPerPage = 10;
-      function updatePagination() {
-        var totalPages = Math.ceil(learningData.length / itemsPerPage);
-        var paginationDiv = document.getElementById("pagination");
-        paginationDiv.innerHTML = "";
-        if (totalPages <= 1) return;
-        for (let i = 1; i <= totalPages; i++) {
-          let btn = document.createElement("button");
-          btn.textContent = i;
-          btn.disabled = i === currentPage;
-          btn.addEventListener("click", function () {
-            currentPage = i;
-            updateResultsTable();
-          });
-          paginationDiv.appendChild(btn);
-        }
-      }
-      function updateResultsTable() {
-        var tbody = document
-          .getElementById("resultsTable")
-          .getElementsByTagName("tbody")[0];
-        tbody.innerHTML = "";
-        var startIndex = (currentPage - 1) * itemsPerPage;
-        var endIndex = Math.min(startIndex + itemsPerPage, learningData.length);
-        for (let i = startIndex; i < endIndex; i++) {
-          let item = learningData[i];
-          var row = document.createElement("tr");
-          row.innerHTML = `<td>${item.run}</td><td>${item.score}</td>`;
-          tbody.appendChild(row);
-        }
-        updatePagination();
-      }
-
-      function updateTileTransition() {
-        var styleTag = document.getElementById("noTransition");
-        if (window.aiCrawlerMode) {
-          if (!styleTag) {
-            styleTag = document.createElement("style");
-            styleTag.id = "noTransition";
-            styleTag.innerHTML =
-              ".tile { transition: none !important; animation: none !important; }";
-            document.head.appendChild(styleTag);
-          }
-        } else {
-          if (styleTag) styleTag.parentNode.removeChild(styleTag);
-        }
-      }
-
-      var learningData = [];
-      var runCount = 0;
-
+      /***********************
+       * 遊戲核心與UI管理程式碼 *
+       ***********************/
       class GameCore {
         constructor() {
           this.board = Array(4)
             .fill()
             .map(() => Array(4).fill(0));
           this.score = 0;
-          this.moved = false;
           this.gameOver = false;
           this.gameWon = false;
           this.keepPlaying = false;
@@ -747,6 +522,7 @@
           return null;
         }
         move(direction) {
+          // 0:上, 1:右, 2:下, 3:左
           this.moved = false;
           let mergedTiles = [];
           let movedTiles = [];
@@ -769,38 +545,8 @@
                 this.processCellsLeftRight(row, true, mergedTiles, movedTiles);
               break;
           }
-          movedTiles = movedTiles.map((tile) => {
-            let fromRow = -1,
-              fromCol = -1;
-            for (let i = 0; i < 4; i++) {
-              for (let j = 0; j < 4; j++) {
-                if (
-                  originalBoard[i][j] === tile.value &&
-                  (i !== tile.row || j !== tile.col)
-                ) {
-                  if (
-                    fromRow === -1 ||
-                    Math.abs(i - tile.row) + Math.abs(j - tile.col) <
-                      Math.abs(fromRow - tile.row) +
-                        Math.abs(fromCol - tile.col)
-                  ) {
-                    fromRow = i;
-                    fromCol = j;
-                  }
-                }
-              }
-            }
-            return fromRow === -1 ? tile : { ...tile, fromRow, fromCol };
-          });
           if (this.moved) {
-            const newTile = this.addRandomTile();
-            if (newTile)
-              movedTiles.push({
-                row: newTile.row,
-                col: newTile.col,
-                value: newTile.value,
-                isNew: true,
-              });
+            this.addRandomTile();
           }
           this.checkGameStatus();
           return {
@@ -900,17 +646,17 @@
               if (this.gameWon) break;
             }
           }
-          let hasEmptyCell = false;
+          let hasEmpty = false;
           for (let i = 0; i < 4; i++) {
             for (let j = 0; j < 4; j++) {
               if (this.board[i][j] === 0) {
-                hasEmptyCell = true;
+                hasEmpty = true;
                 break;
               }
             }
-            if (hasEmptyCell) break;
+            if (hasEmpty) break;
           }
-          if (!hasEmptyCell) {
+          if (!hasEmpty) {
             let canMerge = false;
             for (let i = 0; i < 4; i++) {
               for (let j = 0; j < 3; j++) {
@@ -955,7 +701,6 @@
         }
       }
 
-      let aiSpeed = 1;
       class UIManager {
         constructor(gameCore) {
           this.gameCore = gameCore;
@@ -981,20 +726,12 @@
             }
           }
         }
-        createTile(
-          row,
-          col,
-          value,
-          isNew = false,
-          isMerged = false,
-          fromRow = null,
-          fromCol = null
-        ) {
+        createTile(row, col, value) {
           const tile = document.createElement("div");
-          tile.className = `tile tile-${value}`;
-          const position = this.getTilePosition(row, col);
-          tile.style.top = position.top;
-          tile.style.left = position.left;
+          tile.className = "tile tile-" + value;
+          const pos = this.getTilePosition(row, col);
+          tile.style.top = pos.top;
+          tile.style.left = pos.left;
           tile.textContent = value;
           this.tileContainer.appendChild(tile);
           return tile;
@@ -1052,16 +789,10 @@
           document
             .getElementById("ai-help-button")
             .addEventListener("click", () => {
-              document.getElementById("ai-modal-overlay").style.display =
-                "flex";
+              alert(
+                "AI 模式說明：\n1. gameCore.getStateForAI() 取得狀態\n2. applyMoveFromAI(direction) 控制移動\n方向：0=上,1=右,2=下,3=左"
+              );
             });
-          document
-            .getElementById("modal-close")
-            .addEventListener("click", () => {
-              document.getElementById("ai-modal-overlay").style.display =
-                "none";
-            });
-          this.addSwipeListeners();
         }
         handleMove(direction) {
           if (
@@ -1073,12 +804,6 @@
           if (result.moved) {
             this.drawBoard();
             this.updateScore();
-            if (window.aiCrawlerMode && (result.gameWon || result.gameOver)) {
-              setTimeout(() => {
-                this.restartGame();
-                showToast("遊戲已重新開始 (AI模式)");
-              }, 1000);
-            }
           }
         }
         restartGame() {
@@ -1094,39 +819,21 @@
         hideMessage() {
           this.messageElement.style.display = "none";
         }
-        addSwipeListeners() {
-          let touchStartX = 0,
-            touchStartY = 0;
-          const threshold = 30;
-          document.addEventListener("touchstart", (e) => {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-          });
-          document.addEventListener("touchend", (e) => {
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            const diffX = touchEndX - touchStartX;
-            const diffY = touchEndY - touchStartY;
-            if (Math.abs(diffX) > Math.abs(diffY)) {
-              if (Math.abs(diffX) > threshold)
-                this.handleMove(diffX > 0 ? 1 : 3);
-            } else {
-              if (Math.abs(diffY) > threshold)
-                this.handleMove(diffY > 0 ? 2 : 0);
-            }
-          });
-        }
       }
 
-      document
-        .getElementById("speed-slider")
-        .addEventListener("input", function () {
-          aiSpeed = parseFloat(this.value);
-          document.getElementById("speed-value").textContent =
-            aiSpeed.toFixed(2);
-          updateTileTransition();
-        });
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.className = "show";
+        setTimeout(() => {
+          toast.className = "";
+        }, 2500);
+      }
 
+      /*******************************************
+       * AI 深度策略模擬與決策 (ai=2) 整合程式碼 *
+       *******************************************/
+      // 複製當前狀態
       function cloneGameCoreState(state) {
         let clone = new GameCore();
         clone.board = JSON.parse(JSON.stringify(state.board));
@@ -1136,122 +843,240 @@
         clone.keepPlaying = state.keepPlaying;
         return clone;
       }
-      function simulateGame(state, iterations) {
-        let totalScore = 0,
-          bestScore = 0;
-        for (let i = 0; i < iterations; i++) {
-          let sim = cloneGameCoreState(state);
-          while (!sim.gameOver && !(sim.gameWon && !sim.keepPlaying)) {
-            let randomDirection = Math.floor(Math.random() * 4);
-            sim.move(randomDirection);
+      // 評估函數：獎勵最大數字位於左下角 & 左列滿格
+      function evaluateState(state) {
+        let board = state.board;
+        let score = state.score;
+        let maxTile = 0,
+          maxRow = -1,
+          maxCol = -1;
+        for (let i = 0; i < 4; i++) {
+          for (let j = 0; j < 4; j++) {
+            if (board[i][j] > maxTile) {
+              maxTile = board[i][j];
+              maxRow = i;
+              maxCol = j;
+            }
           }
-          totalScore += sim.score;
-          if (sim.score > bestScore) bestScore = sim.score;
         }
-        return { avgScore: totalScore / iterations, bestScore: bestScore };
+        // 如果最大數字在左下角 (row=3, col=0) 給獎勵，否則扣分
+        if (maxRow === 3 && maxCol === 0) {
+          score += maxTile * 10;
+        } else {
+          score -= maxTile * 10;
+        }
+        // 若左邊一整列填滿，加額外獎勵
+        let leftColumnFull = true;
+        for (let i = 0; i < 4; i++) {
+          if (board[i][0] === 0) {
+            leftColumnFull = false;
+            break;
+          }
+        }
+        if (leftColumnFull) {
+          score += 50;
+        }
+        return score;
       }
-      function chooseBestMove(state, iterations) {
-        let bestMove = null,
-          bestAvg = -Infinity,
-          moveStats = {};
+      // 遞迴模擬未來 depth 步的局面評估
+      function simulateMoves(state, depth) {
+        if (depth === 0 || state.gameOver) {
+          return evaluateState(state);
+        }
+        let bestScore = -Infinity;
         for (let direction = 0; direction < 4; direction++) {
-          let testGame = cloneGameCoreState(state);
-          let result = testGame.move(direction);
+          let cloned = cloneGameCoreState(state);
+          let result = cloned.move(direction);
           if (!result.moved) continue;
-          let simResult = simulateGame(testGame.getStateForAI(), iterations);
-          moveStats[direction] = simResult;
-          if (simResult.avgScore > bestAvg) {
-            bestAvg = simResult.avgScore;
+          let score = simulateMoves(cloned.getStateForAI(), depth - 1);
+          if (score > bestScore) bestScore = score;
+        }
+        return bestScore;
+      }
+      // 選擇最佳初始移動，進行多次模擬取平均
+      function chooseBestMoveDeep(state, depth, iterationsPerMove) {
+        let bestMove = null;
+        let bestScore = -Infinity;
+        let moveStats = {};
+        for (let direction = 0; direction < 4; direction++) {
+          let cloned = cloneGameCoreState(state);
+          let result = cloned.move(direction);
+          if (!result.moved) continue;
+          let totalScore = 0;
+          for (let i = 0; i < iterationsPerMove; i++) {
+            let simState = cloneGameCoreState(cloned.getStateForAI());
+            totalScore += simulateMoves(simState.getStateForAI(), depth);
+          }
+          let avgScore = totalScore / iterationsPerMove;
+          moveStats[direction] = avgScore;
+          if (avgScore > bestScore) {
+            bestScore = avgScore;
             bestMove = direction;
           }
         }
         return {
           bestMove: bestMove,
-          avgScore: bestAvg,
+          bestScore: bestScore,
           moveStats: moveStats,
-          bestScore: moveStats[bestMove] ? moveStats[bestMove].bestScore : 0,
         };
       }
-
+      // AI 深度模式主循環 (高速運行)
+      function aiLoopDeep() {
+        let currentState = window.gameCore.getStateForAI();
+        if (
+          !currentState.gameOver &&
+          !(currentState.gameWon && !currentState.keepPlaying)
+        ) {
+          let depth = 5; // 模擬深度5步
+          let iterationsPerMove = 10; // 每個方向模擬10次
+          let simulation = chooseBestMoveDeep(
+            currentState,
+            depth,
+            iterationsPerMove
+          );
+          let bestMove = simulation.bestMove;
+          if (bestMove === null) {
+            bestMove = Math.floor(Math.random() * 4);
+          }
+          window.gameCore.applyMoveFromAI(bestMove);
+          window.uiManager.drawBoard();
+          window.uiManager.updateScore();
+          document.getElementById("ai-stats").innerHTML =
+            "AI 深度模式：最佳移動 " +
+            bestMove +
+            "，模擬平均分 " +
+            simulation.bestScore.toFixed(0) +
+            "，模擬細節 " +
+            JSON.stringify(simulation.moveStats);
+          setTimeout(aiLoopDeep, 1); // 高速運行，延遲 1ms
+        } else {
+          let finalScore = window.gameCore.score;
+          runCount++;
+          learningData.push({ run: runCount, score: finalScore });
+          updateLearningChart();
+          updateResultsTable();
+          window.uiManager.restartGame();
+          showToast("遊戲已重新開始 (AI 深度模式)");
+          setTimeout(aiLoopDeep, 1);
+        }
+      }
+      // 原本簡易 AI 模式 (非 ai=2 時使用)
       function aiLoop() {
-        const currentState = window.gameCore.getStateForAI();
+        let currentState = window.gameCore.getStateForAI();
         if (
           !currentState.gameOver &&
           !(currentState.gameWon && !currentState.keepPlaying)
         ) {
           let iterations = 20 + Math.floor(runCount / 10) * 5;
-          const simulation = chooseBestMove(currentState, iterations);
+          let simulation = chooseBestMoveDeep(currentState, 2, iterations);
           let bestMove = simulation.bestMove || Math.floor(Math.random() * 4);
           window.gameCore.applyMoveFromAI(bestMove);
           window.uiManager.drawBoard();
           window.uiManager.updateScore();
-          document.getElementById(
-            "ai-stats"
-          ).innerHTML = `AI 統計：最佳移動 ${bestMove}，模擬平均分 ${simulation.avgScore.toFixed(
-            0
-          )}，模擬最高分 ${simulation.bestScore}`;
-          setTimeout(aiLoop, aiSpeed);
+          document.getElementById("ai-stats").innerHTML =
+            "AI 簡易模式：最佳移動 " +
+            bestMove +
+            "，模擬平均分 " +
+            simulation.bestScore.toFixed(0);
+          setTimeout(aiLoop, 100);
         } else {
-          var finalScore = window.gameCore.score;
+          let finalScore = window.gameCore.score;
           runCount++;
           learningData.push({ run: runCount, score: finalScore });
           updateLearningChart();
           updateResultsTable();
-          if (window.bc)
-            window.bc.postMessage({ run: runCount, score: finalScore });
           window.uiManager.restartGame();
-          showToast("遊戲已重新開始 (AI模式)");
-          setTimeout(aiLoop, aiSpeed);
+          showToast("遊戲已重新開始 (AI 模式)");
+          setTimeout(aiLoop, 100);
+        }
+      }
+      let runCount = 0;
+      let learningData = [];
+
+      // 學習曲線相關函數
+      var learningChart;
+      function initLearningChart() {
+        const ctx = document.getElementById("learningChart").getContext("2d");
+        learningChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: learningData.map((item) => item.run),
+            datasets: [
+              {
+                label: "得分",
+                data: learningData.map((item) => item.score),
+                borderColor: "rgba(75,192,192,1)",
+                fill: false,
+                tension: 0.1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: { title: { display: true, text: "局數" } },
+              y: { title: { display: true, text: "得分" } },
+            },
+          },
+        });
+      }
+      function updateLearningChart() {
+        if (learningChart) {
+          learningChart.data.labels = learningData.map((item) => item.run);
+          learningChart.data.datasets[0].data = learningData.map(
+            (item) => item.score
+          );
+          learningChart.update();
+        }
+      }
+      function updateResultsTable() {
+        const tbody = document
+          .getElementById("resultsTable")
+          .getElementsByTagName("tbody")[0];
+        tbody.innerHTML = "";
+        learningData.forEach((item) => {
+          const row = document.createElement("tr");
+          const runCell = document.createElement("td");
+          runCell.textContent = item.run;
+          const scoreCell = document.createElement("td");
+          scoreCell.textContent = item.score;
+          row.appendChild(runCell);
+          row.appendChild(scoreCell);
+          tbody.appendChild(row);
+        });
+        updatePagination();
+      }
+      function updatePagination() {
+        // 簡單示範，如有需要可進一步擴充
+        const paginationDiv = document.getElementById("pagination");
+        paginationDiv.innerHTML = "";
+        const totalPages = Math.ceil(learningData.length / 10);
+        for (let i = 1; i <= totalPages; i++) {
+          const btn = document.createElement("button");
+          btn.textContent = i;
+          btn.addEventListener("click", () => {
+            // 分頁邏輯自行擴充，這邊僅示範按鈕產生
+            alert("第 " + i + " 頁");
+          });
+          paginationDiv.appendChild(btn);
         }
       }
 
-      function showToast(message) {
-        var toast = document.getElementById("toast");
-        toast.textContent = message;
-        toast.className = "show";
-        setTimeout(() => {
-          toast.className = "";
-        }, 2500);
-      }
-
-      document
-        .getElementById("copy-prompt-button")
-        .addEventListener("click", function () {
-          var promptText = document.getElementById("prompt-text");
-          promptText.select();
-          try {
-            document.execCommand("copy");
-            showToast("Prompt 已複製！");
-          } catch (err) {
-            showToast("複製失敗，請手動複製。");
-          }
-        });
-
-      if ("BroadcastChannel" in window) {
-        window.bc = new BroadcastChannel("2048LearningChannel");
-        window.bc.onmessage = function (event) {
-          if (event.data && event.data.run && event.data.score) {
-            if (!learningData.find((item) => item.run === event.data.run)) {
-              learningData.push(event.data);
-              learningData.sort((a, b) => a.run - b.run);
-              updateLearningChart();
-              updateResultsTable();
-            }
-          }
-        };
-      }
-
+      /******************
+       * 啟動遊戲流程 *
+       ******************/
       document.addEventListener("DOMContentLoaded", () => {
-        const params = getQueryParams();
-        window.aiCrawlerMode = params.ai === "1";
+        const urlParams = new URLSearchParams(window.location.search);
+        let aiMode = urlParams.get("ai");
         window.gameCore = new GameCore();
         window.uiManager = new UIManager(window.gameCore);
-        updateTileTransition();
-        if (window.aiCrawlerMode) {
+        if (aiMode === "2") {
           document.getElementById("ai-control").style.display = "block";
           document.getElementById("learning-stats").style.display = "block";
-          showToast("AI/爬蟲模式已啟用！");
+          showToast("AI 深度模式 (ai=2) 啟用！");
           initLearningChart();
+          aiLoopDeep();
+        } else {
           aiLoop();
         }
       });
