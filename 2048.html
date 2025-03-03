@@ -6,6 +6,7 @@
     <title>2048 AI 深度模式 (ai=2)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+      /* 基本重置與版面設定 */
       * {
         box-sizing: border-box;
         margin: 0;
@@ -23,7 +24,6 @@
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        margin: 0;
       }
       .container {
         width: 100%;
@@ -36,14 +36,10 @@
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
       }
+      /* RWD 手機版 */
       @media screen and (max-width: 767px) {
-        html,
-        body {
-          overflow: hidden;
-        }
         .container {
           height: 90vh;
-          overflow-y: hidden;
           padding: 10px;
         }
       }
@@ -150,6 +146,7 @@
         font-weight: bold;
         font-size: 24px;
       }
+      /* 2048 顏色樣式 */
       .tile-2 {
         background-color: #eee4da;
         color: #776e65;
@@ -254,6 +251,7 @@
         font-size: 14px;
         text-align: center;
       }
+      /* Toast 訊息 */
       #toast {
         visibility: hidden;
         min-width: 250px;
@@ -272,6 +270,7 @@
       #toast.show {
         visibility: visible;
       }
+      /* AI 控制介面 */
       #ai-control {
         margin-top: 20px;
         padding: 10px;
@@ -292,6 +291,7 @@
       #ai-stats {
         margin-top: 10px;
       }
+      /* 學習統計區 */
       #learning-stats {
         margin-top: 20px;
         padding: 10px;
@@ -334,6 +334,7 @@
       #pagination button:hover {
         background-color: #9f8b77;
       }
+      /* 手機RWD調整 */
       @media screen and (max-width: 520px) {
         .header .title {
           font-size: 48px;
@@ -354,6 +355,9 @@
         .tile-2048 {
           font-size: 16px;
         }
+        #learning-stats {
+          font-size: 12px;
+        }
       }
       @media screen and (max-width: 350px) {
         .header .title {
@@ -372,6 +376,13 @@
           height: 40px;
           line-height: 40px;
         }
+      }
+      /* 限制學習曲線圖表大小 */
+      #learningChart {
+        display: block;
+        width: 100%;
+        height: 300px;
+        max-height: 300px;
       }
     </style>
   </head>
@@ -402,7 +413,7 @@
         <div class="buttons-area" style="text-align: center">
           <button class="restart-button" id="restart-button">重新開局✨</button>
           <button class="ai-help-button" id="ai-help-button">
-            AI & 爬蟲說明💡
+            AI &amp; 爬蟲說明💡
           </button>
         </div>
       </div>
@@ -449,14 +460,14 @@
         <input
           type="range"
           id="speed-slider"
-          min="0.01"
+          min="0.1"
           max="2000"
-          step="0.01"
+          step="0.1"
           value="1"
         />
         <div id="ai-stats">AI 統計：無數據</div>
       </div>
-      <!-- 學習統計區 (可選) -->
+      <!-- 學習統計區 -->
       <div id="learning-stats" style="display: none">
         <h3>AI 學習曲線</h3>
         <canvas id="learningChart"></canvas>
@@ -522,7 +533,7 @@
           return null;
         }
         move(direction) {
-          // 0:上, 1:右, 2:下, 3:左
+          // 方向：0=上, 1=右, 2=下, 3=左
           this.moved = false;
           let mergedTiles = [];
           let movedTiles = [];
@@ -790,7 +801,7 @@
             .getElementById("ai-help-button")
             .addEventListener("click", () => {
               alert(
-                "AI 模式說明：\n1. gameCore.getStateForAI() 取得狀態\n2. applyMoveFromAI(direction) 控制移動\n方向：0=上,1=右,2=下,3=左"
+                "AI 模式說明：\n1. gameCore.getStateForAI() 取得狀態\n2. applyMoveFromAI(direction) 控制移動\n方向：0=上, 1=右, 2=下, 3=左"
               );
             });
         }
@@ -843,7 +854,8 @@
         clone.keepPlaying = state.keepPlaying;
         return clone;
       }
-      // 評估函數：獎勵最大數字位於左下角 & 左列滿格
+
+      // 評估函數：獎勵最大數字必須在左下角 & 最下排必須填滿（避免死路）
       function evaluateState(state) {
         let board = state.board;
         let score = state.score;
@@ -859,31 +871,35 @@
             }
           }
         }
-        // 如果最大數字在左下角 (row=3, col=0) 給獎勵，否則扣分
+        // 如果最大數字在左下角 (row=3, col=0) 給獎勵，否則重罰
         if (maxRow === 3 && maxCol === 0) {
           score += maxTile * 10;
         } else {
-          score -= maxTile * 10;
+          score -= maxTile * 20;
         }
-        // 若左邊一整列填滿，加額外獎勵
-        let leftColumnFull = true;
-        for (let i = 0; i < 4; i++) {
-          if (board[i][0] === 0) {
-            leftColumnFull = false;
+        // 檢查最下排是否填滿
+        let bottomRowFull = true;
+        for (let j = 0; j < 4; j++) {
+          if (board[3][j] === 0) {
+            bottomRowFull = false;
             break;
           }
         }
-        if (leftColumnFull) {
-          score += 50;
+        if (bottomRowFull) {
+          score += 100;
+        } else {
+          score -= 50;
         }
         return score;
       }
+
       // 遞迴模擬未來 depth 步的局面評估
       function simulateMoves(state, depth) {
         if (depth === 0 || state.gameOver) {
           return evaluateState(state);
         }
         let bestScore = -Infinity;
+        // 模擬所有方向 0~3
         for (let direction = 0; direction < 4; direction++) {
           let cloned = cloneGameCoreState(state);
           let result = cloned.move(direction);
@@ -893,11 +909,14 @@
         }
         return bestScore;
       }
+
       // 選擇最佳初始移動，進行多次模擬取平均
       function chooseBestMoveDeep(state, depth, iterationsPerMove) {
         let bestMove = null;
         let bestScore = -Infinity;
         let moveStats = {};
+        let candidateMoves = [];
+        // 模擬所有方向 0~3
         for (let direction = 0; direction < 4; direction++) {
           let cloned = cloneGameCoreState(state);
           let result = cloned.move(direction);
@@ -909,35 +928,42 @@
           }
           let avgScore = totalScore / iterationsPerMove;
           moveStats[direction] = avgScore;
+          candidateMoves.push({ direction, avgScore });
           if (avgScore > bestScore) {
             bestScore = avgScore;
             bestMove = direction;
           }
         }
-        return {
-          bestMove: bestMove,
-          bestScore: bestScore,
-          moveStats: moveStats,
-        };
+        // 如果最佳移動是上（0），但其他非上方向有接近（>=95%）的得分，則選擇非上方向
+        if (bestMove === 0) {
+          for (let move of candidateMoves) {
+            if (move.direction !== 0 && move.avgScore >= bestScore * 0.95) {
+              bestMove = move.direction;
+              bestScore = move.avgScore;
+              break;
+            }
+          }
+        }
+        return { bestMove, bestScore, moveStats };
       }
-      // AI 深度模式主循環 (高速運行)
+
+      // AI 深度模式主循環 (延遲設為 0.1ms)
       function aiLoopDeep() {
         let currentState = window.gameCore.getStateForAI();
         if (
           !currentState.gameOver &&
           !(currentState.gameWon && !currentState.keepPlaying)
         ) {
-          let depth = 5; // 模擬深度5步
-          let iterationsPerMove = 10; // 每個方向模擬10次
+          // 如果分數超過 20000，模擬深度 10 步，否則 5 步
+          let depth = currentState.score >= 20000 ? 10 : 5;
+          let iterationsPerMove = 10; // 每個方向模擬 10 次
           let simulation = chooseBestMoveDeep(
             currentState,
             depth,
             iterationsPerMove
           );
           let bestMove = simulation.bestMove;
-          if (bestMove === null) {
-            bestMove = Math.floor(Math.random() * 4);
-          }
+          if (bestMove === null) bestMove = Math.floor(Math.random() * 4);
           window.gameCore.applyMoveFromAI(bestMove);
           window.uiManager.drawBoard();
           window.uiManager.updateScore();
@@ -948,7 +974,7 @@
             simulation.bestScore.toFixed(0) +
             "，模擬細節 " +
             JSON.stringify(simulation.moveStats);
-          setTimeout(aiLoopDeep, 1); // 高速運行，延遲 1ms
+          setTimeout(aiLoopDeep, 0.1);
         } else {
           let finalScore = window.gameCore.score;
           runCount++;
@@ -957,9 +983,10 @@
           updateResultsTable();
           window.uiManager.restartGame();
           showToast("遊戲已重新開始 (AI 深度模式)");
-          setTimeout(aiLoopDeep, 1);
+          setTimeout(aiLoopDeep, 0.1);
         }
       }
+
       // 原本簡易 AI 模式 (非 ai=2 時使用)
       function aiLoop() {
         let currentState = window.gameCore.getStateForAI();
@@ -990,6 +1017,7 @@
           setTimeout(aiLoop, 100);
         }
       }
+
       let runCount = 0;
       let learningData = [];
 
@@ -1013,6 +1041,7 @@
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             scales: {
               x: { title: { display: true, text: "局數" } },
               y: { title: { display: true, text: "得分" } },
@@ -1047,7 +1076,6 @@
         updatePagination();
       }
       function updatePagination() {
-        // 簡單示範，如有需要可進一步擴充
         const paginationDiv = document.getElementById("pagination");
         paginationDiv.innerHTML = "";
         const totalPages = Math.ceil(learningData.length / 10);
@@ -1055,8 +1083,7 @@
           const btn = document.createElement("button");
           btn.textContent = i;
           btn.addEventListener("click", () => {
-            // 分頁邏輯自行擴充，這邊僅示範按鈕產生
-            alert("第 " + i + " 頁");
+            alert("第 " + i + " 頁 (分頁功能可進一步實作)");
           });
           paginationDiv.appendChild(btn);
         }
