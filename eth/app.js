@@ -1,30 +1,5 @@
 import { createApp } from "vue";
 
-// 全域函數
-function updateUnreadCount() {
-  const today = new Date().toLocaleDateString();
-  let lastDate = localStorage.getItem("unreadDate");
-  let unreadCount = parseInt(localStorage.getItem("unreadCount")) || 0;
-
-  if (lastDate !== today) {
-    unreadCount = Math.floor(Math.random() * 10) + 1;
-    localStorage.setItem("unreadDate", today);
-  } else {
-    unreadCount += Math.floor(Math.random() * 3) + 1;
-  }
-
-  if (unreadCount > 99) {
-    unreadCount = 99;
-  }
-
-  localStorage.setItem("unreadCount", unreadCount);
-
-  const unreadCountElem = document.getElementById("unread-count");
-  if (unreadCountElem) {
-    unreadCountElem.innerText = unreadCount === 99 ? "99+" : unreadCount;
-  }
-}
-
 const dialogData = [
   {
     scenario: "市場崩盤討論",
@@ -1250,7 +1225,7 @@ const responseTriggers = {
 };
 const randomUserMessages = [
   "剛看了K線，感覺要漲了",
-  "有人知道XXX交易所還能提幣嗎？",
+  "有人知道bybit交易所還能提幣嗎？",
   "我的錢包被盜了，怎麼辦",
   "現在的價格太誘人了，想加倉",
   "大戶在洗盤，別被騙了",
@@ -1369,8 +1344,8 @@ const cryptoPrices = [
 ];
 
 const cryptoEmojis = {
-  btc: "₿",
-  eth: "Ξ",
+  btc: '<i class="fa-brands fa-bitcoin"></i>',
+  eth: '<i class="fa-brands fa-ethereum"></i>',
   doge: "Ð",
   ada: "₳",
   pi: "π",
@@ -1461,6 +1436,60 @@ const app = createApp({
       localMessages: [],
       nightMode: false,
       topCoins: [], // For mini price display
+      volatileMessages: [
+        "天啊！行情太瘋狂了！",
+        "誰能解釋一下發生了什麼？",
+        "我的止損全部被觸發了！",
+        "不敢看我的帳戶了",
+        "這波行情太刺激了",
+        "交易所又崩了，無法下單",
+        "鯨魚在洗盤，別被震出局",
+        "這是機構在操縱市場",
+        "有大戶在進場嗎？",
+        "行情太劇烈，我要休息一下",
+        "插針害我爆倉，救命",
+        "剛抄底就暴跌，心態崩了",
+        "這波我虧了一輛車",
+        "漲跌太快，我跟不上",
+        "交易所提幣排隊，慌死了",
+        "這行情是天堂還是地獄？",
+        "我的槓桿爆了，誰救我",
+        "暴跌那天我還在睡覺",
+        "漲了又跌，我要瘋了",
+        "誰知道這波啥情況？",
+        "剛賺了50%，又全吐回去",
+        "這市場太恐怖，受不了",
+        "鯨魚砸盤，小心啊",
+        "剛上車就翻車，救命",
+        "止損沒設，現在哭了",
+        "這波插針太狠，我沒了",
+        "交易所卡單，我要退圈",
+        "暴漲暴跌，心臟受不了",
+        "我的幣跌到渣都不剩",
+        "剛賣就漲，氣死我了",
+        "這行情耍我玩呢？",
+        "抄底抄到山頂，崩潰了",
+        "誰有內幕，快告訴我",
+        "這波我套牢了，解不開",
+        "漲跌像過山車，太刺激",
+        "交易所又宕機，氣炸了",
+        "剛加倉就跌，運氣真背",
+        "這市場不讓人活啊",
+        "暴跌暴漲，我要退圈",
+        "鯨魚在搞亂，散戶遭殃",
+        "我的帳戶歸零了，救命",
+        "這波太瘋狂，我睡不著",
+        "剛抄底又插針，心態炸",
+        "漲跌太快，手心冒汗",
+        "交易所提不了幣，慌了",
+        "這行情是魔鬼吧？",
+        "我的幣一秒清零，哭了",
+        "剛賺了又虧，心累了",
+        "這波過山車，我要下車",
+        "誰能穩住我，我慌了",
+      ],
+      unreadCount: parseInt(localStorage.getItem("unreadCount")) || 0,
+      unreadDate: localStorage.getItem("unreadDate") || null,
     };
   },
   computed: {
@@ -1511,6 +1540,25 @@ const app = createApp({
     }, 3000);
   },
   methods: {
+    updateUnreadCount() {
+      const today = new Date().toLocaleDateString();
+      if (this.unreadDate !== today) {
+        this.unreadCount = Math.floor(Math.random() * 10) + 1;
+        this.unreadDate = today;
+      } else {
+        const increase =
+          this.marketSentiment === "bullish"
+            ? Math.floor(Math.random() * 5) + 1
+            : this.marketSentiment === "bearish"
+            ? Math.floor(Math.random() * 2) + 1
+            : Math.floor(Math.random() * 3) + 1;
+        this.unreadCount += increase;
+      }
+      if (this.unreadCount > 99) this.unreadCount = 99;
+      localStorage.setItem("unreadCount", this.unreadCount);
+      localStorage.setItem("unreadDate", this.unreadDate);
+      this.hasUnreadMessages = true;
+    },
     loadRandomDialog() {
       const randomIndex = Math.floor(Math.random() * dialogData.length);
       this.messages = [...dialogData[randomIndex].messages];
@@ -1525,12 +1573,8 @@ const app = createApp({
         contentType: "text",
       };
       this.messages.push(newMsg);
-
-      // Save messages locally
+      this.updateUnreadCount();
       this.saveLocalMessages();
-
-      // 在送出訊息後更新未讀數量
-      updateUnreadCount();
 
       // Check for trigger terms
       const lowerMsg = this.newMessage.toLowerCase();
@@ -1547,6 +1591,29 @@ const app = createApp({
           this.triggerFireworksAnimation();
         } else {
           this.triggerWaterEffect();
+        }
+      }
+
+      const matchedTerm = rocketTriggerTerms.find((term) =>
+        lowerMsg.includes(term.toLowerCase())
+      );
+      if (matchedTerm) {
+        if (
+          ["暴漲", "漲", "牛市", "翻倍", "to the moon", "上月球"].includes(
+            matchedTerm
+          )
+        ) {
+          this.triggerRocketAnimation();
+        } else if (["暴跌", "跌", "爆倉", "割韭菜"].includes(matchedTerm)) {
+          this.triggerWaterEffect();
+        } else if (["上車", "fomo", "all in", "梭哈"].includes(matchedTerm)) {
+          this.triggerFireworksAnimation();
+        } else {
+          // 預設隨機動畫
+          const randEffect = Math.random();
+          if (randEffect > 0.7) this.triggerRocketAnimation();
+          else if (randEffect > 0.4) this.triggerFireworksAnimation();
+          else this.triggerWaterEffect();
         }
       }
 
@@ -1654,26 +1721,88 @@ const app = createApp({
       const lowerMsg = message.toLowerCase();
       let hasTriggeredResponse = false;
 
-      // Check for crypto-specific triggers
+      // 檢查加密幣觸發關鍵詞
       for (const [trigger, responses] of Object.entries(responseTriggers)) {
         if (lowerMsg.includes(trigger.toLowerCase())) {
-          // Determine how many responses to generate (1-3)
-          // Special case for ETH - generate more responses
           const responseCount =
             trigger.toLowerCase() === "eth"
-              ? Math.floor(Math.random() * 3) + 3 // 3-5 responses for ETH
-              : Math.floor(Math.random() * 3) + 1; // 1-3 responses for others
+              ? Math.floor(Math.random() * 3) + 3 // ETH 回應 3-5 則
+              : Math.floor(Math.random() * 3) + 1; // 其他回應 1-3 則
 
           const responders = Object.keys(this.userAvatars).filter(
             (name) => name !== this.currentUser
           );
 
-          // Generate responses with slight delays between them
           for (let i = 0; i < responseCount; i++) {
             const randomResponder =
               responders[Math.floor(Math.random() * responders.length)];
-            const randomResponse =
+            let randomResponse =
               responses[Math.floor(Math.random() * responses.length)];
+
+            // 找出對應的加密幣資訊
+            const crypto = this.cryptoPrices.find(
+              (c) => c.symbol.toLowerCase() === trigger.toLowerCase()
+            );
+
+            if (crypto) {
+              // 以 30% 機率加入價格資訊，否則加入隨機群友吐槽
+              if (Math.random() < 0.3) {
+                const price = this.formatPrice(crypto.price);
+                const change = Math.abs(crypto.change).toFixed(1);
+                const direction = crypto.change >= 0 ? "上漲" : "下跌";
+                if (this.marketSentiment === "bullish") {
+                  const phrases = [
+                    `，幹，這波${direction}${change}%，${crypto.symbol}今天準備炸場啦！現價$${price}，速來搶盤！`,
+                    `，看這行情，${crypto.symbol}正準備衝天，價格$${price}，買就對了！`,
+                    `，幣圈大佬都在狂喊，${crypto.symbol}現價$${price}，上漲${change}%，別再猶豫了！`,
+                    `，操，這波拉升真他媽猛，買進就是賺進，快看價格$${price}！`,
+                    `，幣圈老鳥早就喊著了，${crypto.symbol}今天衝破天際，絕對別猶豫！`,
+                  ];
+                  randomResponse +=
+                    phrases[Math.floor(Math.random() * phrases.length)];
+                } else if (this.marketSentiment === "bearish") {
+                  const phrases = [
+                    `，幹，${crypto.symbol}只剩$${price}，跌了${change}%，準備好割肉了吧！`,
+                    `，市場慘到家了，${crypto.symbol}跌${change}%，現價$${price}，這下慘得要命！`,
+                    `，兄弟，${crypto.symbol}掉到$${price}，跌${change}%，真他媽慘，快回家反省！`,
+                    `，操，這跌勢就像跳樓機，別再抱著幻想了，趕快準備割肉！`,
+                    `，市場就像下水道一樣髒，${crypto.symbol}跌得你心都涼了！`,
+                  ];
+                  randomResponse +=
+                    phrases[Math.floor(Math.random() * phrases.length)];
+                } else {
+                  const phrases = [
+                    `，${crypto.symbol}現價$${price}，漲跌${change}%，就這樣吧！`,
+                    `，唉，${crypto.symbol}就是這樣，價格$${price}，漲跌${change}%，摸不著邊際！`,
+                    `，幹，就算波動也就這點幅度，隨便啦！`,
+                  ];
+                  randomResponse +=
+                    phrases[Math.floor(Math.random() * phrases.length)];
+                }
+              } else {
+                if (this.marketSentiment === "bullish") {
+                  const phrases = [
+                    `，幹，這行情爽到爆，買進就對了！`,
+                    `，牛逼啊！感覺${crypto.symbol}隨時要火，快衝進場！`,
+                    `，幣圈熱度爆棚，不買真的會後悔！`,
+                    `，直接看這曲線，${crypto.symbol}今天就要衝破天際！`,
+                    `，買進就是賺進，兄弟，別他媽猶豫了！`,
+                  ];
+                  randomResponse +=
+                    phrases[Math.floor(Math.random() * phrases.length)];
+                } else if (this.marketSentiment === "bearish") {
+                  const phrases = [
+                    `，操，這市場慘到爆，別再進場亂砸錢了！`,
+                    `，兄弟，這下肯定又要被割，趕快觀望！`,
+                    `，慘不忍睹，這行情像掉進坑，遠離為妙！`,
+                    `，別再進場了，這跌幅讓人心寒，幹，還不撤退？`,
+                    `，哥們兒，這市場太坑，進場只會變成韭菜！`,
+                  ];
+                  randomResponse +=
+                    phrases[Math.floor(Math.random() * phrases.length)];
+                }
+              }
+            }
 
             setTimeout(() => {
               this.messages.push({
@@ -1682,47 +1811,65 @@ const app = createApp({
                 timestamp: Date.now() + i * 1000,
                 contentType: "text",
               });
-
-              if (this.autoScroll) {
-                this.scrollToBottom();
-              } else {
-                this.hasUnreadMessages = true;
-              }
+              if (this.autoScroll) this.scrollToBottom();
+              else this.hasUnreadMessages = true;
             }, 1000 + i * 1500);
           }
 
-          // If ETH is mentioned, trigger a price pump with 70% probability
+          // 新增：用戶提及幣時，有機率觸發價格小幅波動（受群聊熱度影響）
+          const crypto = this.cryptoPrices.find(
+            (c) => c.symbol.toLowerCase() === trigger.toLowerCase()
+          );
+          if (crypto && Math.random() < 0.3) {
+            const change =
+              (Math.random() * 4 - 2) *
+              (this.marketSentiment === "bullish" ? 1.5 : 1); // 牛市更易上漲
+            crypto.price = Math.max(
+              0.000001,
+              crypto.price * (1 + change / 100)
+            );
+            crypto.change = change;
+            this.pricePulse[crypto.symbol] = true;
+            setTimeout(() => {
+              this.pricePulse[crypto.symbol] = false;
+            }, 800);
+            this.messages.push({
+              sender: "系統消息",
+              content: `${crypto.symbol} 因群聊熱度波動 ${change.toFixed(
+                1
+              )}%，現價$${this.formatPrice(crypto.price)}`,
+              timestamp: Date.now(),
+              contentType: "text",
+              type: "system",
+            });
+          }
+
+          // 如果觸發的是 ETH，70% 機率觸發暴漲特效（保持原邏輯）
           if (trigger.toLowerCase() === "eth" && Math.random() < 0.7) {
             setTimeout(() => {
-              // Find ETH in price list
               const ethIndex = this.cryptoPrices.findIndex(
                 (crypto) => crypto.symbol === "ETH"
               );
               if (ethIndex >= 0) {
-                // Generate a big pump (10-25% increase)
                 const pumpPercentage = 10 + Math.random() * 15;
                 const currentPrice = this.cryptoPrices[ethIndex].price;
                 const newPrice = currentPrice * (1 + pumpPercentage / 100);
 
-                // Update price
                 this.cryptoPrices[ethIndex].price = newPrice;
                 this.cryptoPrices[ethIndex].change = pumpPercentage;
 
-                // Add system message about the pump
                 this.messages.push({
                   sender: "系統消息",
-                  content: `ETH 突然暴漲 ${pumpPercentage.toFixed(
+                  content: `ETH 因群內大佬買進突然暴漲 ${pumpPercentage.toFixed(
                     1
-                  )}%！可能與群內討論有關！`,
+                  )}%，現價$${this.formatPrice(crypto.price)}`,
                   timestamp: Date.now(),
                   contentType: "text",
                   type: "system",
                 });
 
-                // Trigger rocket animation
                 this.triggerRocketAnimation();
 
-                // Update price history
                 if (this.recentPriceHistory["ETH"]) {
                   this.recentPriceHistory["ETH"].prices.push(newPrice);
                   if (this.recentPriceHistory["ETH"].prices.length > 10) {
@@ -1731,7 +1878,6 @@ const app = createApp({
                   this.recentPriceHistory["ETH"].lastBigMove = Date.now();
                 }
 
-                // Set price pulse
                 this.pricePulse["ETH"] = true;
                 setTimeout(() => {
                   this.pricePulse["ETH"] = false;
@@ -1745,7 +1891,7 @@ const app = createApp({
         }
       }
 
-      // Check for price discussion
+      // 檢查價格討論相關觸發條件
       if (
         lowerMsg.includes("價格") ||
         lowerMsg.includes("price") ||
@@ -1753,7 +1899,6 @@ const app = createApp({
         lowerMsg.includes("漲到") ||
         lowerMsg.includes("跌到")
       ) {
-        // Find which crypto they might be discussing
         let discussedCrypto = null;
         for (const crypto of this.cryptoPrices) {
           if (lowerMsg.includes(crypto.symbol.toLowerCase())) {
@@ -1765,27 +1910,28 @@ const app = createApp({
         if (discussedCrypto) {
           setTimeout(() => {
             const priceResponses = [
-              `${discussedCrypto.symbol}現在交易價格是$${this.formatPrice(
+              `${discussedCrypto.symbol} 現在交易價格是$${this.formatPrice(
                 discussedCrypto.price
-              )}，過去24小時${
+              )}，24小時內${
                 discussedCrypto.change >= 0 ? "上漲" : "下跌"
-              }了${Math.abs(discussedCrypto.change).toFixed(1)}%`,
-              `我覺得${discussedCrypto.symbol}目標價格是$${this.formatPrice(
+              }了${Math.abs(discussedCrypto.change).toFixed(
+                1
+              )}%，敢不敢再補一波？`,
+              `我跟你講，${discussedCrypto.symbol}目標價直逼$${this.formatPrice(
                 discussedCrypto.price * (1 + (Math.random() * 0.5 + 0.5))
-              )}，現在可以囤了`,
-              `${discussedCrypto.symbol}最近的走勢很${
-                discussedCrypto.change >= 0 ? "強勁" : "弱勢"
-              }，可能是因為${
-                Math.random() > 0.5
-                  ? "機構在" + (discussedCrypto.change >= 0 ? "進場" : "出貨")
-                  : "市場情緒" + (discussedCrypto.change >= 0 ? "樂觀" : "悲觀")
-              }`,
+              )}，這波絕對能賺翻！`,
+              `${discussedCrypto.symbol}最近走勢${
+                discussedCrypto.change >= 0 ? "強勁" : "疲軟"
+              }，可能因為${
+                Math.random() > 0.5 ? "機構在進場" : "市場情緒變差"
+              }，兄弟們小心點！`,
               `聽說大戶已經開始${
                 discussedCrypto.change >= 0 ? "止盈" : "抄底"
-              }${discussedCrypto.symbol}了`,
+              }${discussedCrypto.symbol}了，這波你跟不跟？`,
               `要不要看看技術分析？${discussedCrypto.symbol}的RSI指標顯示${
                 Math.random() > 0.5 ? "超買" : "超賣"
-              }狀態`,
+              }狀態，幹，投資就是要抓住機會！`,
+              `別他媽猶豫了，這價格數字看得我都想哭，快跟上這波行情！`,
             ];
 
             const responders = Object.keys(this.userAvatars).filter(
@@ -1803,18 +1949,15 @@ const app = createApp({
               contentType: "text",
             });
 
-            if (this.autoScroll) {
-              this.scrollToBottom();
-            } else {
-              this.hasUnreadMessages = true;
-            }
+            if (this.autoScroll) this.scrollToBottom();
+            else this.hasUnreadMessages = true;
           }, 1000);
 
           hasTriggeredResponse = true;
         }
       }
 
-      // If no specific trigger found, generate a generic response
+      // 如果無特定觸發，則生成一般回應（更隨性、更像幣圈群友的對話）
       if (!hasTriggeredResponse) {
         setTimeout(() => {
           const responders = Object.keys(this.userAvatars).filter(
@@ -1822,56 +1965,20 @@ const app = createApp({
           );
 
           const replies = [
-            "完全同意你的看法！",
-            "這個想法很有創意",
-            "我持不同意見",
-            "市場走勢很難預測",
-            "堅持住，牛市即將到來",
-            "不懂就問，這是什麼意思？",
-            "已經套牢，只能繼續持有了",
-            "這種幣就是個垃圾",
-            "大戶又在洗盤了",
-            "交易所是最大贏家",
-            "小心被割韭菜",
-            "看看技術面怎麼說",
-            "別慌，跌完還有機會",
-            "梭哈吧，現在不上車啥時候上",
-            "哈哈哈，你也太慘了",
-            "這波我賺翻了，你呢？",
-            "抄底失敗，我直接爆倉",
-            "別FOMO，理性點",
-            "這幣要上月球，快跟上",
-            "我昨天賣了，今天後悔死了",
-            "止損救我一命，感謝",
-            "誰借我點USDT救急",
-            "這是財富密碼，信我",
-            "別賣，牛市才剛開始",
-            "跌成這樣，我要退圈",
-            "漲起來誰敢不服？",
-            "我老婆不讓我玩幣了",
-            "這波插針太狠了",
-            "機構在搞亂，散戶遭殃",
-            "現在買還不晚，快上車",
-            "套牢半年，解套無望",
-            "我全倉進去，求好運",
-            "別問我，我也在虧",
-            "這項目跑路了吧？",
-            "暴漲那天我請客",
-            "抄底抄到山頂，救命",
-            "我的NFT賣不出去了",
-            "合約玩崩，心態炸了",
-            "誰有內幕，快說說",
-            "這幣要翻倍，all in吧",
-            "昨天賺了，今天全吐回去",
-            "別笑我，我也想暴富",
-            "止損沒設，現在哭了",
-            "這行情太刺激，受不了",
-            "我連續盯盤三天，累死了",
-            "現在不買，過年吃土",
-            "鯨魚出貨，小心點",
-            "這波牛市我必須贏",
-            "爆倉了，誰安慰我",
-            "信仰还在，币圈不倒",
+            "靠北，這觀點有夠猛，真是聊得熱血沸騰！",
+            "幹，你這想法不錯啊，投資就該這樣拼！",
+            "老子看這行情，今天就直接全倉上車！",
+            "市場這樣，只有割肉或暴賺兩條路，選哪個？",
+            "別他媽猶豫了，幣圈就是這麼刺激，跟著買！",
+            "操，這走勢讓我直接爆肝，衝啊兄弟！",
+            "真他媽神奇，漲跌之間我都快嗨翻，幹，別錯過！",
+            "唉，今天又是割肉的好日子，悲劇！",
+            "幹，這波行情亂飛，幣圈兄弟要穩住，別慌！",
+            "說真的，這市場有時候真是操蛋到爆，跟著走！",
+            "哈哈，今天又有人瘋狂發帖，群友氣氛炸裂！",
+            "幹，這消息聽得我熱血沸騰，馬上開盤！",
+            "真他媽瘋狂，今天市場簡直像打了雞血，誰不爽？",
+            "就這麼著，別想太多，跟著市場走，賺翻了！",
           ];
           const randomReply =
             replies[Math.floor(Math.random() * replies.length)];
@@ -1882,11 +1989,8 @@ const app = createApp({
             contentType: "text",
           });
 
-          if (this.autoScroll) {
-            this.scrollToBottom();
-          } else {
-            this.hasUnreadMessages = true;
-          }
+          if (this.autoScroll) this.scrollToBottom();
+          else this.hasUnreadMessages = true;
         }, 1000 + Math.random() * 1000);
       }
     },
@@ -1910,10 +2014,11 @@ const app = createApp({
               randomUserNames[
                 Math.floor(Math.random() * randomUserNames.length)
               ];
-            // Create avatar for new user
-            this.userAvatars[
-              newUser
-            ] = `https://api.dicebear.com/6.x/personas/svg?seed=${newUser}${Date.now()}`;
+            if (!this.userAvatars[newUser]) {
+              this.userAvatars[
+                newUser
+              ] = `https://api.dicebear.com/6.x/personas/svg?seed=${newUser}${Date.now()}`;
+            }
 
             this.messages.push({
               sender: "系統消息",
@@ -2011,13 +2116,11 @@ const app = createApp({
                     name
                   )
               );
-
               if (existingUsers.length > 0) {
                 const leavingUser =
                   existingUsers[
                     Math.floor(Math.random() * existingUsers.length)
                   ];
-
                 this.messages.push({
                   sender: "系統消息",
                   content: `用戶「${leavingUser}」退出群組`,
@@ -2025,11 +2128,8 @@ const app = createApp({
                   contentType: "text",
                   type: "system",
                 });
-
-                // Remove user avatar with 50% chance to keep avatar dictionary manageable
-                if (Math.random() < 0.5) {
-                  delete this.userAvatars[leavingUser];
-                }
+                // 清理頭像
+                delete this.userAvatars[leavingUser];
               }
             }
           }
@@ -2044,138 +2144,178 @@ const app = createApp({
     },
 
     simulateIncomingMessages() {
-      setInterval(() => {
-        // Control message frequency based on market sentiment
-        const messageChance = this.isMarketVolatile
-          ? 0.8
-          : this.marketSentiment === "bullish"
-          ? 0.7
-          : this.marketSentiment === "bearish"
-          ? 0.6
-          : 0.5;
+      setInterval(
+        () => {
+          // 根據市場情緒和波動性調整消息頻率和機率
+          const messageChance = this.isMarketVolatile
+            ? 0.8
+            : this.marketSentiment === "bullish"
+            ? 0.7
+            : this.marketSentiment === "bearish"
+            ? 0.6
+            : 0.5;
 
-        if (Math.random() > messageChance) return;
+          if (Math.random() > messageChance) return;
 
-        const responders = Object.keys(this.userAvatars).filter(
-          (name) => name !== this.currentUser && name !== "系統消息"
-        );
-        const randomResponder =
-          responders[Math.floor(Math.random() * responders.length)];
+          // 選擇回應者，排除當前用戶和系統消息
+          const responders = Object.keys(this.userAvatars).filter(
+            (name) => name !== this.currentUser && name !== "系統消息"
+          );
+          const randomResponder =
+            responders[Math.floor(Math.random() * responders.length)];
 
-        let randomMessage;
+          let randomMessage;
 
-        // Generate message based on market sentiment
-        if (this.isMarketVolatile) {
-          const volatileMessages = [
-            "天啊！行情太瘋狂了！",
-            "誰能解釋一下發生了什麼？",
-            "我的止損全部被觸發了！",
-            "不敢看我的帳戶了",
-            "這波行情太刺激了",
-            "交易所又崩了，無法下單",
-            "鯨魚在洗盤，別被震出局",
-            "這是機構在操縱市場",
-            "有大戶在進場嗎？",
-            "行情太劇烈，我要休息一下",
-            "插針害我爆倉，救命",
-            "剛抄底就暴跌，心態崩了",
-            "這波我虧了一輛車",
-            "漲跌太快，我跟不上",
-            "交易所提幣排隊，慌死了",
-            "這行情是天堂還是地獄？",
-            "我的槓桿爆了，誰救我",
-            "暴跌那天我還在睡覺",
-            "漲了又跌，我要瘋了",
-            "誰知道這波啥情況？",
-            "剛賺了50%，又全吐回去",
-            "這市場太恐怖，受不了",
-            "鯨魚砸盤，小心啊",
-            "剛上車就翻車，救命",
-            "止損沒設，現在哭了",
-            "這波插針太狠，我沒了",
-            "交易所卡單，我要退圈",
-            "暴漲暴跌，心臟受不了",
-            "我的幣跌到渣都不剩",
-            "剛賣就漲，氣死我了",
-            "這行情耍我玩呢？",
-            "抄底抄到山頂，崩潰了",
-            "誰有內幕，快告訴我",
-            "這波我套牢了，解不開",
-            "漲跌像過山車，太刺激",
-            "交易所又宕機，氣炸了",
-            "剛加倉就跌，運氣真背",
-            "這市場不讓人活啊",
-            "暴跌暴漲，我要退圈",
-            "鯨魚在搞亂，散戶遭殃",
-            "我的帳戶歸零了，救命",
-            "這波太瘋狂，我睡不著",
-            "剛抄底又插針，心態炸",
-            "漲跌太快，手心冒汗",
-            "交易所提不了幣，慌了",
-            "這行情是魔鬼吧？",
-            "我的幣一秒清零，哭了",
-            "剛賺了又虧，心累了",
-            "這波過山車，我要下車",
-            "誰能穩住我，我慌了",
-          ];
-          randomMessage =
-            volatileMessages[
-              Math.floor(Math.random() * volatileMessages.length)
+          // 根據市場狀態生成消息
+          if (this.isMarketVolatile) {
+            // 波動市場使用 volatileMessages
+            randomMessage =
+              this.volatileMessages[
+                Math.floor(Math.random() * this.volatileMessages.length)
+              ];
+          } else if (this.marketSentiment === "bullish") {
+            // 牛市使用擴展後的 bullishMessages
+            const bullishMessages = [
+              "牛市確認，準備發射🚀",
+              "剛剛又買了1個BTC，感覺要起飛",
+              "誰說加密貨幣是騙局的？現在臉腫了吧",
+              "我的投資組合漲了30%，爽歪歪",
+              "這才剛開始，還有更大的行情",
+              "已經跟老闆提離職了，幣圈財富自由不是夢",
+              "BTC今年目標十萬刀沒問題",
+              "ETH即將超越BTC，大家準備好了嗎",
+              "現在入場還不晚，牛市剛開始",
+              "機構資金持續流入，這次不一樣",
+              "BTC要破10萬，快上車啊",
+              "ETH漲瘋了，我賺麻了",
+              "現在不買，過兩天哭去",
+              "這波暴漲，我要財富自由",
+              "兄弟們，all in吧，機會來了",
+              "剛抄底成功，爽到飛起",
+              "狗狗幣要上月球，誰跟我？",
+              "SHIB翻倍，我請全群吃飯",
+              "牛市氣息濃厚，快準備",
+              "我全倉進去，賺翻了",
+              "這行情太刺激，睡不著",
+              "昨天賺了50萬，太爽了",
+              "現在上車，下個月開豪車",
+              "暴漲那天，我要退休了",
+              "這波我必須贏，梭哈了",
+              "漲到懷疑人生，爽歪歪",
+              "牛市已確認，誰還不信？",
+              "剛賣房加倉，求好運",
+              "這幣要百倍，快跟上",
+              "我連續三天沒睡，盯盤中",
+              "財富密碼就在眼前，抓緊",
+              "漲起來誰敢不服？all in吧",
+              "昨天抄底，今天賺麻了",
+              "牛市來了，打工是不可能了",
+              "我的NFT賣了100萬，太爽",
+              "這波暴漲，我要上天了",
+              "兄弟們一起上車，發財去",
+              "漲成這樣，人生巔峰啊",
+              "剛借錢梭哈，求不爆倉",
+              "這行情太瘋狂，我愛幣圈",
+              "ETH要破萬，FOMO起來",
+              "現在不買，過年只能吃泡麵",
+              "BTC牛市領頭羊，快跟上",
+              "我全家都買幣了，賺翻",
+              "這波我賺了一套房，哈哈",
+              "暴漲爽到爆炸，誰還上班",
+              "剛入場就翻倍，太幸運了",
+              "牛市不等人，快衝啊",
+              "我的Pi幣要上線，準備暴富",
+              "這波漲勢，我要上月球",
             ];
-        } else if (this.marketSentiment === "bullish") {
-          const bullishMessages = [
-            "牛市確認，準備發射🚀",
-            "剛剛又買了1個BTC，感覺要起飛",
-            "誰說加密貨幣是騙局的？現在臉腫了吧",
-            "我的投資組合漲了30%，爽歪歪",
-            "這才剛開始，還有更大的行情",
-            "已經跟老闆提離職了，幣圈財富自由不是夢",
-            "BTC今年目標十萬刀沒問題",
-            "ETH即將超越BTC，大家準備好了嗎",
-            "現在入場還不晚，牛市剛開始",
-            "機構資金持續流入，這次不一樣",
-          ];
-          randomMessage =
-            bullishMessages[Math.floor(Math.random() * bullishMessages.length)];
-        } else if (this.marketSentiment === "bearish") {
-          const bearishMessages = [
-            "這波跌得有點嚴重啊",
-            "誰還有資金抄底的？我已經彈盡糧絕",
-            "熊市才是常態，別幻想暴富了",
-            "慘，虧到只剩本金的10%",
-            "堅持住，不虧不賣",
-            "這是最後的拋售，準備抄底",
-            "已經麻木了，不看行情了",
-            "誰知道有什麼打工機會，我得去賺錢補倉",
-            "這個項目還能活下來嗎？",
-            "加密貨幣總是有週期，耐心等待",
-          ];
-          randomMessage =
-            bearishMessages[Math.floor(Math.random() * bearishMessages.length)];
-        } else {
-          randomMessage =
-            randomUserMessages[
-              Math.floor(Math.random() * randomUserMessages.length)
+            randomMessage =
+              bullishMessages[
+                Math.floor(Math.random() * bullishMessages.length)
+              ];
+          } else if (this.marketSentiment === "bearish") {
+            // 熊市使用擴展後的 bearishMessages
+            const bearishMessages = [
+              "這波跌得有點嚴重啊",
+              "誰還有資金抄底的？我已經彈盡糧絕",
+              "熊市才是常態，別幻想暴富了",
+              "慘，虧到只剩本金的10%",
+              "堅持住，不虧不賣",
+              "這是最後的拋售，準備抄底",
+              "已經麻木了，不看行情了",
+              "誰知道有什麼打工機會，我得去賺錢補倉",
+              "這個項目還能活下來嗎？",
+              "加密貨幣總是有週期，耐心等待",
+              "這波我虧了一輛車",
+              "剛抄底就暴跌，心態崩了",
+              "我的帳戶歸零了，救命",
+              "暴跌那天我還在睡覺",
+              "誰救救我，我全倉沒了",
+              "跌成這樣，只能吃泡麵了",
+              "我套牢半年了，解不開",
+              "這行情是地獄吧？",
+              "剛加倉就跌，運氣真背",
+              "這市場不讓人活啊",
+              "我的幣跌到渣都不剩",
+              "剛賣就漲，氣死我了",
+              "抄底抄到山頂，崩潰了",
+              "這波暴跌，我老婆跑了",
+              "跌到懷疑人生，幣圈真難",
+              "我連續三天盯盤，全虧了",
+              "剛借錢買幣，全沒了",
+              "這波割我太狠了，我要退圈",
+              "跌成狗，我不玩了",
+              "我的槓桿爆了，心累",
+              "剛入場就崩，運氣背",
+              "跌到賣腎都不夠還",
+              "這行情太恐怖，我睡不著",
+              "剛賺了又虧，救命",
+              "熊市太慘，我要跳樓",
+              "我的NFT賣不出去了",
+              "這波過山車，我要下車",
+              "誰能穩住我，我慌了",
+              "交易所提不了幣，慌死了",
+              "跌到我連泡麵都吃不起",
+              "這波我的人生完了",
+              "我全家買幣，全套牢",
+              "剛抄底又插針，心態炸",
+              "熊市無情，我要哭了",
+              "我的幣一秒清零，太慘",
+              "這行情耍我玩呢？",
+              "誰有內幕，快告訴我",
+              "跌成這樣，我不敢看手機",
+              "這波熊市，我徹底麻了",
             ];
-        }
+            randomMessage =
+              bearishMessages[
+                Math.floor(Math.random() * bearishMessages.length)
+              ];
+          } else {
+            // 中立市場從 randomUserMessages 中隨機選擇
+            randomMessage =
+              randomUserMessages[
+                Math.floor(Math.random() * randomUserMessages.length)
+              ];
+          }
+          // 構建消息物件
+          const incomingMsg = {
+            sender: randomResponder,
+            content: randomMessage,
+            timestamp: Date.now(),
+            contentType: "text",
+          };
+          this.messages.push(incomingMsg);
 
-        const incomingMsg = {
-          sender: randomResponder,
-          content: randomMessage,
-          timestamp: Date.now(),
-          contentType: "text",
-        };
-        this.messages.push(incomingMsg);
+          // 更新未讀數量（假設已內部化）
+          this.updateUnreadCount();
 
-        // 更新未讀數量也要呼叫
-        updateUnreadCount();
-
-        if (!this.autoScroll) {
-          this.hasUnreadMessages = true;
-        } else {
-          this.scrollToBottom();
-        }
-      }, 8000); // More frequent messages: every 8 seconds average
+          // 處理滾動和未讀狀態
+          if (!this.autoScroll) {
+            this.hasUnreadMessages = true;
+          } else {
+            this.scrollToBottom();
+          }
+        },
+        this.isMarketVolatile ? 4000 : 8000
+      ); // 波動時每4秒，正常時每8秒
     },
 
     simulatePriceChanges() {
@@ -2523,13 +2663,13 @@ const app = createApp({
     },
 
     formatCryptoMessage(content) {
-      // Format message to highlight crypto terms
       let formatted = content;
       for (const [symbol, emoji] of Object.entries(cryptoEmojis)) {
-        const regex = new RegExp(`\\b${symbol}\\b`, "gi");
+        // 移除 \b，直接全局匹配該關鍵字（注意可能會有過度匹配風險）
+        const regex = new RegExp(`${symbol}`, "gi");
         formatted = formatted.replace(
           regex,
-          `<span class="crypto-badge ${symbol}">${emoji} ${symbol.toUpperCase()}</span>`
+          `<span class="crypto-badge ${symbol}"><span  class="crypto-emoji"> ${emoji}</span> ${symbol.toUpperCase()}</span>`
         );
       }
       return formatted;
