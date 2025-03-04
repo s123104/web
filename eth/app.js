@@ -1648,10 +1648,14 @@ const app = createApp({
         }
       }
 
+      // 直接取原始訊息，不轉小寫，中文和英文都能正確匹配
+      const messageText = this.newMessage;
       const matchedTerm = rocketTriggerTerms.find((term) =>
-        lowerMsg.includes(term.toLowerCase())
+        messageText.includes(term)
       );
+
       if (matchedTerm) {
+        // 根據匹配到的關鍵字決定觸發的動畫
         if (
           ["暴漲", "漲", "牛市", "翻倍", "to the moon", "上月球"].includes(
             matchedTerm
@@ -1663,11 +1667,15 @@ const app = createApp({
         } else if (["上車", "fomo", "all in", "梭哈"].includes(matchedTerm)) {
           this.triggerFireworksAnimation();
         } else {
-          // 預設隨機動畫
+          // 如果匹配到的關鍵字不在上面三類，則隨機選擇一個動畫
           const randEffect = Math.random();
-          if (randEffect > 0.7) this.triggerRocketAnimation();
-          else if (randEffect > 0.4) this.triggerFireworksAnimation();
-          else this.triggerWaterEffect();
+          if (randEffect > 0.7) {
+            this.triggerRocketAnimation();
+          } else if (randEffect > 0.4) {
+            this.triggerFireworksAnimation();
+          } else {
+            this.triggerWaterEffect();
+          }
         }
       }
 
