@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CryptoChat - 幣圈聊天室</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+    :root {
+      --primary-color: #00c300;
+      --crypto-primary: #f7931a;
+      --crypto-secondary: #627eea;
+      --chat-bg: #f5f5f5;
+    }
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background-color: #121212;
+      color: #f5f5f5;
+      overflow-x: hidden;
+    }
+    .app-container {
+      max-width: 1200px;
+      height: 100vh;
+      background-color: #1e1e1e;
+      margin: 0 auto;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 768px) {
+      .app-container {
+        flex-direction: row;
+      }
+    }
+    .sidebar {
+      background-color: #262626;
+      transition: all 0.3s ease;
+    }
+    .chat-list-item {
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+    .chat-list-item:hover, .chat-list-item.active {
+      background-color: #333;
+      border-left: 3px solid var(--crypto-primary);
+    }
+    .chat-container {
+      background-color: #1a1a1a;
+      background-image: 
+          radial-gradient(circle at 10% 20%, rgba(247, 147, 26, 0.03) 0%, transparent 20%),
+          radial-gradient(circle at 90% 60%, rgba(98, 126, 234, 0.03) 0%, transparent 25%);
+    }
+    .message {
+      max-width: 80%;
+      margin-bottom: 12px;
+      position: relative;
+      animation: fadeIn 0.3s ease;
+      word-break: break-word;
+    }
+    .message-time {
+      font-size: 0.65rem;
+      opacity: 0.7;
+    }
+    .message-in {
+      background-color: #333;
+      border-radius: 16px 16px 16px 0;
+      padding: 8px 12px;
+      align-self: flex-start;
+    }
+    .message-out {
+      background-color: var(--crypto-secondary);
+      border-radius: 16px 16px 0 16px;
+      padding: 8px 12px;
+      align-self: flex-end;
+    }
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      background-color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+    }
+    .search-bar {
+      background-color: #333;
+      border-radius: 20px;
+      transition: all 0.3s ease;
+    }
+    .search-bar:focus-within {
+      background-color: #444;
+      box-shadow: 0 0 0 2px var(--crypto-primary);
+    }
+    .input-area {
+      background-color: #262626;
+      border-top: 1px solid #333;
+    }
+    .send-btn {
+      background: linear-gradient(135deg, var(--crypto-primary), var(--crypto-secondary));
+      transition: all 0.3s ease;
+    }
+    .send-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(247, 147, 26, 0.5);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* RWD */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: -100%;
+        z-index: 100;
+        height: 100vh;
+        transition: left 0.3s ease;
+      }
+      .sidebar.active {
+        left: 0;
+      }
+      .message {
+        max-width: 90%;
+      }
+    }
+    /* 滾動條 */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--crypto-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container flex flex-col md:flex-row">
+    <!-- 側邊欄 -->
+    <div id="sidebar" class="sidebar w-full md:w-80 flex flex-col">
+      <!-- 用戶資訊 -->
+      <div class="p-4 flex items-center justify-between border-b border-gray-700">
+        <div class="flex items-center gap-3">
+          <div class="avatar bg-gradient-to-r from-yellow-500 to-orange-500">
+            <span>BT</span>
+          </div>
+          <div>
+            <h3 class="font-bold">Satoshi</h3>
+            <p class="text-xs text-gray-400">加密貨幣愛好者</p>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+          </button>
+          <button class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+            <i data-lucide="bell" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- 搜尋欄 -->
+      <div class="p-4">
+        <div class="search-bar flex items-center gap-2 p-2 px-3">
+          <i data-lucide="search" class="w-4 h-4 text-gray-400"></i>
+          <input type="text" placeholder="搜尋聊天室或訊息" class="bg-transparent border-none outline-none w-full text-sm">
+        </div>
+      </div>
+      
+      <!-- 聊天室列表 -->
+      <div class="flex-1 overflow-y-auto pb-4">
+        <div class="px-4 py-2">
+          <h4 class="text-xs font-semibold text-gray-400 mb-2">群聊</h4>
+        </div>
+        <div id="chatList" class="space-y-1 px-2">
+          <!-- 靜態範例 -->
+          <div class="chat-list-item p-2 rounded cursor-pointer active">
+            <div class="flex items-center gap-3">
+              <div class="avatar bg-gradient-to-r from-blue-500 to-purple-500">
+                <span>CC</span>
+              </div>
+              <div>
+                <h4 class="font-bold text-sm">加密貨幣交易群</h4>
+                <p class="text-xs text-gray-400 truncate">最新消息：BTC突破48K</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 聊天內容 -->
+    <div class="flex-1 flex flex-col h-screen">
+      <!-- 頂部導航 -->
+      <div class="p-3 flex items-center justify-between border-b border-gray-700">
+        <div class="flex items-center gap-3">
+          <button id="sidebarToggle" class="p-1 rounded-full hover:bg-gray-700 transition-colors md:hidden">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+          </button>
+          <div class="flex items-center gap-2">
+            <div class="avatar bg-gradient-to-r from-blue-500 to-purple-500">
+              <span>CC</span>
+            </div>
+            <div>
+              <h3 id="currentChatName" class="font-bold">加密貨幣交易群</h3>
+              <p class="text-xs text-gray-400"><span id="memberCount">5</span> 個成員</p>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <div class="price-tag hidden md:flex">
+            <div class="coin-icon text-orange-500">₿</div>
+            <span id="btcPrice">$48,592</span>
+          </div>
+          <button class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+            <i data-lucide="phone" class="w-5 h-5"></i>
+          </button>
+          <button class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+            <i data-lucide="video" class="w-5 h-5"></i>
+          </button>
+          <button class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+            <i data-lucide="more-vertical" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- 聊天訊息 -->
+      <div id="chatContainer" class="chat-container flex-1 overflow-y-auto p-4 space-y-2">
+        <!-- 初始日期標籤 -->
+        <div class="flex justify-center my-6">
+          <div class="bg-gray-800 rounded-full px-4 py-1 text-xs">
+            2025/03/08
+          </div>
+        </div>
+      </div>
+      
+      <!-- 輸入框 -->
+      <div class="input-area p-3">
+        <div class="flex items-center gap-2">
+          <button class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+          </button>
+          <div class="flex-1 bg-gray-700 rounded-3xl overflow-hidden flex items-center">
+            <input id="messageInput" type="text" placeholder="輸入訊息..." class="p-3 bg-transparent border-none outline-none w-full text-sm">
+          </div>
+          <button id="sendButton" class="send-btn p-2 rounded-full">
+            <i data-lucide="send" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 初始化 Lucide 圖標
+    lucide.createIcons();
+
+    // 模擬聊天室數據，包含超狗血劇情
+    const chatData = {
+      groups: [
+        {
+          id: 'crypto-group',
+          name: '加密貨幣交易群',
+          members: [
+            { id: '劉董', name: '劉董', avatar: '劉', avatarColor: 'bg-red-500' },
+            { id: '阿吉', name: '阿吉', avatar: '阿', avatarColor: 'bg-green-500' },
+            { id: '火箭', name: '火箭', avatar: '火', avatarColor: 'bg-blue-500' },
+            { id: '芭樂', name: '芭樂', avatar: '芭', avatarColor: 'bg-yellow-500' },
+            { id: '交易所AI', name: '交易所 AI', avatar: 'AI', avatarColor: 'bg-purple-500' },
+            // 其他角色可以加入，例如全村人
+            { id: '全村', name: '全村人', avatar: '村', avatarColor: 'bg-gray-500' }
+          ],
+          messages: [
+            // Day 1: 劉董入金宣布
+            { id: 1, senderId: '劉董', content: '各位，我決定了，ALL IN 10 萬！', time: '09:00' },
+            { id: 2, senderId: '阿吉', content: '等等！你先等等！', time: '09:01' },
+            { id: 3, senderId: '火箭', content: '現在突破趨勢線！千萬別…', time: '09:02' },
+            { id: 4, senderId: '交易所AI', content: '市場瞬間崩跌 8%', time: '09:03' },
+            { id: 5, senderId: '芭樂', content: '幹！劉董剛入金，市場直接瀑布！', time: '09:04' },
+            // Day 2: 劉董補倉
+            { id: 6, senderId: '阿吉', content: '劉董…你還有多少？', time: '10:00' },
+            { id: 7, senderId: '劉董', content: '還有 5 萬，準備補倉。', time: '10:01' },
+            { id: 8, senderId: '火箭', content: '不要啊！！求求你！', time: '10:02' },
+            { id: 9, senderId: '交易所AI', content: '市場再次暴跌 12%', time: '10:03' },
+            { id: 10, senderId: '芭樂', content: '董，真的別加倉了，你是不是市場對沖基金的秘密員工？', time: '10:04' },
+            // Day 3: 最後一搏
+            { id: 11, senderId: '劉董', content: '我只剩 2 萬，該抄底了吧？', time: '11:00' },
+            { id: 12, senderId: '阿吉', content: '你抄底，等於我們陪葬…', time: '11:01' },
+            { id: 13, senderId: '火箭', content: '你剛入金，市場又開始跳水了！', time: '11:02' },
+            { id: 14, senderId: '交易所AI', content: '市場再度崩跌 20%', time: '11:03' },
+            { id: 15, senderId: '芭樂', content: '全村陪葬！謝謝劉董！', time: '11:04' },
+            { id: 16, senderId: '阿吉', content: '劉董，你到底為誰打工？！', time: '11:05' },
+            { id: 17, senderId: '劉董', content: '這次，我真的輸完了…', time: '11:06' },
+            // Day 4: 劉董放棄，市場回暖
+            { id: 18, senderId: '劉董', content: '算了，我認了，我把剩下的領回來，以後不玩了。', time: '12:00' },
+            { id: 19, senderId: '阿吉', content: '終於…結束了嗎？', time: '12:01' },
+            { id: 20, senderId: '火箭', content: '市場開始反彈了！我們有救了！', time: '12:02' },
+            { id: 21, senderId: '交易所AI', content: '市場飆升 35%', time: '12:03' },
+            { id: 22, senderId: '芭樂', content: '幹，這行情就等著劉董退場！', time: '12:04' },
+            // 結尾：劉董的預告
+            { id: 23, senderId: '劉董', content: '你們這群人……下個月我還會回來的。', time: '12:10' },
+            { id: 24, senderId: '全村', content: '別啊啊啊啊！！！', time: '12:11' }
+          ]
+        }
+      ]
+    };
+
+    // 當前群組為 crypto-group
+    const currentGroup = chatData.groups.find(group => group.id === 'crypto-group');
+
+    // 將群組成員數更新
+    document.getElementById('memberCount').innerText = currentGroup.members.length;
+    document.getElementById('currentChatName').innerText = currentGroup.name;
+
+    // 根據對應 senderId 找出成員資料
+    function getMember(senderId) {
+      return currentGroup.members.find(member => member.id === senderId) || { name: senderId, avatar: senderId.charAt(0) };
+    }
+
+    // 將訊息動態加入 chatContainer
+    const chatContainer = document.getElementById('chatContainer');
+    currentGroup.messages.forEach(msg => {
+      const member = getMember(msg.senderId);
+      // 判斷訊息方向：這裡假設 "劉董", "火箭", "阿吉", "芭樂", "交易所AI" 屬於群聊發言，不做左右區分，僅用顏色區分（例如：劉董與交易所AI 以「我」視角為右邊，其它為左邊）
+      // 你可以根據實際需要做調整，這裡簡單處理
+      const isMe = (msg.senderId === '劉董' || msg.senderId === '交易所AI');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${isMe ? 'message-out self-end' : 'message-in self-start'}`;
+      messageDiv.innerHTML = `<strong>${member.name}：</strong> ${msg.content} <div class="message-time">${msg.time}</div>`;
+      chatContainer.appendChild(messageDiv);
+    });
+
+    // 送出訊息（這裡僅模擬，實際可連接後端）
+    document.getElementById('sendButton').addEventListener('click', () => {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (text) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message message-out self-end`;
+        // 假設自己是 "我"
+        messageDiv.innerHTML = `<strong>我：</strong> ${text} <div class="message-time">${new Date().toLocaleTimeString()}</div>`;
+        chatContainer.appendChild(messageDiv);
+        input.value = '';
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    });
+
+    // 側邊欄切換
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('active');
+    });
+  </script>
+</body>
+</html>
