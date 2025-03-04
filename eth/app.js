@@ -1359,6 +1359,9 @@ const app = createApp({
       pinnedMessage: "重要通知：本群嚴禁發送詐騙訊息",
       messages: [],
       newMessage: "",
+      showShareModal: false,
+      shareLink: "https://s123104.github.io/web/eth/index.html", // 換成你的專案連結
+      copySuccess: false,
       isInputFocused: false,
       showPinnedMessage: true,
       showMoreOptions: false,
@@ -1515,6 +1518,17 @@ const app = createApp({
     this.simulatePriceChanges();
     this.simulateUserActivity();
 
+    // 綁定所有沒有 data-has-action 的按鈕
+    const buttons = this.$el.querySelectorAll("button:not([data-has-action])");
+    console.log("綁定按鈕數量:", buttons.length);
+    buttons.forEach((button) => {
+      if (!button.closest(".share-modal")) {
+        button.addEventListener("click", (e) => {
+          this.openShareModal();
+        });
+      }
+    });
+
     // Initialize price history
     this.cryptoPrices.forEach((crypto) => {
       this.recentPriceHistory[crypto.symbol] = {
@@ -1540,6 +1554,38 @@ const app = createApp({
     }, 3000);
   },
   methods: {
+    openShareModal() {
+      this.showShareModal = true;
+    },
+    closeShareModal() {
+      this.showShareModal = false;
+      this.copySuccess = false;
+    },
+    copyShareLink() {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard
+          .writeText(this.shareLink)
+          .then(() => {
+            this.copySuccess = true;
+            setTimeout(() => {
+              this.copySuccess = false;
+            }, 2000);
+          })
+          .catch((err) => console.error("複製失敗: ", err));
+      } else {
+        // 備用方案
+        const tempInput = document.createElement("input");
+        tempInput.value = this.shareLink;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        this.copySuccess = true;
+        setTimeout(() => {
+          this.copySuccess = false;
+        }, 2000);
+      }
+    },
     updateUnreadCount() {
       const today = new Date().toLocaleDateString();
       if (this.unreadDate !== today) {

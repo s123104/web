@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <title>分享模態窗範例</title>
+    <style>
+      /* 模態窗背景，初始隱藏 */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+      /* 模態窗內容 */
+      .modal-content {
+        background-color: #fff;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 400px;
+        border-radius: 10px;
+        text-align: center;
+        position: relative;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      }
+      /* 關閉按鈕 */
+      .modal-content .close {
+        color: #aaa;
+        position: absolute;
+        right: 15px;
+        top: 10px;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .modal-content .close:hover,
+      .modal-content .close:focus {
+        color: #000;
+      }
+      /* 分享連結容器 */
+      .share-link-container {
+        display: flex;
+        align-items: center;
+        margin-top: 15px;
+      }
+      .share-link-container input {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 5px 0 0 5px;
+        font-size: 14px;
+      }
+      .share-link-container button {
+        padding: 8px 12px;
+        border: none;
+        background-color: #06c755;
+        color: #fff;
+        font-size: 14px;
+        border-radius: 0 5px 5px 0;
+        cursor: pointer;
+      }
+      .share-link-container button:hover {
+        background-color: #049a4a;
+      }
+      /* 複製成功提示 */
+      .copy-success {
+        margin-top: 10px;
+        color: #06c755;
+        font-size: 14px;
+        display: none;
+      }
+      /* 分享按鈕 */
+      .share-btn {
+        padding: 10px 20px;
+        background-color: #06c755;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 10px;
+      }
+      .share-btn:hover {
+        background-color: #049a4a;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 分享模態窗按鈕 -->
+    <button id="shareBtn" class="share-btn">分享連結給朋友</button>
+
+    <!-- 分享模態窗 -->
+    <div id="shareModal" class="modal">
+      <div class="modal-content">
+        <span class="close" id="closeModal">&times;</span>
+        <h2>來，分享這個有趣的連結給兄弟們！</h2>
+        <p>點下方按鈕複製連結，再發給朋友，保證他們笑翻！</p>
+        <div class="share-link-container">
+          <input
+            type="text"
+            id="shareLink"
+            value="https://example.com/share-link"
+            readonly
+          />
+          <button id="copyBtn">複製連結</button>
+        </div>
+        <div id="copySuccess" class="copy-success">已複製到剪貼簿！👍</div>
+      </div>
+    </div>
+
+    <script>
+      // 等 DOM 載入完成再執行
+      document.addEventListener("DOMContentLoaded", function () {
+        var shareBtn = document.getElementById("shareBtn");
+        var closeModal = document.getElementById("closeModal");
+        var copyBtn = document.getElementById("copyBtn");
+        var shareModal = document.getElementById("shareModal");
+        var copySuccess = document.getElementById("copySuccess");
+
+        // 按下分享按鈕，顯示模態窗
+        shareBtn.addEventListener("click", function () {
+          shareModal.style.display = "block";
+        });
+
+        // 按下關閉按鈕，隱藏模態窗
+        closeModal.addEventListener("click", function () {
+          shareModal.style.display = "none";
+          copySuccess.style.display = "none";
+        });
+
+        // 按下複製按鈕，複製連結
+        copyBtn.addEventListener("click", function () {
+          var shareLink = document.getElementById("shareLink").value;
+          // 使用現代 Clipboard API
+          if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard
+              .writeText(shareLink)
+              .then(function () {
+                showCopySuccess();
+              })
+              .catch(function (err) {
+                console.error("複製失敗: ", err);
+              });
+          } else {
+            // 備援方案
+            var copyInput = document.getElementById("shareLink");
+            copyInput.select();
+            document.execCommand("copy");
+            showCopySuccess();
+          }
+        });
+
+        // 點擊模態窗背景時隱藏模態窗
+        window.addEventListener("click", function (event) {
+          if (event.target === shareModal) {
+            shareModal.style.display = "none";
+            copySuccess.style.display = "none";
+          }
+        });
+
+        function showCopySuccess() {
+          copySuccess.style.display = "block";
+          setTimeout(function () {
+            copySuccess.style.display = "none";
+          }, 2000);
+        }
+      });
+    </script>
+  </body>
+</html>
