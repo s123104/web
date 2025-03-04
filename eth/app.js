@@ -1360,6 +1360,7 @@ const app = createApp({
       messages: [],
       newMessage: "",
       showShareModal: false,
+      showMoreOptions: false,
       shareLink: "https://s123104.github.io/web/eth/index.html", // 換成你的專案連結
       copySuccess: false,
       isInputFocused: false,
@@ -1558,6 +1559,9 @@ const app = createApp({
     }, 3000);
   },
   methods: {
+    toggleMoreOptions() {
+      this.showMoreOptions = !this.showMoreOptions;
+    },
     openShareModal() {
       this.showShareModal = true;
     },
