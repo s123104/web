@@ -1518,6 +1518,7 @@ const app = createApp({
     this.simulatePriceChanges();
     this.simulateUserActivity();
 
+    // 在 Vue mounted() 或全域腳本中執行
     let vh = window.innerHeight * 0.01;
     document.documentElement.style.setProperty("--vh", `${vh}px`);
 
