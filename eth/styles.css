@@ -1,0 +1,982 @@
+:root {
+  --line-green: #06c755;
+  --line-gray: #f8f8f8;
+  --line-light-gray: #e9e9e9;
+  --line-border: #ddd;
+  --text-primary: #333;
+  --text-secondary: #888;
+  --sent-bubble: #dcf8c6;
+  --received-bubble: #fff;
+  --system-message: #f2f2f2;
+  --bitcoin-orange: #f7931a;
+  --ethereum-blue: #627eea;
+  --dogecoin-yellow: #c3a634;
+  --ada-blue: #0033ad;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+body {
+  background-color: var(--line-gray);
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.chat-container {
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  background-color: #f5f5f5;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Header styles */
+.chat-header {
+  padding: 12px 16px;
+  background-color: var(--line-green);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.unread-count {
+  background-color: #ffffff;
+  color: var(--line-green);
+  border-radius: 12px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: bold;
+  margin: 0 8px;
+}
+
+.chat-info {
+  margin-left: 4px;
+}
+
+.chat-info h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.header-right button {
+  margin-left: 15px;
+}
+
+.btn-back,
+.btn-pin,
+.btn-search,
+.btn-call,
+.btn-video,
+.btn-more {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Mini price display in header */
+.price-mini-display {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 6px;
+  margin-right: 10px;
+  font-size: 11px;
+  max-width: 120px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.mini-price-item {
+  white-space: nowrap;
+  padding: 3px 6px;
+  border-radius: 4px;
+  margin-bottom: 3px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.mini-price-item.up {
+  color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.2);
+}
+
+.mini-price-item.down {
+  color: #f44336;
+  background-color: rgba(244, 67, 54, 0.2);
+}
+
+.mini-price-item.pulse-animation {
+  animation: price-pulse 0.8s ease;
+}
+
+@keyframes price-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+    filter: brightness(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Mini price display in footer */
+.price-mini-display.footer {
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  padding: 4px;
+  margin-right: 10px;
+  font-size: 10px;
+  max-width: 100px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  position: absolute;
+  right: 60px;
+  bottom: 60px;
+  z-index: 10;
+}
+
+.mini-price-item {
+  white-space: nowrap;
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+/* Pinned message styles */
+.pinned-message {
+  padding: 8px 16px;
+  background-color: #fffde7;
+  border-bottom: 1px solid var(--line-border);
+}
+
+.pinned-content {
+  display: flex;
+  align-items: center;
+}
+
+.pinned-content i {
+  margin-right: 8px;
+  color: var(--text-secondary);
+}
+
+.pinned-content p {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.pinned-content button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* More options modal */
+.more-options-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.modal-content {
+  width: 80%;
+  max-width: 320px;
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line-border);
+}
+
+.modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modal-header button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.modal-options {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.option-item {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line-light-gray);
+  cursor: pointer;
+}
+
+.option-item i {
+  margin-right: 12px;
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+.option-item.delete {
+  color: #ff3b30;
+}
+
+.option-item.delete i {
+  color: #ff3b30;
+}
+
+/* Call options dropdown */
+.call-options-dropdown {
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  width: 90%;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.call-options-content {
+  padding: 16px;
+}
+
+.member-avatars {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.member-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 60px;
+}
+
+.member-avatar img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.member-avatar span {
+  font-size: 12px;
+  margin-top: 4px;
+  text-align: center;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.call-buttons {
+  display: flex;
+  justify-content: space-around;
+  border-top: 1px solid var(--line-light-gray);
+  padding-top: 16px;
+}
+
+.voice-call-btn,
+.video-call-btn {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.voice-call-btn {
+  color: var(--line-green);
+}
+
+.video-call-btn {
+  color: #4a90e2;
+}
+
+/* Message list styles */
+.message-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  background-color: #e6e5eb;
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=");
+  position: relative;
+}
+
+.message-container {
+  display: flex;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.message-container.sent {
+  justify-content: flex-end;
+}
+
+.message-container.received {
+  justify-content: flex-start;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-right: 8px;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 36px;
+  height: 36px;
+  margin-right: 8px;
+}
+
+.message-content {
+  max-width: 70%;
+}
+
+.sender-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.message-bubble {
+  padding: 8px 12px;
+  border-radius: 18px;
+  position: relative;
+  word-wrap: break-word;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.sent .message-bubble {
+  background-color: var(--line-green);
+  color: white;
+  border-top-right-radius: 4px;
+}
+
+.received .message-bubble {
+  background-color: white;
+  color: var(--text-primary);
+  border-top-left-radius: 4px;
+}
+
+.message-bubble.image {
+  padding: 4px;
+  background-color: transparent;
+}
+
+.message-bubble.image img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.message-time {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  text-align: right;
+}
+
+.sent .message-time {
+  text-align: right;
+}
+
+.received .message-time {
+  text-align: left;
+}
+
+/* System message styles */
+.system-message {
+  width: 100%;
+  text-align: center;
+  margin: 12px 0;
+}
+
+.system-message p {
+  display: inline-block;
+  background-color: var(--system-message);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+}
+
+.system-message.crypto-event p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.crypto-icon {
+  height: 16px;
+  width: 16px;
+}
+
+/* 新訊息提示位置（保持原來在底部顯示） */
+.unread-notification {
+  position: fixed;
+  bottom: 80px; /* 原本的位置 */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--line-green);
+  color: white;
+  padding: 6px 15px;
+  border-radius: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  font-weight: bold;
+  z-index: 5;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(6, 199, 85, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(6, 199, 85, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(6, 199, 85, 0);
+  }
+}
+
+.unread-notification i {
+  margin-right: 8px;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Footer styles */
+.chat-footer {
+  padding: 12px;
+  background-color: white;
+  border-top: 1px solid var(--line-border);
+  display: flex;
+  align-items: center;
+  z-index: 10;
+}
+
+.input-options {
+  display: flex;
+  align-items: center;
+}
+
+.input-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin: 0 8px;
+  border: 1px solid var(--line-border);
+  border-radius: 24px;
+  padding: 0 12px;
+  background-color: #f8f8f8;
+}
+
+.input-container input {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  font-size: 14px;
+  outline: none;
+  caret-color: var(--line-green);
+  background-color: transparent;
+}
+
+.input-placeholder {
+  position: absolute;
+  left: 12px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.btn-emoji {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.btn-plus,
+.btn-camera,
+.btn-photo,
+.btn-voice {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text-secondary);
+  margin: 0 8px;
+  cursor: pointer;
+}
+
+.more-input-options {
+  display: none;
+}
+
+/* Image viewer */
+.image-viewer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.image-viewer img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+}
+
+.close-viewer {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.crypto-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 12px;
+  padding: 2px 6px;
+  margin-right: 4px;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.crypto-badge.btc {
+  background-color: var(--bitcoin-orange);
+}
+
+.crypto-badge.eth {
+  background-color: var(--ethereum-blue);
+}
+
+.crypto-badge.doge {
+  background-color: var(--dogecoin-yellow);
+}
+
+.crypto-badge.ada {
+  background-color: var(--ada-blue);
+}
+
+/* Price Ticker */
+.price-ticker {
+  background-color: white;
+  padding: 5px;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eee;
+}
+
+.ticker-content {
+  display: inline-block;
+  animation: ticker-start 1s linear forwards, ticker 20s linear infinite 1s;
+}
+
+@keyframes ticker-start {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+@keyframes ticker {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.ticker-item {
+  display: inline-block;
+  margin-right: 24px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.ticker-item.up {
+  color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.ticker-item.down {
+  color: #f44336;
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.ticker-item.up::after {
+  content: "▲";
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+.ticker-item.down::after {
+  content: "▼";
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+.ticker-symbol {
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+/* Update price pulse animation */
+@keyframes price-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+    filter: brightness(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.price-update {
+  animation: price-pulse 0.8s ease;
+}
+
+/* 固定在視窗右上角，隨滾輪移動 */
+#crypto-price-list {
+  position: fixed;
+  top: 140px;
+  right: -10px;
+  transform: scale(0.8);
+  z-index: 15;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+/* 對話視窗內右上角的暴漲暴跌彈跳窗 */
+.price-alert {
+  position: absolute;
+  top: 120px; /* 放在價格列表下面，避免重疊 */
+  right: 10px;
+  background-color: #fff; /* 加上背景色 */
+  color: #333; /* 調整文字顏色 */
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  z-index: 20;
+  font-size: 12px;
+}
+
+@keyframes alert-slide-in {
+  0% {
+    top: -100px;
+    opacity: 0;
+  }
+  100% {
+    top: 70px;
+    opacity: 1;
+  }
+}
+
+.price-alert.up {
+  border-left: 5px solid #4caf50;
+}
+
+.price-alert.down {
+  border-left: 5px solid #f44336;
+}
+
+.price-alert-symbol {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.price-alert-value {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.price-alert.up .price-alert-value {
+  color: #4caf50;
+}
+
+.price-alert.down .price-alert-value {
+  color: #f44336;
+}
+
+.price-alert-price {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+/* Water Effect Animation */
+.water-effect {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(30, 144, 255, 0.2),
+    rgba(30, 144, 255, 0.8)
+  );
+  z-index: 40;
+  pointer-events: none;
+  transition: height 2s ease-in-out;
+}
+
+.water-effect.animate {
+  height: 50%;
+  animation: water-wave 2s ease-in-out infinite;
+}
+
+@keyframes water-wave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Enhanced firework animation */
+@keyframes firework-explosion {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+.firework.animate {
+  animation: firework-explosion 1.5s forwards
+    cubic-bezier(0.17, 0.67, 0.83, 0.67);
+}
+
+/* Night mode styles */
+.night-mode {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+.night-mode .chat-container {
+  background-color: #1e1e1e;
+}
+
+.night-mode .message-list {
+  background-color: #121212;
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzAzMDMwIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=");
+}
+
+.night-mode .chat-footer,
+.night-mode .input-container {
+  background-color: #1e1e1e;
+  border-color: #333;
+}
+
+.night-mode .input-container input {
+  color: #e0e0e0;
+}
+
+.night-mode .received .message-bubble {
+  background-color: #333;
+  color: #e0e0e0;
+}
+
+.night-mode .price-ticker {
+  background-color: #1e1e1e;
+  border-color: #333;
+}
+
+/* Rocket Animation */
+@keyframes rocket-launch {
+  0% {
+    bottom: -100px;
+    opacity: 0;
+  }
+  10% {
+    bottom: 0;
+    opacity: 1;
+  }
+  70% {
+    bottom: 70%;
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    bottom: 100%;
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+.rocket {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -100px;
+  width: 60px;
+  height: 100px;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rocket.animate {
+  animation: rocket-launch 3s forwards ease-in-out;
+}
+
+/* Fireworks Animation */
+.fireworks {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 45;
+}
+
+.firework {
+  position: absolute;
+  opacity: 0;
+}
+
+/* Responsive design */
+@media (min-width: 768px) {
+  .chat-container {
+    max-width: 480px;
+    height: 80vh;
+    border-radius: 12px;
+  }
+}

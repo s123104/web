@@ -1,0 +1,277 @@
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>幣圈LINE風格聊天室</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app" :class="{ 'night-mode': nightMode }">
+      <div class="chat-container">
+        <!-- 標頭區域 -->
+        <header class="chat-header">
+          <div class="header-left">
+            <button class="btn-back">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <div class="unread-count">10+</div>
+            <div class="chat-info">
+              <h2>ETH 是人民的貨幣 ({{ groupMembers }})</h2>
+            </div>
+          </div>
+          <div class="header-right">
+            <button class="btn-search"><i class="fas fa-search"></i></button>
+            <button class="btn-call" @click="toggleCallOptions">
+              <i class="fas fa-phone"></i>
+            </button>
+            <button class="btn-more" @click="toggleMoreOptions">
+              <i class="fas fa-bars"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- 置顶公告 -->
+        <div class="pinned-message">
+          <div class="pinned-content">
+            <i class="fas fa-thumbtack"></i>
+            <p>{{ pinnedMessage }}</p>
+            <button @click="togglePinnedMessage">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Call options dropdown -->
+        <div class="call-options-dropdown" v-if="showCallOptions">
+          <div class="call-options-content">
+            <div class="member-avatars">
+              <div
+                v-for="(avatar, name) in userAvatars"
+                :key="name"
+                class="member-avatar"
+              >
+                <img :src="avatar" :alt="name" />
+                <span>{{ name }}</span>
+              </div>
+            </div>
+            <div class="call-buttons">
+              <button class="voice-call-btn">
+                <i class="fas fa-phone"></i> 語音通話
+              </button>
+              <button class="video-call-btn">
+                <i class="fas fa-video"></i> 視訊通話
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 更多选项模态窗口 -->
+        <div class="more-options-modal" v-if="showMoreOptions">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>聊天室設定</h3>
+              <button @click="toggleMoreOptions">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <div class="modal-options">
+              <div class="option-item">
+                <i class="fas fa-info-circle"></i> 群組資訊
+              </div>
+              <div class="option-item">
+                <i class="fas fa-users"></i> 成員管理
+              </div>
+              <div class="option-item">
+                <i class="fas fa-bell-slash"></i> 靜音通知
+              </div>
+              <div class="option-item"><i class="fas fa-ban"></i> 封鎖對話</div>
+              <div class="option-item delete">
+                <i class="fas fa-trash"></i> 刪除聊天紀錄
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Crypto price ticker -->
+        <div class="price-ticker">
+          <div class="ticker-content">
+            <div
+              v-for="item in tickerItems"
+              :key="item.symbol"
+              :class="['ticker-item', item.changeClass, item.pulseClass]"
+            >
+              {{ item.symbol }}: ${{ item.price }} {{ item.changeSymbol }}{{
+              item.change }}%
+            </div>
+          </div>
+        </div>
+
+        <!-- Price alert notification -->
+        <div
+          v-if="showPriceAlert"
+          :class="['price-alert', priceAlertData.direction]"
+        >
+          <div class="price-alert-symbol">{{ priceAlertData.symbol }}</div>
+          <div class="price-alert-value">
+            {{ priceAlertData.direction === 'up' ? '🚀 上漲' : '📉 下跌' }} {{
+            priceAlertData.percentage }}%
+          </div>
+          <div class="price-alert-price">現價: ${{ priceAlertData.price }}</div>
+        </div>
+
+        <!-- 消息列表区域 -->
+        <div class="message-list" ref="messageList" @scroll="handleScroll">
+          <!-- 新增：加密貨幣價格列表，絕對定位於右上角 -->
+          <div id="crypto-price-list" class="price-mini-display">
+            <div
+              v-for="coin in topCoins"
+              :key="coin.symbol"
+              :class="['mini-price-item', coin.change >= 0 ? 'up' : 'down', pricePulse[coin.symbol] ? 'pulse-animation' : '']"
+            >
+              {{ coin.symbol }}: ${{ formatPrice(coin.price) }}
+            </div>
+          </div>
+
+          <div
+            v-for="(message, index) in messages"
+            :key="index"
+            :class="['message-container', message.sender === currentUser ? 'sent' : 'received']"
+          >
+            <!-- 系统消息 -->
+            <div v-if="message.type === 'system'" class="system-message">
+              <p>{{ message.content }}</p>
+            </div>
+
+            <!-- 普通消息 -->
+            <template v-else>
+              <div
+                class="avatar"
+                v-if="message.sender !== currentUser && shouldShowAvatar(index)"
+              >
+                <img :src="getUserAvatar(message.sender)" alt="avatar" />
+              </div>
+              <div
+                v-else-if="message.sender !== currentUser"
+                class="avatar-placeholder"
+              ></div>
+
+              <div class="message-content">
+                <div
+                  class="sender-name"
+                  v-if="message.sender !== currentUser && shouldShowName(index)"
+                >
+                  {{ message.sender }}
+                </div>
+
+                <!-- 图片消息 -->
+                <div
+                  v-if="message.contentType === 'image'"
+                  class="message-bubble image"
+                >
+                  <img
+                    :src="message.content"
+                    alt="image"
+                    @click="viewImage(message.content)"
+                  />
+                </div>
+
+                <!-- 文本消息 -->
+                <div v-else class="message-bubble">
+                  <p v-html="formatCryptoMessage(message.content)"></p>
+                </div>
+
+                <div class="message-time">
+                  {{ formatTime(message.timestamp) }}
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- 未读消息提示 -->
+          <div
+            v-if="hasUnreadMessages"
+            class="unread-notification"
+            @click="scrollToBottom"
+          >
+            <i class="fas fa-chevron-down"></i> 有新訊息
+          </div>
+
+          <!-- Rocket animation -->
+          <div class="rocket" :class="{ animate: showRocket }">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path
+                fill="#f7931a"
+                d="M13.13,22.19L11.5,18.36C13.07,17.78 14.54,17 15.9,16.09L13.13,22.19M5.64,12.5L1.81,10.87L7.91,8.1C7,9.46 6.22,10.93 5.64,12.5M21.61,2.39C21.61,2.39 16.66,-.69 11,3.17C8.04,5.23 5.95,8.57 4.78,12.5C3.59,16.45 3.3,20.24 3.3,20.24C3.3,20.24 7.09,19.95 11.04,18.76C15,17.59 18.3,15.5 20.37,12.5C24.25,6.88 21.61,2.39 21.61,2.39M14.29,9.71C13.43,8.85 12.71,8.88 12,9C11.38,9.08 10.65,9.28 9.93,9.65C9.22,10 8.55,10.5 7.96,11.09C7.37,11.68 6.87,12.35 6.5,13.06C6.13,13.78 5.93,14.5 5.87,15.13C5.76,15.85 5.74,16.56 6.6,17.42C7.47,18.29 8.18,18.26 8.9,18.15C9.5,18.08 10.22,17.88 10.94,17.5C11.65,17.14 12.33,16.65 12.91,16.06C13.5,15.47 14,14.79 14.37,14.08C14.74,13.37 14.93,12.64 15,12C15.12,11.29 15.14,10.57 14.29,9.71Z"
+              />
+            </svg>
+          </div>
+
+          <!-- Fireworks animation -->
+          <div class="fireworks" v-if="showFireworks">
+            <div
+              v-for="firework in fireworks"
+              :key="firework.id"
+              class="firework animate"
+              :style="{
+                             left: firework.x,
+                             top: firework.y,
+                             width: firework.size,
+                             height: firework.size,
+                             backgroundImage: `radial-gradient(circle, ${firework.color} 0%, transparent 70%)`
+                         }"
+            ></div>
+          </div>
+
+          <!-- Water effect animation -->
+          <div class="water-effect" :class="{ animate: showWaterEffect }"></div>
+        </div>
+
+        <!-- 输入区域 -->
+        <footer class="chat-footer">
+          <button class="btn-plus"><i class="fas fa-plus"></i></button>
+          <button class="btn-camera"><i class="fas fa-camera"></i></button>
+          <button class="btn-photo"><i class="fas fa-image"></i></button>
+
+          <div class="input-container" @click="focusInput">
+            <div class="input-placeholder" v-if="inputPlaceholder">Aa</div>
+            <input
+              ref="messageInput"
+              type="text"
+              v-model="newMessage"
+              @keyup.enter="sendMessage"
+              @focus="inputPlaceholder = false"
+              @blur="blurInput"
+              @input="updateCursorPosition"
+            />
+            <button class="btn-emoji"><i class="fas fa-smile"></i></button>
+          </div>
+
+          <button class="btn-voice"><i class="fas fa-microphone"></i></button>
+        </footer>
+
+        <!-- 图片查看器 -->
+        <div
+          class="image-viewer"
+          v-if="selectedImage"
+          @click="selectedImage = null"
+        >
+          <img :src="selectedImage" alt="Full size image" />
+          <button class="close-viewer"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
