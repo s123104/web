@@ -1518,6 +1518,9 @@ const app = createApp({
     this.simulatePriceChanges();
     this.simulateUserActivity();
 
+    let vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty("--vh", `${vh}px`);
+
     // 綁定所有沒有 data-has-action 的按鈕
     const buttons = this.$el.querySelectorAll("button:not([data-has-action])");
     console.log("綁定按鈕數量:", buttons.length);
