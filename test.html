@@ -2,35 +2,32 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>BBybit ETHUSDT 1秒 K線測試頁面</title>
+<title>Bybit ETHUSDT 1秒 K線測試</title>
 <style>
-  /* 簡單的樣式調整 */
   body { font-family: Arial, sans-serif; margin: 20px; }
   #chartContainer { width: 600px; height: 300px; margin-top: 10px; }
   table { border-collapse: collapse; margin-top: 10px; font-size: 14px; }
   table, th, td { border: 1px solid #ccc; }
   th, td { padding: 4px 8px; text-align: center; }
   th { background: #f4f4f4; }
-  #connStatus { font-weight: bold; }
-  #errorMsg { color: red; }
+  #statusPanel div { margin: 5px 0; font-size: 14px; }
+  .error { color: red; font-weight: bold; }
+  .success { color: green; font-weight: bold; }
 </style>
 </head>
 <body>
-<h2>Bybit ETHUSDT 1秒 K線測試頁面</h2>
+<h2>Bybit ETHUSDT 1秒 K線測試</h2>
 
-<!-- WebSocket 連線狀態顯示 -->
-<div>連線狀態：<span id="connStatus">未連線</span></div>
+<div id="statusPanel">
+  <div>WebSocket 連線狀態：<span id="connStatus">未連線</span></div>
+  <div>最新價格：<span id="latestPrice">-</span></div>
+  <div>CDN 圖表庫狀態：<span id="cdnStatus">測試中...</span></div>
+  <div>CORS 測試狀態：<span id="corsStatus">測試中...</span></div>
+  <div class="error">錯誤訊息：<span id="errorMsg"></span></div>
+</div>
 
-<!-- 即時 ETHUSDT 最新價格顯示 -->
-<div>最新價格：<span id="latestPrice">-</span></div>
-
-<!-- 錯誤訊息即時顯示 -->
-<div>錯誤訊息：<span id="errorMsg"></span></div>
-
-<!-- 即時 K 線圖表顯示 -->
 <div id="chartContainer"></div>
 
-<!-- 完整 K 線數據顯示 (表格形式顯示每秒的 OHLC) -->
 <table>
   <thead>
     <tr><th>時間</th><th>開盤價</th><th>最高價</th><th>最低價</th><th>收盤價</th></tr>
@@ -39,157 +36,100 @@
 </table>
 
 <script>
-// 全域變數
 let ws;
-let candleSeries;       // K 線圖表系列
-let currentCandle = null;  // 當前的 1 秒 K 線數據
-let lastCandleTime = null; // 當前K線的時間 (秒)
+let candleSeries;
+let currentCandle = null;
+let lastCandleTime = null;
 
-// 初始化 K 線圖表
+// 初始化圖表
 function initChart() {
-  // 確認輕量級圖表庫是否載入
   if (typeof LightweightCharts === 'undefined') {
-    console.error('Lightweight Charts 庫未載入');
-    document.getElementById('errorMsg').innerText = '圖表庫載入失敗';
+    document.getElementById('cdnStatus').innerText = '❌ 圖表庫載入失敗';
     return;
   }
-  const chartContainer = document.getElementById('chartContainer');
-  // 建立圖表並新增燭台系列 (K線)
-  const chart = LightweightCharts.createChart(chartContainer, { width: 600, height: 300 });
+  document.getElementById('cdnStatus').innerText = '✅ 圖表庫成功載入';
+  const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), { width: 600, height: 300 });
   candleSeries = chart.addCandlestickSeries();
 }
 
-// 初始化 WebSocket 連線
+// 初始化 WebSocket
 function initWebSocket() {
-  // 連線 Bybit 公共 WebSocket (線性合約資料)
   ws = new WebSocket('wss://stream.bybit.com/v5/public/linear');
-  // WebSocket 開啟事件
-  ws.onopen = function() {
-    document.getElementById('connStatus').innerText = '已連線';
-    // 訂閱 ETHUSDT 的交易資料 (用於 1 秒 K 線)
-    const subscribeMsg = {
-      op: 'subscribe',
-      args: ['publicTrade.ETHUSDT']
-    };
-    ws.send(JSON.stringify(subscribeMsg));
+  ws.onopen = () => {
+    document.getElementById('connStatus').innerText = '✅ 已連線';
+    ws.send(JSON.stringify({ op: 'subscribe', args: ['publicTrade.ETHUSDT'] }));
   };
-  // WebSocket 訊息事件
-  ws.onmessage = function(event) {
+  ws.onmessage = (event) => {
     try {
       const msg = JSON.parse(event.data);
-      // 檢查是否為交易數據訊息
-      if (msg.topic && msg.topic === 'publicTrade.ETHUSDT' && msg.data) {
+      if (msg.topic === 'publicTrade.ETHUSDT' && msg.data) {
         const trades = msg.data;
-        // 處理每一筆交易，更新或建立 1 秒 K 線
-        for (let i = 0; i < trades.length; i++) {
-          const trade = trades[i];
-          const priceStr = trade.p;
+        trades.forEach(trade => {
+          const price = parseFloat(trade.p);
           const tradeTimeSec = Math.floor(trade.T / 1000);
-          const price = parseFloat(priceStr);
           if (currentCandle === null || tradeTimeSec !== lastCandleTime) {
-            // 新的一秒開始 (或第一筆資料)，將前一秒 K 線資料固定並顯示
-            if (currentCandle !== null) {
-              // 將上一秒的 K 線資料新增到表格
-              appendCandleToTable(currentCandle);
-            }
-            // 開始新的 K 線
-            currentCandle = {
-              time: tradeTimeSec,
-              open: price,
-              high: price,
-              low: price,
-              close: price,
-              openStr: priceStr,
-              highStr: priceStr,
-              lowStr: priceStr,
-              closeStr: priceStr
-            };
+            if (currentCandle !== null) appendCandleToTable(currentCandle);
+            currentCandle = { time: tradeTimeSec, open: price, high: price, low: price, close: price };
             lastCandleTime = tradeTimeSec;
-            // 圖表新增新的一根 K 線
-            if (candleSeries) {
-              candleSeries.update({ time: tradeTimeSec, open: price, high: price, low: price, close: price });
-            }
+            if (candleSeries) candleSeries.update(currentCandle);
           } else {
-            // 同一秒內，更新當前 K 線的數據
-            if (price > currentCandle.high) {
-              currentCandle.high = price;
-              currentCandle.highStr = priceStr;
-            }
-            if (price < currentCandle.low) {
-              currentCandle.low = price;
-              currentCandle.lowStr = priceStr;
-            }
+            currentCandle.high = Math.max(currentCandle.high, price);
+            currentCandle.low = Math.min(currentCandle.low, price);
             currentCandle.close = price;
-            currentCandle.closeStr = priceStr;
-            // 更新圖表當前 K 線
-            if (candleSeries) {
-              candleSeries.update({ time: tradeTimeSec, open: currentCandle.open, high: currentCandle.high, low: currentCandle.low, close: price });
-            }
+            if (candleSeries) candleSeries.update(currentCandle);
           }
-        }
-        // 更新最新價格顯示為最後一筆交易價格
-        if (trades.length > 0) {
-          const lastPriceStr = trades[trades.length - 1].p;
-          document.getElementById('latestPrice').innerText = lastPriceStr;
-        }
-      } else if (msg.success !== undefined && msg.op === 'subscribe') {
-        // 處理訂閱回覆訊息
-        if (!msg.success) {
-          document.getElementById('errorMsg').innerText = '訂閱主題失敗';
-        }
+        });
+        document.getElementById('latestPrice').innerText = trades[trades.length - 1].p;
       }
     } catch (e) {
-      console.error('處理訊息錯誤:', e);
       document.getElementById('errorMsg').innerText = '資料處理錯誤: ' + e.message;
     }
   };
-  // WebSocket 關閉事件
-  ws.onclose = function(event) {
-    document.getElementById('connStatus').innerText = '已關閉';
-    if (event.code !== 1000) {  // 非正常關閉
-      document.getElementById('errorMsg').innerText = 'WebSocket 意外關閉: Code ' + event.code;
-    }
-  };
-  // WebSocket 錯誤事件
-  ws.onerror = function() {
-    document.getElementById('connStatus').innerText = '錯誤';
-    document.getElementById('errorMsg').innerText = 'WebSocket 連線錯誤';
-  };
+  ws.onclose = () => document.getElementById('connStatus').innerText = '❌ 已關閉';
+  ws.onerror = () => document.getElementById('connStatus').innerText = '❌ 連線錯誤';
 }
 
-// 將完成的 K 線數據新增至表格
+// 添加 K 線數據到表格
 function appendCandleToTable(candle) {
-  const time = new Date(candle.time * 1000);
-  const hh = String(time.getHours()).padStart(2, '0');
-  const mm = String(time.getMinutes()).padStart(2, '0');
-  const ss = String(time.getSeconds()).padStart(2, '0');
-  const timeStr = hh + ':' + mm + ':' + ss;
-  const row = document.createElement('tr');
-  const cells = [ timeStr, candle.openStr, candle.highStr, candle.lowStr, candle.closeStr ];
-  cells.forEach(text => {
-    const td = document.createElement('td');
-    td.textContent = text;
-    row.appendChild(td);
-  });
-  document.getElementById('klineBody').appendChild(row);
+  const timeStr = new Date(candle.time * 1000).toLocaleTimeString();
+  const row = `<tr><td>${timeStr}</td><td>${candle.open}</td><td>${candle.high}</td><td>${candle.low}</td><td>${candle.close}</td></tr>`;
+  document.getElementById('klineBody').insertAdjacentHTML('afterbegin', row);
 }
 
-// 啟動應用 (在圖表庫載入後呼叫)
+// CORS 測試
+function testCORS() {
+  fetch('https://api.bybit.com/v5/market/tickers?category=linear', { method: 'GET' })
+    .then(response => {
+      if (response.ok) {
+        document.getElementById('corsStatus').innerText = '✅ CORS 允許請求';
+      } else {
+        document.getElementById('corsStatus').innerText = '❌ CORS 拒絕請求';
+      }
+    })
+    .catch(error => {
+      document.getElementById('corsStatus').innerText = '❌ CORS 請求失敗';
+      document.getElementById('errorMsg').innerText = 'CORS 測試錯誤: ' + error.message;
+    });
+}
+
+// 啟動應用
 function startApp() {
   initChart();
   initWebSocket();
+  testCORS();
 }
 
-// 圖表庫載入失敗處理
+// 圖表庫載入失敗
 function chartLoadFailed() {
-  document.getElementById('errorMsg').innerText = '無法載入圖表庫 (CDN 失敗)';
-  // 嘗試啟動 WebSocket（即使圖表無法載入，仍可顯示文字數據）
+  document.getElementById('cdnStatus').innerText = '❌ 圖表庫載入失敗';
   initWebSocket();
+  testCORS();
 }
+
 </script>
 
-<!-- 載入 Lightweight Charts 圖表庫 (CDN) -->
-<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js" 
+<!-- 載入 Lightweight Charts 圖表庫 -->
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"
         onload="startApp()" onerror="chartLoadFailed()"></script>
 
 </body>
