@@ -6,14 +6,8 @@
     <title>加密貨幣交易平台</title>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-    <!-- Importmap for Lightweight Charts -->
-    <script type="importmap">
-      {
-        "imports": {
-          "lightweight-charts": "https://cdn.jsdelivr.net/npm/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"
-        }
-      }
-    </script>
+    <!-- 引入 Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
       /* ===== 基本重置與字型 ===== */
       * {
@@ -106,13 +100,12 @@
       /* ===== 主內容 ===== */
       .main-content {
         flex: 1;
-        overflow: hidden;
+        overflow-y: auto;
         position: relative;
       }
       .content-section {
         display: none;
         height: 100%;
-        overflow-y: auto;
       }
       .content-section.active {
         display: block;
@@ -139,11 +132,11 @@
         background-color: var(--tertiary-bg);
         border-color: var(--accent-color);
       }
-      .chart-container {
-        height: calc(100% - 120px);
+      #chart {
         width: 100%;
+        height: 70vh;
         background-color: var(--secondary-bg);
-        position: relative;
+        margin-bottom: 1rem;
       }
       .indicators {
         display: flex;
@@ -483,8 +476,12 @@
           </div>
         </div>
         <div class="tab-switcher">
-          <button class="tab-btn active" data-tab="chart"> <i class="fas fa-chart-line"></i> 走勢圖</button>
-          <button class="tab-btn" data-tab="trade"><i class="fas fa-exchange-alt"></i> 交易</button>
+          <button class="tab-btn active" data-tab="chart">
+            <i class="fas fa-chart-line"></i> 走勢圖
+          </button>
+          <button class="tab-btn" data-tab="trade">
+            <i class="fas fa-exchange-alt"></i> 交易
+          </button>
         </div>
       </div>
 
@@ -499,6 +496,7 @@
             <button class="timeframe-btn" onclick="changeTimeFrame('1Y')">1年</button>
             <button class="timeframe-btn active" onclick="changeTimeFrame('ALL')">全部</button>
           </div>
+          <!-- Plotly K線圖表 -->
           <div class="chart-container" id="chart"></div>
           <div class="indicators">
             <div class="indicator">
@@ -526,6 +524,7 @@
             <button class="trade-tab-btn active" data-trade-tab="market">市價單</button>
             <button class="trade-tab-btn" data-trade-tab="limit">限價單</button>
           </div>
+
           <div class="trade-content active" id="market-tab">
             <div class="leverage-slider">
               <label>槓桿倍數: <span id="leverage-value">10x</span></label>
@@ -549,6 +548,7 @@
               <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
             </div>
           </div>
+
           <div class="trade-content" id="limit-tab">
             <div class="leverage-slider">
               <label>槓桿倍數: <span id="leverage-value-limit">10x</span></label>
@@ -576,6 +576,7 @@
               <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
             </div>
           </div>
+
           <!-- 持倉區塊 -->
           <div class="positions-section">
             <h3>持倉</h3>
@@ -615,6 +616,7 @@
               </div>
             </div>
           </div>
+
           <!-- 訂單簿 -->
           <div class="orderbook-section">
             <h3>訂單簿 <i class="fas fa-sort"></i> <i class="fas fa-align-justify"></i></h3>
@@ -707,321 +709,184 @@
     </div>
 
     <script>
-      // 使用 LightweightCharts
-      const { createChart } = window.LightweightCharts;
+      // 模擬參數設定：將原本15分鐘間隔調為5秒間隔，方便測試
+      let candleInterval = 5000; // 5秒一根K線
+      let simulationInterval = 2000; // 每2秒更新當前價格
+      let lastTimestamp = Date.now(); // 新K線起始時間
 
-      // 模擬參數設定（將 15 分鐘改為 5 秒，方便測試）
-      let candleInterval = 5000; // 每根K線間隔：5秒
-      let simulationInterval = 2000; // 每2秒更新一次價格
-      // 初始新K線的起始時間（以毫秒計）
-      let lastTimestamp = Date.now();
+      // 全局圖表資料
+      let chartData = []; // 模擬K線資料陣列
 
-      // 全局圖表變數
-      let globalChart;
-      let globalCandleSeries;
-      let globalMA7Series;
-      let globalMA14Series;
-      let globalMA28Series;
-      let globalVolumeSeries;
-      let globalSupportAreaSeries;
-      let globalCandleData = [];
-
-      document.addEventListener('DOMContentLoaded', function() {
-        initChart();
-        initTabSwitcher();
-        initTradeTabSwitcher();
-        initLeverageSliders();
-        simulateRealTimeUpdates();
-      });
-
-      // 初始化圖表，利用 LightweightCharts 畫出K線、MA線、成交量與支撐區
-      function initChart() {
-        const chartContainer = document.getElementById('chart');
-        globalChart = createChart(chartContainer, {
-          width: chartContainer.clientWidth,
-          height: chartContainer.clientHeight,
-          layout: {
-            backgroundColor: '#151b29',
-            textColor: '#d1d4dc'
-          },
-          grid: {
-            vertLines: { color: 'rgba(42, 46, 57, 0.5)' },
-            horzLines: { color: 'rgba(42, 46, 57, 0.5)' }
-          },
-          crosshair: { mode: 0 },
-          priceScale: { borderColor: '#2c3647' },
-          timeScale: { borderColor: '#2c3647', timeVisible: true }
-        });
-
-        globalCandleSeries = globalChart.addCandlestickSeries({
-          upColor: '#28a745',
-          downColor: '#dc3545',
-          borderDownColor: '#dc3545',
-          borderUpColor: '#28a745',
-          wickDownColor: '#dc3545',
-          wickUpColor: '#28a745'
-        });
-
-        // 產生初始50根K線資料
-        globalCandleData = generateCandleData();
-        globalCandleSeries.setData(globalCandleData);
-
-        // 加入MA線
-        globalMA7Series = globalChart.addLineSeries({ color: '#2196F3', lineWidth: 1 });
-        globalMA7Series.setData(generateMA(globalCandleData, 7));
-
-        globalMA14Series = globalChart.addLineSeries({ color: '#FF9800', lineWidth: 1 });
-        globalMA14Series.setData(generateMA(globalCandleData, 14));
-
-        globalMA28Series = globalChart.addLineSeries({ color: '#E91E63', lineWidth: 1 });
-        globalMA28Series.setData(generateMA(globalCandleData, 28));
-
-        // 加入成交量資料
-        globalVolumeSeries = globalChart.addHistogramSeries({
-          color: '#3a7bd5',
-          priceFormat: { type: 'volume' },
-          priceScaleId: '',
-          scaleMargins: { top: 0.85, bottom: 0 }
-        });
-        globalVolumeSeries.setData(generateVolumeData());
-
-        // 阻力與支撐線
-        globalCandleSeries.createPriceLine({
-          price: 1846.50,
-          color: '#f44336',
-          lineWidth: 1,
-          lineStyle: 2,
-          axisLabelVisible: true,
-          title: '阻力位'
-        });
-        globalCandleSeries.createPriceLine({
-          price: 1837.20,
-          color: '#2196F3',
-          lineWidth: 1,
-          lineStyle: 2,
-          axisLabelVisible: true,
-          title: '支撐位'
-        });
-
-        // 支撐區域
-        globalSupportAreaSeries = globalChart.addAreaSeries({
-          topColor: 'rgba(51, 153, 255, 0.1)',
-          bottomColor: 'rgba(51, 153, 255, 0.02)',
-          lineColor: 'rgba(51, 153, 255, 0.2)',
-          lineWidth: 1,
-          title: '支撐區'
-        });
-        globalSupportAreaSeries.setData(generateSupportArea(globalCandleData));
-
-        window.addEventListener('resize', () => {
-          globalChart.applyOptions({
-            width: chartContainer.clientWidth,
-            height: chartContainer.clientHeight
-          });
-        });
-      }
-
-      // 產生初始50根K線資料（以5秒為間隔）
-      function generateCandleData() {
-        const data = [];
+      // 產生初始50根K線資料
+      function generateInitialData() {
+        chartData = [];
         const count = 50;
-        let currentTime = Math.floor(Date.now() / 1000) - count * (candleInterval / 1000);
-        let basePrice = 1840;
+        let currentTime = Date.now() - count * candleInterval;
+        let price = 1842.35;
         for (let i = 0; i < count; i++) {
-          let open = basePrice + (Math.random() - 0.5) * 10;
+          let open = price + (Math.random() - 0.5) * 10;
           let close = open + (Math.random() - 0.5) * 10;
           let high = Math.max(open, close) + Math.random() * 5;
           let low = Math.min(open, close) - Math.random() * 5;
-          data.push({
-            time: currentTime,
-            open: parseFloat(open.toFixed(2)),
-            high: parseFloat(high.toFixed(2)),
-            low: parseFloat(low.toFixed(2)),
-            close: parseFloat(close.toFixed(2))
-          });
-          basePrice = close;
-          currentTime += candleInterval / 1000;
+          let volume = Math.random() * 5000 + 1000;
+          // 使用 ISO 格式日期字串
+          let date = new Date(currentTime).toISOString();
+          chartData.push({ date, open: parseFloat(open.toFixed(2)), high: parseFloat(high.toFixed(2)), low: parseFloat(low.toFixed(2)), close: parseFloat(close.toFixed(2)), volume: parseFloat(volume.toFixed(2)) });
+          price = close;
+          currentTime += candleInterval;
         }
-        return data;
       }
 
-      // 產生成交量資料（同樣50根資料）
-      function generateVolumeData() {
-        const data = [];
-        let currentTime = Math.floor(Date.now() / 1000) - 50 * (candleInterval / 1000);
-        for (let i = 0; i < 50; i++) {
-          data.push({
-            time: currentTime,
-            value: Math.random() * 5000 + 1000,
-            color: Math.random() > 0.5 ? 'rgba(40, 167, 69, 0.5)' : 'rgba(220, 53, 69, 0.5)'
-          });
-          currentTime += candleInterval / 1000;
+      // 更新 Plotly 圖表
+      function updateChart() {
+        // Candlestick trace
+        let traceCandlestick = {
+          x: chartData.map(d => d.date),
+          open: chartData.map(d => d.open),
+          high: chartData.map(d => d.high),
+          low: chartData.map(d => d.low),
+          close: chartData.map(d => d.close),
+          type: 'candlestick',
+          xaxis: 'x',
+          yaxis: 'y1',
+          increasing: { line: { color: '#26a69a' } },
+          decreasing: { line: { color: '#ef5350' } },
+          name: '價格'
+        };
+
+        // 成交量 trace
+        let traceVolume = {
+          x: chartData.map(d => d.date),
+          y: chartData.map(d => d.volume / 1000), // 顯示單位 K
+          type: 'bar',
+          xaxis: 'x',
+          yaxis: 'y2',
+          marker: { color: chartData.map(d => d.close >= d.open ? '#26a69a' : '#ef5350') },
+          opacity: 0.5,
+          name: '成交量'
+        };
+
+        let traces = [traceCandlestick, traceVolume];
+
+        let layout = {
+          dragmode: 'pan',
+          showlegend: false,
+          xaxis: {
+            rangeslider: { visible: false },
+            type: 'date',
+            range: null
+          },
+          yaxis: {
+            title: '價格',
+            side: 'right',
+            domain: [0.2, 1],
+            fixedrange: false
+          },
+          yaxis2: {
+            title: '成交量 (K)',
+            side: 'right',
+            domain: [0, 0.15],
+            fixedrange: false,
+            anchor: 'x'
+          },
+          grid: { rows: 2, columns: 1, subplots: [['xy1'], ['xy2']], roworder: 'top to bottom' },
+          margin: { t: 50, b: 50, l: 60, r: 60 },
+          plot_bgcolor: '#151b29',
+          paper_bgcolor: '#151b29',
+          font: { family: 'Noto Sans TC, sans-serif', color: '#e5e5e5' },
+          hovermode: 'x unified'
+        };
+
+        Plotly.react('chart', traces, layout, { responsive: true, displayModeBar: false });
+      }
+
+      // 計算移動平均線（僅用於顯示在UI上，模擬計算）
+      function calculateMA(period) {
+        if (chartData.length < period) return '--';
+        let sum = 0;
+        for (let i = chartData.length - period; i < chartData.length; i++) {
+          sum += chartData[i].close;
         }
-        return data;
+        return (sum / period).toFixed(2);
       }
 
-      // 計算移動平均線資料
-      function generateMA(candleData, period) {
-        const result = [];
-        for (let i = 0; i < candleData.length; i++) {
-          if (i >= period - 1) {
-            let sum = 0;
-            for (let j = 0; j < period; j++) {
-              sum += candleData[i - j].close;
-            }
-            result.push({
-              time: candleData[i].time,
-              value: parseFloat((sum / period).toFixed(2))
-            });
-          }
-        }
-        return result;
+      // 更新 UI 上的 MA 數值
+      function updateMAIndicators() {
+        document.getElementById('ma7Value').textContent = calculateMA(7);
+        document.getElementById('ma14Value').textContent = calculateMA(14);
+        document.getElementById('ma28Value').textContent = calculateMA(28);
       }
 
-      // 產生固定支撐區資料
-      function generateSupportArea(candleData) {
-        const data = [];
-        const supportLevel = 1837;
-        for (let i = 0; i < candleData.length; i++) {
-          data.push({
-            time: candleData[i].time,
-            value: supportLevel
-          });
-        }
-        return data;
-      }
-
-      // 標籤切換功能
-      function initTabSwitcher() {
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const contentSections = document.querySelectorAll('.content-section');
-        tabBtns.forEach(btn => {
-          btn.addEventListener('click', function() {
-            const targetTab = this.getAttribute('data-tab');
-            tabBtns.forEach(btn => btn.classList.remove('active'));
-            contentSections.forEach(section => section.classList.remove('active'));
-            this.classList.add('active');
-            document.getElementById(`${targetTab}-section`).classList.add('active');
-          });
-        });
-      }
-
-      // 交易頁籤切換功能
-      function initTradeTabSwitcher() {
-        const tradeTabBtns = document.querySelectorAll('.trade-tab-btn');
-        const tradeContents = document.querySelectorAll('.trade-content');
-        tradeTabBtns.forEach(btn => {
-          btn.addEventListener('click', function() {
-            const targetTab = this.getAttribute('data-trade-tab');
-            tradeTabBtns.forEach(btn => btn.classList.remove('active'));
-            tradeContents.forEach(content => content.classList.remove('active'));
-            this.classList.add('active');
-            document.getElementById(`${targetTab}-tab`).classList.add('active');
-          });
-        });
-      }
-
-      // 槓桿滑塊功能
-      function initLeverageSliders() {
-        const marketLeverageSlider = document.getElementById('leverage-slider');
-        const marketLeverageValue = document.getElementById('leverage-value');
-        const limitLeverageSlider = document.getElementById('leverage-slider-limit');
-        const limitLeverageValue = document.getElementById('leverage-value-limit');
-        marketLeverageSlider.addEventListener('input', function() {
-          marketLeverageValue.textContent = this.value + 'x';
-        });
-        limitLeverageSlider.addEventListener('input', function() {
-          limitLeverageValue.textContent = this.value + 'x';
-        });
-      }
-
-      // 更新頁面上價格顯示
+      // 更新價格顯示
       function updatePriceDisplay(latestPrice) {
-        const currentPriceEl = document.getElementById("currentPrice");
-        const orderBookEl = document.getElementById("orderBookPrice");
-        if (currentPriceEl) {
-          currentPriceEl.textContent = latestPrice.toFixed(2);
-        }
-        if (orderBookEl) {
-          orderBookEl.textContent = latestPrice.toFixed(2);
-        }
-        // 同時更新交易區標記價格
-        const tradeMarkPriceEl = document.getElementById("tradeMarkPrice");
-        if (tradeMarkPriceEl) {
-          tradeMarkPriceEl.textContent = latestPrice.toFixed(2) + " USDT";
-        }
+        document.getElementById('currentPrice').textContent = latestPrice.toFixed(2);
+        document.getElementById('orderBookPrice').textContent = latestPrice.toFixed(2);
+        document.getElementById('tradeMarkPrice').textContent = latestPrice.toFixed(2) + " USDT";
       }
 
-      // 更新最後更新時間顯示
+      // 更新「數據更新時間」
       function updateLastUpdated() {
         const now = new Date();
         document.getElementById("lastUpdated").textContent =
           "數據更新時間: " + now.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
       }
 
-      // 模擬實時數據更新：
-      // 每 simulationInterval 更新當前K線價格，
-      // 當時間超過 lastTimestamp（即新K線到來）時，產生新K線。
+      // 模擬新增一根新K線
+      function simulateNewCandle(newPrice) {
+        const lastCandle = chartData[chartData.length - 1];
+        const newCandle = {
+          date: new Date(lastTimestamp).toISOString(),
+          open: lastCandle.close,
+          high: newPrice,
+          low: newPrice,
+          close: newPrice,
+          volume: Math.random() * 5000 + 1000
+        };
+        chartData.push(newCandle);
+        if (chartData.length > 100) {
+          chartData.shift();
+        }
+        lastTimestamp += candleInterval;
+        updateChart();
+        updateMAIndicators();
+        updateLastUpdated();
+      }
+
+      // 模擬實時數據更新
       function simulateRealTimeUpdates() {
+        generateInitialData();
+        updateChart();
+        updateMAIndicators();
+        updateLastUpdated();
         // 初始當前價格取自最後一根K線
-        let currentPrice = globalCandleData[globalCandleData.length - 1].close;
+        let currentPrice = chartData[chartData.length - 1].close;
         setInterval(() => {
           // 模擬當前K線內價格波動
-          const volatility = Math.random() * 10; // 調整波動範圍
+          const volatility = Math.random() * 10;
           const direction = Math.random() > 0.5 ? 1 : -1;
           let newPrice = currentPrice + direction * volatility;
           newPrice = parseFloat(newPrice.toFixed(2));
-
-          // 若當前時間已超過下一根K線時間，則新增新K線
+          // 如果當前時間已達到下一根K線時間，則生成新K線
           if (Date.now() >= lastTimestamp) {
             simulateNewCandle(newPrice);
             currentPrice = newPrice;
           } else {
-            // 更新當前K線
-            const lastCandle = globalCandleData[globalCandleData.length - 1];
+            // 更新最後一根K線的價格
+            const lastCandle = chartData[chartData.length - 1];
             lastCandle.close = newPrice;
             if (newPrice > lastCandle.high) lastCandle.high = newPrice;
             if (newPrice < lastCandle.low) lastCandle.low = newPrice;
-            globalCandleSeries.update(lastCandle);
-            // 更新MA線
-            globalMA7Series.setData(generateMA(globalCandleData, 7));
-            globalMA14Series.setData(generateMA(globalCandleData, 14));
-            globalMA28Series.setData(generateMA(globalCandleData, 28));
+            updateChart();
+            updateMAIndicators();
             currentPrice = newPrice;
           }
           updatePriceDisplay(newPrice);
         }, simulationInterval);
       }
 
-      // 新K線模擬：利用上一根K線數據生成新K線
-      function simulateNewCandle(newPrice) {
-        const lastCandle = globalCandleData[globalCandleData.length - 1];
-        const newCandle = {
-          time: Math.floor(lastTimestamp / 1000),
-          open: lastCandle.close,
-          high: newPrice,
-          low: newPrice,
-          close: newPrice
-        };
-        globalCandleData.push(newCandle);
-        // 若資料過多則移除最舊的
-        if (globalCandleData.length > 100) {
-          globalCandleData.shift();
-        }
-        globalCandleSeries.update(newCandle);
-        globalMA7Series.setData(generateMA(globalCandleData, 7));
-        globalMA14Series.setData(generateMA(globalCandleData, 14));
-        globalMA28Series.setData(generateMA(globalCandleData, 28));
-        updateLastUpdated();
-        // 更新成交量與支撐區（此處以固定模擬值，不做更新）
-        // 可根據需要擴充
-        // 設定下一根K線的起始時間
-        lastTimestamp += candleInterval;
-      }
-
-      // 改變時間範圍（簡單以 xRange 設定，不做更複雜處理）
+      // 時間範圍按鈕功能（簡單設定 xRange，Plotly可用）
       function changeTimeFrame(frame) {
-        const endDate = new Date(globalCandleData[globalCandleData.length - 1].time * 1000);
+        const endDate = new Date(chartData[chartData.length - 1].date);
         let startDate = new Date(endDate);
         switch (frame) {
           case "1M":
@@ -1037,16 +902,16 @@
             startDate.setFullYear(endDate.getFullYear() - 1);
             break;
           default:
-            startDate = new Date(globalCandleData[0].time * 1000);
+            startDate = new Date(chartData[0].date);
         }
-        xRange = [
-          startDate.toISOString().split("T")[0],
-          endDate.toISOString().split("T")[0]
-        ];
-        // LightweightCharts 不支援直接設定 xRange，此處略過，可自行加入 zoom 功能
-        // 目前只呼叫 updateLastUpdated() 以刷新圖表外觀
-        updateLastUpdated();
+        // 更新圖表x軸範圍
+        Plotly.relayout('chart', {
+          'xaxis.range': [startDate.toISOString().split("T")[0], endDate.toISOString().split("T")[0]]
+        });
       }
+
+      // 初始化
+      simulateRealTimeUpdates();
     </script>
   </body>
 </html>
