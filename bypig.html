@@ -835,6 +835,7 @@
             <div class="market-condition">
               <label>市場狀態:</label>
               <select v-model="marketCondition">
+                <option value="random">隨機行情</option>
                 <option value="volatile">大幅波動</option>
                 <option value="bull">牛市行情</option>
                 <option value="sideways">橫盤行情</option>
@@ -1541,13 +1542,12 @@
 
       const app = createApp({
         setup() {
-          // 直接預設倉位=100 USDT
+          // === 基本參數 ===
           const currentTab = ref("chart");
           const tradeTab = ref("market");
           const leverageMarket = ref(10);
           const leverageLimit = ref(10);
-          // 預設改成 100 USDT 價值
-          const positionValue = ref(100);
+          const positionValue = ref(100); // 預設倉位 100 USDT
           const valueUnit = ref("USDT");
           const valueRatio = ref(100);
           const limitPrice = ref(2148.42);
@@ -1569,19 +1569,31 @@
             "1週",
             "1月",
           ];
+
+          // 技術指標
           const ma7Value = ref("--");
           const ma14Value = ref("--");
           const ma28Value = ref("--");
           const macdValue = ref("--");
+
+          // 走勢圖 DOM
           const chartRef = ref(null);
           const volumeRef = ref(null);
-          const marketCondition = ref("volatile");
+
+          // 新增 "random" 行情，讓一開始預設就看起來更豐富
+          const marketCondition = ref("random");
+
+          // 訂單簿
           const orderbookAsks = ref([]);
           const orderbookBids = ref([]);
           const tradeOrderbookAsks = ref([]);
           const tradeOrderbookBids = ref([]);
+
+          // 強平 Toast
           const showLiquidationToast = ref(false);
           const liquidationMsg = ref("");
+
+          // 止盈止損
           const showTPSLModal = ref(false);
           const tpslData = reactive({
             posIndex: -1,
@@ -1593,12 +1605,16 @@
             stopLossRatio: 0,
           });
           const currentTPSLPosition = ref(null);
+
+          // 追蹤出場
           const showTrailingModal = ref(false);
           const trailingData = reactive({
             posIndex: -1,
             trigger: 0,
             distance: 0,
           });
+
+          // 部分平倉
           const showPartialCloseModal = ref(false);
           const partialCloseData = reactive({
             posIndex: -1,
@@ -1608,15 +1624,9 @@
           });
           const currentPartialClosePos = ref(null);
           const partialCloseRatio = ref(1);
+
+          // 確認用市價單彈窗
           const showConfirmMarketModal = ref(false);
-
-          // 連續漲 / 跌用的計數器
-          let consecutiveUp = 0;
-          let consecutiveDown = 0;
-
-          let trendCounter = 0; // 用於追蹤趨勢持續時間
-          let baseTrendPrice = 0; // 基準價格
-          let oscillationRange = { min: 0, max: 0 }; // 震盪範圍
 
           // 預估強平價
           const estimatedLiquidationLong = computed(() => {
@@ -1642,12 +1652,56 @@
             return entryPrice * (1 + 0.95 / currentLeverage);
           });
 
+          // === K線圖資料 & 物件 ===
           let chartData = [];
           let mainChart = null;
           let volumeChart = null;
           let candlestickSeries = null;
           let volumeSeries = null;
 
+          // === 分段式趨勢參數 ===
+          let currentTrendDirection = 0; // +1=上漲, -1=下跌, 0=無
+          let currentSegmentCount = 0; // 目前段落已跑了幾根K線
+          let segmentSteps = 10; // 一個段落要跑幾根K線
+
+          // 用來初始化新段落(主要趨勢方向 + 段落長度)
+          function initNewSegment() {
+            currentSegmentCount = 0;
+            switch (marketCondition.value) {
+              case "bull":
+                // 牛市段落：80% 機率上漲
+                currentTrendDirection = Math.random() < 0.8 ? +1 : -1;
+                segmentSteps = 10 + Math.floor(Math.random() * 10);
+                break;
+              case "bear":
+                // 熊市段落：80% 機率下跌
+                currentTrendDirection = Math.random() < 0.8 ? -1 : +1;
+                segmentSteps = 10 + Math.floor(Math.random() * 10);
+                break;
+              case "sideways":
+                // 橫盤：50% 機率上或下，段落較短
+                currentTrendDirection = Math.random() < 0.5 ? +1 : -1;
+                segmentSteps = 5 + Math.floor(Math.random() * 5);
+                break;
+              case "volatile":
+                // 大幅波動：方向隨機，段落長度也隨機
+                currentTrendDirection = Math.random() < 0.5 ? +1 : -1;
+                segmentSteps = 5 + Math.floor(Math.random() * 10);
+                break;
+              case "random":
+                // 「random」行情，段落長度 8~22
+                currentTrendDirection = Math.random() < 0.5 ? +1 : -1;
+                segmentSteps = 8 + Math.floor(Math.random() * 15);
+                break;
+              default:
+                // 預設都給個 random
+                currentTrendDirection = 0;
+                segmentSteps = 5;
+                break;
+            }
+          }
+
+          // === 初始化 ===
           onMounted(() => {
             initCharts();
             initOrderbook();
@@ -1655,6 +1709,7 @@
             simulateRealTimeUpdates();
           });
 
+          // === 監測頁籤切換(如果切到 chart, resize) ===
           watch(currentTab, (newVal) => {
             if (newVal === "chart") {
               nextTick(() => {
@@ -1678,7 +1733,7 @@
             }
           });
 
-          // 根據拉條更新倉位價值
+          // === 下單介面相關 ===
           function updateValueFromRatio() {
             const currentLeverage =
               tradeTab.value === "limit"
@@ -1692,7 +1747,7 @@
             positionValue.value = (maxValue * valueRatio.value) / 100;
           }
 
-          // 初始化圖表
+          // === 初始化圖表 ===
           function initCharts() {
             if (!chartRef.value || !volumeRef.value) return;
             mainChart = LightweightCharts.createChart(chartRef.value, {
@@ -1737,7 +1792,7 @@
               color: "#26a69a",
             });
 
-            // 產生初始資料
+            // 一開始就產生初始隨機 K 線
             chartData = generateInitialData();
             candlestickSeries.setData(chartData);
             const volData = chartData.map((c) => ({
@@ -1752,7 +1807,7 @@
             syncTimeScales(mainChart, volumeChart);
           }
 
-          // 同步主 K 線與量能圖的 timeScale
+          // === 同步主K線與量能時間軸 ===
           function syncTimeScales(chart1, chart2) {
             chart1.timeScale().subscribeVisibleLogicalRangeChange(() => {
               const range = chart1.timeScale().getVisibleLogicalRange();
@@ -1764,7 +1819,7 @@
             });
           }
 
-          // 添加持倉更新函數
+          // === 更新持倉盈虧 & 強平檢查 ===
           function updatePositions() {
             positions.value.forEach((pos) => {
               pos.markPrice = currentPrice.value;
@@ -1788,7 +1843,7 @@
                   pos.leverage;
               }
 
-              // 強平檢查
+              // 強平判斷
               if (
                 (pos.type === "long" &&
                   pos.markPrice <= pos.liquidationPrice) ||
@@ -1813,7 +1868,7 @@
             });
           }
 
-          // 產生初始 K 線資料
+          // === 初始隨機K線資料 ===
           function generateInitialData() {
             const data = [];
             let basePrice = 2148;
@@ -1821,34 +1876,16 @@
               Date.now() - 100 * getIntervalMs(selectedTimeframe.value);
 
             for (let i = 0; i < 100; i++) {
-              let variation = 0;
-              switch (marketCondition.value) {
-                case "bull":
-                  variation =
-                    Math.random() < 0.8
-                      ? Math.random() * 5
-                      : -Math.random() * 2;
-                  break;
-                case "bear":
-                  variation =
-                    Math.random() < 0.8
-                      ? -Math.random() * 5
-                      : Math.random() * 2;
-                  break;
-                case "sideways":
-                  variation = (Math.random() - 0.5) * 5;
-                  break;
-                case "volatile":
-                  variation = (Math.random() - 0.5) * 10;
-                  if (Math.random() < 0.05) variation *= 3;
-                  break;
-              }
+              // 這裡先簡單做：隨機 +/- 一點
+              // 也可根據 marketCondition.value 來做小邏輯
+              let randomMove = (Math.random() - 0.5) * 10;
+              basePrice = parseFloat((basePrice + randomMove).toFixed(2));
 
               const open = basePrice;
-              const close = open + variation;
-              const high = Math.max(open, close) + Math.random() * 5;
-              const low = Math.min(open, close) - Math.random() * 5;
-              const volume = Math.floor(Math.random() * 500) + 50;
+              const close = basePrice + (Math.random() - 0.5) * 5;
+              const high = Math.max(open, close) + Math.random() * 3;
+              const low = Math.min(open, close) - Math.random() * 3;
+              const volume = 100 + Math.floor(Math.random() * 300);
 
               data.push({
                 time: Math.floor(currentTime / 1000),
@@ -1858,13 +1895,15 @@
                 close: parseFloat(close.toFixed(2)),
                 volume,
               });
+
+              // 下一根
               basePrice = close;
               currentTime += getIntervalMs(selectedTimeframe.value);
             }
             return data;
           }
 
-          // interval
+          // === 根據所選 timeframe 回傳毫秒間隔 ===
           function getIntervalMs(frame) {
             const map = {
               "1秒": 1000,
@@ -1882,120 +1921,86 @@
             return map[frame] || 1000;
           }
 
-          // 即時模擬更新
-          // 修改後的模擬價格更新函數
+          // === 模擬實時更新 ===
           function simulateRealTimeUpdates() {
+            // 首先初始化第一個段落
+            initNewSegment();
+
             setInterval(() => {
               if (!chartData.length) return;
+
               const lastCandle = chartData[chartData.length - 1];
-              const isUp = lastCandle.close >= lastCandle.open;
-              if (isUp) {
-                consecutiveUp++;
-                consecutiveDown = 0;
-              } else {
-                consecutiveDown++;
-                consecutiveUp = 0;
+
+              currentSegmentCount++;
+              if (currentSegmentCount >= segmentSteps) {
+                // 段落結束, 重新初始化
+                initNewSegment();
               }
 
-              let variation = 0;
-              const intervalMs = getIntervalMs(selectedTimeframe.value) / 2;
-              const stepsPer20Sec = Math.floor(10000 / intervalMs); // 10秒內的更新次數
+              // 基礎隨機
+              let variation = (Math.random() - 0.5) * 2;
 
-              // 低機率（5%）觸發突然大幅波動
-              const suddenSpikeChance = Math.random();
-              if (suddenSpikeChance < 0.05) {
-                // 5%機率
-                variation = Math.random() < 0.5 ? 50 : -50; // 突然±100 USDT
-              } else {
-                // 正常市場狀態邏輯
-                switch (marketCondition.value) {
-                  case "bull":
-                    // 牛市：平滑上升，80%機率小漲，20%機率小跌
-                    variation =
-                      Math.random() < 0.8
-                        ? Math.random() * 10
-                        : -Math.random() * 4;
-                    break;
-
-                  case "bear":
-                    // 熊市：平滑下降，80%機率小跌，20%機率小漲
-                    variation =
-                      Math.random() < 0.8
-                        ? -Math.random() * 10
-                        : Math.random() * 4;
-                    break;
-
-                  case "sideways":
-                    // 震盪行情：在特定範圍內來回
-                    if (oscillationRange.min === 0) {
-                      oscillationRange = {
-                        min: lastCandle.close * 0.9,
-                        max: lastCandle.close * 1.1,
-                      };
-                    }
-                    const midPoint =
-                      (oscillationRange.min + oscillationRange.max) / 2;
-                    variation =
-                      (midPoint - lastCandle.close) * 0.1 +
-                      (Math.random() - 0.5) * 5;
-                    const nextPrice = lastCandle.close + variation;
-                    if (nextPrice > oscillationRange.max)
-                      variation = oscillationRange.max - lastCandle.close;
-                    if (nextPrice < oscillationRange.min)
-                      variation = oscillationRange.min - lastCandle.close;
-                    break;
-
-                  case "volatile":
-                    // 大幅波動：隨機行情，有機率觸發暴漲/暴跌
-                    trendCounter++;
-                    if (trendCounter > stepsPer20Sec) {
-                      trendCounter = 0;
-                      baseTrendPrice = lastCandle.close;
-                    }
-
-                    if (trendCounter === 0 && Math.random() < 0.2) {
-                      // 20%機率觸發平滑暴漲/暴跌
-                      const isSurge = Math.random() < 0.5;
-                      const targetChange = isSurge ? 30 : -30;
-                      const steps = stepsPer20Sec;
-                      variation = targetChange / steps;
-                    } else if (
-                      trendCounter > 0 &&
-                      trendCounter <= stepsPer20Sec
-                    ) {
-                      // 執行平滑暴漲/暴跌
-                      const targetPrice =
-                        baseTrendPrice * (variation > 0 ? 1.03 : 0.97);
-                      variation = (targetPrice - lastCandle.close) * 0.2;
-                      if (Math.random() < 0.1) variation = -variation * 0.5;
-                    } else {
-                      // 正常隨機波動
-                      variation = (Math.random() - 0.5) * 10;
-                    }
-                    break;
-                }
-
-                // 平滑處理：限制單次變化幅度（除非觸發突然波動）
-                variation = Math.max(Math.min(variation, 10), -10);
+              // 根據行情報價放大
+              let baseFactor = 1;
+              switch (marketCondition.value) {
+                case "bull":
+                  variation =
+                    currentTrendDirection > 0 ? variation * 3 : variation * 1.5;
+                  baseFactor = 1.5;
+                  break;
+                case "bear":
+                  variation =
+                    currentTrendDirection < 0 ? variation * 3 : variation * 1.5;
+                  baseFactor = 1.5;
+                  break;
+                case "sideways":
+                  variation *= 1.2;
+                  baseFactor = 0.8;
+                  break;
+                case "volatile":
+                  variation *= 5;
+                  baseFactor = 2;
+                  break;
+                case "random":
+                  variation *= 3;
+                  baseFactor = 2;
+                  break;
               }
 
+              // 加方向
+              variation *= currentTrendDirection;
+
+              // 5% 機率暴漲或暴跌
+              if (Math.random() < 0.05) {
+                variation *= 5;
+              }
+
+              // 最大單根限制
+              const maxStep = 50 * baseFactor;
+              if (variation > maxStep) variation = maxStep;
+              if (variation < -maxStep) variation = -maxStep;
+
+              // 新價格
               const newPrice = parseFloat(
                 (lastCandle.close + variation).toFixed(2)
               );
-              const newVolume = Math.floor(Math.random() * 500) + 50;
+              const newVolume = 100 + Math.floor(Math.random() * 300);
 
+              // update priceChange
               priceChange.value =
                 ((newPrice - lastCandle.close) / lastCandle.close) * 100;
               currentPrice.value = newPrice;
 
+              // 生成新K線
               const newCandle = {
                 time: Math.floor(Date.now() / 1000),
                 open: lastCandle.close,
                 close: newPrice,
-                high: Math.max(lastCandle.close, newPrice) + Math.random() * 5,
-                low: Math.min(lastCandle.close, newPrice) - Math.random() * 5,
+                high: Math.max(lastCandle.close, newPrice) + Math.random() * 3,
+                low: Math.min(lastCandle.close, newPrice) - Math.random() * 3,
                 volume: newVolume,
               };
+
               chartData.push(newCandle);
               candlestickSeries.update(newCandle);
               volumeSeries.update({
@@ -2005,20 +2010,20 @@
                   newCandle.close >= newCandle.open ? "#26a69a" : "#ef5350",
               });
 
-              // 更新技術指標
+              // 更新指標
               ma7Value.value = calculateMA(7).toFixed(2);
               ma14Value.value = calculateMA(14).toFixed(2);
               ma28Value.value = calculateMA(28).toFixed(2);
               macdValue.value = "--";
 
-              // 同步更新訂單簿和持倉
+              // 同步訂單簿 & 持倉
               updateOrderbook();
               updateTradeOrderbook();
               updatePositions();
             }, getIntervalMs(selectedTimeframe.value) / 2);
           }
 
-          // 計算移動平均
+          // === 計算移動平均 ===
           function calculateMA(period) {
             if (chartData.length < period) return 0;
             let sum = 0;
@@ -2028,8 +2033,10 @@
             return sum / period;
           }
 
+          // === 切換 timeframe ===
           function selectTimeframe(tf) {
             selectedTimeframe.value = tf;
+            // 重新生成初始 K 線
             chartData = generateInitialData();
             candlestickSeries.setData(chartData);
             const volData = chartData.map((c) => ({
@@ -2042,7 +2049,7 @@
             if (volumeChart) volumeChart.timeScale().fitContent();
           }
 
-          // 初始化訂單簿
+          // === 訂單簿初始化 & 更新 ===
           function initOrderbook() {
             orderbookAsks.value = generateOrderbookSide("ask", 6);
             orderbookBids.value = generateOrderbookSide("bid", 6);
@@ -2051,8 +2058,6 @@
             orderbookAsks.value = generateOrderbookSide("ask", 6);
             orderbookBids.value = generateOrderbookSide("bid", 6);
           }
-
-          // 初始化交易分頁訂單簿
           function initTradeOrderbook() {
             tradeOrderbookAsks.value = generateOrderbookSide("ask", 7);
             tradeOrderbookBids.value = generateOrderbookSide("bid", 7);
@@ -2062,10 +2067,10 @@
             tradeOrderbookBids.value = generateOrderbookSide("bid", 7);
           }
 
-          // 生成單邊掛單(盡量靠近市價)
+          // === 生成掛單 (貼近市價) ===
           function generateOrderbookSide(side, count) {
             const result = [];
-            const baseOffset = 0.2; // 縮小 spread
+            const baseOffset = 0.2;
             for (let i = 0; i < count; i++) {
               const priceOffset = baseOffset * (i + 1);
               const price =
@@ -2088,7 +2093,7 @@
             return result;
           }
 
-          // 切換交易分頁
+          // === 切換頁籤 ===
           function switchToTrade() {
             currentTab.value = "trade";
             limitPrice.value = currentPrice.value;
@@ -2097,7 +2102,7 @@
             currentTab.value = "chart";
           }
 
-          // 更新限價單價格
+          // === 更新限價單價格 ===
           function updateLimitPrice(price) {
             limitPrice.value = price;
           }
@@ -2107,7 +2112,7 @@
             }
           }
 
-          // 切換 USDT / ETH
+          // === 切換 USDT / ETH ===
           function toggleValueUnit() {
             if (valueUnit.value === "USDT") {
               valueUnit.value = "ETH";
@@ -2118,13 +2123,13 @@
             }
           }
 
-          // 快捷按鈕更新倉位比例
+          // === 快捷按鈕更新持倉比例 ===
           function setValueRatio(ratio) {
             valueRatio.value = ratio;
             updateValueFromRatio();
           }
 
-          // 下單
+          // === 下單 ===
           function placeOrder(type, orderType) {
             let qty;
             if (valueUnit.value === "USDT") {
@@ -2147,7 +2152,7 @@
               return;
             }
 
-            // 如果是限價單，檢查是否大幅偏離市場價
+            // 若是限價單，檢查是否大幅偏離
             if (orderType === "limit") {
               if (
                 type === "long" &&
@@ -2198,7 +2203,7 @@
             availableBalance.value -= margin;
           }
 
-          // 確認要用市價單成交
+          // === 市價單成交確認 ===
           function confirmMarketOrder() {
             placeOrder("long", "market");
             showConfirmMarketModal.value = false;
@@ -2207,7 +2212,7 @@
             showConfirmMarketModal.value = false;
           }
 
-          // 止盈止損
+          // === 止盈止損 ===
           function openTPSLModal(index) {
             showTPSLModal.value = true;
             tpslData.posIndex = index;
@@ -2272,7 +2277,7 @@
             showTPSLModal.value = false;
           }
 
-          // 追蹤出場
+          // === 追蹤出場 ===
           function openTrailingModal(index) {
             showTrailingModal.value = true;
             trailingData.posIndex = index;
@@ -2290,7 +2295,7 @@
             showTrailingModal.value = false;
           }
 
-          // 部分平倉
+          // === 部分平倉 ===
           function openPartialCloseModal(index) {
             showPartialCloseModal.value = true;
             partialCloseData.posIndex = index;
@@ -2352,6 +2357,7 @@
             showPartialCloseModal.value = false;
           }
 
+          // === 將以上所有方法和變數暴露給模板 ===
           return {
             currentTab,
             tradeTab,
