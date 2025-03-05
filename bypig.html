@@ -357,17 +357,14 @@
         cursor: pointer;
       }
       .value-slider {
-        margin-bottom: 15px;
+        margin-bottom: 10px; /* 整體縮短到 10px */
       }
       .value-slider .slider-container {
-        display: flex;
-        align-items: center;
-        gap: 5px;
+        margin-bottom: 15px; /* 讓 slider 底下多點空間 */
       }
       .value-slider .slider-marks {
         display: flex;
         justify-content: space-between;
-        margin-top: 5px;
         font-size: 12px;
         color: #8c8c8c;
       }
@@ -386,15 +383,14 @@
         color: #fff;
       }
       .available-balance {
-        margin-bottom: 15px;
+        margin-bottom: 5px; /* 減少間距 */
         font-size: 13px;
         color: #8c8c8c;
       }
-      /* 把這裡的預估爆倉價換成預估強平價，並且在這裡就放 */
       .estimated-liquidation {
         font-size: 13px;
         margin-bottom: 15px;
-        margin-top: 10px; /* 與可用資金間留點距 */
+        margin-top: 0; /* 減少與上方的距離 */
         color: #8c8c8c;
       }
       .order-buttons {
@@ -780,12 +776,11 @@
         text-align: center;
         font-size: 14px;
       }
-      /* 止盈止損 Modal 裡的滑桿額外留點間距 */
+      /* 止盈止損 Modal 裡的滑桿 */
       .tpsl-row {
         margin-bottom: 10px;
       }
     </style>
-  </head>
   <body>
     <div id="app">
       <div class="app-container">
@@ -1031,10 +1026,9 @@
                   <div class="available-balance">
                     可用資金: {{ availableBalance.toFixed(2) }} USDT
                   </div>
-                  <!-- 這裡改成預估強平價 -->
                   <div class="estimated-liquidation">
-                    預估強平價：做多 {{ estimatedLiquidationLong.toFixed(2) }}
-                    USDT / 做空 {{ estimatedLiquidationShort.toFixed(2) }} USDT
+                    預估強平價：做多 {{ estimatedLiquidationLong.toFixed(2) }} USDT /
+                    做空 {{ estimatedLiquidationShort.toFixed(2) }} USDT
                   </div>
                   <div class="order-buttons">
                     <button
@@ -1145,10 +1139,9 @@
                   <div class="available-balance">
                     可用資金: {{ availableBalance.toFixed(2) }} USDT
                   </div>
-                  <!-- 這裡也改成預估強平價 -->
                   <div class="estimated-liquidation">
-                    預估強平價：做多 {{ estimatedLiquidationLong.toFixed(2) }}
-                    USDT / 做空 {{ estimatedLiquidationShort.toFixed(2) }} USDT
+                    預估強平價：做多 {{ estimatedLiquidationLong.toFixed(2) }} USDT /
+                    做空 {{ estimatedLiquidationShort.toFixed(2) }} USDT
                   </div>
                   <div class="order-buttons">
                     <button
@@ -1251,6 +1244,7 @@
                       <span>未結盈虧:</span>
                       <span :class="pos.unrealizedPnl >= 0 ? 'profit' : 'loss'">
                         {{ pos.unrealizedPnl.toFixed(2) }} USDT
+                        ({{ pos.unrealizedPnlPct.toFixed(2) }}%)
                       </span>
                     </div>
                     <div class="info-row" v-if="pos.takeProfit || pos.stopLoss">
@@ -1351,7 +1345,7 @@
           <div class="modal-section">
             <label>止盈 (依倉位利潤%)</label>
             <div class="tpsl-row">
-              <!-- max 改到 500 -->
+              <!-- max 到 500% -->
               <input
                 type="number"
                 step="0.01"
@@ -1372,7 +1366,7 @@
           <div class="modal-section">
             <label>止損 (依倉位利潤%)</label>
             <div class="tpsl-row">
-              <!-- 預設最高 100% 就可以了 -->
+              <!-- max 90% -->
               <input
                 type="number"
                 step="0.01"
@@ -1382,7 +1376,7 @@
               <input
                 type="range"
                 min="0"
-                max="100"
+                max="90"
                 step="1"
                 v-model="tpslData.stopLossRatio"
                 @input="updateStopLossFromRatio"
@@ -1546,8 +1540,9 @@
 
       const app = createApp({
         setup() {
+          // 1) 預設使用市價單
           const currentTab = ref("chart");
-          const tradeTab = ref("limit");
+          const tradeTab = ref("market"); // 預設改成 'market'
           const leverageMarket = ref(10);
           const leverageLimit = ref(34);
           const positionValue = ref(10);
@@ -1868,10 +1863,20 @@
                     (pos.markPrice - pos.entryPrice) *
                     pos.quantity *
                     pos.leverage;
+                  // 顯示Pnl百分比
+                  pos.unrealizedPnlPct =
+                    ((pos.markPrice - pos.entryPrice) / pos.entryPrice) *
+                    100 *
+                    pos.leverage;
                 } else {
                   pos.unrealizedPnl =
                     (pos.entryPrice - pos.markPrice) *
                     pos.quantity *
+                    pos.leverage;
+                  // 顯示Pnl百分比
+                  pos.unrealizedPnlPct =
+                    ((pos.entryPrice - pos.markPrice) / pos.entryPrice) *
+                    100 *
                     pos.leverage;
                 }
 
@@ -2033,7 +2038,6 @@
                 orderType = "market";
               } else {
                 console.log(`限價單已提交，等待價格 ${limitPrice.value} 執行`);
-                // 直接回：在真實系統中會有掛單邏輯，這裡簡化
                 return;
               }
             }
@@ -2056,6 +2060,7 @@
               markPrice: entryPrice,
               liquidationPrice,
               unrealizedPnl: 0,
+              unrealizedPnlPct: 0,
               margin,
               takeProfit: null,
               stopLoss: null,
@@ -2094,15 +2099,16 @@
             showTPSLModal.value = false;
           }
 
-          // === 依照「倉位利潤百分比」計算止盈價格 ===
+          // === 依「倉位利潤%」計算止盈價格 ===
           function updateTakeProfitFromRatio() {
+            if (tpslData.takeProfitRatio > 500) {
+              tpslData.takeProfitRatio = 500;
+            }
             const pos = currentTPSLPosition.value;
             if (pos) {
               const ratio = tpslData.takeProfitRatio;
-              // difference = entryPrice * (ratio/100) / (leverage^2)
               const diff =
-                (pos.entryPrice * (ratio / 100)) /
-                (pos.leverage * pos.leverage);
+                pos.entryPrice * (ratio / 100) / (pos.leverage * pos.leverage);
               if (pos.type === "long") {
                 tpslData.takeProfit = (pos.entryPrice + diff).toFixed(2);
               } else {
@@ -2111,14 +2117,16 @@
             }
           }
 
-          // === 依照「倉位利潤百分比」計算止損價格 ===
+          // === 依「倉位利潤%」計算止損價格 ===
           function updateStopLossFromRatio() {
+            if (tpslData.stopLossRatio > 90) {
+              tpslData.stopLossRatio = 90;
+            }
             const pos = currentTPSLPosition.value;
             if (pos) {
               const ratio = tpslData.stopLossRatio;
               const diff =
-                (pos.entryPrice * (ratio / 100)) /
-                (pos.leverage * pos.leverage);
+                pos.entryPrice * (ratio / 100) / (pos.leverage * pos.leverage);
               if (pos.type === "long") {
                 tpslData.stopLoss = (pos.entryPrice - diff).toFixed(2);
               } else {
@@ -2130,10 +2138,8 @@
           function confirmTPSL() {
             const pos = positions.value[tpslData.posIndex];
             if (!pos) return;
-            pos.takeProfit =
-              Number(parseFloat(tpslData.takeProfit).toFixed(2)) || null;
-            pos.stopLoss =
-              Number(parseFloat(tpslData.stopLoss).toFixed(2)) || null;
+            pos.takeProfit = Number(parseFloat(tpslData.takeProfit).toFixed(2)) || null;
+            pos.stopLoss = Number(parseFloat(tpslData.stopLoss).toFixed(2)) || null;
             pos.takeProfitMode = "price";
             pos.stopLossMode = "price";
             if (tpslData.positionMode === "partial") {
