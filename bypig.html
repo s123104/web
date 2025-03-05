@@ -2,43 +2,43 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <!-- 使用 viewport-fit=cover，並用 100dvh 讓 body 充滿全螢幕，避免 iPhone 遮蔽 -->
+  <!-- 避免 iPhone 遮蔽、支援瀏海安全區域 -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>加密貨幣交易平台 - 細微週期K線</title>
-  <!-- Plotly.js (用來顯示K線圖) -->
+  <title>加密貨幣交易平台</title>
+  <!-- Plotly.js -->
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <!-- Font Awesome (圖示) -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+  />
   <style>
-    /* 基本重置與字型 */
-    * {
+    /* 針對 iOS Safe Area */
+    body {
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-    }
-    html, body {
-      height: 100%;
-    }
-    body {
-      /* 使用 100dvh 來滿版顯示 */
+      /* 設定100dvh，避免被iOS頂部或底部截掉 */
       min-height: 100dvh;
-      /* iOS 安全區域 */
+      /* 設定安全區域(避免瀏海區遮擋) */
       padding-top: env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
       padding-left: env(safe-area-inset-left);
       padding-right: env(safe-area-inset-right);
-      
+
       background-color: #0a0e17;
       color: #e5e5e5;
+      overflow: hidden; /* 若想讓頁面可捲動，視需求調整 */
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      overflow: hidden;
     }
     .app-container {
       display: flex;
       flex-direction: column;
-      height: 100%;
+      /* 讓容器也能填滿整個螢幕高度 */
+      height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+      /* 若擔心有兼容性問題，可改用 min-height */
     }
-    /* 頂部 */
+
+    /* ===== 頂部 ===== */
     .header {
       padding: 10px 15px;
       background-color: #151b29;
@@ -94,9 +94,11 @@
       background-color: #1c2536;
       border-color: #3a7bd5;
     }
-    /* 主內容 */
+
+    /* ===== 主內容 ===== */
     .main-content {
       flex: 1;
+      position: relative;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -109,13 +111,15 @@
     .content-section.active {
       display: block;
     }
-    /* 圖表區 */
+
+    /* ===== 圖表區 ===== */
     .timeframe-selector {
       display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
+      gap: 2px;
       padding: 10px;
       background-color: #151b29;
+      overflow-x: auto;
+      white-space: nowrap;
     }
     .timeframe-btn {
       padding: 5px 10px;
@@ -132,7 +136,8 @@
     }
     #chart {
       width: 100%;
-      height: calc(100% - 140px); /* 調整此值以符合UI需求 */
+      /* 你可以自行微調高度以貼近你的UI */
+      height: calc(100% - 100px);
       background-color: #151b29;
     }
     .indicators {
@@ -149,7 +154,8 @@
     .indicator-name {
       color: #8c8c8c;
     }
-    /* 交易區 */
+
+    /* ===== 交易區 ===== */
     .trade-tabs {
       display: flex;
       padding: 10px;
@@ -253,7 +259,8 @@
     .btn-short {
       background-color: #dc3545;
     }
-    /* 持倉區 */
+
+    /* ===== 持倉區塊 ===== */
     .positions-section {
       padding: 15px;
       background-color: #151b29;
@@ -334,7 +341,8 @@
       border-color: #dc3545;
       color: #dc3545;
     }
-    /* 訂單簿 */
+
+    /* ===== 訂單簿 ===== */
     .orderbook-section {
       padding: 15px;
       background-color: #151b29;
@@ -403,7 +411,8 @@
       font-weight: bold;
       font-size: 14px;
     }
-    /* 底部導航 */
+
+    /* ===== 底部導航欄 ===== */
     .bottom-nav {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -430,11 +439,16 @@
     .nav-btn.active {
       color: #3a7bd5;
     }
+
+    /* ===== 讓 Plotly K線支援縮放 ===== */
+    .plotly-container .modebar {
+      display: none !important; /* 隱藏預設 modebar; 若要顯示可移除這行 */
+    }
   </style>
 </head>
 <body>
   <div class="app-container">
-    <!-- 頂部交易對資訊 -->
+    <!-- 頂部 -->
     <div class="header">
       <div class="symbol-info">
         <h1>ETHUSDT</h1>
@@ -455,9 +469,8 @@
 
     <!-- 主內容 -->
     <div class="main-content">
-      <!-- K線圖區 -->
+      <!-- K線區 -->
       <div class="content-section active" id="chart-section">
-        <!-- 細微週期按鈕 -->
         <div class="timeframe-selector">
           <button class="timeframe-btn active">1秒</button>
           <button class="timeframe-btn">1分</button>
@@ -471,20 +484,19 @@
           <button class="timeframe-btn">1週</button>
           <button class="timeframe-btn">1月</button>
         </div>
-        <!-- Plotly K線圖 -->
         <div id="chart"></div>
         <div class="indicators">
           <div class="indicator">
             <span class="indicator-name">MA7:</span>
-            <span class="indicator-value" id="ma7Value">--</span>
+            <span class="indicator-value">--</span>
           </div>
           <div class="indicator">
             <span class="indicator-name">MA14:</span>
-            <span class="indicator-value" id="ma14Value">--</span>
+            <span class="indicator-value">--</span>
           </div>
           <div class="indicator">
             <span class="indicator-name">MA28:</span>
-            <span class="indicator-value" id="ma28Value">--</span>
+            <span class="indicator-value">--</span>
           </div>
           <div class="indicator">
             <span class="indicator-name">MACD:</span>
@@ -506,7 +518,14 @@
         <div class="trade-content active" id="market-tab">
           <div class="leverage-slider">
             <label>槓桿倍數: <span id="leverage-value">10x</span></label>
-            <input type="range" min="1" max="75" value="10" class="slider" id="leverage-slider">
+            <input
+              type="range"
+              min="1"
+              max="75"
+              value="10"
+              class="slider"
+              id="leverage-slider"
+            />
             <div class="leverage-marks">
               <span>1x</span>
               <span>25x</span>
@@ -516,7 +535,7 @@
           </div>
           <div class="order-input">
             <label>數量 (ETH)</label>
-            <input type="number" step="0.001" value="0.01" min="0.001">
+            <input type="number" step="0.001" value="0.01" min="0.001" />
           </div>
           <div class="available-balance">
             <span>可用資金: 31.35 USDT</span>
@@ -529,7 +548,14 @@
         <div class="trade-content" id="limit-tab">
           <div class="leverage-slider">
             <label>槓桿倍數: <span id="leverage-value-limit">10x</span></label>
-            <input type="range" min="1" max="75" value="10" class="slider" id="leverage-slider-limit">
+            <input
+              type="range"
+              min="1"
+              max="75"
+              value="10"
+              class="slider"
+              id="leverage-slider-limit"
+            />
             <div class="leverage-marks">
               <span>1x</span>
               <span>25x</span>
@@ -539,11 +565,11 @@
           </div>
           <div class="order-input">
             <label>價格 (USDT)</label>
-            <input type="number" step="0.01" value="2148.42" min="0.01">
+            <input type="number" step="0.01" value="2148.42" min="0.01" />
           </div>
           <div class="order-input">
             <label>數量 (ETH)</label>
-            <input type="number" step="0.001" value="0.01" min="0.001">
+            <input type="number" step="0.001" value="0.01" min="0.001" />
           </div>
           <div class="available-balance">
             <span>可用資金: 31.35 USDT</span>
@@ -553,7 +579,6 @@
             <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
           </div>
         </div>
-
         <!-- 持倉區塊 -->
         <div class="positions-section">
           <h3>持倉</h3>
@@ -574,7 +599,7 @@
                 </div>
                 <div class="info-row">
                   <span>標記價格:</span>
-                  <span id="tradeMarkPrice">2148.42 USDT</span>
+                  <span>2148.42 USDT</span>
                 </div>
                 <div class="info-row">
                   <span>強平價格:</span>
@@ -593,7 +618,6 @@
             </div>
           </div>
         </div>
-
         <!-- 訂單簿 -->
         <div class="orderbook-section">
           <h3>訂單簿 <i class="fas fa-sort"></i> <i class="fas fa-align-justify"></i></h3>
@@ -665,7 +689,7 @@
   </div>
 
   <script>
-    // 初始化 Tab 切換功能
+    // 1) 初始化Tab
     function initTabSwitcher() {
       const tabBtns = document.querySelectorAll('.tab-btn');
       const sections = document.querySelectorAll('.content-section');
@@ -680,7 +704,7 @@
       });
     }
 
-    // 初始化交易頁籤切換
+    // 2) 交易分頁切換
     function initTradeTabs() {
       const tradeTabBtns = document.querySelectorAll('.trade-tab-btn');
       const tradeContents = document.querySelectorAll('.trade-content');
@@ -695,13 +719,14 @@
       });
     }
 
-    // 初始化槓桿滑桿
+    // 3) 槓桿滑桿
     function initLeverageSliders() {
       const marketSlider = document.getElementById('leverage-slider');
       const marketValue = document.getElementById('leverage-value');
       marketSlider.addEventListener('input', () => {
         marketValue.textContent = marketSlider.value + 'x';
       });
+
       const limitSlider = document.getElementById('leverage-slider-limit');
       const limitValue = document.getElementById('leverage-value-limit');
       limitSlider.addEventListener('input', () => {
@@ -709,37 +734,34 @@
       });
     }
 
-    // Plotly K線圖 - 模擬數據
+    // 4) Plotly: 模擬 K 線 + 成交量
     let chartData = [];
-    let candleCount = 50; // 初始K線數量
-    let timeInterval = 5000; // 5秒一根K線 (測試用)
+    let candleCount = 40; // 初始K線數量
+    let candleInterval = 5000; // 5秒產生一根K線(測試用)
     let nextCandleTime = Date.now();
 
-    // 生成初始 K 線資料
     function generateInitialData() {
-      chartData = [];
       let basePrice = 2148;
-      let currentTime = Date.now() - candleCount * timeInterval;
+      let now = Date.now() - candleCount * candleInterval;
+      chartData = [];
       for (let i = 0; i < candleCount; i++) {
         let open = basePrice + (Math.random() - 0.5) * 20;
         let close = open + (Math.random() - 0.5) * 20;
         let high = Math.max(open, close) + Math.random() * 5;
         let low = Math.min(open, close) - Math.random() * 5;
-        let volume = Math.random() * 5000 + 1000;
         chartData.push({
-          date: new Date(currentTime).toISOString(),
+          date: new Date(now).toISOString(),
           open: parseFloat(open.toFixed(2)),
           high: parseFloat(high.toFixed(2)),
           low: parseFloat(low.toFixed(2)),
           close: parseFloat(close.toFixed(2)),
-          volume: parseFloat(volume.toFixed(2))
+          volume: parseFloat((Math.random() * 3000 + 500).toFixed(2))
         });
         basePrice = close;
-        currentTime += timeInterval;
+        now += candleInterval;
       }
     }
 
-    // 更新 Plotly K 線圖
     function drawChart() {
       const traceCandle = {
         x: chartData.map(d => d.date),
@@ -756,11 +778,13 @@
       };
       const traceVolume = {
         x: chartData.map(d => d.date),
-        y: chartData.map(d => d.volume / 1000), // 成交量單位 K
+        y: chartData.map(d => d.volume / 1000),
         type: 'bar',
         xaxis: 'x',
         yaxis: 'y2',
-        marker: { color: chartData.map(d => d.close >= d.open ? '#26a69a' : '#ef5350') },
+        marker: {
+          color: chartData.map(d => d.close >= d.open ? '#26a69a' : '#ef5350')
+        },
         opacity: 0.5,
         name: '成交量'
       };
@@ -772,13 +796,11 @@
           type: 'date'
         },
         yaxis: {
-          title: '價格',
           side: 'right',
           domain: [0.2, 1],
           fixedrange: false
         },
         yaxis2: {
-          title: '成交量 (K)',
           side: 'right',
           domain: [0, 0.15],
           fixedrange: false,
@@ -790,128 +812,72 @@
           subplots: [['xy1'], ['xy2']],
           roworder: 'top to bottom'
         },
-        margin: { t: 40, b: 40, l: 60, r: 60 },
+        margin: { t: 30, b: 30, l: 40, r: 40 },
         plot_bgcolor: '#151b29',
         paper_bgcolor: '#151b29',
-        font: { family: 'Noto Sans TC, sans-serif', color: '#e5e5e5' },
+        font: { color: '#e5e5e5' },
         hovermode: 'x unified'
       };
-      // 啟用 scrollZoom 讓使用者可以縮放
+      // scrollZoom: true -> 支援手勢縮放
       Plotly.react('chart', [traceCandle, traceVolume], layout, {
         responsive: true,
         scrollZoom: true,
-        displayModeBar: true
+        displayModeBar: false
       });
     }
 
-    // 更新 MA 指標（模擬計算）
-    function calculateMA(period) {
-      if (chartData.length < period) return '--';
-      let sum = 0;
-      for (let i = chartData.length - period; i < chartData.length; i++) {
-        sum += chartData[i].close;
-      }
-      return (sum / period).toFixed(2);
-    }
-    function updateMAIndicators() {
-      document.getElementById('ma7Value').textContent = calculateMA(7);
-      document.getElementById('ma14Value').textContent = calculateMA(14);
-      document.getElementById('ma28Value').textContent = calculateMA(28);
-    }
-
-    // 更新價格與訂單簿顯示
-    function updatePriceDisplay(latestPrice) {
-      document.getElementById('currentPrice').textContent = latestPrice.toFixed(2);
-      document.getElementById('orderBookPrice').textContent = latestPrice.toFixed(2);
-      document.getElementById('tradeMarkPrice').textContent = latestPrice.toFixed(2) + " USDT";
-    }
-
-    // 更新「數據更新時間」
-    function updateLastUpdated() {
-      const now = new Date();
-      document.getElementById("lastUpdated").textContent =
-        "數據更新時間: " + now.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
-    }
-
-    // 模擬更新：每 simulationInterval 更新當前K線價格，若超過下一根K線時間則生成新K線
-    function simulateRealTimeUpdates() {
-      generateInitialData();
-      drawChart();
-      updateMAIndicators();
-      updateLastUpdated();
-      // 初始價格取自最後一根K線
-      let currentPrice = chartData[chartData.length - 1].close;
+    function simulateCandleUpdate() {
+      let lastClose = chartData[chartData.length - 1].close;
       setInterval(() => {
-        let newPrice = currentPrice + (Math.random() - 0.5) * 5;
+        const now = Date.now();
+        let newPrice = lastClose + (Math.random() - 0.5) * 5;
         newPrice = parseFloat(newPrice.toFixed(2));
-        if (Date.now() >= nextCandleTime) {
-          // 新K線生成
+
+        if (now >= nextCandleTime) {
+          // 新K線
           let newCandle = {
             date: new Date(nextCandleTime).toISOString(),
-            open: currentPrice,
+            open: lastClose,
             high: newPrice,
             low: newPrice,
             close: newPrice,
-            volume: parseFloat((Math.random() * 5000 + 1000).toFixed(2))
+            volume: parseFloat((Math.random() * 3000 + 500).toFixed(2))
           };
           chartData.push(newCandle);
           if (chartData.length > 100) {
             chartData.shift();
           }
-          nextCandleTime += timeInterval;
+          lastClose = newPrice;
+          nextCandleTime += candleInterval;
         } else {
           // 更新最後一根K線
           let lastIdx = chartData.length - 1;
           chartData[lastIdx].close = newPrice;
           if (newPrice > chartData[lastIdx].high) chartData[lastIdx].high = newPrice;
           if (newPrice < chartData[lastIdx].low) chartData[lastIdx].low = newPrice;
+          lastClose = newPrice;
         }
-        currentPrice = newPrice;
-        updatePriceDisplay(newPrice);
-        // 亂數模擬漲跌幅顯示
+        // 更新頂部價格
+        document.getElementById('currentPrice').textContent = newPrice.toFixed(2);
         let randomChange = (Math.random() - 0.5) * 2;
         let sign = randomChange >= 0 ? '+' : '';
-        document.getElementById('priceChange').textContent = sign + randomChange.toFixed(2) + '%';
+        document.getElementById('priceChange').textContent =
+          sign + randomChange.toFixed(2) + '%';
         document.getElementById('priceChange').className =
           'price-change ' + (randomChange >= 0 ? 'positive' : 'negative');
 
         drawChart();
-        updateMAIndicators();
-        updateLastUpdated();
       }, 2000);
     }
 
-    // 時間週期按鈕功能（這裡僅以 Plotly.relayout 更新x軸範圍作示範）
-    function changeTimeFrame(frame) {
-      const endDate = new Date(chartData[chartData.length - 1].date);
-      let startDate = new Date(endDate);
-      switch (frame) {
-        case "1M":
-          startDate.setMonth(endDate.getMonth() - 1);
-          break;
-        case "3M":
-          startDate.setMonth(endDate.getMonth() - 3);
-          break;
-        case "6M":
-          startDate.setMonth(endDate.getMonth() - 6);
-          break;
-        case "1Y":
-          startDate.setFullYear(endDate.getFullYear() - 1);
-          break;
-        default:
-          startDate = new Date(chartData[0].date);
-      }
-      Plotly.relayout('chart', {
-        'xaxis.range': [startDate.toISOString().split("T")[0], endDate.toISOString().split("T")[0]]
-      });
-    }
-
-    // 初始化
+    // DOM Ready
     window.addEventListener('DOMContentLoaded', () => {
       initTabSwitcher();
       initTradeTabs();
       initLeverageSliders();
-      simulateRealTimeUpdates();
+      generateInitialData();
+      drawChart();
+      simulateCandleUpdate();
     });
   </script>
 </body>
