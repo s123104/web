@@ -1,884 +1,1180 @@
 <!DOCTYPE html>
-<html lang="zh">
-<head>
-  <meta charset="UTF-8" />
-  <!-- 避免 iPhone 遮蔽、支援瀏海安全區域 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>加密貨幣交易平台</title>
-  <!-- Plotly.js -->
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <!-- Font Awesome (圖示) -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
-  />
-  <style>
-    /* 針對 iOS Safe Area */
-    body {
-      margin: 0;
-      padding: 0;
-      /* 設定100dvh，避免被iOS頂部或底部截掉 */
-      min-height: 100dvh;
-      /* 設定安全區域(避免瀏海區遮擋) */
-      padding-top: env(safe-area-inset-top);
-      padding-bottom: env(safe-area-inset-bottom);
-      padding-left: env(safe-area-inset-left);
-      padding-right: env(safe-area-inset-right);
-
-      background-color: #0a0e17;
-      color: #e5e5e5;
-      overflow: hidden; /* 若想讓頁面可捲動，視需求調整 */
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
-    .app-container {
-      display: flex;
-      flex-direction: column;
-      /* 讓容器也能填滿整個螢幕高度 */
-      height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-      /* 若擔心有兼容性問題，可改用 min-height */
-    }
-
-    /* ===== 頂部 ===== */
-    .header {
-      padding: 10px 15px;
-      background-color: #151b29;
-      border-bottom: 1px solid #2c3647;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .symbol-info h1 {
-      font-size: 18px;
-      margin-bottom: 4px;
-    }
-    .price-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .current-price {
-      font-size: 16px;
-      font-weight: bold;
-    }
-    .price-change {
-      font-size: 14px;
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-    .price-change.positive {
-      color: #28a745;
-      background-color: rgba(40, 167, 69, 0.1);
-    }
-    .price-change.negative {
-      color: #dc3545;
-      background-color: rgba(220, 53, 69, 0.1);
-    }
-    .tab-switcher {
-      display: flex;
-      gap: 10px;
-    }
-    .tab-btn {
-      padding: 8px 15px;
-      background-color: transparent;
-      border: 1px solid #2c3647;
-      border-radius: 4px;
-      color: #e5e5e5;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s ease;
-    }
-    .tab-btn:hover {
-      background-color: #1c2536;
-    }
-    .tab-btn.active {
-      background-color: #1c2536;
-      border-color: #3a7bd5;
-    }
-
-    /* ===== 主內容 ===== */
-    .main-content {
-      flex: 1;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .content-section {
-      display: none;
-      flex: 1;
-      overflow-y: auto;
-    }
-    .content-section.active {
-      display: block;
-    }
-
-    /* ===== 圖表區 ===== */
-    .timeframe-selector {
-      display: flex;
-      gap: 2px;
-      padding: 10px;
-      background-color: #151b29;
-      overflow-x: auto;
-      white-space: nowrap;
-    }
-    .timeframe-btn {
-      padding: 5px 10px;
-      background-color: transparent;
-      border: 1px solid #2c3647;
-      border-radius: 4px;
-      color: #e5e5e5;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .timeframe-btn.active {
-      background-color: #1c2536;
-      border-color: #3a7bd5;
-    }
-    #chart {
-      width: 100%;
-      /* 你可以自行微調高度以貼近你的UI */
-      height: calc(100% - 100px);
-      background-color: #151b29;
-    }
-    .indicators {
-      display: flex;
-      flex-wrap: wrap;
-      padding: 10px;
-      background-color: #151b29;
-      border-top: 1px solid #2c3647;
-    }
-    .indicator {
-      margin-right: 15px;
-      font-size: 12px;
-    }
-    .indicator-name {
-      color: #8c8c8c;
-    }
-
-    /* ===== 交易區 ===== */
-    .trade-tabs {
-      display: flex;
-      padding: 10px;
-      background-color: #151b29;
-      border-bottom: 1px solid #2c3647;
-    }
-    .trade-tab-btn {
-      flex: 1;
-      padding: 8px;
-      background-color: transparent;
-      border: none;
-      color: #e5e5e5;
-      font-size: 14px;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-    }
-    .trade-tab-btn.active {
-      border-bottom: 2px solid #3a7bd5;
-      font-weight: bold;
-    }
-    .trade-content {
-      display: none;
-      padding: 15px;
-      background-color: #151b29;
-    }
-    .trade-content.active {
-      display: block;
-    }
-    .leverage-slider {
-      margin-bottom: 20px;
-    }
-    .leverage-slider label {
-      display: block;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-    .slider {
-      width: 100%;
-      height: 5px;
-      background: #1c2536;
-      border-radius: 5px;
-      outline: none;
-      -webkit-appearance: none;
-    }
-    .slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 15px;
-      height: 15px;
-      border-radius: 50%;
-      background: #3a7bd5;
-      cursor: pointer;
-    }
-    .leverage-marks {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 5px;
-      font-size: 12px;
-      color: #8c8c8c;
-    }
-    .order-input {
-      margin-bottom: 15px;
-    }
-    .order-input label {
-      display: block;
-      margin-bottom: 5px;
-      font-size: 14px;
-    }
-    .order-input input {
-      width: 100%;
-      padding: 10px;
-      background-color: #1c2536;
-      border: 1px solid #2c3647;
-      border-radius: 4px;
-      color: #e5e5e5;
-      font-size: 14px;
-    }
-    .available-balance {
-      margin-bottom: 15px;
-      font-size: 13px;
-      color: #8c8c8c;
-    }
-    .order-buttons {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .btn-long,
-    .btn-short {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: bold;
-      color: white;
-      cursor: pointer;
-    }
-    .btn-long {
-      background-color: #28a745;
-    }
-    .btn-short {
-      background-color: #dc3545;
-    }
-
-    /* ===== 持倉區塊 ===== */
-    .positions-section {
-      padding: 15px;
-      background-color: #151b29;
-      border-top: 1px solid #2c3647;
-      border-bottom: 1px solid #2c3647;
-    }
-    .positions-section h3 {
-      margin-bottom: 15px;
-      font-size: 16px;
-    }
-    .position-card {
-      background-color: #1c2536;
-      border-radius: 6px;
-      overflow: hidden;
-      margin-bottom: 10px;
-    }
-    .position-header {
-      padding: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-    .position-symbol {
-      font-weight: bold;
-    }
-    .position-type {
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 12px;
-    }
-    .position-type.long {
-      background-color: rgba(40, 167, 69, 0.2);
-      color: #28a745;
-    }
-    .position-type.short {
-      background-color: rgba(220, 53, 69, 0.2);
-      color: #dc3545;
-    }
-    .position-details {
-      padding: 10px;
-    }
-    .position-info {
-      margin-bottom: 15px;
-    }
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-    .info-row span:first-child {
-      color: #8c8c8c;
-    }
-    .profit {
-      color: #28a745;
-    }
-    .loss {
-      color: #dc3545;
-    }
-    .position-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .position-btn {
-      flex: 1;
-      padding: 8px;
-      background-color: #151b29;
-      border: 1px solid #2c3647;
-      border-radius: 4px;
-      color: #e5e5e5;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .position-btn.close-btn {
-      background-color: rgba(220, 53, 69, 0.1);
-      border-color: #dc3545;
-      color: #dc3545;
-    }
-
-    /* ===== 訂單簿 ===== */
-    .orderbook-section {
-      padding: 15px;
-      background-color: #151b29;
-    }
-    .orderbook-section h3 {
-      margin-bottom: 15px;
-      font-size: 16px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .orderbook-section h3 i {
-      font-size: 14px;
-      cursor: pointer;
-      color: #8c8c8c;
-    }
-    .orderbook {
-      position: relative;
-    }
-    .orderbook-header {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      padding: 8px 0;
-      font-size: 13px;
-      color: #8c8c8c;
-      border-bottom: 1px solid #2c3647;
-    }
-    .orderbook-asks,
-    .orderbook-bids {
-      position: relative;
-    }
-    .orderbook-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      padding: 6px 0;
-      font-size: 13px;
-      position: relative;
-      z-index: 1;
-    }
-    .depth-bar {
-      position: absolute;
-      top: 0;
-      right: 0;
-      height: 100%;
-      z-index: -1;
-    }
-    .depth-bar.sell {
-      background-color: rgba(220, 53, 69, 0.1);
-    }
-    .depth-bar.buy {
-      background-color: rgba(40, 167, 69, 0.1);
-    }
-    .price.sell {
-      color: #dc3545;
-    }
-    .price.buy {
-      color: #28a745;
-    }
-    .orderbook-current-price {
-      text-align: center;
-      padding: 8px 0;
-      background-color: #1c2536;
-      margin: 5px 0;
-    }
-    .current {
-      font-weight: bold;
-      font-size: 14px;
-    }
-
-    /* ===== 底部導航欄 ===== */
-    .bottom-nav {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      background-color: #151b29;
-      border-top: 1px solid #2c3647;
-      padding: 8px 0;
-    }
-    .nav-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      background-color: transparent;
-      border: none;
-      color: #8c8c8c;
-      font-size: 12px;
-      cursor: pointer;
-      padding: 8px;
-    }
-    .nav-btn i {
-      font-size: 16px;
-    }
-    .nav-btn.active {
-      color: #3a7bd5;
-    }
-
-    /* ===== 讓 Plotly K線支援縮放 ===== */
-    .plotly-container .modebar {
-      display: none !important; /* 隱藏預設 modebar; 若要顯示可移除這行 */
-    }
-  </style>
-</head>
-<body>
-  <div class="app-container">
-    <!-- 頂部 -->
-    <div class="header">
-      <div class="symbol-info">
-        <h1>ETHUSDT</h1>
-        <div class="price-info">
-          <span class="current-price" id="currentPrice">2148.42</span>
-          <span class="price-change positive" id="priceChange">+1.35%</span>
-        </div>
-      </div>
-      <div class="tab-switcher">
-        <button class="tab-btn active" data-tab="chart">
-          <i class="fas fa-chart-line"></i> 走勢圖
-        </button>
-        <button class="tab-btn" data-tab="trade">
-          <i class="fas fa-exchange-alt"></i> 交易
-        </button>
-      </div>
-    </div>
-
-    <!-- 主內容 -->
-    <div class="main-content">
-      <!-- K線區 -->
-      <div class="content-section active" id="chart-section">
-        <div class="timeframe-selector">
-          <button class="timeframe-btn active">1秒</button>
-          <button class="timeframe-btn">1分</button>
-          <button class="timeframe-btn">3分</button>
-          <button class="timeframe-btn">5分</button>
-          <button class="timeframe-btn">15分</button>
-          <button class="timeframe-btn">30分</button>
-          <button class="timeframe-btn">1小時</button>
-          <button class="timeframe-btn">4小時</button>
-          <button class="timeframe-btn">1天</button>
-          <button class="timeframe-btn">1週</button>
-          <button class="timeframe-btn">1月</button>
-        </div>
-        <div id="chart"></div>
-        <div class="indicators">
-          <div class="indicator">
-            <span class="indicator-name">MA7:</span>
-            <span class="indicator-value">--</span>
-          </div>
-          <div class="indicator">
-            <span class="indicator-name">MA14:</span>
-            <span class="indicator-value">--</span>
-          </div>
-          <div class="indicator">
-            <span class="indicator-name">MA28:</span>
-            <span class="indicator-value">--</span>
-          </div>
-          <div class="indicator">
-            <span class="indicator-name">MACD:</span>
-            <span class="indicator-value">--</span>
-          </div>
-          <div class="indicator">
-            <span class="indicator-name">RSI:</span>
-            <span class="indicator-value">65.3</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 交易區 -->
-      <div class="content-section" id="trade-section">
-        <div class="trade-tabs">
-          <button class="trade-tab-btn active" data-trade-tab="market">市價單</button>
-          <button class="trade-tab-btn" data-trade-tab="limit">限價單</button>
-        </div>
-        <div class="trade-content active" id="market-tab">
-          <div class="leverage-slider">
-            <label>槓桿倍數: <span id="leverage-value">10x</span></label>
-            <input
-              type="range"
-              min="1"
-              max="75"
-              value="10"
-              class="slider"
-              id="leverage-slider"
-            />
-            <div class="leverage-marks">
-              <span>1x</span>
-              <span>25x</span>
-              <span>50x</span>
-              <span>75x</span>
-            </div>
-          </div>
-          <div class="order-input">
-            <label>數量 (ETH)</label>
-            <input type="number" step="0.001" value="0.01" min="0.001" />
-          </div>
-          <div class="available-balance">
-            <span>可用資金: 31.35 USDT</span>
-          </div>
-          <div class="order-buttons">
-            <button class="btn-long"><i class="fas fa-arrow-up"></i> 做多</button>
-            <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
-          </div>
-        </div>
-        <div class="trade-content" id="limit-tab">
-          <div class="leverage-slider">
-            <label>槓桿倍數: <span id="leverage-value-limit">10x</span></label>
-            <input
-              type="range"
-              min="1"
-              max="75"
-              value="10"
-              class="slider"
-              id="leverage-slider-limit"
-            />
-            <div class="leverage-marks">
-              <span>1x</span>
-              <span>25x</span>
-              <span>50x</span>
-              <span>75x</span>
-            </div>
-          </div>
-          <div class="order-input">
-            <label>價格 (USDT)</label>
-            <input type="number" step="0.01" value="2148.42" min="0.01" />
-          </div>
-          <div class="order-input">
-            <label>數量 (ETH)</label>
-            <input type="number" step="0.001" value="0.01" min="0.001" />
-          </div>
-          <div class="available-balance">
-            <span>可用資金: 31.35 USDT</span>
-          </div>
-          <div class="order-buttons">
-            <button class="btn-long"><i class="fas fa-arrow-up"></i> 做多</button>
-            <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
-          </div>
-        </div>
-        <!-- 持倉區塊 -->
-        <div class="positions-section">
-          <h3>持倉</h3>
-          <div class="position-card">
-            <div class="position-header">
-              <span class="position-symbol">ETHUSDT</span>
-              <span class="position-type long">做多 10x</span>
-            </div>
-            <div class="position-details">
-              <div class="position-info">
-                <div class="info-row">
-                  <span>持倉數量:</span>
-                  <span>0.025 ETH</span>
-                </div>
-                <div class="info-row">
-                  <span>入場價格:</span>
-                  <span>2120.45 USDT</span>
-                </div>
-                <div class="info-row">
-                  <span>標記價格:</span>
-                  <span>2148.42 USDT</span>
-                </div>
-                <div class="info-row">
-                  <span>強平價格:</span>
-                  <span>1880.00 USDT</span>
-                </div>
-                <div class="info-row">
-                  <span>未結盈虧:</span>
-                  <span class="profit">+5.47 USDT (+1.20%)</span>
-                </div>
-              </div>
-              <div class="position-actions">
-                <button class="position-btn"><i class="fas fa-stop-circle"></i> 止盈止損</button>
-                <button class="position-btn"><i class="fas fa-chart-area"></i> 追蹤出場</button>
-                <button class="position-btn close-btn"><i class="fas fa-hand-holding-usd"></i> 平倉</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- 訂單簿 -->
-        <div class="orderbook-section">
-          <h3>訂單簿 <i class="fas fa-sort"></i> <i class="fas fa-align-justify"></i></h3>
-          <div class="orderbook">
-            <div class="orderbook-header">
-              <span>價格</span>
-              <span>數量</span>
-              <span>總額</span>
-            </div>
-            <div class="orderbook-asks">
-              <div class="orderbook-row">
-                <span class="price sell">2150.20</span>
-                <span class="amount">0.542</span>
-                <span class="total">1167.08</span>
-                <div class="depth-bar sell" style="width: 15%;"></div>
-              </div>
-              <div class="orderbook-row">
-                <span class="price sell">2149.85</span>
-                <span class="amount">0.231</span>
-                <span class="total">496.03</span>
-                <div class="depth-bar sell" style="width: 8%;"></div>
-              </div>
-            </div>
-            <div class="orderbook-current-price">
-              <span class="current" id="orderBookPrice">2148.42</span>
-            </div>
-            <div class="orderbook-bids">
-              <div class="orderbook-row">
-                <span class="price buy">2148.00</span>
-                <span class="amount">0.356</span>
-                <span class="total">765.88</span>
-                <div class="depth-bar buy" style="width: 16%;"></div>
-              </div>
-              <div class="orderbook-row">
-                <span class="price buy">2147.50</span>
-                <span class="amount">0.725</span>
-                <span class="total">1558.44</span>
-                <div class="depth-bar buy" style="width: 30%;"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 底部導航欄 -->
-    <div class="bottom-nav">
-      <button class="nav-btn">
-        <i class="fas fa-home"></i>
-        <span>首頁</span>
-      </button>
-      <button class="nav-btn">
-        <i class="fas fa-chart-bar"></i>
-        <span>行情</span>
-      </button>
-      <button class="nav-btn active">
-        <i class="fas fa-exchange-alt"></i>
-        <span>交易</span>
-      </button>
-      <button class="nav-btn">
-        <i class="fas fa-wallet"></i>
-        <span>資產</span>
-      </button>
-      <button class="nav-btn">
-        <i class="fas fa-cog"></i>
-        <span>設置</span>
-      </button>
-    </div>
-  </div>
-
-  <script>
-    // 1) 初始化Tab
-    function initTabSwitcher() {
-      const tabBtns = document.querySelectorAll('.tab-btn');
-      const sections = document.querySelectorAll('.content-section');
-      tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const target = btn.getAttribute('data-tab');
-          tabBtns.forEach(b => b.classList.remove('active'));
-          sections.forEach(s => s.classList.remove('active'));
-          btn.classList.add('active');
-          document.getElementById(target + '-section').classList.add('active');
-        });
-      });
-    }
-
-    // 2) 交易分頁切換
-    function initTradeTabs() {
-      const tradeTabBtns = document.querySelectorAll('.trade-tab-btn');
-      const tradeContents = document.querySelectorAll('.trade-content');
-      tradeTabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const target = btn.getAttribute('data-trade-tab');
-          tradeTabBtns.forEach(b => b.classList.remove('active'));
-          tradeContents.forEach(c => c.classList.remove('active'));
-          btn.classList.add('active');
-          document.getElementById(target + '-tab').classList.add('active');
-        });
-      });
-    }
-
-    // 3) 槓桿滑桿
-    function initLeverageSliders() {
-      const marketSlider = document.getElementById('leverage-slider');
-      const marketValue = document.getElementById('leverage-value');
-      marketSlider.addEventListener('input', () => {
-        marketValue.textContent = marketSlider.value + 'x';
-      });
-
-      const limitSlider = document.getElementById('leverage-slider-limit');
-      const limitValue = document.getElementById('leverage-value-limit');
-      limitSlider.addEventListener('input', () => {
-        limitValue.textContent = limitSlider.value + 'x';
-      });
-    }
-
-    // 4) Plotly: 模擬 K 線 + 成交量
-    let chartData = [];
-    let candleCount = 40; // 初始K線數量
-    let candleInterval = 5000; // 5秒產生一根K線(測試用)
-    let nextCandleTime = Date.now();
-
-    function generateInitialData() {
-      let basePrice = 2148;
-      let now = Date.now() - candleCount * candleInterval;
-      chartData = [];
-      for (let i = 0; i < candleCount; i++) {
-        let open = basePrice + (Math.random() - 0.5) * 20;
-        let close = open + (Math.random() - 0.5) * 20;
-        let high = Math.max(open, close) + Math.random() * 5;
-        let low = Math.min(open, close) - Math.random() * 5;
-        chartData.push({
-          date: new Date(now).toISOString(),
-          open: parseFloat(open.toFixed(2)),
-          high: parseFloat(high.toFixed(2)),
-          low: parseFloat(low.toFixed(2)),
-          close: parseFloat(close.toFixed(2)),
-          volume: parseFloat((Math.random() * 3000 + 500).toFixed(2))
-        });
-        basePrice = close;
-        now += candleInterval;
-      }
-    }
-
-    function drawChart() {
-      const traceCandle = {
-        x: chartData.map(d => d.date),
-        open: chartData.map(d => d.open),
-        high: chartData.map(d => d.high),
-        low: chartData.map(d => d.low),
-        close: chartData.map(d => d.close),
-        type: 'candlestick',
-        xaxis: 'x',
-        yaxis: 'y1',
-        increasing: { line: { color: '#26a69a' } },
-        decreasing: { line: { color: '#ef5350' } },
-        name: '價格'
-      };
-      const traceVolume = {
-        x: chartData.map(d => d.date),
-        y: chartData.map(d => d.volume / 1000),
-        type: 'bar',
-        xaxis: 'x',
-        yaxis: 'y2',
-        marker: {
-          color: chartData.map(d => d.close >= d.open ? '#26a69a' : '#ef5350')
-        },
-        opacity: 0.5,
-        name: '成交量'
-      };
-      const layout = {
-        dragmode: 'pan',
-        showlegend: false,
-        xaxis: {
-          rangeslider: { visible: false },
-          type: 'date'
-        },
-        yaxis: {
-          side: 'right',
-          domain: [0.2, 1],
-          fixedrange: false
-        },
-        yaxis2: {
-          side: 'right',
-          domain: [0, 0.15],
-          fixedrange: false,
-          anchor: 'x'
-        },
-        grid: {
-          rows: 2,
-          columns: 1,
-          subplots: [['xy1'], ['xy2']],
-          roworder: 'top to bottom'
-        },
-        margin: { t: 30, b: 30, l: 40, r: 40 },
-        plot_bgcolor: '#151b29',
-        paper_bgcolor: '#151b29',
-        font: { color: '#e5e5e5' },
-        hovermode: 'x unified'
-      };
-      // scrollZoom: true -> 支援手勢縮放
-      Plotly.react('chart', [traceCandle, traceVolume], layout, {
-        responsive: true,
-        scrollZoom: true,
-        displayModeBar: false
-      });
-    }
-
-    function simulateCandleUpdate() {
-      let lastClose = chartData[chartData.length - 1].close;
-      setInterval(() => {
-        const now = Date.now();
-        let newPrice = lastClose + (Math.random() - 0.5) * 5;
-        newPrice = parseFloat(newPrice.toFixed(2));
-
-        if (now >= nextCandleTime) {
-          // 新K線
-          let newCandle = {
-            date: new Date(nextCandleTime).toISOString(),
-            open: lastClose,
-            high: newPrice,
-            low: newPrice,
-            close: newPrice,
-            volume: parseFloat((Math.random() * 3000 + 500).toFixed(2))
-          };
-          chartData.push(newCandle);
-          if (chartData.length > 100) {
-            chartData.shift();
-          }
-          lastClose = newPrice;
-          nextCandleTime += candleInterval;
-        } else {
-          // 更新最後一根K線
-          let lastIdx = chartData.length - 1;
-          chartData[lastIdx].close = newPrice;
-          if (newPrice > chartData[lastIdx].high) chartData[lastIdx].high = newPrice;
-          if (newPrice < chartData[lastIdx].low) chartData[lastIdx].low = newPrice;
-          lastClose = newPrice;
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>加密貨幣交易平台 - 模擬大幅波動 K 線圖與交易介面</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js"
         }
-        // 更新頂部價格
-        document.getElementById('currentPrice').textContent = newPrice.toFixed(2);
-        let randomChange = (Math.random() - 0.5) * 2;
-        let sign = randomChange >= 0 ? '+' : '';
-        document.getElementById('priceChange').textContent =
-          sign + randomChange.toFixed(2) + '%';
-        document.getElementById('priceChange').className =
-          'price-change ' + (randomChange >= 0 ? 'positive' : 'negative');
+      }
+    </script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        min-height: 100dvh;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right)
+          env(safe-area-inset-bottom) env(safe-area-inset-left);
+        background-color: #0a0e17;
+        color: #e5e5e5;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        overflow: hidden;
+      }
+      .app-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .header {
+        padding: 10px 15px;
+        background-color: #151b29;
+        border-bottom: 1px solid #2c3647;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .symbol-info h1 {
+        font-size: 18px;
+        margin-bottom: 4px;
+      }
+      .price-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .current-price {
+        font-size: 16px;
+        font-weight: bold;
+      }
+      .price-change {
+        font-size: 14px;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      .price-change.positive {
+        color: #28a745;
+        background-color: rgba(40, 167, 69, 0.1);
+      }
+      .price-change.negative {
+        color: #dc3545;
+        background-color: rgba(220, 53, 69, 0.1);
+      }
+      .tab-switcher {
+        display: flex;
+        gap: 10px;
+      }
+      .tab-btn {
+        padding: 8px 15px;
+        background-color: transparent;
+        border: 1px solid #2c3647;
+        border-radius: 4px;
+        color: #e5e5e5;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+      }
+      .tab-btn:hover {
+        background-color: #1c2536;
+      }
+      .tab-btn.active {
+        background-color: #1c2536;
+        border-color: #3a7bd5;
+      }
+      .main-content {
+        flex: 1;
+        overflow-y: auto;
+        padding-bottom: 60px;
+      }
+      .content-section {
+        display: none;
+        flex: 1;
+      }
+      .content-section.active {
+        display: block;
+      }
+      .timeframe-selector {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 10px;
+        background-color: #151b29;
+      }
+      .timeframe-btn {
+        padding: 5px 10px;
+        background-color: transparent;
+        border: 1px solid #2c3647;
+        border-radius: 4px;
+        color: #e5e5e5;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .timeframe-btn.active {
+        background-color: #1c2536;
+        border-color: #3a7bd5;
+      }
+      .chart-container {
+        width: 100%;
+        height: 400px;
+        background-color: #151b29;
+      }
+      .indicators {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 10px;
+        background-color: #151b29;
+        border-top: 1px solid #2c3647;
+      }
+      .indicator {
+        margin-right: 15px;
+        font-size: 12px;
+      }
+      .indicator-name {
+        color: #8c8c8c;
+      }
+      .market-condition {
+        padding: 5px;
+        background-color: #151b29;
+        text-align: center;
+        margin: 10px;
+        max-width: 300px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .market-condition label {
+        margin-right: 10px;
+        font-weight: bold;
+      }
+      .market-condition select {
+        padding: 5px 8px;
+        background-color: #151b29;
+        border: 1px solid #2c3647;
+        border-radius: 4px;
+        color: #e5e5e5;
+      }
+      .trade-tabs {
+        display: flex;
+        padding: 10px;
+        background-color: #151b29;
+        border-bottom: 1px solid #2c3647;
+      }
+      .trade-tab-btn {
+        flex: 1;
+        padding: 8px;
+        background-color: transparent;
+        border: none;
+        color: #e5e5e5;
+        font-size: 14px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+      }
+      .trade-tab-btn.active {
+        border-bottom: 2px solid #3a7bd5;
+        font-weight: bold;
+      }
+      .trade-content {
+        display: none;
+        padding: 15px;
+        background-color: #151b29;
+      }
+      .trade-content.active {
+        display: block;
+      }
+      .leverage-slider {
+        margin-bottom: 20px;
+      }
+      .leverage-slider label {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 14px;
+      }
+      .slider {
+        width: 100%;
+        height: 5px;
+        background: #1c2536;
+        border-radius: 5px;
+        outline: none;
+        -webkit-appearance: none;
+      }
+      .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: #3a7bd5;
+        cursor: pointer;
+      }
+      .leverage-marks {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 5px;
+        font-size: 12px;
+        color: #8c8c8c;
+      }
+      .order-input {
+        margin-bottom: 15px;
+      }
+      .order-input label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 14px;
+      }
+      .order-input input {
+        width: 100%;
+        padding: 10px;
+        background-color: #1c2536;
+        border: 1px solid #2c3647;
+        border-radius: 4px;
+        color: #e5e5e5;
+        font-size: 14px;
+      }
+      .available-balance {
+        margin-bottom: 15px;
+        font-size: 13px;
+        color: #8c8c8c;
+      }
+      .order-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .btn-long,
+      .btn-short {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: bold;
+        color: white;
+        cursor: pointer;
+      }
+      .btn-long {
+        background-color: #28a745;
+      }
+      .btn-short {
+        background-color: #dc3545;
+      }
+      .positions-section {
+        padding: 15px;
+        background-color: #151b29;
+        border-top: 1px solid #2c3647;
+        border-bottom: 1px solid #2c3647;
+      }
+      .positions-section h3 {
+        margin-bottom: 15px;
+        font-size: 16px;
+      }
+      .position-card {
+        background-color: #1c2536;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+      .position-header {
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      .position-symbol {
+        font-weight: bold;
+      }
+      .position-type {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      .position-type.long {
+        background-color: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+      }
+      .position-type.short {
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+      }
+      .position-details {
+        padding: 10px;
+      }
+      .position-info {
+        margin-bottom: 15px;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 13px;
+      }
+      .info-row span:first-child {
+        color: #8c8c8c;
+      }
+      .profit {
+        color: #28a745;
+      }
+      .loss {
+        color: #dc3545;
+      }
+      .position-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .position-btn {
+        flex: 1;
+        padding: 8px;
+        background-color: #151b29;
+        border: 1px solid #2c3647;
+        border-radius: 4px;
+        color: #e5e5e5;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .position-btn.close-btn {
+        background-color: rgba(220, 53, 69, 0.1);
+        border-color: #dc3545;
+        color: #dc3545;
+      }
+      .orderbook-section {
+        padding: 15px;
+        background-color: #151b29;
+      }
+      .orderbook-section h3 {
+        margin-bottom: 15px;
+        font-size: 16px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .orderbook-section h3 i {
+        font-size: 14px;
+        cursor: pointer;
+        color: #8c8c8c;
+      }
+      .orderbook {
+        position: relative;
+      }
+      .orderbook-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        padding: 8px 0;
+        font-size: 13px;
+        color: #8c8c8c;
+        border-bottom: 1px solid #2c3647;
+      }
+      .orderbook-asks,
+      .orderbook-bids {
+        position: relative;
+      }
+      .orderbook-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        padding: 6px 0;
+        font-size: 13px;
+        position: relative;
+        z-index: 1;
+      }
+      .depth-bar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 100%;
+        z-index: -1;
+      }
+      .depth-bar.sell {
+        background-color: rgba(220, 53, 69, 0.1);
+      }
+      .depth-bar.buy {
+        background-color: rgba(40, 167, 69, 0.1);
+      }
+      .price.sell {
+        color: #dc3545;
+      }
+      .price.buy {
+        color: #28a745;
+      }
+      .orderbook-current-price {
+        text-align: center;
+        padding: 8px 0;
+        background-color: #1c2536;
+        margin: 5px 0;
+      }
+      .current {
+        font-weight: bold;
+        font-size: 14px;
+      }
+      .bottom-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #151b29;
+        border-top: 1px solid #2c3647;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        padding: 8px 0;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+        z-index: 1000;
+      }
+      .nav-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        background-color: transparent;
+        border: none;
+        color: #8c8c8c;
+        font-size: 12px;
+        cursor: pointer;
+        padding: 8px;
+      }
+      .nav-btn i {
+        font-size: 16px;
+      }
+      .nav-btn.active {
+        color: #3a7bd5;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="app-container">
+        <div class="header">
+          <div class="symbol-info">
+            <h1>ETHUSDT</h1>
+            <div class="price-info">
+              <span class="current-price">{{ currentPrice.toFixed(2) }}</span>
+              <span
+                :class="['price-change', priceChange >= 0 ? 'positive' : 'negative']"
+              >
+                {{ priceChange >= 0 ? '+' : '' }}{{ priceChange.toFixed(2) }}%
+              </span>
+            </div>
+          </div>
+          <div class="tab-switcher">
+            <button
+              :class="['tab-btn', currentTab==='chart' ? 'active' : '']"
+              @click="switchToChart"
+            >
+              <i class="fas fa-chart-line"></i> 走勢圖
+            </button>
+            <button
+              :class="['tab-btn', currentTab==='trade' ? 'active' : '']"
+              @click="currentTab='trade'"
+            >
+              <i class="fas fa-exchange-alt"></i> 交易
+            </button>
+          </div>
+        </div>
+        <div class="main-content">
+          <div
+            v-if="currentTab==='chart'"
+            class="content-section chart-section active"
+          >
+            <div class="timeframe-selector">
+              <button
+                v-for="frame in timeframes"
+                :key="frame"
+                :class="['timeframe-btn', selectedTimeframe===frame ? 'active' : '']"
+                @click="selectTimeframe(frame)"
+              >
+                {{ frame }}
+              </button>
+            </div>
+            <div class="market-condition">
+              <label>市場狀態:</label>
+              <select v-model="marketCondition">
+                <option value="volatile">大幅波動</option>
+                <option value="bull">牛市行情</option>
+                <option value="sideways">橫盤行情</option>
+                <option value="bear">熊市行情</option>
+              </select>
+            </div>
+            <div id="chart" ref="chartRef" class="chart-container"></div>
+            <div class="indicators">
+              <div class="indicator">
+                <span class="indicator-name">MA7:</span>
+                <span class="indicator-value">{{ ma7Value || '--' }}</span>
+              </div>
+              <div class="indicator">
+                <span class="indicator-name">MA14:</span>
+                <span class="indicator-value">{{ ma14Value || '--' }}</span>
+              </div>
+              <div class="indicator">
+                <span class="indicator-name">MA28:</span>
+                <span class="indicator-value">{{ ma28Value || '--' }}</span>
+              </div>
+              <div class="indicator">
+                <span class="indicator-name">MACD:</span>
+                <span class="indicator-value">{{ macdValue || '--' }}</span>
+              </div>
+              <div class="indicator">
+                <span class="indicator-name">RSI:</span>
+                <span class="indicator-value">65.3</span>
+              </div>
+            </div>
+          </div>
+          <div
+            v-if="currentTab==='trade'"
+            class="content-section active"
+            id="trade-section"
+          >
+            <div class="trade-tabs">
+              <button
+                class="trade-tab-btn"
+                :class="{ active: tradeTab==='market' }"
+                @click="tradeTab='market'"
+                data-trade-tab="market"
+              >
+                市價單
+              </button>
+              <button
+                class="trade-tab-btn"
+                :class="{ active: tradeTab==='limit' }"
+                @click="tradeTab='limit'"
+                data-trade-tab="limit"
+              >
+                限價單
+              </button>
+            </div>
+            <div
+              class="trade-content active"
+              id="market-tab"
+              v-if="tradeTab==='market'"
+            >
+              <div class="leverage-slider">
+                <label>槓桿倍數: <span>{{ leverage }}x</span></label>
+                <input
+                  type="range"
+                  min="1"
+                  max="75"
+                  v-model="leverage"
+                  class="slider"
+                  @input="updateLeverage"
+                />
+                <div class="leverage-marks">
+                  <span>1x</span>
+                  <span>25x</span>
+                  <span>50x</span>
+                  <span>75x</span>
+                </div>
+              </div>
+              <div class="order-input">
+                <label>數量 (ETH)</label>
+                <input
+                  type="number"
+                  v-model="quantity"
+                  step="0.001"
+                  min="0.001"
+                />
+              </div>
+              <div class="available-balance">
+                <span>可用資金: 31.35 USDT</span>
+              </div>
+              <div class="order-buttons">
+                <button class="btn-long" @click="placeOrder('long')">
+                  <i class="fas fa-arrow-up"></i> 開倉買 (做多)
+                </button>
+                <button class="btn-short" @click="placeOrder('short')">
+                  <i class="fas fa-arrow-down"></i> 開倉賣 (做空)
+                </button>
+              </div>
+            </div>
+            <div class="trade-content" id="limit-tab" v-if="tradeTab==='limit'">
+              <div class="leverage-slider">
+                <label>槓桿倍數: <span>{{ leverage }}x</span></label>
+                <input
+                  type="range"
+                  min="1"
+                  max="75"
+                  v-model="leverage"
+                  class="slider"
+                  @input="updateLeverage"
+                />
+                <div class="leverage-marks">
+                  <span>1x</span>
+                  <span>25x</span>
+                  <span>50x</span>
+                  <span>75x</span>
+                </div>
+              </div>
+              <div class="order-input">
+                <label>價格 (USDT)</label>
+                <input
+                  type="number"
+                  v-model="limitPrice"
+                  step="0.01"
+                  min="0.01"
+                />
+              </div>
+              <div class="order-input">
+                <label>數量 (ETH)</label>
+                <input
+                  type="number"
+                  v-model="quantity"
+                  step="0.001"
+                  min="0.001"
+                />
+              </div>
+              <div class="available-balance">
+                <span>可用資金: 31.35 USDT</span>
+              </div>
+              <div class="order-buttons">
+                <button class="btn-long" @click="placeOrder('long', 'limit')">
+                  <i class="fas fa-arrow-up"></i> 開倉買 (做多)
+                </button>
+                <button class="btn-short" @click="placeOrder('short', 'limit')">
+                  <i class="fas fa-arrow-down"></i> 開倉賣 (做空)
+                </button>
+              </div>
+            </div>
+            <div class="positions-section">
+              <h3>持倉</h3>
+              <div class="position-card">
+                <div class="position-header">
+                  <span class="position-symbol">ETHUSDT</span>
+                  <span class="position-type long">做多 {{ leverage }}x</span>
+                </div>
+                <div class="position-details">
+                  <div class="position-info">
+                    <div class="info-row">
+                      <span>持倉數量:</span>
+                      <span>0.025 ETH</span>
+                    </div>
+                    <div class="info-row">
+                      <span>入場價格:</span>
+                      <span>2120.45 USDT</span>
+                    </div>
+                    <div class="info-row">
+                      <span>標記價格:</span>
+                      <span>{{ currentPrice.toFixed(2) }} USDT</span>
+                    </div>
+                    <div class="info-row">
+                      <span>強平價格:</span>
+                      <span>1880.00 USDT</span>
+                    </div>
+                    <div class="info-row">
+                      <span>未結盈虧:</span>
+                      <span class="profit">+5.47 USDT (+1.20%)</span>
+                    </div>
+                  </div>
+                  <div class="position-actions">
+                    <button class="position-btn">
+                      <i class="fas fa-stop-circle"></i> 止盈止損
+                    </button>
+                    <button class="position-btn">
+                      <i class="fas fa-chart-area"></i> 追蹤出場
+                    </button>
+                    <button class="position-btn close-btn">
+                      <i class="fas fa-hand-holding-usd"></i> 平倉
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="position-card">
+                <div class="position-header">
+                  <span class="position-symbol">BTCUSDT</span>
+                  <span class="position-type short">做空 20x</span>
+                </div>
+                <div class="position-details">
+                  <div class="position-info">
+                    <div class="info-row">
+                      <span>持倉數量:</span>
+                      <span>0.001 BTC</span>
+                    </div>
+                    <div class="info-row">
+                      <span>入場價格:</span>
+                      <span>50000.00 USDT</span>
+                    </div>
+                    <div class="info-row">
+                      <span>標記價格:</span>
+                      <span>49800.00 USDT</span>
+                    </div>
+                    <div class="info-row">
+                      <span>強平價格:</span>
+                      <span>52000.00 USDT</span>
+                    </div>
+                    <div class="info-row">
+                      <span>未結盈虧:</span>
+                      <span class="loss">-150.00 USDT (-0.30%)</span>
+                    </div>
+                  </div>
+                  <div class="position-actions">
+                    <button class="position-btn">
+                      <i class="fas fa-stop-circle"></i> 止盈止損
+                    </button>
+                    <button class="position-btn">
+                      <i class="fas fa-chart-area"></i> 追蹤出場
+                    </button>
+                    <button class="position-btn close-btn">
+                      <i class="fas fa-hand-holding-usd"></i> 平倉
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="orderbook-section">
+              <h3>
+                訂單簿 <i class="fas fa-sort"></i>
+                <i class="fas fa-align-justify"></i>
+              </h3>
+              <div class="orderbook">
+                <div class="orderbook-header">
+                  <span>價格</span>
+                  <span>數量</span>
+                  <span>總額</span>
+                </div>
+                <div class="orderbook-asks">
+                  <div
+                    v-for="ask in orderbookAsks"
+                    :key="ask.price"
+                    class="orderbook-row"
+                  >
+                    <span class="price sell">{{ ask.price.toFixed(2) }}</span>
+                    <span class="amount">{{ ask.amount.toFixed(3) }}</span>
+                    <span class="total"
+                      >{{ (ask.price * ask.amount).toFixed(2) }}</span
+                    >
+                    <div
+                      class="depth-bar sell"
+                      :style="{ width: (ask.depth * 100) + '%' }"
+                    ></div>
+                  </div>
+                </div>
+                <div class="orderbook-current-price">
+                  <span class="current">{{ currentPrice.toFixed(2) }}</span>
+                </div>
+                <div class="orderbook-bids">
+                  <div
+                    v-for="bid in orderbookBids"
+                    :key="bid.price"
+                    class="orderbook-row"
+                  >
+                    <span class="price buy">{{ bid.price.toFixed(2) }}</span>
+                    <span class="amount">{{ bid.amount.toFixed(3) }}</span>
+                    <span class="total"
+                      >{{ (bid.price * bid.amount).toFixed(2) }}</span
+                    >
+                    <div
+                      class="depth-bar buy"
+                      :style="{ width: (bid.depth * 100) + '%' }"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-nav">
+          <button class="nav-btn" @click="switchToChart">
+            <i class="fas fa-home"></i>
+            <span>行情</span>
+          </button>
+          <button class="nav-btn" @click="switchToChart">
+            <i class="fas fa-chart-bar"></i>
+            <span>走勢圖</span>
+          </button>
+          <button class="nav-btn" @click="currentTab='trade'">
+            <i class="fas fa-exchange-alt"></i>
+            <span>交易</span>
+          </button>
+          <button class="nav-btn">
+            <i class="fas fa-wallet"></i>
+            <span>資產</span>
+          </button>
+          <button class="nav-btn">
+            <i class="fas fa-cog"></i>
+            <span>設置</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
-        drawChart();
-      }, 2000);
-    }
+    <script type="module">
+      import { createApp, ref, onMounted, watch, nextTick } from "vue";
 
-    // DOM Ready
-    window.addEventListener('DOMContentLoaded', () => {
-      initTabSwitcher();
-      initTradeTabs();
-      initLeverageSliders();
-      generateInitialData();
-      drawChart();
-      simulateCandleUpdate();
-    });
-  </script>
-</body>
+      const app = createApp({
+        setup() {
+          const currentTab = ref("chart");
+          const tradeTab = ref("market");
+          const leverage = ref(10);
+          const quantity = ref(0.01);
+          const limitPrice = ref(2148.42);
+          const currentPrice = ref(2148.42);
+          const priceChange = ref(0.1);
+          const selectedTimeframe = ref("1秒");
+          const timeframes = [
+            "1秒",
+            "1分",
+            "3分",
+            "5分",
+            "15分",
+            "30分",
+            "1小時",
+            "4小時",
+            "1天",
+            "1週",
+            "1月",
+          ];
+          const ma7Value = ref("--");
+          const ma14Value = ref("--");
+          const ma28Value = ref("--");
+          const macdValue = ref("--");
+          const chartRef = ref(null);
+          const marketCondition = ref("volatile");
+
+          const orderbookAsks = ref([
+            {
+              price: currentPrice.value + Math.random() * 20,
+              amount: 0.5 + Math.random() * 0.5,
+              depth: Math.random() * 0.3,
+            },
+            {
+              price: currentPrice.value + Math.random() * 15,
+              amount: 0.3 + Math.random() * 0.3,
+              depth: Math.random() * 0.2,
+            },
+          ]);
+          const orderbookBids = ref([
+            {
+              price: currentPrice.value - Math.random() * 20,
+              amount: 0.4 + Math.random() * 0.4,
+              depth: Math.random() * 0.3,
+            },
+            {
+              price: currentPrice.value - Math.random() * 15,
+              amount: 0.6 + Math.random() * 0.6,
+              depth: Math.random() * 0.2,
+            },
+          ]);
+
+          let chartData = [];
+          let chart = null;
+          let candlestickSeries = null;
+          let retryCount = 0;
+          const MAX_RETRIES = 5;
+
+          onMounted(() => {
+            initChart();
+            simulateRealTimeUpdates();
+          });
+
+          watch(currentTab, (newVal, oldVal) => {
+            if (newVal === "trade") {
+              nextTick(() => {
+                checkTradeSection();
+              });
+            }
+            if (newVal === "chart" && chart) {
+              nextTick(() => {
+                chart.timeScale().fitContent();
+              });
+            }
+          });
+
+          function checkTradeSection() {
+            const tradeSection = document.getElementById("trade-section");
+            if (!tradeSection) {
+              console.error("【錯誤】找不到 #trade-section DOM 元素！");
+            } else {
+              console.log("✔ #trade-section DOM 元素存在");
+            }
+          }
+
+          const initChart = () => {
+            if (
+              typeof LightweightCharts !== "undefined" &&
+              typeof LightweightCharts.createChart === "function" &&
+              chartRef.value
+            ) {
+              chart = LightweightCharts.createChart(chartRef.value, {
+                width: chartRef.value.clientWidth,
+                height: 400,
+                layout: {
+                  background: { color: "#151b29" },
+                  textColor: "#e5e5e5",
+                },
+                grid: {
+                  vertLines: { color: "#2c3647" },
+                  horzLines: { color: "#2c3647" },
+                },
+                timeScale: {
+                  timeVisible: true,
+                  secondsVisible: false,
+                },
+                priceScale: {
+                  borderColor: "#2c3647",
+                },
+              });
+              candlestickSeries = chart.addSeries(
+                LightweightCharts.CandlestickSeries,
+                {
+                  upColor: "#26a69a",
+                  downColor: "#ef5350",
+                  borderVisible: false,
+                  wickVisible: true,
+                }
+              );
+              chartData = generateInitialData();
+              candlestickSeries.setData(chartData);
+              chart.timeScale().fitContent();
+            } else if (retryCount < MAX_RETRIES) {
+              console.error("輕量圖尚未正確載入或 chartRef 未就緒，重試中...");
+              retryCount++;
+              setTimeout(initChart, 1000 * retryCount);
+            } else {
+              console.error(
+                "無法載入 TradingView Lightweight Charts，請確認網路連線或腳本 URL"
+              );
+            }
+          };
+
+          const generateInitialData = () => {
+            const data = [];
+            let basePrice = 2148;
+            let currentTime =
+              Date.now() - 100 * getIntervalMs(selectedTimeframe.value);
+            const candleCount = 100;
+            for (let i = 0; i < candleCount; i++) {
+              let priceVariation;
+              switch (marketCondition.value) {
+                case "bull":
+                  priceVariation = Math.abs(Math.random() * 20);
+                  break;
+                case "sideways":
+                  priceVariation = (Math.random() - 0.5) * 5;
+                  break;
+                case "bear":
+                  priceVariation = -Math.abs(Math.random() * 20);
+                  break;
+                default:
+                  priceVariation = (Math.random() - 0.5) * 50;
+              }
+              const open = basePrice + priceVariation;
+              const close = open + (Math.random() - 0.5) * 50;
+              const high = Math.max(open, close) + Math.random() * 30;
+              const low = Math.min(open, close) - Math.random() * 30;
+              data.push({
+                time: Math.floor(currentTime / 1000),
+                open: parseFloat(open.toFixed(2)),
+                high: parseFloat(high.toFixed(2)),
+                low: parseFloat(low.toFixed(2)),
+                close: parseFloat(close.toFixed(2)),
+              });
+              basePrice = close;
+              currentTime += getIntervalMs(selectedTimeframe.value);
+            }
+            return data;
+          };
+
+          const simulateRealTimeUpdates = () => {
+            setInterval(() => {
+              const lastCandle = chartData[chartData.length - 1];
+              let newPrice;
+              switch (marketCondition.value) {
+                case "bull":
+                  newPrice = lastCandle.close + Math.abs(Math.random() * 20);
+                  break;
+                case "sideways":
+                  newPrice = lastCandle.close + (Math.random() - 0.5) * 5;
+                  break;
+                case "bear":
+                  newPrice = lastCandle.close - Math.abs(Math.random() * 20);
+                  break;
+                default:
+                  newPrice = lastCandle.close + (Math.random() - 0.5) * 50;
+              }
+              newPrice = parseFloat(newPrice.toFixed(2));
+              currentPrice.value = newPrice;
+              priceChange.value =
+                ((newPrice - lastCandle.close) / lastCandle.close) * 100;
+              const newCandle = {
+                time: Math.floor(Date.now() / 1000),
+                open: lastCandle.close,
+                close: newPrice,
+                high: Math.max(lastCandle.close, newPrice) + Math.random() * 20,
+                low: Math.min(lastCandle.close, newPrice) - Math.random() * 20,
+              };
+              chartData.push(newCandle);
+              candlestickSeries.update(newCandle);
+              ma7Value.value = calculateMA(7).toFixed(2) || "--";
+              ma14Value.value = calculateMA(14).toFixed(2) || "--";
+              ma28Value.value = calculateMA(28).toFixed(2) || "--";
+              macdValue.value = "--";
+              updateOrderbook();
+            }, getIntervalMs(selectedTimeframe.value) / 2);
+          };
+
+          const calculateMA = (period) => {
+            if (chartData.length < period) return 0;
+            let sum = 0;
+            for (let i = chartData.length - period; i < chartData.length; i++) {
+              sum += chartData[i].close;
+            }
+            return sum / period;
+          };
+
+          const selectTimeframe = (frame) => {
+            selectedTimeframe.value = frame;
+            if (chart) {
+              const intervalMs = getIntervalMs(frame);
+              chart.timeScale().setVisibleRange({
+                from: Date.now() - intervalMs * 100,
+                to: Date.now(),
+              });
+              chartData = generateInitialData();
+              candlestickSeries.setData(chartData);
+            }
+          };
+
+          const getIntervalMs = (frame) => {
+            const mappings = {
+              "1秒": 1000,
+              "1分": 60000,
+              "3分": 180000,
+              "5分": 300000,
+              "15分": 900000,
+              "30分": 1800000,
+              "1小時": 3600000,
+              "4小時": 14400000,
+              "1天": 86400000,
+              "1週": 604800000,
+              "1月": 2592000000,
+            };
+            return mappings[frame] || 1000;
+          };
+
+          const updateOrderbook = () => {
+            orderbookAsks.value = [
+              {
+                price: currentPrice.value + Math.random() * 20,
+                amount: 0.5 + Math.random() * 0.5,
+                depth: Math.random() * 0.3,
+              },
+              {
+                price: currentPrice.value + Math.random() * 15,
+                amount: 0.3 + Math.random() * 0.3,
+                depth: Math.random() * 0.2,
+              },
+            ];
+            orderbookBids.value = [
+              {
+                price: currentPrice.value - Math.random() * 20,
+                amount: 0.4 + Math.random() * 0.4,
+                depth: Math.random() * 0.3,
+              },
+              {
+                price: currentPrice.value - Math.random() * 15,
+                amount: 0.6 + Math.random() * 0.6,
+                depth: Math.random() * 0.2,
+              },
+            ];
+          };
+
+          const updateLeverage = () => {};
+
+          const placeOrder = (type, orderType = "market") => {
+            console.log(
+              `下單 ${type} ${orderType} 訂單，槓桿 ${leverage.value}x，數量 ${
+                quantity.value
+              }，價格 ${
+                orderType === "limit" ? limitPrice.value : currentPrice.value
+              }`
+            );
+          };
+
+          const switchToChart = () => {
+            currentTab.value = "chart";
+            nextTick(() => {
+              if (!chart) {
+                initChart();
+              } else {
+                chart.timeScale().fitContent();
+              }
+            });
+          };
+
+          return {
+            currentTab,
+            tradeTab,
+            leverage,
+            quantity,
+            limitPrice,
+            currentPrice,
+            priceChange,
+            selectedTimeframe,
+            timeframes,
+            ma7Value,
+            ma14Value,
+            ma28Value,
+            macdValue,
+            chartRef,
+            marketCondition,
+            selectTimeframe,
+            updateLeverage,
+            placeOrder,
+            orderbookAsks,
+            orderbookBids,
+            switchToChart,
+          };
+        },
+      });
+
+      app.mount("#app");
+    </script>
+    <script>
+      (function () {
+        function c() {
+          var b = a.contentDocument || a.contentWindow.document;
+          if (b) {
+            var d = b.createElement("script");
+            d.innerHTML =
+              "window.__CF$cv$params={r:'91b8373728566767',t:'MTc0MTE2MzA1Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
+            b.getElementsByTagName("head")[0].appendChild(d);
+          }
+        }
+        if (document.body) {
+          var a = document.createElement("iframe");
+          a.height = 1;
+          a.width = 1;
+          a.style.position = "absolute";
+          a.style.top = 0;
+          a.style.left = 0;
+          a.style.border = "none";
+          a.style.visibility = "hidden";
+          document.body.appendChild(a);
+          if ("loading" !== document.readyState) c();
+          else if (window.addEventListener)
+            document.addEventListener("DOMContentLoaded", c);
+          else {
+            var e = document.onreadystatechange || function () {};
+            document.onreadystatechange = function (b) {
+              e(b);
+              "loading" !== document.readyState &&
+                ((document.onreadystatechange = e), c());
+            };
+          }
+        }
+      })();
+    </script>
+  </body>
 </html>
