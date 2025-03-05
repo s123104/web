@@ -2,15 +2,16 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <!-- 使用 viewport-fit=cover，並用 100dvh 讓 body 充滿全螢幕，避免 iPhone 遮蔽 -->
+  <!-- 針對 iPhone 瀏海安全區域 -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Bypig 交易平台</title>
-  <!-- Plotly.js (用來顯示K線圖) -->
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <title>加密貨幣交易平台 - Vue + Lightweight Charts</title>
+  <!-- Font Awesome (圖示) -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+  />
   <style>
-    /* 基本重置與字型 */
+    /* ========== 全局重置 & 色彩定義 ========== */
     * {
       margin: 0;
       padding: 0;
@@ -20,29 +21,43 @@
       height: 100%;
     }
     body {
-      /* 使用 100dvh 來滿版顯示 */
+      /* 使用 100dvh 避免被 iPhone 頂部/底部遮蔽 */
       min-height: 100dvh;
-      /* iOS 安全區域 */
       padding-top: env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
       padding-left: env(safe-area-inset-left);
       padding-right: env(safe-area-inset-right);
-      
+
       background-color: #0a0e17;
       color: #e5e5e5;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      overflow: hidden;
+      overflow: hidden; /* 若需要可改為 auto */
     }
+
+    :root {
+      --primary-bg: #0a0e17;
+      --secondary-bg: #151b29;
+      --tertiary-bg: #1c2536;
+      --border-color: #2c3647;
+      --text-color: #e5e5e5;
+      --text-secondary: #8c8c8c;
+      --green-color: #28a745;
+      --red-color: #dc3545;
+      --accent-color: #3a7bd5;
+    }
+
+    /* ========== 整體結構 ========== */
     .app-container {
       display: flex;
       flex-direction: column;
       height: 100%;
     }
-    /* 頂部 */
+
+    /* ========== 頂部區域 ========== */
     .header {
       padding: 10px 15px;
-      background-color: #151b29;
-      border-bottom: 1px solid #2c3647;
+      background-color: var(--secondary-bg);
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -66,11 +81,11 @@
       border-radius: 4px;
     }
     .price-change.positive {
-      color: #28a745;
+      color: var(--green-color);
       background-color: rgba(40, 167, 69, 0.1);
     }
     .price-change.negative {
-      color: #dc3545;
+      color: var(--red-color);
       background-color: rgba(220, 53, 69, 0.1);
     }
     .tab-switcher {
@@ -80,21 +95,22 @@
     .tab-btn {
       padding: 8px 15px;
       background-color: transparent;
-      border: 1px solid #2c3647;
+      border: 1px solid var(--border-color);
       border-radius: 4px;
-      color: #e5e5e5;
+      color: var(--text-color);
       cursor: pointer;
       font-size: 14px;
       transition: all 0.2s ease;
     }
     .tab-btn:hover {
-      background-color: #1c2536;
+      background-color: var(--tertiary-bg);
     }
     .tab-btn.active {
-      background-color: #1c2536;
-      border-color: #3a7bd5;
+      background-color: var(--tertiary-bg);
+      border-color: var(--accent-color);
     }
-    /* 主內容 */
+
+    /* ========== 主內容區 ========== */
     .main-content {
       flex: 1;
       display: flex;
@@ -109,71 +125,73 @@
     .content-section.active {
       display: block;
     }
-    /* 圖表區 */
+
+    /* ========== K線圖區域 ========== */
     .timeframe-selector {
       display: flex;
       flex-wrap: wrap;
       gap: 5px;
       padding: 10px;
-      background-color: #151b29;
+      background-color: var(--secondary-bg);
     }
     .timeframe-btn {
       padding: 5px 10px;
       background-color: transparent;
-      border: 1px solid #2c3647;
+      border: 1px solid var(--border-color);
       border-radius: 4px;
-      color: #e5e5e5;
+      color: var(--text-color);
       font-size: 12px;
       cursor: pointer;
     }
     .timeframe-btn.active {
-      background-color: #1c2536;
-      border-color: #3a7bd5;
+      background-color: var(--tertiary-bg);
+      border-color: var(--accent-color);
     }
     #chart {
       width: 100%;
-      height: calc(100% - 140px); /* 調整此值以符合UI需求 */
-      background-color: #151b29;
+      height: calc(100% - 140px); /* 自行微調 */
+      background-color: var(--secondary-bg);
     }
     .indicators {
       display: flex;
       flex-wrap: wrap;
       padding: 10px;
-      background-color: #151b29;
-      border-top: 1px solid #2c3647;
+      background-color: var(--secondary-bg);
+      border-top: 1px solid var(--border-color);
     }
     .indicator {
       margin-right: 15px;
       font-size: 12px;
     }
     .indicator-name {
-      color: #8c8c8c;
+      color: var(--text-secondary);
     }
-    /* 交易區 */
+
+    /* ========== 交易區域 ========== */
     .trade-tabs {
       display: flex;
       padding: 10px;
-      background-color: #151b29;
-      border-bottom: 1px solid #2c3647;
+      background-color: var(--secondary-bg);
+      border-bottom: 1px solid var(--border-color);
     }
     .trade-tab-btn {
       flex: 1;
       padding: 8px;
       background-color: transparent;
       border: none;
-      color: #e5e5e5;
+      color: var(--text-color);
       font-size: 14px;
       cursor: pointer;
       border-bottom: 2px solid transparent;
     }
     .trade-tab-btn.active {
-      border-bottom: 2px solid #3a7bd5;
+      border-bottom: 2px solid var(--accent-color);
       font-weight: bold;
     }
     .trade-content {
       display: none;
       padding: 15px;
-      background-color: #151b29;
+      background-color: var(--secondary-bg);
     }
     .trade-content.active {
       display: block;
@@ -189,7 +207,7 @@
     .slider {
       width: 100%;
       height: 5px;
-      background: #1c2536;
+      background: var(--tertiary-bg);
       border-radius: 5px;
       outline: none;
       -webkit-appearance: none;
@@ -199,7 +217,7 @@
       width: 15px;
       height: 15px;
       border-radius: 50%;
-      background: #3a7bd5;
+      background: var(--accent-color);
       cursor: pointer;
     }
     .leverage-marks {
@@ -207,7 +225,7 @@
       justify-content: space-between;
       margin-top: 5px;
       font-size: 12px;
-      color: #8c8c8c;
+      color: var(--text-secondary);
     }
     .order-input {
       margin-bottom: 15px;
@@ -220,24 +238,23 @@
     .order-input input {
       width: 100%;
       padding: 10px;
-      background-color: #1c2536;
-      border: 1px solid #2c3647;
+      background-color: var(--tertiary-bg);
+      border: 1px solid var(--border-color);
       border-radius: 4px;
-      color: #e5e5e5;
+      color: var(--text-color);
       font-size: 14px;
     }
     .available-balance {
       margin-bottom: 15px;
       font-size: 13px;
-      color: #8c8c8c;
+      color: var(--text-secondary);
     }
     .order-buttons {
       display: flex;
       gap: 10px;
       margin-bottom: 20px;
     }
-    .btn-long,
-    .btn-short {
+    .btn-long, .btn-short {
       flex: 1;
       padding: 12px;
       border: none;
@@ -248,24 +265,25 @@
       cursor: pointer;
     }
     .btn-long {
-      background-color: #28a745;
+      background-color: var(--green-color);
     }
     .btn-short {
-      background-color: #dc3545;
+      background-color: var(--red-color);
     }
-    /* 持倉區 */
+
+    /* ========== 持倉區塊 ========== */
     .positions-section {
       padding: 15px;
-      background-color: #151b29;
-      border-top: 1px solid #2c3647;
-      border-bottom: 1px solid #2c3647;
+      background-color: var(--secondary-bg);
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
     }
     .positions-section h3 {
       margin-bottom: 15px;
       font-size: 16px;
     }
     .position-card {
-      background-color: #1c2536;
+      background-color: var(--tertiary-bg);
       border-radius: 6px;
       overflow: hidden;
       margin-bottom: 10px;
@@ -287,11 +305,11 @@
     }
     .position-type.long {
       background-color: rgba(40, 167, 69, 0.2);
-      color: #28a745;
+      color: var(--green-color);
     }
     .position-type.short {
       background-color: rgba(220, 53, 69, 0.2);
-      color: #dc3545;
+      color: var(--red-color);
     }
     .position-details {
       padding: 10px;
@@ -306,13 +324,13 @@
       font-size: 13px;
     }
     .info-row span:first-child {
-      color: #8c8c8c;
+      color: var(--text-secondary);
     }
     .profit {
-      color: #28a745;
+      color: var(--green-color);
     }
     .loss {
-      color: #dc3545;
+      color: var(--red-color);
     }
     .position-actions {
       display: flex;
@@ -322,22 +340,23 @@
     .position-btn {
       flex: 1;
       padding: 8px;
-      background-color: #151b29;
-      border: 1px solid #2c3647;
+      background-color: var(--secondary-bg);
+      border: 1px solid var(--border-color);
       border-radius: 4px;
-      color: #e5e5e5;
+      color: var(--text-color);
       font-size: 12px;
       cursor: pointer;
     }
     .position-btn.close-btn {
       background-color: rgba(220, 53, 69, 0.1);
-      border-color: #dc3545;
-      color: #dc3545;
+      border-color: var(--red-color);
+      color: var(--red-color);
     }
-    /* 訂單簿 */
+
+    /* ========== 訂單簿 ========== */
     .orderbook-section {
       padding: 15px;
-      background-color: #151b29;
+      background-color: var(--secondary-bg);
     }
     .orderbook-section h3 {
       margin-bottom: 15px;
@@ -349,7 +368,7 @@
     .orderbook-section h3 i {
       font-size: 14px;
       cursor: pointer;
-      color: #8c8c8c;
+      color: var(--text-secondary);
     }
     .orderbook {
       position: relative;
@@ -359,11 +378,10 @@
       grid-template-columns: 1fr 1fr 1fr;
       padding: 8px 0;
       font-size: 13px;
-      color: #8c8c8c;
-      border-bottom: 1px solid #2c3647;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-color);
     }
-    .orderbook-asks,
-    .orderbook-bids {
+    .orderbook-asks, .orderbook-bids {
       position: relative;
     }
     .orderbook-row {
@@ -388,27 +406,28 @@
       background-color: rgba(40, 167, 69, 0.1);
     }
     .price.sell {
-      color: #dc3545;
+      color: var(--red-color);
     }
     .price.buy {
-      color: #28a745;
+      color: var(--green-color);
     }
     .orderbook-current-price {
       text-align: center;
       padding: 8px 0;
-      background-color: #1c2536;
+      background-color: var(--tertiary-bg);
       margin: 5px 0;
     }
     .current {
       font-weight: bold;
       font-size: 14px;
     }
-    /* 底部導航 */
+
+    /* ========== 底部導航欄 ========== */
     .bottom-nav {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      background-color: #151b29;
-      border-top: 1px solid #2c3647;
+      background-color: var(--secondary-bg);
+      border-top: 1px solid var(--border-color);
       padding: 8px 0;
     }
     .nav-btn {
@@ -419,7 +438,7 @@
       gap: 4px;
       background-color: transparent;
       border: none;
-      color: #8c8c8c;
+      color: var(--text-secondary);
       font-size: 12px;
       cursor: pointer;
       padding: 8px;
@@ -428,13 +447,18 @@
       font-size: 16px;
     }
     .nav-btn.active {
-      color: #3a7bd5;
+      color: var(--accent-color);
     }
   </style>
 </head>
 <body>
-  <div class="app-container">
-    <!-- 頂部交易對資訊 -->
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3"></script>
+  <!-- Lightweight Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+
+  <div id="app" class="app-container">
+    <!-- 頂部交易對信息 -->
     <div class="header">
       <div class="symbol-info">
         <h1>ETHUSDT</h1>
@@ -444,20 +468,16 @@
         </div>
       </div>
       <div class="tab-switcher">
-        <button class="tab-btn active" data-tab="chart">
-          <i class="fas fa-chart-line"></i> 走勢圖
-        </button>
-        <button class="tab-btn" data-tab="trade">
-          <i class="fas fa-exchange-alt"></i> 交易
-        </button>
+        <button class="tab-btn active" data-tab="chart"><i class="fas fa-chart-line"></i> 走勢圖</button>
+        <button class="tab-btn" data-tab="trade"><i class="fas fa-exchange-alt"></i> 交易</button>
       </div>
     </div>
 
-    <!-- 主內容 -->
+    <!-- 主內容區 -->
     <div class="main-content">
-      <!-- K線圖區 -->
+      <!-- K線圖區域 -->
       <div class="content-section active" id="chart-section">
-        <!-- 細微週期按鈕 -->
+        <!-- 更細微週期按鈕 -->
         <div class="timeframe-selector">
           <button class="timeframe-btn active">1秒</button>
           <button class="timeframe-btn">1分</button>
@@ -471,7 +491,6 @@
           <button class="timeframe-btn">1週</button>
           <button class="timeframe-btn">1月</button>
         </div>
-        <!-- Plotly K線圖 -->
         <div id="chart"></div>
         <div class="indicators">
           <div class="indicator">
@@ -497,7 +516,7 @@
         </div>
       </div>
 
-      <!-- 交易區 -->
+      <!-- 交易區域 -->
       <div class="content-section" id="trade-section">
         <div class="trade-tabs">
           <button class="trade-tab-btn active" data-trade-tab="market">市價單</button>
@@ -664,255 +683,173 @@
     </div>
   </div>
 
-  <script>
-    // 初始化 Tab 切換功能
-    function initTabSwitcher() {
-      const tabBtns = document.querySelectorAll('.tab-btn');
-      const sections = document.querySelectorAll('.content-section');
-      tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const target = btn.getAttribute('data-tab');
-          tabBtns.forEach(b => b.classList.remove('active'));
-          sections.forEach(s => s.classList.remove('active'));
-          btn.classList.add('active');
-          document.getElementById(target + '-section').classList.add('active');
-        });
-      });
-    }
+  <script type="module">
+    import { createApp, onMounted, ref } from "https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js";
+    import { createChart } from "https://cdn.jsdelivr.net/npm/lightweight-charts@3.8.0/dist/lightweight-charts.esm.production.js";
 
-    // 初始化交易頁籤切換
-    function initTradeTabs() {
-      const tradeTabBtns = document.querySelectorAll('.trade-tab-btn');
-      const tradeContents = document.querySelectorAll('.trade-content');
-      tradeTabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const target = btn.getAttribute('data-trade-tab');
-          tradeTabBtns.forEach(b => b.classList.remove('active'));
-          tradeContents.forEach(c => c.classList.remove('active'));
-          btn.classList.add('active');
-          document.getElementById(target + '-tab').classList.add('active');
-        });
-      });
-    }
+    const App = {
+      setup() {
+        // 模擬資料
+        const candleData = ref([]);
+        const candleCount = 50;
+        const timeInterval = 5000; // 5秒一根K線(測試用)
+        let nextCandleTime = Date.now();
 
-    // 初始化槓桿滑桿
-    function initLeverageSliders() {
-      const marketSlider = document.getElementById('leverage-slider');
-      const marketValue = document.getElementById('leverage-value');
-      marketSlider.addEventListener('input', () => {
-        marketValue.textContent = marketSlider.value + 'x';
-      });
-      const limitSlider = document.getElementById('leverage-slider-limit');
-      const limitValue = document.getElementById('leverage-value-limit');
-      limitSlider.addEventListener('input', () => {
-        limitValue.textContent = limitSlider.value + 'x';
-      });
-    }
+        // 建立圖表
+        let chart, candleSeries, volumeSeries;
 
-    // Plotly K線圖 - 模擬數據
-    let chartData = [];
-    let candleCount = 50; // 初始K線數量
-    let timeInterval = 5000; // 5秒一根K線 (測試用)
-    let nextCandleTime = Date.now();
-
-    // 生成初始 K 線資料
-    function generateInitialData() {
-      chartData = [];
-      let basePrice = 2148;
-      let currentTime = Date.now() - candleCount * timeInterval;
-      for (let i = 0; i < candleCount; i++) {
-        let open = basePrice + (Math.random() - 0.5) * 20;
-        let close = open + (Math.random() - 0.5) * 20;
-        let high = Math.max(open, close) + Math.random() * 5;
-        let low = Math.min(open, close) - Math.random() * 5;
-        let volume = Math.random() * 5000 + 1000;
-        chartData.push({
-          date: new Date(currentTime).toISOString(),
-          open: parseFloat(open.toFixed(2)),
-          high: parseFloat(high.toFixed(2)),
-          low: parseFloat(low.toFixed(2)),
-          close: parseFloat(close.toFixed(2)),
-          volume: parseFloat(volume.toFixed(2))
-        });
-        basePrice = close;
-        currentTime += timeInterval;
-      }
-    }
-
-    // 更新 Plotly K 線圖
-    function drawChart() {
-      const traceCandle = {
-        x: chartData.map(d => d.date),
-        open: chartData.map(d => d.open),
-        high: chartData.map(d => d.high),
-        low: chartData.map(d => d.low),
-        close: chartData.map(d => d.close),
-        type: 'candlestick',
-        xaxis: 'x',
-        yaxis: 'y1',
-        increasing: { line: { color: '#26a69a' } },
-        decreasing: { line: { color: '#ef5350' } },
-        name: '價格'
-      };
-      const traceVolume = {
-        x: chartData.map(d => d.date),
-        y: chartData.map(d => d.volume / 1000), // 成交量單位 K
-        type: 'bar',
-        xaxis: 'x',
-        yaxis: 'y2',
-        marker: { color: chartData.map(d => d.close >= d.open ? '#26a69a' : '#ef5350') },
-        opacity: 0.5,
-        name: '成交量'
-      };
-      const layout = {
-        dragmode: 'pan',
-        showlegend: false,
-        xaxis: {
-          rangeslider: { visible: false },
-          type: 'date'
-        },
-        yaxis: {
-          title: '價格',
-          side: 'right',
-          domain: [0.2, 1],
-          fixedrange: false
-        },
-        yaxis2: {
-          title: '成交量 (K)',
-          side: 'right',
-          domain: [0, 0.15],
-          fixedrange: false,
-          anchor: 'x'
-        },
-        grid: {
-          rows: 2,
-          columns: 1,
-          subplots: [['xy1'], ['xy2']],
-          roworder: 'top to bottom'
-        },
-        margin: { t: 40, b: 40, l: 60, r: 60 },
-        plot_bgcolor: '#151b29',
-        paper_bgcolor: '#151b29',
-        font: { family: 'Noto Sans TC, sans-serif', color: '#e5e5e5' },
-        hovermode: 'x unified'
-      };
-      // 啟用 scrollZoom 讓使用者可以縮放
-      Plotly.react('chart', [traceCandle, traceVolume], layout, {
-        responsive: true,
-        scrollZoom: true,
-        displayModeBar: true
-      });
-    }
-
-    // 更新 MA 指標（模擬計算）
-    function calculateMA(period) {
-      if (chartData.length < period) return '--';
-      let sum = 0;
-      for (let i = chartData.length - period; i < chartData.length; i++) {
-        sum += chartData[i].close;
-      }
-      return (sum / period).toFixed(2);
-    }
-    function updateMAIndicators() {
-      document.getElementById('ma7Value').textContent = calculateMA(7);
-      document.getElementById('ma14Value').textContent = calculateMA(14);
-      document.getElementById('ma28Value').textContent = calculateMA(28);
-    }
-
-    // 更新價格與訂單簿顯示
-    function updatePriceDisplay(latestPrice) {
-      document.getElementById('currentPrice').textContent = latestPrice.toFixed(2);
-      document.getElementById('orderBookPrice').textContent = latestPrice.toFixed(2);
-      document.getElementById('tradeMarkPrice').textContent = latestPrice.toFixed(2) + " USDT";
-    }
-
-    // 更新「數據更新時間」
-    function updateLastUpdated() {
-      const now = new Date();
-      document.getElementById("lastUpdated").textContent =
-        "數據更新時間: " + now.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
-    }
-
-    // 模擬更新：每 simulationInterval 更新當前K線價格，若超過下一根K線時間則生成新K線
-    function simulateRealTimeUpdates() {
-      generateInitialData();
-      drawChart();
-      updateMAIndicators();
-      updateLastUpdated();
-      // 初始價格取自最後一根K線
-      let currentPrice = chartData[chartData.length - 1].close;
-      setInterval(() => {
-        let newPrice = currentPrice + (Math.random() - 0.5) * 5;
-        newPrice = parseFloat(newPrice.toFixed(2));
-        if (Date.now() >= nextCandleTime) {
-          // 新K線生成
-          let newCandle = {
-            date: new Date(nextCandleTime).toISOString(),
-            open: currentPrice,
-            high: newPrice,
-            low: newPrice,
-            close: newPrice,
-            volume: parseFloat((Math.random() * 5000 + 1000).toFixed(2))
-          };
-          chartData.push(newCandle);
-          if (chartData.length > 100) {
-            chartData.shift();
+        // 產生初始 K 線
+        function generateInitialData() {
+          let basePrice = 2148;
+          let currentTime = Date.now() - candleCount * timeInterval;
+          for (let i = 0; i < candleCount; i++) {
+            const open = basePrice + (Math.random() - 0.5) * 20;
+            const close = open + (Math.random() - 0.5) * 20;
+            const high = Math.max(open, close) + Math.random() * 5;
+            const low = Math.min(open, close) - Math.random() * 5;
+            candleData.value.push({
+              time: Math.floor(currentTime / 1000),
+              open: parseFloat(open.toFixed(2)),
+              high: parseFloat(high.toFixed(2)),
+              low: parseFloat(low.toFixed(2)),
+              close: parseFloat(close.toFixed(2)),
+              volume: parseFloat((Math.random() * 3000 + 500).toFixed(2))
+            });
+            basePrice = close;
+            currentTime += timeInterval;
           }
-          nextCandleTime += timeInterval;
-        } else {
-          // 更新最後一根K線
-          let lastIdx = chartData.length - 1;
-          chartData[lastIdx].close = newPrice;
-          if (newPrice > chartData[lastIdx].high) chartData[lastIdx].high = newPrice;
-          if (newPrice < chartData[lastIdx].low) chartData[lastIdx].low = newPrice;
         }
-        currentPrice = newPrice;
-        updatePriceDisplay(newPrice);
-        // 亂數模擬漲跌幅顯示
-        let randomChange = (Math.random() - 0.5) * 2;
-        let sign = randomChange >= 0 ? '+' : '';
-        document.getElementById('priceChange').textContent = sign + randomChange.toFixed(2) + '%';
-        document.getElementById('priceChange').className =
-          'price-change ' + (randomChange >= 0 ? 'positive' : 'negative');
 
-        drawChart();
-        updateMAIndicators();
-        updateLastUpdated();
-      }, 2000);
-    }
+        // 初始化圖表
+        function initChart() {
+          const chartContainer = document.getElementById("chart");
+          chart = createChart(chartContainer, {
+            layout: {
+              backgroundColor: "#151b29",
+              textColor: "#d1d4dc"
+            },
+            grid: {
+              vertLines: { color: "rgba(42, 46, 57, 0.5)" },
+              horzLines: { color: "rgba(42, 46, 57, 0.5)" }
+            },
+            crosshair: { mode: 0 },
+            // 不顯示右側價格文字
+            rightPriceScale: {
+              visible: false
+            },
+            // 隱藏左側(若不需要可顯示)
+            leftPriceScale: {
+              visible: false
+            },
+            timeScale: {
+              borderColor: "#2c3647",
+              timeVisible: true
+            }
+          });
+          candleSeries = chart.addCandlestickSeries({
+            upColor: "#28a745",
+            downColor: "#dc3545",
+            borderUpColor: "#28a745",
+            borderDownColor: "#dc3545",
+            wickUpColor: "#28a745",
+            wickDownColor: "#dc3545"
+          });
+          volumeSeries = chart.addHistogramSeries({
+            color: "#3a7bd5",
+            priceScaleId: "", // 不用單獨顯示
+            scaleMargins: { top: 0.8, bottom: 0 },
+            // 隱藏右側成交量文字
+            priceFormat: { type: "volume" }
+          });
+        }
 
-    // 時間週期按鈕功能（這裡僅以 Plotly.relayout 更新x軸範圍作示範）
-    function changeTimeFrame(frame) {
-      const endDate = new Date(chartData[chartData.length - 1].date);
-      let startDate = new Date(endDate);
-      switch (frame) {
-        case "1M":
-          startDate.setMonth(endDate.getMonth() - 1);
-          break;
-        case "3M":
-          startDate.setMonth(endDate.getMonth() - 3);
-          break;
-        case "6M":
-          startDate.setMonth(endDate.getMonth() - 6);
-          break;
-        case "1Y":
-          startDate.setFullYear(endDate.getFullYear() - 1);
-          break;
-        default:
-          startDate = new Date(chartData[0].date);
+        // 繪製圖表
+        function drawChart() {
+          candleSeries.setData(candleData.value.map(d => ({
+            time: d.time,
+            open: d.open,
+            high: d.high,
+            low: d.low,
+            close: d.close
+          })));
+          volumeSeries.setData(candleData.value.map(d => ({
+            time: d.time,
+            value: d.volume,
+            color: d.close >= d.open ? "rgba(40, 167, 69, 0.5)" : "rgba(220, 53, 69, 0.5)"
+          })));
+        }
+
+        // 模擬即時更新
+        function simulateRealTimeUpdates() {
+          let currentPrice = candleData.value[candleData.value.length - 1].close;
+          setInterval(() => {
+            let newPrice = currentPrice + (Math.random() - 0.5) * 5;
+            newPrice = parseFloat(newPrice.toFixed(2));
+            const now = Date.now();
+            if (now >= nextCandleTime) {
+              // 生成新K線
+              let newCandle = {
+                time: Math.floor(nextCandleTime / 1000),
+                open: currentPrice,
+                high: newPrice,
+                low: newPrice,
+                close: newPrice,
+                volume: parseFloat((Math.random() * 3000 + 500).toFixed(2))
+              };
+              candleData.value.push(newCandle);
+              if (candleData.value.length > 100) {
+                candleData.value.shift();
+              }
+              nextCandleTime += timeInterval;
+            } else {
+              // 更新最後一根K線
+              let lastIdx = candleData.value.length - 1;
+              candleData.value[lastIdx].close = newPrice;
+              if (newPrice > candleData.value[lastIdx].high) {
+                candleData.value[lastIdx].high = newPrice;
+              }
+              if (newPrice < candleData.value[lastIdx].low) {
+                candleData.value[lastIdx].low = newPrice;
+              }
+            }
+            currentPrice = newPrice;
+            // 更新頂部價格 + 漲跌幅
+            const currentPriceEl = document.getElementById("currentPrice");
+            const priceChangeEl = document.getElementById("priceChange");
+            if (currentPriceEl) {
+              currentPriceEl.textContent = newPrice.toFixed(2);
+            }
+            const randomChange = (Math.random() - 0.5) * 2;
+            const sign = randomChange >= 0 ? "+" : "";
+            if (priceChangeEl) {
+              priceChangeEl.textContent = sign + randomChange.toFixed(2) + "%";
+              priceChangeEl.className = "price-change " + (randomChange >= 0 ? "positive" : "negative");
+            }
+            // 更新交易區標記價格
+            const tradeMarkPriceEl = document.getElementById("tradeMarkPrice");
+            if (tradeMarkPriceEl) {
+              tradeMarkPriceEl.textContent = newPrice.toFixed(2) + " USDT";
+            }
+            // 重新繪製
+            drawChart();
+          }, 2000);
+        }
+
+        onMounted(() => {
+          generateInitialData();
+          initChart();
+          drawChart();
+          simulateRealTimeUpdates();
+          initTabSwitcher();
+          initTradeTabs();
+          initLeverageSliders();
+        });
+
+        return {};
       }
-      Plotly.relayout('chart', {
-        'xaxis.range': [startDate.toISOString().split("T")[0], endDate.toISOString().split("T")[0]]
-      });
-    }
+    };
 
-    // 初始化
-    window.addEventListener('DOMContentLoaded', () => {
-      initTabSwitcher();
-      initTradeTabs();
-      initLeverageSliders();
-      simulateRealTimeUpdates();
-    });
+    createApp(App).mount("#app");
   </script>
 </body>
 </html>
