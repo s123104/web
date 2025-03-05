@@ -42,7 +42,7 @@
       .app-container {
         display: flex;
         flex-direction: column;
-        height: 100%;
+        height: 100dvh;
       }
       .header {
         padding: 10px 15px;
@@ -151,11 +151,9 @@
         color: #8c8c8c;
       }
       .market-condition {
-        padding: 5px;
+        padding: 3px;
         background-color: #151b29;
         text-align: center;
-        margin: 10px;
-        max-width: 300px;
         margin-left: auto;
         margin-right: auto;
       }
@@ -260,6 +258,7 @@
       .btn-short {
         flex: 1;
         padding: 12px;
+        margin-right: 10px;
         border: none;
         border-radius: 4px;
         font-size: 14px;
@@ -557,19 +556,23 @@
               </button>
             </div>
             <div
-              class="trade-content active"
+              class="trade-content"
               id="market-tab"
+              :class="{ active: tradeTab==='market' }"
               v-if="tradeTab==='market'"
             >
               <div class="leverage-slider">
-                <label>槓桿倍數: <span>{{ leverage }}x</span></label>
+                <label
+                  >槓桿倍數:
+                  <span id="leverage-value">{{ leverageMarket }}x</span></label
+                >
                 <input
                   type="range"
                   min="1"
                   max="75"
-                  v-model="leverage"
+                  v-model="leverageMarket"
                   class="slider"
-                  @input="updateLeverage"
+                  id="leverage-slider"
                 />
                 <div class="leverage-marks">
                   <span>1x</span>
@@ -582,8 +585,8 @@
                 <label>數量 (ETH)</label>
                 <input
                   type="number"
-                  v-model="quantity"
                   step="0.001"
+                  v-model="quantity"
                   min="0.001"
                 />
               </div>
@@ -591,24 +594,37 @@
                 <span>可用資金: 31.35 USDT</span>
               </div>
               <div class="order-buttons">
-                <button class="btn-long" @click="placeOrder('long')">
-                  <i class="fas fa-arrow-up"></i> 開倉買 (做多)
+                <button class="btn-long" @click="placeOrder('long', 'market')">
+                  <i class="fas fa-arrow-up"></i> 做多
                 </button>
-                <button class="btn-short" @click="placeOrder('short')">
-                  <i class="fas fa-arrow-down"></i> 開倉賣 (做空)
+                <button
+                  class="btn-short"
+                  @click="placeOrder('short', 'market')"
+                >
+                  <i class="fas fa-arrow-down"></i> 做空
                 </button>
               </div>
             </div>
-            <div class="trade-content" id="limit-tab" v-if="tradeTab==='limit'">
+            <div
+              class="trade-content"
+              id="limit-tab"
+              :class="{ active: tradeTab==='limit' }"
+              v-if="tradeTab==='limit'"
+            >
               <div class="leverage-slider">
-                <label>槓桿倍數: <span>{{ leverage }}x</span></label>
+                <label
+                  >槓桿倍數:
+                  <span id="leverage-value-limit"
+                    >{{ leverageLimit }}x</span
+                  ></label
+                >
                 <input
                   type="range"
                   min="1"
                   max="75"
-                  v-model="leverage"
+                  v-model="leverageLimit"
                   class="slider"
-                  @input="updateLeverage"
+                  id="leverage-slider-limit"
                 />
                 <div class="leverage-marks">
                   <span>1x</span>
@@ -621,8 +637,8 @@
                 <label>價格 (USDT)</label>
                 <input
                   type="number"
-                  v-model="limitPrice"
                   step="0.01"
+                  v-model="limitPrice"
                   min="0.01"
                 />
               </div>
@@ -630,8 +646,8 @@
                 <label>數量 (ETH)</label>
                 <input
                   type="number"
-                  v-model="quantity"
                   step="0.001"
+                  v-model="quantity"
                   min="0.001"
                 />
               </div>
@@ -640,10 +656,10 @@
               </div>
               <div class="order-buttons">
                 <button class="btn-long" @click="placeOrder('long', 'limit')">
-                  <i class="fas fa-arrow-up"></i> 開倉買 (做多)
+                  <i class="fas fa-arrow-up"></i> 做多
                 </button>
                 <button class="btn-short" @click="placeOrder('short', 'limit')">
-                  <i class="fas fa-arrow-down"></i> 開倉賣 (做空)
+                  <i class="fas fa-arrow-down"></i> 做空
                 </button>
               </div>
             </div>
@@ -652,7 +668,9 @@
               <div class="position-card">
                 <div class="position-header">
                   <span class="position-symbol">ETHUSDT</span>
-                  <span class="position-type long">做多 {{ leverage }}x</span>
+                  <span class="position-type long"
+                    >做多 {{ leverageMarket }}x</span
+                  >
                 </div>
                 <div class="position-details">
                   <div class="position-info">
@@ -815,8 +833,10 @@
       const app = createApp({
         setup() {
           const currentTab = ref("chart");
-          const tradeTab = ref("market");
-          const leverage = ref(10);
+          // 預設交易頁籤改成限價單，符合你給的範例
+          const tradeTab = ref("limit");
+          const leverageMarket = ref(10);
+          const leverageLimit = ref(34);
           const quantity = ref(0.01);
           const limitPrice = ref(2148.42);
           const currentPrice = ref(2148.42);
@@ -1093,8 +1113,12 @@
           const updateLeverage = () => {};
 
           const placeOrder = (type, orderType = "market") => {
+            const usedLeverage =
+              orderType === "limit"
+                ? leverageLimit.value
+                : leverageMarket.value;
             console.log(
-              `下單 ${type} ${orderType} 訂單，槓桿 ${leverage.value}x，數量 ${
+              `下單 ${type} ${orderType} 訂單，槓桿 ${usedLeverage}x，數量 ${
                 quantity.value
               }，價格 ${
                 orderType === "limit" ? limitPrice.value : currentPrice.value
@@ -1116,7 +1140,8 @@
           return {
             currentTab,
             tradeTab,
-            leverage,
+            leverageMarket,
+            leverageLimit,
             quantity,
             limitPrice,
             currentPrice,
