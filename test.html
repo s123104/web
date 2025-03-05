@@ -56,7 +56,7 @@
         const errorEl = document.getElementById('error');
         const cdnStatusEl = document.getElementById('cdn-status');
 
-        // 檢測圖表 CDN 是否可用
+        // 📌 檢測圖表 CDN 是否可用
         try {
             if (LightweightCharts) {
                 cdnStatusEl.textContent = "✅ 連線成功";
@@ -65,7 +65,7 @@
             cdnStatusEl.textContent = "❌ 連線失敗，請確認 CDN 是否可用";
         }
 
-        // 初始化 K 線圖表
+        // 📌 初始化 K 線圖表
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             width: window.innerWidth * 0.9,
             height: 400,
@@ -74,34 +74,40 @@
         });
         const candlestickSeries = chart.addCandlestickSeries();
 
-        // 建立 WebSocket 連線
-        const ws = new WebSocket('wss://stream.bybit.com/realtime_public');
+        // 📌 建立 WebSocket 連線
+        const ws = new WebSocket('wss://stream.bybit.com/v5/public');
 
         ws.onopen = () => {
             wsStatusEl.textContent = '✅ 已連線';
             console.log("✅ WebSocket 連線成功，訂閱 ETHUSDT 1 秒 K 線！");
             ws.send(JSON.stringify({
                 op: "subscribe",
-                args: ["kline.1s.ETHUSDT"]
+                args: ["kline.ETHUSDT.1000ms"]
             }));
+
+            // 📌 每 20 秒發送一次心跳訊號，避免連線中斷
+            setInterval(() => {
+                ws.send(JSON.stringify({ op: "ping" }));
+                console.log("🔄 發送心跳訊號");
+            }, 20000);
         };
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            if (data.topic && data.topic === "kline.1s.ETHUSDT") {
+            if (data.topic && data.topic === "kline.ETHUSDT.1000ms") {
                 const kline = data.data[0];
                 const latestPrice = parseFloat(kline.close);
 
-                // 更新 HTML 數據顯示
+                // 📌 更新 HTML 數據顯示
                 priceEl.textContent = latestPrice.toFixed(2);
                 openEl.textContent = parseFloat(kline.open).toFixed(2);
                 highEl.textContent = parseFloat(kline.high).toFixed(2);
                 lowEl.textContent = parseFloat(kline.low).toFixed(2);
                 closeEl.textContent = latestPrice.toFixed(2);
 
-                // 更新 K 線圖
+                // 📌 更新 K 線圖
                 const candlestick = {
-                    time: kline.start,  // 以秒為單位的時間戳
+                    time: Math.floor(kline.start / 1000),  // 轉換為秒級時間戳
                     open: parseFloat(kline.open),
                     high: parseFloat(kline.high),
                     low: parseFloat(kline.low),
@@ -123,7 +129,7 @@
             console.error("🚨 WebSocket 錯誤：", error);
         };
 
-        // 自動調整圖表大小
+        // 📌 自動調整圖表大小
         window.addEventListener('resize', () => {
             chart.resize(window.innerWidth * 0.9, 400);
         });
