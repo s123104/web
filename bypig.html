@@ -11,7 +11,8 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
     />
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <!-- 用最新版的 Lightweight Charts，支援 addCandlestickSeries -->
+    <script src="https://unpkg.com/lightweight-charts@4.0.1/dist/lightweight-charts.standalone.production.js"></script>
     <script type="importmap">
       {
         "imports": {
@@ -131,25 +132,6 @@
         background-color: #1c2536;
         border-color: #3a7bd5;
       }
-      .chart-container {
-        width: 100%;
-        height: 400px;
-        background-color: #151b29;
-      }
-      .indicators {
-        display: flex;
-        flex-wrap: wrap;
-        padding: 10px;
-        background-color: #151b29;
-        border-top: 1px solid #2c3647;
-      }
-      .indicator {
-        margin-right: 15px;
-        font-size: 12px;
-      }
-      .indicator-name {
-        color: #8c8c8c;
-      }
       .market-condition {
         padding: 3px;
         background-color: #151b29;
@@ -167,6 +149,117 @@
         border: 1px solid #2c3647;
         border-radius: 4px;
         color: #e5e5e5;
+      }
+
+      /* === K 線圖 & 成交量上下分離：上 80%，下 20% === */
+      .chart-volume-container {
+        display: flex;
+        flex-direction: column;
+        height: 400px; /* 可自行調整 */
+        width: 100%;
+      }
+      .chart-area {
+        flex: 0 0 80%;
+        background-color: #151b29;
+        position: relative;
+      }
+      .volume-area {
+        flex: 0 0 20%;
+        background-color: #151b29;
+        border-top: 1px solid #2c3647;
+        position: relative;
+      }
+
+      .indicators {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 10px;
+        background-color: #151b29;
+        border-top: 1px solid #2c3647;
+      }
+      .indicator {
+        margin-right: 15px;
+        font-size: 12px;
+      }
+      .indicator-name {
+        color: #8c8c8c;
+      }
+
+      /* === 訂單簿在最下面 === */
+      .orderbook-below-chart {
+        padding: 15px;
+        background-color: #151b29;
+        border-top: 1px solid #2c3647;
+      }
+      .orderbook-below-chart h3 {
+        margin-bottom: 15px;
+        font-size: 16px;
+      }
+      .orderbook-below-chart .orderbook {
+        position: relative;
+      }
+      .orderbook-below-chart .orderbook-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        padding: 8px 0;
+        font-size: 13px;
+        color: #8c8c8c;
+        border-bottom: 1px solid #2c3647;
+      }
+      .orderbook-below-chart .orderbook-asks,
+      .orderbook-below-chart .orderbook-bids {
+        position: relative;
+      }
+      .orderbook-below-chart .orderbook-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        padding: 6px 0;
+        font-size: 13px;
+        position: relative;
+        z-index: 1;
+      }
+      .orderbook-below-chart .depth-bar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 100%;
+        z-index: -1;
+      }
+      .orderbook-below-chart .depth-bar.sell {
+        background-color: rgba(220, 53, 69, 0.1);
+      }
+      .orderbook-below-chart .depth-bar.buy {
+        background-color: rgba(40, 167, 69, 0.1);
+      }
+      .orderbook-below-chart .price.sell {
+        color: #dc3545;
+      }
+      .orderbook-below-chart .price.buy {
+        color: #28a745;
+      }
+      .orderbook-below-chart .orderbook-current-price {
+        text-align: center;
+        padding: 8px 0;
+        background-color: #1c2536;
+        margin: 5px 0;
+      }
+      .orderbook-below-chart .current {
+        font-weight: bold;
+        font-size: 14px;
+      }
+
+      /* === 交易介面：左下單 60%，右訂單簿 40% === */
+      .trade-section {
+        background-color: #151b29;
+      }
+      .trade-layout {
+        display: flex;
+        width: 100%;
+      }
+      .trade-form-container {
+        flex: 6;
+        border-right: 1px solid #2c3647;
+        padding: 0 10px;
       }
       .trade-tabs {
         display: flex;
@@ -190,18 +283,18 @@
       }
       .trade-content {
         display: none;
-        padding: 15px;
+        padding: 8px;
         background-color: #151b29;
       }
       .trade-content.active {
         display: block;
       }
       .leverage-slider {
-        margin-bottom: 20px;
+        margin-bottom: 10px;
       }
       .leverage-slider label {
         display: block;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
         font-size: 14px;
       }
       .slider {
@@ -228,16 +321,16 @@
         color: #8c8c8c;
       }
       .order-input {
-        margin-bottom: 15px;
+        margin-bottom: 10px;
       }
       .order-input label {
         display: block;
-        margin-bottom: 5px;
+        margin-bottom: 3px;
         font-size: 14px;
       }
       .order-input input {
         width: 100%;
-        padding: 10px;
+        padding: 8px;
         background-color: #1c2536;
         border: 1px solid #2c3647;
         border-radius: 4px;
@@ -245,20 +338,18 @@
         font-size: 14px;
       }
       .available-balance {
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         font-size: 13px;
         color: #8c8c8c;
       }
       .order-buttons {
         display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
+        flex-direction: column;
+        gap: 8px;
       }
       .btn-long,
       .btn-short {
-        flex: 1;
         padding: 12px;
-        margin-right: 10px;
         border: none;
         border-radius: 4px;
         font-size: 14px;
@@ -271,6 +362,64 @@
       }
       .btn-short {
         background-color: #dc3545;
+      }
+      /* 交易區塊右側訂單簿 (40%) */
+      .orderbook-right-container {
+        flex: 4;
+        padding: 10px;
+        background-color: #151b29;
+      }
+      .orderbook-right-container .orderbook {
+        position: relative;
+      }
+      .orderbook-right-container .orderbook-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        padding: 8px 0;
+        font-size: 13px;
+        color: #8c8c8c;
+        border-bottom: 1px solid #2c3647;
+      }
+      .orderbook-right-container .orderbook-asks,
+      .orderbook-right-container .orderbook-bids {
+        position: relative;
+      }
+      .orderbook-right-container .orderbook-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        padding: 6px 0;
+        font-size: 13px;
+        position: relative;
+        z-index: 1;
+      }
+      .orderbook-right-container .depth-bar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 100%;
+        z-index: -1;
+      }
+      .orderbook-right-container .depth-bar.sell {
+        background-color: rgba(220, 53, 69, 0.1);
+      }
+      .orderbook-right-container .depth-bar.buy {
+        background-color: rgba(40, 167, 69, 0.1);
+      }
+      .orderbook-right-container .price.sell {
+        color: #dc3545;
+      }
+      .orderbook-right-container .price.buy {
+        color: #28a745;
+      }
+      .orderbook-right-container .orderbook-current-price {
+        text-align: center;
+        padding: 8px 0;
+        background-color: #1c2536;
+        margin: 5px 0;
+      }
+      .orderbook-right-container .current {
+        font-weight: bold;
+        font-size: 14px;
       }
       .positions-section {
         padding: 15px;
@@ -352,74 +501,6 @@
         border-color: #dc3545;
         color: #dc3545;
       }
-      .orderbook-section {
-        padding: 15px;
-        background-color: #151b29;
-      }
-      .orderbook-section h3 {
-        margin-bottom: 15px;
-        font-size: 16px;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-      }
-      .orderbook-section h3 i {
-        font-size: 14px;
-        cursor: pointer;
-        color: #8c8c8c;
-      }
-      .orderbook {
-        position: relative;
-      }
-      .orderbook-header {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        padding: 8px 0;
-        font-size: 13px;
-        color: #8c8c8c;
-        border-bottom: 1px solid #2c3647;
-      }
-      .orderbook-asks,
-      .orderbook-bids {
-        position: relative;
-      }
-      .orderbook-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        padding: 6px 0;
-        font-size: 13px;
-        position: relative;
-        z-index: 1;
-      }
-      .depth-bar {
-        position: absolute;
-        top: 0;
-        right: 0;
-        height: 100%;
-        z-index: -1;
-      }
-      .depth-bar.sell {
-        background-color: rgba(220, 53, 69, 0.1);
-      }
-      .depth-bar.buy {
-        background-color: rgba(40, 167, 69, 0.1);
-      }
-      .price.sell {
-        color: #dc3545;
-      }
-      .price.buy {
-        color: #28a745;
-      }
-      .orderbook-current-price {
-        text-align: center;
-        padding: 8px 0;
-        background-color: #1c2536;
-        margin: 5px 0;
-      }
-      .current {
-        font-weight: bold;
-        font-size: 14px;
-      }
       .bottom-nav {
         position: fixed;
         left: 0;
@@ -485,6 +566,7 @@
           </div>
         </div>
         <div class="main-content">
+          <!-- 走勢圖 TAB -->
           <div
             v-if="currentTab==='chart'"
             class="content-section chart-section active"
@@ -508,7 +590,12 @@
                 <option value="bear">熊市行情</option>
               </select>
             </div>
-            <div id="chart" ref="chartRef" class="chart-container"></div>
+            <!-- 上面 80% K 線 + 下面 20% 成交量 -->
+            <div class="chart-volume-container">
+              <div class="chart-area" ref="chartRef"></div>
+              <div class="volume-area" ref="volumeRef"></div>
+            </div>
+            <!-- 指標區 -->
             <div class="indicators">
               <div class="indicator">
                 <span class="indicator-name">MA7:</span>
@@ -531,138 +618,241 @@
                 <span class="indicator-value">65.3</span>
               </div>
             </div>
+            <!-- 原本的訂單簿區塊 (在走勢圖最下方) -->
+            <div class="orderbook-below-chart">
+              <h3>訂單簿</h3>
+              <div class="orderbook">
+                <div class="orderbook-header">
+                  <span>價格</span>
+                  <span>數量</span>
+                  <span>總額</span>
+                </div>
+                <div class="orderbook-asks">
+                  <div
+                    v-for="ask in orderbookAsks"
+                    :key="ask.price + 'chart'"
+                    class="orderbook-row"
+                  >
+                    <span class="price sell">{{ ask.price.toFixed(2) }}</span>
+                    <span class="amount">{{ ask.amount.toFixed(3) }}</span>
+                    <span class="total"
+                      >{{ (ask.price * ask.amount).toFixed(2) }}</span
+                    >
+                    <div
+                      class="depth-bar sell"
+                      :style="{ width: (ask.depth * 100) + '%' }"
+                    ></div>
+                  </div>
+                </div>
+                <div class="orderbook-current-price">
+                  <span class="current">{{ currentPrice.toFixed(2) }}</span>
+                </div>
+                <div class="orderbook-bids">
+                  <div
+                    v-for="bid in orderbookBids"
+                    :key="bid.price + 'chart'"
+                    class="orderbook-row"
+                  >
+                    <span class="price buy">{{ bid.price.toFixed(2) }}</span>
+                    <span class="amount">{{ bid.amount.toFixed(3) }}</span>
+                    <span class="total"
+                      >{{ (bid.price * bid.amount).toFixed(2) }}</span
+                    >
+                    <div
+                      class="depth-bar buy"
+                      :style="{ width: (bid.depth * 100) + '%' }"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <!-- 交易 TAB -->
           <div
             v-if="currentTab==='trade'"
-            class="content-section active"
+            class="content-section trade-section active"
             id="trade-section"
           >
-            <div class="trade-tabs">
-              <button
-                class="trade-tab-btn"
-                :class="{ active: tradeTab==='market' }"
-                @click="tradeTab='market'"
-                data-trade-tab="market"
-              >
-                市價單
-              </button>
-              <button
-                class="trade-tab-btn"
-                :class="{ active: tradeTab==='limit' }"
-                @click="tradeTab='limit'"
-                data-trade-tab="limit"
-              >
-                限價單
-              </button>
-            </div>
-            <div
-              class="trade-content"
-              id="market-tab"
-              :class="{ active: tradeTab==='market' }"
-              v-if="tradeTab==='market'"
-            >
-              <div class="leverage-slider">
-                <label
-                  >槓桿倍數:
-                  <span id="leverage-value">{{ leverageMarket }}x</span></label
+            <div class="trade-layout">
+              <!-- 左下單 (60%) -->
+              <div class="trade-form-container">
+                <div class="trade-tabs">
+                  <button
+                    class="trade-tab-btn"
+                    :class="{ active: tradeTab==='market' }"
+                    @click="tradeTab='market'"
+                  >
+                    市價單
+                  </button>
+                  <button
+                    class="trade-tab-btn"
+                    :class="{ active: tradeTab==='limit' }"
+                    @click="tradeTab='limit'"
+                  >
+                    限價單
+                  </button>
+                </div>
+                <div
+                  class="trade-content"
+                  :class="{ active: tradeTab==='market' }"
+                  v-if="tradeTab==='market'"
                 >
-                <input
-                  type="range"
-                  min="1"
-                  max="75"
-                  v-model="leverageMarket"
-                  class="slider"
-                  id="leverage-slider"
-                />
-                <div class="leverage-marks">
-                  <span>1x</span>
-                  <span>25x</span>
-                  <span>50x</span>
-                  <span>75x</span>
+                  <div class="leverage-slider">
+                    <label
+                      >槓桿倍數:
+                      <span id="leverage-value"
+                        >{{ leverageMarket }}x</span
+                      ></label
+                    >
+                    <input
+                      type="range"
+                      min="1"
+                      max="75"
+                      v-model="leverageMarket"
+                      class="slider"
+                      id="leverage-slider"
+                    />
+                    <div class="leverage-marks">
+                      <span>1x</span>
+                      <span>25x</span>
+                      <span>50x</span>
+                      <span>75x</span>
+                    </div>
+                  </div>
+                  <div class="order-input">
+                    <label>數量 (ETH)</label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      v-model="quantity"
+                      min="0.001"
+                    />
+                  </div>
+                  <div class="available-balance">
+                    <span>可用資金: 31.35 USDT</span>
+                  </div>
+                  <div class="order-buttons">
+                    <button
+                      class="btn-long"
+                      @click="placeOrder('long', 'market')"
+                    >
+                      <i class="fas fa-arrow-up"></i> 做多
+                    </button>
+                    <button
+                      class="btn-short"
+                      @click="placeOrder('short', 'market')"
+                    >
+                      <i class="fas fa-arrow-down"></i> 做空
+                    </button>
+                  </div>
+                </div>
+                <div
+                  class="trade-content"
+                  :class="{ active: tradeTab==='limit' }"
+                  v-if="tradeTab==='limit'"
+                >
+                  <div class="leverage-slider">
+                    <label
+                      >槓桿倍數:
+                      <span id="leverage-value-limit"
+                        >{{ leverageLimit }}x</span
+                      ></label
+                    >
+                    <input
+                      type="range"
+                      min="1"
+                      max="75"
+                      v-model="leverageLimit"
+                      class="slider"
+                      id="leverage-slider-limit"
+                    />
+                    <div class="leverage-marks">
+                      <span>1x</span>
+                      <span>25x</span>
+                      <span>50x</span>
+                      <span>75x</span>
+                    </div>
+                  </div>
+                  <div class="order-input">
+                    <label>價格 (USDT)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      v-model="limitPrice"
+                      min="0.01"
+                    />
+                  </div>
+                  <div class="order-input">
+                    <label>數量 (ETH)</label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      v-model="quantity"
+                      min="0.001"
+                    />
+                  </div>
+                  <div class="available-balance">
+                    <span>可用資金: 31.35 USDT</span>
+                  </div>
+                  <div class="order-buttons">
+                    <button
+                      class="btn-long"
+                      @click="placeOrder('long', 'limit')"
+                    >
+                      <i class="fas fa-arrow-up"></i> 做多
+                    </button>
+                    <button
+                      class="btn-short"
+                      @click="placeOrder('short', 'limit')"
+                    >
+                      <i class="fas fa-arrow-down"></i> 做空
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div class="order-input">
-                <label>數量 (ETH)</label>
-                <input
-                  type="number"
-                  step="0.001"
-                  v-model="quantity"
-                  min="0.001"
-                />
-              </div>
-              <div class="available-balance">
-                <span>可用資金: 31.35 USDT</span>
-              </div>
-              <div class="order-buttons">
-                <button class="btn-long" @click="placeOrder('long', 'market')">
-                  <i class="fas fa-arrow-up"></i> 做多
-                </button>
-                <button
-                  class="btn-short"
-                  @click="placeOrder('short', 'market')"
-                >
-                  <i class="fas fa-arrow-down"></i> 做空
-                </button>
-              </div>
-            </div>
-            <div
-              class="trade-content"
-              id="limit-tab"
-              :class="{ active: tradeTab==='limit' }"
-              v-if="tradeTab==='limit'"
-            >
-              <div class="leverage-slider">
-                <label
-                  >槓桿倍數:
-                  <span id="leverage-value-limit"
-                    >{{ leverageLimit }}x</span
-                  ></label
-                >
-                <input
-                  type="range"
-                  min="1"
-                  max="75"
-                  v-model="leverageLimit"
-                  class="slider"
-                  id="leverage-slider-limit"
-                />
-                <div class="leverage-marks">
-                  <span>1x</span>
-                  <span>25x</span>
-                  <span>50x</span>
-                  <span>75x</span>
+              <!-- 右側訂單簿 (只顯示 6 筆買、6 筆賣) -->
+              <div class="orderbook-right-container">
+                <div class="orderbook">
+                  <div class="orderbook-header">
+                    <span>價格</span>
+                    <span>數量</span>
+                  </div>
+                  <div class="orderbook-asks">
+                    <div
+                      v-for="ask in tradeOrderbookAsks"
+                      :key="ask.price + 'trade'"
+                      class="orderbook-row"
+                    >
+                      <span class="price sell">{{ ask.price.toFixed(2) }}</span>
+                      <span class="amount">{{ ask.amount.toFixed(3) }}</span>
+                      <div
+                        class="depth-bar sell"
+                        :style="{ width: (ask.depth * 100) + '%' }"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="orderbook-current-price">
+                    <span class="current">{{ currentPrice.toFixed(2) }}</span>
+                  </div>
+                  <div class="orderbook-bids">
+                    <div
+                      v-for="bid in tradeOrderbookBids"
+                      :key="bid.price + 'trade'"
+                      class="orderbook-row"
+                    >
+                      <span class="price buy">{{ bid.price.toFixed(2) }}</span>
+                      <span class="amount">{{ bid.amount.toFixed(3) }}</span>
+                      <div
+                        class="depth-bar buy"
+                        :style="{ width: (bid.depth * 100) + '%' }"
+                      ></div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="order-input">
-                <label>價格 (USDT)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  v-model="limitPrice"
-                  min="0.01"
-                />
-              </div>
-              <div class="order-input">
-                <label>數量 (ETH)</label>
-                <input
-                  type="number"
-                  step="0.001"
-                  v-model="quantity"
-                  min="0.001"
-                />
-              </div>
-              <div class="available-balance">
-                <span>可用資金: 31.35 USDT</span>
-              </div>
-              <div class="order-buttons">
-                <button class="btn-long" @click="placeOrder('long', 'limit')">
-                  <i class="fas fa-arrow-up"></i> 做多
-                </button>
-                <button class="btn-short" @click="placeOrder('short', 'limit')">
-                  <i class="fas fa-arrow-down"></i> 做空
-                </button>
-              </div>
             </div>
+            <!-- 持倉區塊放在交易介面下方 -->
             <div class="positions-section">
               <h3>持倉</h3>
               <div class="position-card">
@@ -750,56 +940,7 @@
                 </div>
               </div>
             </div>
-            <div class="orderbook-section">
-              <h3>
-                訂單簿 <i class="fas fa-sort"></i>
-                <i class="fas fa-align-justify"></i>
-              </h3>
-              <div class="orderbook">
-                <div class="orderbook-header">
-                  <span>價格</span>
-                  <span>數量</span>
-                  <span>總額</span>
-                </div>
-                <div class="orderbook-asks">
-                  <div
-                    v-for="ask in orderbookAsks"
-                    :key="ask.price"
-                    class="orderbook-row"
-                  >
-                    <span class="price sell">{{ ask.price.toFixed(2) }}</span>
-                    <span class="amount">{{ ask.amount.toFixed(3) }}</span>
-                    <span class="total"
-                      >{{ (ask.price * ask.amount).toFixed(2) }}</span
-                    >
-                    <div
-                      class="depth-bar sell"
-                      :style="{ width: (ask.depth * 100) + '%' }"
-                    ></div>
-                  </div>
-                </div>
-                <div class="orderbook-current-price">
-                  <span class="current">{{ currentPrice.toFixed(2) }}</span>
-                </div>
-                <div class="orderbook-bids">
-                  <div
-                    v-for="bid in orderbookBids"
-                    :key="bid.price"
-                    class="orderbook-row"
-                  >
-                    <span class="price buy">{{ bid.price.toFixed(2) }}</span>
-                    <span class="amount">{{ bid.amount.toFixed(3) }}</span>
-                    <span class="total"
-                      >{{ (bid.price * bid.amount).toFixed(2) }}</span
-                    >
-                    <div
-                      class="depth-bar buy"
-                      :style="{ width: (bid.depth * 100) + '%' }"
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <!-- 持倉區塊結束 -->
           </div>
         </div>
         <div class="bottom-nav">
@@ -833,7 +974,7 @@
       const app = createApp({
         setup() {
           const currentTab = ref("chart");
-          // 預設交易頁籤改成限價單，符合你給的範例
+          // 預設交易頁籤改成限價單
           const tradeTab = ref("limit");
           const leverageMarket = ref(10);
           const leverageLimit = ref(34);
@@ -860,53 +1001,44 @@
           const ma28Value = ref("--");
           const macdValue = ref("--");
           const chartRef = ref(null);
+          const volumeRef = ref(null);
           const marketCondition = ref("volatile");
 
-          const orderbookAsks = ref([
-            {
-              price: currentPrice.value + Math.random() * 20,
-              amount: 0.5 + Math.random() * 0.5,
-              depth: Math.random() * 0.3,
-            },
-            {
-              price: currentPrice.value + Math.random() * 15,
-              amount: 0.3 + Math.random() * 0.3,
-              depth: Math.random() * 0.2,
-            },
-          ]);
-          const orderbookBids = ref([
-            {
-              price: currentPrice.value - Math.random() * 20,
-              amount: 0.4 + Math.random() * 0.4,
-              depth: Math.random() * 0.3,
-            },
-            {
-              price: currentPrice.value - Math.random() * 15,
-              amount: 0.6 + Math.random() * 0.6,
-              depth: Math.random() * 0.2,
-            },
-          ]);
+          // chart 頁面下方的訂單簿 (6 asks + 6 bids 也可以，但你沒特別說要改這個，我還是用同一個function)
+          const orderbookAsks = ref([]);
+          const orderbookBids = ref([]);
+
+          // 交易頁面的訂單簿 (只要 6 asks, 6 bids)
+          const tradeOrderbookAsks = ref([]);
+          const tradeOrderbookBids = ref([]);
 
           let chartData = [];
-          let chart = null;
+          let mainChart = null;
+          let volumeChart = null;
           let candlestickSeries = null;
+          let volumeSeries = null;
           let retryCount = 0;
           const MAX_RETRIES = 5;
 
           onMounted(() => {
-            initChart();
+            initCharts();
+            // init for chart tab
+            initOrderbook();
+            // init for trade tab (only 6 each)
+            initTradeOrderbook();
             simulateRealTimeUpdates();
           });
 
-          watch(currentTab, (newVal, oldVal) => {
+          watch(currentTab, (newVal) => {
             if (newVal === "trade") {
               nextTick(() => {
                 checkTradeSection();
               });
             }
-            if (newVal === "chart" && chart) {
+            if (newVal === "chart") {
               nextTick(() => {
-                chart.timeScale().fitContent();
+                if (mainChart) mainChart.timeScale().fitContent();
+                if (volumeChart) volumeChart.timeScale().fitContent();
               });
             }
           });
@@ -920,15 +1052,17 @@
             }
           }
 
-          const initChart = () => {
+          function initCharts() {
             if (
               typeof LightweightCharts !== "undefined" &&
               typeof LightweightCharts.createChart === "function" &&
-              chartRef.value
+              chartRef.value &&
+              volumeRef.value
             ) {
-              chart = LightweightCharts.createChart(chartRef.value, {
+              // 建立主走勢圖
+              mainChart = LightweightCharts.createChart(chartRef.value, {
                 width: chartRef.value.clientWidth,
-                height: 400,
+                height: chartRef.value.clientHeight,
                 layout: {
                   background: { color: "#151b29" },
                   textColor: "#e5e5e5",
@@ -945,30 +1079,95 @@
                   borderColor: "#2c3647",
                 },
               });
-              candlestickSeries = chart.addSeries(
-                LightweightCharts.CandlestickSeries,
-                {
-                  upColor: "#26a69a",
-                  downColor: "#ef5350",
-                  borderVisible: false,
-                  wickVisible: true,
-                }
-              );
+
+              candlestickSeries = mainChart.addCandlestickSeries({
+                upColor: "#26a69a",
+                downColor: "#ef5350",
+                borderVisible: false,
+                wickVisible: true,
+              });
+
+              // 建立成交量圖
+              volumeChart = LightweightCharts.createChart(volumeRef.value, {
+                width: volumeRef.value.clientWidth,
+                height: volumeRef.value.clientHeight,
+                layout: {
+                  background: { color: "#151b29" },
+                  textColor: "#e5e5e5",
+                },
+                grid: {
+                  vertLines: { color: "#2c3647" },
+                  horzLines: { color: "#2c3647" },
+                },
+                // 隱藏 timeScale
+                timeScale: {
+                  visible: false, // 把時間軸藏掉
+                },
+                priceScale: {
+                  borderColor: "#2c3647",
+                  scaleMargins: {
+                    top: 0.05,
+                    bottom: 0,
+                  },
+                },
+              });
+
+              volumeSeries = volumeChart.addHistogramSeries({
+                priceFormat: { type: "volume" },
+                color: "#26a69a",
+              });
+
+              // 初始化假資料
               chartData = generateInitialData();
               candlestickSeries.setData(chartData);
-              chart.timeScale().fitContent();
+              setVolumeData(chartData);
+
+              mainChart.timeScale().fitContent();
+              volumeChart.timeScale().fitContent();
+
+              // 同步 timeScales (主要是為了讓滑動對齊)
+              syncTimeScales(mainChart, volumeChart);
             } else if (retryCount < MAX_RETRIES) {
               console.error("輕量圖尚未正確載入或 chartRef 未就緒，重試中...");
               retryCount++;
-              setTimeout(initChart, 1000 * retryCount);
+              setTimeout(initCharts, 1000 * retryCount);
             } else {
               console.error(
                 "無法載入 TradingView Lightweight Charts，請確認網路連線或腳本 URL"
               );
             }
-          };
+          }
 
-          const generateInitialData = () => {
+          function syncTimeScales(chart1, chart2) {
+            const onVisibleLogicalRangeChanged = () => {
+              const range = chart1.timeScale().getVisibleLogicalRange();
+              if (range) {
+                chart2.timeScale().setVisibleLogicalRange(range);
+              }
+            };
+            chart1
+              .timeScale()
+              .subscribeVisibleLogicalRangeChange(onVisibleLogicalRangeChanged);
+            chart2.timeScale().subscribeVisibleLogicalRangeChange(() => {
+              const range = chart2.timeScale().getVisibleLogicalRange();
+              if (range) {
+                chart1.timeScale().setVisibleLogicalRange(range);
+              }
+            });
+          }
+
+          function setVolumeData(data) {
+            const volumeData = data.map((c) => {
+              return {
+                time: c.time,
+                value: c.volume,
+                color: c.close >= c.open ? "#26a69a" : "#ef5350",
+              };
+            });
+            volumeSeries.setData(volumeData);
+          }
+
+          function generateInitialData() {
             const data = [];
             let basePrice = 2148;
             let currentTime =
@@ -993,20 +1192,23 @@
               const close = open + (Math.random() - 0.5) * 50;
               const high = Math.max(open, close) + Math.random() * 30;
               const low = Math.min(open, close) - Math.random() * 30;
+              const volume = Math.floor(Math.random() * 1000) + 1; // 模擬交易量
+
               data.push({
                 time: Math.floor(currentTime / 1000),
                 open: parseFloat(open.toFixed(2)),
                 high: parseFloat(high.toFixed(2)),
                 low: parseFloat(low.toFixed(2)),
                 close: parseFloat(close.toFixed(2)),
+                volume,
               });
               basePrice = close;
               currentTime += getIntervalMs(selectedTimeframe.value);
             }
             return data;
-          };
+          }
 
-          const simulateRealTimeUpdates = () => {
+          function simulateRealTimeUpdates() {
             setInterval(() => {
               const lastCandle = chartData[chartData.length - 1];
               let newPrice;
@@ -1024,49 +1226,65 @@
                   newPrice = lastCandle.close + (Math.random() - 0.5) * 50;
               }
               newPrice = parseFloat(newPrice.toFixed(2));
+              const newVolume = Math.floor(Math.random() * 1000) + 1;
+
               currentPrice.value = newPrice;
               priceChange.value =
                 ((newPrice - lastCandle.close) / lastCandle.close) * 100;
+
               const newCandle = {
                 time: Math.floor(Date.now() / 1000),
                 open: lastCandle.close,
                 close: newPrice,
                 high: Math.max(lastCandle.close, newPrice) + Math.random() * 20,
                 low: Math.min(lastCandle.close, newPrice) - Math.random() * 20,
+                volume: newVolume,
               };
               chartData.push(newCandle);
+
+              // 更新走勢
               candlestickSeries.update(newCandle);
+              // 更新成交量
+              volumeSeries.update({
+                time: newCandle.time,
+                value: newCandle.volume,
+                color:
+                  newCandle.close >= newCandle.open ? "#26a69a" : "#ef5350",
+              });
+
+              // 指標
               ma7Value.value = calculateMA(7).toFixed(2) || "--";
               ma14Value.value = calculateMA(14).toFixed(2) || "--";
               ma28Value.value = calculateMA(28).toFixed(2) || "--";
               macdValue.value = "--";
-              updateOrderbook();
-            }, getIntervalMs(selectedTimeframe.value) / 2);
-          };
 
-          const calculateMA = (period) => {
+              // 更新訂單簿
+              updateOrderbook();
+              updateTradeOrderbook();
+            }, getIntervalMs(selectedTimeframe.value) / 2);
+          }
+
+          function calculateMA(period) {
             if (chartData.length < period) return 0;
             let sum = 0;
             for (let i = chartData.length - period; i < chartData.length; i++) {
               sum += chartData[i].close;
             }
             return sum / period;
-          };
+          }
 
-          const selectTimeframe = (frame) => {
+          function selectTimeframe(frame) {
             selectedTimeframe.value = frame;
-            if (chart) {
-              const intervalMs = getIntervalMs(frame);
-              chart.timeScale().setVisibleRange({
-                from: Date.now() - intervalMs * 100,
-                to: Date.now(),
-              });
+            if (mainChart && volumeChart) {
               chartData = generateInitialData();
               candlestickSeries.setData(chartData);
+              setVolumeData(chartData);
+              mainChart.timeScale().fitContent();
+              volumeChart.timeScale().fitContent();
             }
-          };
+          }
 
-          const getIntervalMs = (frame) => {
+          function getIntervalMs(frame) {
             const mappings = {
               "1秒": 1000,
               "1分": 60000,
@@ -1081,38 +1299,49 @@
               "1月": 2592000000,
             };
             return mappings[frame] || 1000;
-          };
+          }
 
-          const updateOrderbook = () => {
-            orderbookAsks.value = [
-              {
-                price: currentPrice.value + Math.random() * 20,
-                amount: 0.5 + Math.random() * 0.5,
-                depth: Math.random() * 0.3,
-              },
-              {
-                price: currentPrice.value + Math.random() * 15,
-                amount: 0.3 + Math.random() * 0.3,
-                depth: Math.random() * 0.2,
-              },
-            ];
-            orderbookBids.value = [
-              {
-                price: currentPrice.value - Math.random() * 20,
-                amount: 0.4 + Math.random() * 0.4,
-                depth: Math.random() * 0.3,
-              },
-              {
-                price: currentPrice.value - Math.random() * 15,
-                amount: 0.6 + Math.random() * 0.6,
-                depth: Math.random() * 0.2,
-              },
-            ];
-          };
+          // chart tab 訂單簿 (預設 6 筆就好)
+          function initOrderbook() {
+            orderbookAsks.value = generateOrderbookSide("ask", 6);
+            orderbookBids.value = generateOrderbookSide("bid", 6);
+          }
+          function updateOrderbook() {
+            orderbookAsks.value = generateOrderbookSide("ask", 6);
+            orderbookBids.value = generateOrderbookSide("bid", 6);
+          }
 
-          const updateLeverage = () => {};
+          // trade tab 訂單簿 (6 筆)
+          function initTradeOrderbook() {
+            tradeOrderbookAsks.value = generateOrderbookSide("ask", 6);
+            tradeOrderbookBids.value = generateOrderbookSide("bid", 6);
+          }
+          function updateTradeOrderbook() {
+            tradeOrderbookAsks.value = generateOrderbookSide("ask", 6);
+            tradeOrderbookBids.value = generateOrderbookSide("bid", 6);
+          }
 
-          const placeOrder = (type, orderType = "market") => {
+          // side = "ask" or "bid", count = 6
+          function generateOrderbookSide(side, count) {
+            const result = [];
+            for (let i = 0; i < count; i++) {
+              const price =
+                side === "ask"
+                  ? currentPrice.value + Math.random() * 20
+                  : currentPrice.value - Math.random() * 20;
+              const amount = 0.1 + Math.random() * 1.5;
+              const depth = Math.random() * 0.3;
+              result.push({ price, amount, depth });
+            }
+            if (side === "ask") {
+              result.sort((a, b) => a.price - b.price);
+            } else {
+              result.sort((a, b) => b.price - a.price);
+            }
+            return result;
+          }
+
+          function placeOrder(type, orderType = "market") {
             const usedLeverage =
               orderType === "limit"
                 ? leverageLimit.value
@@ -1124,18 +1353,15 @@
                 orderType === "limit" ? limitPrice.value : currentPrice.value
               }`
             );
-          };
+          }
 
-          const switchToChart = () => {
+          function switchToChart() {
             currentTab.value = "chart";
             nextTick(() => {
-              if (!chart) {
-                initChart();
-              } else {
-                chart.timeScale().fitContent();
-              }
+              if (mainChart) mainChart.timeScale().fitContent();
+              if (volumeChart) volumeChart.timeScale().fitContent();
             });
-          };
+          }
 
           return {
             currentTab,
@@ -1153,53 +1379,20 @@
             ma28Value,
             macdValue,
             chartRef,
+            volumeRef,
             marketCondition,
             selectTimeframe,
-            updateLeverage,
             placeOrder,
             orderbookAsks,
             orderbookBids,
+            tradeOrderbookAsks,
+            tradeOrderbookBids,
             switchToChart,
           };
         },
       });
 
       app.mount("#app");
-    </script>
-    <script>
-      (function () {
-        function c() {
-          var b = a.contentDocument || a.contentWindow.document;
-          if (b) {
-            var d = b.createElement("script");
-            d.innerHTML =
-              "window.__CF$cv$params={r:'91b8373728566767',t:'MTc0MTE2MzA1Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
-            b.getElementsByTagName("head")[0].appendChild(d);
-          }
-        }
-        if (document.body) {
-          var a = document.createElement("iframe");
-          a.height = 1;
-          a.width = 1;
-          a.style.position = "absolute";
-          a.style.top = 0;
-          a.style.left = 0;
-          a.style.border = "none";
-          a.style.visibility = "hidden";
-          document.body.appendChild(a);
-          if ("loading" !== document.readyState) c();
-          else if (window.addEventListener)
-            document.addEventListener("DOMContentLoaded", c);
-          else {
-            var e = document.onreadystatechange || function () {};
-            document.onreadystatechange = function (b) {
-              e(b);
-              "loading" !== document.readyState &&
-                ((document.onreadystatechange = e), c());
-            };
-          }
-        }
-      })();
     </script>
   </body>
 </html>
