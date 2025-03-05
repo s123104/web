@@ -1547,7 +1547,7 @@
           const tradeTab = ref("market");
           const leverageMarket = ref(10);
           const leverageLimit = ref(10);
-          const positionValue = ref(100); // 預設倉位 100 USDT
+          const positionValue = ref(100); // 預設 100 USDT
           const valueUnit = ref("USDT");
           const valueRatio = ref(100);
           const limitPrice = ref(2148.42);
@@ -1580,7 +1580,8 @@
           const chartRef = ref(null);
           const volumeRef = ref(null);
 
-          // 新增 "random" 行情，讓一開始預設就看起來更豐富
+          // 新增行情模式：bull / bear / sideways / volatile / random
+          // 預設可以測試 bull(牛市) 或 bear(熊市) 看FOMO/恐慌效果
           const marketCondition = ref("random");
 
           // 訂單簿
@@ -1659,44 +1660,54 @@
           let candlestickSeries = null;
           let volumeSeries = null;
 
-          // === 分段式趨勢參數 ===
+          // === 分段式趨勢參數 (讓牛/熊更連貫) ===
           let currentTrendDirection = 0; // +1=上漲, -1=下跌, 0=無
           let currentSegmentCount = 0; // 目前段落已跑了幾根K線
           let segmentSteps = 10; // 一個段落要跑幾根K線
 
           // 用來初始化新段落(主要趨勢方向 + 段落長度)
           function initNewSegment() {
+            // 每次新段落，計數歸零
             currentSegmentCount = 0;
+
+            // 依照不同 marketCondition，決定「主要方向」和「段落長度」
             switch (marketCondition.value) {
               case "bull":
-                // 牛市段落：80% 機率上漲
-                currentTrendDirection = Math.random() < 0.8 ? +1 : -1;
-                segmentSteps = 10 + Math.floor(Math.random() * 10);
+                // 牛市：90% 機率往上，10% 往下
+                currentTrendDirection = Math.random() < 0.9 ? +1 : -1;
+                // 例如段落長度 10~15 根K線
+                segmentSteps = 10 + Math.floor(Math.random() * 6);
                 break;
+
               case "bear":
-                // 熊市段落：80% 機率下跌
-                currentTrendDirection = Math.random() < 0.8 ? -1 : +1;
-                segmentSteps = 10 + Math.floor(Math.random() * 10);
+                // 熊市：90% 機率往下，10% 往上
+                currentTrendDirection = Math.random() < 0.9 ? -1 : +1;
+                // 例如段落長度 10~15 根K線
+                segmentSteps = 10 + Math.floor(Math.random() * 6);
                 break;
+
               case "sideways":
-                // 橫盤：50% 機率上或下，段落較短
+                // 側向：隨機方向
                 currentTrendDirection = Math.random() < 0.5 ? +1 : -1;
                 segmentSteps = 5 + Math.floor(Math.random() * 5);
                 break;
+
               case "volatile":
-                // 大幅波動：方向隨機，段落長度也隨機
+                // 大幅波動
                 currentTrendDirection = Math.random() < 0.5 ? +1 : -1;
                 segmentSteps = 5 + Math.floor(Math.random() * 10);
                 break;
+
               case "random":
-                // 「random」行情，段落長度 8~22
+                // 完全隨機
                 currentTrendDirection = Math.random() < 0.5 ? +1 : -1;
-                segmentSteps = 8 + Math.floor(Math.random() * 15);
+                segmentSteps = 8 + Math.floor(Math.random() * 10);
                 break;
+
               default:
-                // 預設都給個 random
-                currentTrendDirection = 0;
-                segmentSteps = 5;
+                // 如果沒有指定，就當作 random
+                currentTrendDirection = Math.random() < 0.5 ? +1 : -1;
+                segmentSteps = 5 + Math.floor(Math.random() * 5);
                 break;
             }
           }
@@ -1876,8 +1887,8 @@
               Date.now() - 100 * getIntervalMs(selectedTimeframe.value);
 
             for (let i = 0; i < 100; i++) {
-              // 這裡先簡單做：隨機 +/- 一點
-              // 也可根據 marketCondition.value 來做小邏輯
+              // 這裡先做一個簡單隨機上下
+              // 也可根據 marketCondition 來做特別邏輯
               let randomMove = (Math.random() - 0.5) * 10;
               basePrice = parseFloat((basePrice + randomMove).toFixed(2));
 
@@ -1921,7 +1932,7 @@
             return map[frame] || 1000;
           }
 
-          // === 模擬實時更新 ===
+          // === 模擬實時更新 (FOMO牛市 or 恐慌熊市) ===
           function simulateRealTimeUpdates() {
             // 首先初始化第一個段落
             initNewSegment();
@@ -1944,13 +1955,18 @@
               let baseFactor = 1;
               switch (marketCondition.value) {
                 case "bull":
+                  // FOMO牛市
+                  // 幾乎一直上，但小概率下跌
+                  // 若 currentTrendDirection>0 => 放大上漲, <0 => 放小
                   variation =
-                    currentTrendDirection > 0 ? variation * 3 : variation * 1.5;
+                    currentTrendDirection > 0 ? variation * 10 : variation * 2;
                   baseFactor = 1.5;
                   break;
                 case "bear":
+                  // 恐慌熊市
+                  // 幾乎一直下，但小概率反彈
                   variation =
-                    currentTrendDirection < 0 ? variation * 3 : variation * 1.5;
+                    currentTrendDirection < 0 ? variation * 10 : variation * 2;
                   baseFactor = 1.5;
                   break;
                 case "sideways":
@@ -1970,12 +1986,12 @@
               // 加方向
               variation *= currentTrendDirection;
 
-              // 5% 機率暴漲或暴跌
+              // 5% 機率爆噴或暴跌
               if (Math.random() < 0.05) {
                 variation *= 5;
               }
 
-              // 最大單根限制
+              // 單根漲跌限制
               const maxStep = 50 * baseFactor;
               if (variation > maxStep) variation = maxStep;
               if (variation < -maxStep) variation = -maxStep;
