@@ -357,10 +357,10 @@
         cursor: pointer;
       }
       .value-slider {
-        margin-bottom: 10px; /* 整體縮短到 10px */
+        margin-bottom: 10px;
       }
       .value-slider .slider-container {
-        margin-bottom: 15px; /* 讓 slider 底下多點空間 */
+        margin-bottom: 15px;
       }
       .value-slider .slider-marks {
         display: flex;
@@ -383,14 +383,14 @@
         color: #fff;
       }
       .available-balance {
-        margin-bottom: 5px; /* 減少間距 */
+        margin-bottom: 5px;
         font-size: 13px;
         color: #8c8c8c;
       }
       .estimated-liquidation {
         font-size: 13px;
         margin-bottom: 15px;
-        margin-top: 0; /* 減少與上方的距離 */
+        margin-top: 0;
         color: #8c8c8c;
       }
       .order-buttons {
@@ -781,6 +781,7 @@
         margin-bottom: 10px;
       }
     </style>
+  </head>
   <body>
     <div id="app">
       <div class="app-container">
@@ -953,15 +954,15 @@
                     <input
                       type="range"
                       min="1"
-                      max="75"
+                      max="500"
                       v-model="leverageMarket"
                       class="slider"
                     />
                     <div class="leverage-marks">
                       <span>1x</span>
-                      <span>25x</span>
-                      <span>50x</span>
-                      <span>75x</span>
+                      <span>125x</span>
+                      <span>250x</span>
+                      <span>500x</span>
                     </div>
                   </div>
                   <div class="order-input">
@@ -1027,8 +1028,8 @@
                     可用資金: {{ availableBalance.toFixed(2) }} USDT
                   </div>
                   <div class="estimated-liquidation">
-                    預估強平價：做多 {{ estimatedLiquidationLong.toFixed(2) }} USDT /
-                    做空 {{ estimatedLiquidationShort.toFixed(2) }} USDT
+                    預估強平價：做多 {{ estimatedLiquidationLong.toFixed(2) }}
+                    USDT / 做空 {{ estimatedLiquidationShort.toFixed(2) }} USDT
                   </div>
                   <div class="order-buttons">
                     <button
@@ -1056,15 +1057,15 @@
                     <input
                       type="range"
                       min="1"
-                      max="75"
+                      max="500"
                       v-model="leverageLimit"
                       class="slider"
                     />
                     <div class="leverage-marks">
                       <span>1x</span>
-                      <span>25x</span>
-                      <span>50x</span>
-                      <span>75x</span>
+                      <span>125x</span>
+                      <span>250x</span>
+                      <span>500x</span>
                     </div>
                   </div>
                   <div class="order-input">
@@ -1140,8 +1141,8 @@
                     可用資金: {{ availableBalance.toFixed(2) }} USDT
                   </div>
                   <div class="estimated-liquidation">
-                    預估強平價：做多 {{ estimatedLiquidationLong.toFixed(2) }} USDT /
-                    做空 {{ estimatedLiquidationShort.toFixed(2) }} USDT
+                    預估強平價：做多 {{ estimatedLiquidationLong.toFixed(2) }}
+                    USDT / 做空 {{ estimatedLiquidationShort.toFixed(2) }} USDT
                   </div>
                   <div class="order-buttons">
                     <button
@@ -1243,8 +1244,8 @@
                     <div class="info-row">
                       <span>未結盈虧:</span>
                       <span :class="pos.unrealizedPnl >= 0 ? 'profit' : 'loss'">
-                        {{ pos.unrealizedPnl.toFixed(2) }} USDT
-                        ({{ pos.unrealizedPnlPct.toFixed(2) }}%)
+                        {{ pos.unrealizedPnl.toFixed(2) }} USDT ({{
+                        pos.unrealizedPnlPct.toFixed(2) }}%)
                       </span>
                     </div>
                     <div class="info-row" v-if="pos.takeProfit || pos.stopLoss">
@@ -1540,12 +1541,13 @@
 
       const app = createApp({
         setup() {
-          // 1) 預設使用市價單
+          // 直接預設倉位=100 USDT
           const currentTab = ref("chart");
-          const tradeTab = ref("market"); // 預設改成 'market'
+          const tradeTab = ref("market");
           const leverageMarket = ref(10);
-          const leverageLimit = ref(34);
-          const positionValue = ref(10);
+          const leverageLimit = ref(10);
+          // 預設改成 100 USDT 價值
+          const positionValue = ref(100);
           const valueUnit = ref("USDT");
           const valueRatio = ref(100);
           const limitPrice = ref(2148.42);
@@ -1608,6 +1610,11 @@
           const partialCloseRatio = ref(1);
           const showConfirmMarketModal = ref(false);
 
+          // 連續漲 / 跌用的計數器
+          let consecutiveUp = 0;
+          let consecutiveDown = 0;
+
+          // 預估強平價
           const estimatedLiquidationLong = computed(() => {
             const currentLeverage =
               tradeTab.value === "limit"
@@ -1667,6 +1674,7 @@
             }
           });
 
+          // 根據拉條更新倉位價值
           function updateValueFromRatio() {
             const currentLeverage =
               tradeTab.value === "limit"
@@ -1680,6 +1688,7 @@
             positionValue.value = (maxValue * valueRatio.value) / 100;
           }
 
+          // 初始化圖表
           function initCharts() {
             if (!chartRef.value || !volumeRef.value) return;
             mainChart = LightweightCharts.createChart(chartRef.value, {
@@ -1724,6 +1733,7 @@
               color: "#26a69a",
             });
 
+            // 產生初始資料
             chartData = generateInitialData();
             candlestickSeries.setData(chartData);
             const volData = chartData.map((c) => ({
@@ -1738,6 +1748,7 @@
             syncTimeScales(mainChart, volumeChart);
           }
 
+          // 同步主 K 線與量能圖的 timeScale
           function syncTimeScales(chart1, chart2) {
             chart1.timeScale().subscribeVisibleLogicalRangeChange(() => {
               const range = chart1.timeScale().getVisibleLogicalRange();
@@ -1749,31 +1760,35 @@
             });
           }
 
+          // 產生初始 K 線資料
           function generateInitialData() {
             const data = [];
             let basePrice = 2148;
             let currentTime =
               Date.now() - 100 * getIntervalMs(selectedTimeframe.value);
+
             for (let i = 0; i < 100; i++) {
-              let priceVariation;
-              switch (marketCondition.value) {
-                case "bull":
-                  priceVariation = Math.abs(Math.random() * 20);
-                  break;
-                case "sideways":
-                  priceVariation = (Math.random() - 0.5) * 5;
-                  break;
-                case "bear":
-                  priceVariation = -Math.abs(Math.random() * 20);
-                  break;
-                default:
-                  priceVariation = (Math.random() - 0.5) * 50;
+              let variation = (Math.random() - 0.5) * 30;
+
+              // 根據市場狀態調整基本波動
+              if (marketCondition.value === "bull") {
+                variation += Math.random() * 5;
+              } else if (marketCondition.value === "bear") {
+                variation -= Math.random() * 5;
+              } else if (marketCondition.value === "sideways") {
+                variation = (Math.random() - 0.5) * 5;
               }
-              const open = basePrice + priceVariation;
-              const close = open + (Math.random() - 0.5) * 50;
-              const high = Math.max(open, close) + Math.random() * 30;
-              const low = Math.min(open, close) - Math.random() * 30;
-              const volume = Math.floor(Math.random() * 1000) + 1;
+
+              // 降低大爆拉/暴跌機率
+              if (Math.random() < 0.02) {
+                variation *= 5;
+              }
+
+              const open = basePrice;
+              const close = open + variation;
+              const high = Math.max(open, close) + Math.random() * 10;
+              const low = Math.min(open, close) - Math.random() * 10;
+              const volume = Math.floor(Math.random() * 500) + 50;
 
               data.push({
                 time: Math.floor(currentTime / 1000),
@@ -1789,6 +1804,7 @@
             return data;
           }
 
+          // interval
           function getIntervalMs(frame) {
             const map = {
               "1秒": 1000,
@@ -1806,37 +1822,71 @@
             return map[frame] || 1000;
           }
 
+          // 即時模擬更新
           function simulateRealTimeUpdates() {
             setInterval(() => {
               if (!chartData.length) return;
               const lastCandle = chartData[chartData.length - 1];
-              let newPrice;
+
+              // 先看上一根漲還是跌
+              const isUp = lastCandle.close >= lastCandle.open;
+              if (isUp) {
+                consecutiveUp++;
+                consecutiveDown = 0;
+              } else {
+                consecutiveDown++;
+                consecutiveUp = 0;
+              }
+
+              let variation = (Math.random() - 0.5) * 30;
+
+              // 連續漲或跌時，可能持續
+              if (consecutiveUp >= 2) {
+                variation += Math.random() * 10;
+              }
+              if (consecutiveDown >= 2) {
+                variation -= Math.random() * 10;
+              }
+
+              // 降低超大爆動機率
+              if (Math.random() < 0.01) {
+                variation *= 6;
+              }
+
+              // 根據牛市/熊市/橫盤/大幅波動再微調
               switch (marketCondition.value) {
                 case "bull":
-                  newPrice = lastCandle.close + Math.abs(Math.random() * 20);
+                  variation += Math.random() * 5;
                   break;
                 case "sideways":
-                  newPrice = lastCandle.close + (Math.random() - 0.5) * 5;
+                  variation = (Math.random() - 0.5) * 5;
                   break;
                 case "bear":
-                  newPrice = lastCandle.close - Math.abs(Math.random() * 20);
+                  variation -= Math.random() * 5;
                   break;
                 default:
-                  newPrice = lastCandle.close + (Math.random() - 0.5) * 50;
+                  if (Math.random() < 0.03) {
+                    variation *= 2;
+                  }
+                  break;
               }
-              newPrice = parseFloat(newPrice.toFixed(2));
-              const newVolume = Math.floor(Math.random() * 1000) + 1;
+
+              const newPrice = parseFloat(
+                (lastCandle.close + variation).toFixed(2)
+              );
+              const newVolume = Math.floor(Math.random() * 500) + 50;
 
               priceChange.value =
                 ((newPrice - lastCandle.close) / lastCandle.close) * 100;
               currentPrice.value = newPrice;
 
+              // 新的 candle
               const newCandle = {
                 time: Math.floor(Date.now() / 1000),
                 open: lastCandle.close,
                 close: newPrice,
-                high: Math.max(lastCandle.close, newPrice) + Math.random() * 20,
-                low: Math.min(lastCandle.close, newPrice) - Math.random() * 20,
+                high: Math.max(lastCandle.close, newPrice) + Math.random() * 5,
+                low: Math.min(lastCandle.close, newPrice) - Math.random() * 5,
                 volume: newVolume,
               };
               chartData.push(newCandle);
@@ -1853,9 +1903,11 @@
               ma28Value.value = calculateMA(28).toFixed(2);
               macdValue.value = "--";
 
+              // 同步更新訂單簿
               updateOrderbook();
               updateTradeOrderbook();
 
+              // 更新持倉盈虧
               positions.value.forEach((pos) => {
                 pos.markPrice = currentPrice.value;
                 if (pos.type === "long") {
@@ -1863,7 +1915,6 @@
                     (pos.markPrice - pos.entryPrice) *
                     pos.quantity *
                     pos.leverage;
-                  // 顯示Pnl百分比
                   pos.unrealizedPnlPct =
                     ((pos.markPrice - pos.entryPrice) / pos.entryPrice) *
                     100 *
@@ -1873,13 +1924,13 @@
                     (pos.entryPrice - pos.markPrice) *
                     pos.quantity *
                     pos.leverage;
-                  // 顯示Pnl百分比
                   pos.unrealizedPnlPct =
                     ((pos.entryPrice - pos.markPrice) / pos.entryPrice) *
                     100 *
                     pos.leverage;
                 }
 
+                // 判斷是否強平
                 if (
                   (pos.type === "long" &&
                     pos.markPrice <= pos.liquidationPrice) ||
@@ -1906,6 +1957,7 @@
             }, getIntervalMs(selectedTimeframe.value) / 2);
           }
 
+          // 計算移動平均
           function calculateMA(period) {
             if (chartData.length < period) return 0;
             let sum = 0;
@@ -1929,6 +1981,7 @@
             if (volumeChart) volumeChart.timeScale().fitContent();
           }
 
+          // 初始化訂單簿
           function initOrderbook() {
             orderbookAsks.value = generateOrderbookSide("ask", 6);
             orderbookBids.value = generateOrderbookSide("bid", 6);
@@ -1938,6 +1991,7 @@
             orderbookBids.value = generateOrderbookSide("bid", 6);
           }
 
+          // 初始化交易分頁訂單簿
           function initTradeOrderbook() {
             tradeOrderbookAsks.value = generateOrderbookSide("ask", 7);
             tradeOrderbookBids.value = generateOrderbookSide("bid", 7);
@@ -1947,16 +2001,17 @@
             tradeOrderbookBids.value = generateOrderbookSide("bid", 7);
           }
 
+          // 生成單邊掛單(盡量靠近市價)
           function generateOrderbookSide(side, count) {
             const result = [];
-            const spread = 0.5;
+            const baseOffset = 0.2; // 縮小 spread
             for (let i = 0; i < count; i++) {
-              const priceOffset = spread * (i + 1);
+              const priceOffset = baseOffset * (i + 1);
               const price =
                 side === "ask"
                   ? currentPrice.value + priceOffset
                   : currentPrice.value - priceOffset;
-              const amount = 0.1 + Math.random() * 0.5;
+              const amount = 0.1 + Math.random() * 0.3;
               const depth = 1 - i / count;
               result.push({
                 price: parseFloat(price.toFixed(2)),
@@ -1972,21 +2027,26 @@
             return result;
           }
 
+          // 切換交易分頁
           function switchToTrade() {
             currentTab.value = "trade";
             limitPrice.value = currentPrice.value;
           }
+          function switchToChart() {
+            currentTab.value = "chart";
+          }
 
+          // 更新限價單價格
           function updateLimitPrice(price) {
             limitPrice.value = price;
           }
-
           function updateLimitPriceFromOrderbook() {
             if (tradeTab.value === "limit" && !limitPrice.value) {
               limitPrice.value = currentPrice.value;
             }
           }
 
+          // 切換 USDT / ETH
           function toggleValueUnit() {
             if (valueUnit.value === "USDT") {
               valueUnit.value = "ETH";
@@ -1997,11 +2057,13 @@
             }
           }
 
+          // 快捷按鈕更新倉位比例
           function setValueRatio(ratio) {
             valueRatio.value = ratio;
             updateValueFromRatio();
           }
 
+          // 下單
           function placeOrder(type, orderType) {
             let qty;
             if (valueUnit.value === "USDT") {
@@ -2024,6 +2086,7 @@
               return;
             }
 
+            // 如果是限價單，檢查是否大幅偏離市場價
             if (orderType === "limit") {
               if (
                 type === "long" &&
@@ -2074,15 +2137,16 @@
             availableBalance.value -= margin;
           }
 
+          // 確認要用市價單成交
           function confirmMarketOrder() {
             placeOrder("long", "market");
             showConfirmMarketModal.value = false;
           }
-
           function closeConfirmMarketModal() {
             showConfirmMarketModal.value = false;
           }
 
+          // 止盈止損
           function openTPSLModal(index) {
             showTPSLModal.value = true;
             tpslData.posIndex = index;
@@ -2098,8 +2162,6 @@
           function closeTPSLModal() {
             showTPSLModal.value = false;
           }
-
-          // === 依「倉位利潤%」計算止盈價格 ===
           function updateTakeProfitFromRatio() {
             if (tpslData.takeProfitRatio > 500) {
               tpslData.takeProfitRatio = 500;
@@ -2108,7 +2170,8 @@
             if (pos) {
               const ratio = tpslData.takeProfitRatio;
               const diff =
-                pos.entryPrice * (ratio / 100) / (pos.leverage * pos.leverage);
+                (pos.entryPrice * (ratio / 100)) /
+                (pos.leverage * pos.leverage);
               if (pos.type === "long") {
                 tpslData.takeProfit = (pos.entryPrice + diff).toFixed(2);
               } else {
@@ -2116,8 +2179,6 @@
               }
             }
           }
-
-          // === 依「倉位利潤%」計算止損價格 ===
           function updateStopLossFromRatio() {
             if (tpslData.stopLossRatio > 90) {
               tpslData.stopLossRatio = 90;
@@ -2126,7 +2187,8 @@
             if (pos) {
               const ratio = tpslData.stopLossRatio;
               const diff =
-                pos.entryPrice * (ratio / 100) / (pos.leverage * pos.leverage);
+                (pos.entryPrice * (ratio / 100)) /
+                (pos.leverage * pos.leverage);
               if (pos.type === "long") {
                 tpslData.stopLoss = (pos.entryPrice - diff).toFixed(2);
               } else {
@@ -2134,12 +2196,13 @@
               }
             }
           }
-
           function confirmTPSL() {
             const pos = positions.value[tpslData.posIndex];
             if (!pos) return;
-            pos.takeProfit = Number(parseFloat(tpslData.takeProfit).toFixed(2)) || null;
-            pos.stopLoss = Number(parseFloat(tpslData.stopLoss).toFixed(2)) || null;
+            pos.takeProfit =
+              Number(parseFloat(tpslData.takeProfit).toFixed(2)) || null;
+            pos.stopLoss =
+              Number(parseFloat(tpslData.stopLoss).toFixed(2)) || null;
             pos.takeProfitMode = "price";
             pos.stopLossMode = "price";
             if (tpslData.positionMode === "partial") {
@@ -2148,6 +2211,7 @@
             showTPSLModal.value = false;
           }
 
+          // 追蹤出場
           function openTrailingModal(index) {
             showTrailingModal.value = true;
             trailingData.posIndex = index;
@@ -2165,6 +2229,7 @@
             showTrailingModal.value = false;
           }
 
+          // 部分平倉
           function openPartialCloseModal(index) {
             showPartialCloseModal.value = true;
             partialCloseData.posIndex = index;
@@ -2224,10 +2289,6 @@
             }
 
             showPartialCloseModal.value = false;
-          }
-
-          function switchToChart() {
-            currentTab.value = "chart";
           }
 
           return {
