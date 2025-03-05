@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bybit ETHUSDT 即時行情測試</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 10px;
+        }
+        h1 {
+            background-color: #222;
+            color: white;
+            padding: 10px;
+        }
+        #info {
+            font-size: 16px;
+            margin: 10px;
+            padding: 10px;
+            background-color: #f4f4f4;
+            text-align: left;
+            word-wrap: break-word;
+        }
+        #chart {
+            width: 100%;
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Bybit ETHUSDT 即時行情測試</h1>
+
+    <div id="info">
+        <p><strong>CDN 連線狀態：</strong> <span id="cdn-status">測試中...</span></p>
+        <p><strong>WebSocket 狀態：</strong> <span id="ws-status">連線中...</span></p>
+        <p><strong>最新價格：</strong> <span id="price">讀取中...</span></p>
+        <p><strong>K 線數據：</strong></p>
+        <p>開盤價：<span id="open">-</span>，最高價：<span id="high">-</span>，最低價：<span id="low">-</span>，收盤價：<span id="close">-</span></p>
+        <p><strong>錯誤訊息：</strong> <span id="error">無</span></p>
+    </div>
+
+    <div id="chart"></div>
+
+    <script>
+        const wsStatusEl = document.getElementById('ws-status');
+        const priceEl = document.getElementById('price');
+        const openEl = document.getElementById('open');
+        const highEl = document.getElementById('high');
+        const lowEl = document.getElementById('low');
+        const closeEl = document.getElementById('close');
+        const errorEl = document.getElementById('error');
+        const cdnStatusEl = document.getElementById('cdn-status');
+
+        // 檢測圖表 CDN 是否可用
+        try {
+            if (LightweightCharts) {
+                cdnStatusEl.textContent = "✅ 連線成功";
+            }
+        } catch (err) {
+            cdnStatusEl.textContent = "❌ 連線失敗，請確認 CDN 是否可用";
+        }
+
+        // 初始化 K 線圖表
+        const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+            width: window.innerWidth * 0.9,
+            height: 400,
+            layout: { backgroundColor: '#ffffff', textColor: '#000' },
+            grid: { vertLines: { color: '#eee' }, horzLines: { color: '#eee' } },
+        });
+        const candlestickSeries = chart.addCandlestickSeries();
+
+        // 建立 WebSocket 連線
+        const ws = new WebSocket('wss://stream.bybit.com/realtime_public');
+
+        ws.onopen = () => {
+            wsStatusEl.textContent = '✅ 已連線';
+            console.log("✅ WebSocket 連線成功，訂閱 ETHUSDT 1 秒 K 線！");
+            ws.send(JSON.stringify({
+                op: "subscribe",
+                args: ["kline.1s.ETHUSDT"]
+            }));
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.topic && data.topic === "kline.1s.ETHUSDT") {
+                const kline = data.data[0];
+                const latestPrice = parseFloat(kline.close);
+
+                // 更新 HTML 數據顯示
+                priceEl.textContent = latestPrice.toFixed(2);
+                openEl.textContent = parseFloat(kline.open).toFixed(2);
+                highEl.textContent = parseFloat(kline.high).toFixed(2);
+                lowEl.textContent = parseFloat(kline.low).toFixed(2);
+                closeEl.textContent = latestPrice.toFixed(2);
+
+                // 更新 K 線圖
+                const candlestick = {
+                    time: kline.start,  // 以秒為單位的時間戳
+                    open: parseFloat(kline.open),
+                    high: parseFloat(kline.high),
+                    low: parseFloat(kline.low),
+                    close: latestPrice
+                };
+
+                candlestickSeries.update(candlestick);
+            }
+        };
+
+        ws.onclose = () => {
+            wsStatusEl.textContent = '❌ 已關閉';
+            console.log("❌ WebSocket 連線已關閉！");
+        };
+
+        ws.onerror = (error) => {
+            wsStatusEl.textContent = '🚨 發生錯誤';
+            errorEl.textContent = "WebSocket 錯誤：" + error.message;
+            console.error("🚨 WebSocket 錯誤：", error);
+        };
+
+        // 自動調整圖表大小
+        window.addEventListener('resize', () => {
+            chart.resize(window.innerWidth * 0.9, 400);
+        });
+    </script>
+
+</body>
+</html>
