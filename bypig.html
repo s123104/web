@@ -1,16 +1,21 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>加密貨幣交易平台 - Vue 版</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>加密貨幣交易平台</title>
   <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-  <!-- Lightweight Charts -->
-  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
-  <!-- Vue 3 -->
-  <script src="https://unpkg.com/vue@3"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- Importmap for Lightweight Charts -->
+  <script type="importmap">
+  {
+    "imports": {
+      "lightweight-charts": "https://cdn.jsdelivr.net/npm/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"
+    }
+  }
+  </script>
   <style>
+    /* ===== 基本重置與字型 ===== */
     * {
       margin: 0;
       padding: 0;
@@ -42,7 +47,7 @@
       max-width: 100%;
       margin: 0 auto;
     }
-    /* 頂部 */
+    /* ===== 頂部信息 ===== */
     .header {
       padding: 10px 15px;
       background-color: var(--secondary-bg);
@@ -98,7 +103,7 @@
       background-color: var(--tertiary-bg);
       border-color: var(--accent-color);
     }
-    /* 主內容 */
+    /* ===== 主內容 ===== */
     .main-content {
       flex: 1;
       overflow: hidden;
@@ -112,7 +117,7 @@
     .content-section.active {
       display: block;
     }
-    /* 圖表區 */
+    /* ===== 圖表區 ===== */
     .timeframe-selector {
       display: flex;
       gap: 2px;
@@ -154,7 +159,7 @@
     .indicator-name {
       color: var(--text-secondary);
     }
-    /* 交易區 */
+    /* ===== 交易區 ===== */
     .trade-tabs {
       display: flex;
       padding: 10px;
@@ -257,7 +262,7 @@
     .btn-short {
       background-color: var(--red-color);
     }
-    /* 持倉 */
+    /* ===== 持倉區塊 ===== */
     .positions-section {
       padding: 15px;
       background-color: var(--secondary-bg);
@@ -338,7 +343,7 @@
       border-color: var(--red-color);
       color: var(--red-color);
     }
-    /* 訂單簿 */
+    /* ===== 訂單簿 ===== */
     .orderbook-section {
       padding: 15px;
       background-color: var(--secondary-bg);
@@ -406,7 +411,7 @@
       font-weight: bold;
       font-size: 14px;
     }
-    /* 底部導航 */
+    /* ===== 底部導航欄 ===== */
     .bottom-nav {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -433,7 +438,7 @@
     .nav-btn.active {
       color: var(--accent-color);
     }
-    /* 響應式 */
+    /* ===== 響應式 ===== */
     @media (max-width: 768px) {
       .header {
         flex-direction: column;
@@ -454,11 +459,11 @@
         width: 100%;
       }
     }
-    /* 平滑過渡 */
+    /* ===== 平滑過渡 ===== */
     .tab-btn, .trade-tab-btn, .position-btn, .btn-long, .btn-short, .nav-btn {
       transition: all 0.2s ease;
     }
-    /* 可加支撐區域效果 */
+    /* ===== 支撐區域 ===== */
     .support-area {
       background-color: var(--support-area);
       position: absolute;
@@ -467,396 +472,513 @@
   </style>
 </head>
 <body>
-  <div id="app"></div>
-  <script type="module">
-    // 由於瀏覽器無法直接編譯 TypeScript，所以把型別語法全拿掉
-    // 從全域物件取出 Vue 函數
-    const { createApp, ref, onMounted } = window.Vue;
-
-    const App = {
-      template: `
-      <div class="app-container">
-        <!-- 頂部交易對信息 -->
-        <div class="header">
-          <div class="symbol-info">
-            <h1>ETHUSDT</h1>
-            <div class="price-info">
-              <span class="current-price">{{ currentPrice.toFixed(2) }}</span>
-              <span :class="['price-change', priceChange >= 0 ? 'positive' : 'negative']">
-                {{ priceChange >= 0 ? '+' : '' }}{{ priceChange.toFixed(2) }}%
-              </span>
-            </div>
-          </div>
-          <div class="tab-switcher">
-            <button class="tab-btn" :class="{active: activeTab === 'chart'}" @click="activeTab = 'chart'">
-              <i class="fas fa-chart-line"></i> 走勢圖
-            </button>
-            <button class="tab-btn" :class="{active: activeTab === 'trade'}" @click="activeTab = 'trade'">
-              <i class="fas fa-exchange-alt"></i> 交易
-            </button>
-          </div>
-        </div>
-  
-        <!-- 主內容區 -->
-        <div class="main-content">
-          <!-- 圖表區域 -->
-          <div class="content-section" v-show="activeTab === 'chart'">
-            <div class="timeframe-selector">
-              <button class="timeframe-btn" 
-                      v-for="(frame, index) in timeframes" 
-                      :key="index" 
-                      :class="{active: frame === activeTimeframe}" 
-                      @click="activeTimeframe = frame">
-                {{ frame }}
-              </button>
-            </div>
-            <div class="chart-container" ref="chartContainer"></div>
-            <div class="indicators">
-              <div class="indicator">
-                <span class="indicator-name">MA7:</span>
-                <span class="indicator-value">{{ ma7Value }}</span>
-              </div>
-              <div class="indicator">
-                <span class="indicator-name">MA14:</span>
-                <span class="indicator-value">{{ ma14Value }}</span>
-              </div>
-              <div class="indicator">
-                <span class="indicator-name">MA28:</span>
-                <span class="indicator-value">{{ ma28Value }}</span>
-              </div>
-              <div class="indicator">
-                <span class="indicator-name">RSI:</span>
-                <span class="indicator-value">65.3</span>
-              </div>
-            </div>
-          </div>
-  
-          <!-- 交易區域 -->
-          <div class="content-section" v-show="activeTab === 'trade'">
-            <div class="trade-tabs">
-              <button class="trade-tab-btn" 
-                      :class="{active: activeTradeTab === 'market'}" 
-                      @click="activeTradeTab = 'market'">
-                市價單
-              </button>
-              <button class="trade-tab-btn" 
-                      :class="{active: activeTradeTab === 'limit'}" 
-                      @click="activeTradeTab = 'limit'">
-                限價單
-              </button>
-            </div>
-            <div class="trade-content" v-show="activeTradeTab === 'market'">
-              <div class="leverage-slider">
-                <label>槓桿倍數: <span>{{ marketLeverage }}x</span></label>
-                <input type="range" min="1" max="75" v-model="marketLeverage" class="slider">
-                <div class="leverage-marks">
-                  <span>1x</span>
-                  <span>25x</span>
-                  <span>50x</span>
-                  <span>75x</span>
-                </div>
-              </div>
-              <div class="order-input">
-                <label>數量 (ETH)</label>
-                <input type="number" step="0.001" v-model.number="marketOrderQty" min="0.001">
-              </div>
-              <div class="available-balance">
-                <span>可用資金: 31.35 USDT</span>
-              </div>
-              <div class="order-buttons">
-                <button class="btn-long"><i class="fas fa-arrow-up"></i> 做多</button>
-                <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
-              </div>
-            </div>
-            <div class="trade-content" v-show="activeTradeTab === 'limit'">
-              <div class="leverage-slider">
-                <label>槓桿倍數: <span>{{ limitLeverage }}x</span></label>
-                <input type="range" min="1" max="75" v-model="limitLeverage" class="slider">
-                <div class="leverage-marks">
-                  <span>1x</span>
-                  <span>25x</span>
-                  <span>50x</span>
-                  <span>75x</span>
-                </div>
-              </div>
-              <div class="order-input">
-                <label>價格 (USDT)</label>
-                <input type="number" step="0.01" v-model.number="limitOrderPrice" min="0.01">
-              </div>
-              <div class="order-input">
-                <label>數量 (ETH)</label>
-                <input type="number" step="0.001" v-model.number="limitOrderQty" min="0.001">
-              </div>
-              <div class="available-balance">
-                <span>可用資金: 31.35 USDT</span>
-              </div>
-              <div class="order-buttons">
-                <button class="btn-long"><i class="fas fa-arrow-up"></i> 做多</button>
-                <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
-              </div>
-            </div>
-            <!-- 持倉區塊 (簡單範例) -->
-            <div class="positions-section">
-              <h3>持倉</h3>
-              <div class="position-card">
-                <div class="position-header">
-                  <span class="position-symbol">ETHUSDT</span>
-                  <span class="position-type long">做多 10x</span>
-                </div>
-                <div class="position-details">
-                  <div class="position-info">
-                    <div class="info-row">
-                      <span>持倉數量:</span>
-                      <span>0.025 ETH</span>
-                    </div>
-                    <div class="info-row">
-                      <span>入場價格:</span>
-                      <span>1820.45 USDT</span>
-                    </div>
-                    <div class="info-row">
-                      <span>標記價格:</span>
-                      <span>{{ currentPrice.toFixed(2) }} USDT</span>
-                    </div>
-                    <div class="info-row">
-                      <span>強平價格:</span>
-                      <span>1638.40 USDT</span>
-                    </div>
-                    <div class="info-row">
-                      <span>未結盈虧:</span>
-                      <span class="profit">+5.47 USDT (+1.20%)</span>
-                    </div>
-                  </div>
-                  <div class="position-actions">
-                    <button class="position-btn"><i class="fas fa-stop-circle"></i> 止盈止損</button>
-                    <button class="position-btn"><i class="fas fa-chart-area"></i> 追蹤出場</button>
-                    <button class="position-btn close-btn"><i class="fas fa-hand-holding-usd"></i> 平倉</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <!-- 訂單簿 (簡單靜態內容) -->
-            <div class="orderbook-section">
-              <h3>訂單簿 <i class="fas fa-sort"></i> <i class="fas fa-align-justify"></i></h3>
-              <div class="orderbook">
-                <div class="orderbook-header">
-                  <span>價格</span>
-                  <span>數量</span>
-                  <span>總額</span>
-                </div>
-                <div class="orderbook-asks">
-                  <div class="orderbook-row">
-                    <span class="price sell">1845.20</span>
-                    <span class="amount">0.542</span>
-                    <span class="total">999.54</span>
-                    <div class="depth-bar sell" style="width: 15%;"></div>
-                  </div>
-                </div>
-                <div class="orderbook-current-price">
-                  <span class="current">{{ currentPrice.toFixed(2) }}</span>
-                </div>
-                <div class="orderbook-bids">
-                  <div class="orderbook-row">
-                    <span class="price buy">1842.00</span>
-                    <span class="amount">0.356</span>
-                    <span class="total">655.75</span>
-                    <div class="depth-bar buy" style="width: 16%;"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-  
-        <!-- 底部導航欄 -->
-        <div class="bottom-nav">
-          <button class="nav-btn"><i class="fas fa-home"></i><span>首頁</span></button>
-          <button class="nav-btn"><i class="fas fa-chart-bar"></i><span>行情</span></button>
-          <button class="nav-btn active"><i class="fas fa-exchange-alt"></i><span>交易</span></button>
-          <button class="nav-btn"><i class="fas fa-wallet"></i><span>資產</span></button>
-          <button class="nav-btn"><i class="fas fa-cog"></i><span>設置</span></button>
+  <div class="app-container">
+    <!-- 頂部交易對信息 -->
+    <div class="header">
+      <div class="symbol-info">
+        <h1>ETHUSDT</h1>
+        <div class="price-info">
+          <span class="current-price">1842.35</span>
+          <span class="price-change positive">+2.45%</span>
         </div>
       </div>
-      `,
-      setup() {
-        // 頁籤狀態
-        const activeTab = ref('chart');
-        const activeTradeTab = ref('market');
-        const timeframes = ref(['1秒', '1分', '3分', '5分', '15分', '30分', '1小時', '4小時', '1天']);
-        const activeTimeframe = ref('15分');
-  
-        // 價格資訊
-        const currentPrice = ref(1842.35);
-        const priceChange = ref(2.45);
-  
-        // 交易欄數值
-        const marketLeverage = ref(10);
-        const limitLeverage = ref(10);
-        const marketOrderQty = ref(0.01);
-        const limitOrderPrice = ref(1842.35);
-        const limitOrderQty = ref(0.01);
-  
-        // MA 顯示
-        const ma7Value = ref('--');
-        const ma14Value = ref('--');
-        const ma28Value = ref('--');
-  
-        // 圖表相關
-        const chartContainer = ref(null);
-        let chartInstance = null;
-        let candleSeries = null;
-        let ma7Series = null;
-        let ma14Series = null;
-        let ma28Series = null;
-        let globalCandleData = [];
-  
-        // 初始化圖表
-        const initChart = () => {
-          if (!chartContainer.value) return;
-          chartInstance = LightweightCharts.createChart(chartContainer.value, {
-            width: chartContainer.value.clientWidth,
-            height: chartContainer.value.clientHeight,
-            layout: {
-              backgroundColor: '#151b29',
-              textColor: '#d1d4dc'
-            },
-            grid: {
-              vertLines: { color: 'rgba(42, 46, 57, 0.5)' },
-              horzLines: { color: 'rgba(42, 46, 57, 0.5)' }
-            },
-            crosshair: { mode: 0 },
-            priceScale: { borderColor: '#2c3647' },
-            timeScale: { borderColor: '#2c3647', timeVisible: true }
-          });
-          candleSeries = chartInstance.addCandlestickSeries({
-            upColor: '#28a745',
-            downColor: '#dc3545',
-            borderDownColor: '#dc3545',
-            borderUpColor: '#28a745',
-            wickDownColor: '#dc3545',
-            wickUpColor: '#28a745'
-          });
-          globalCandleData = generateCandleData();
-          candleSeries.setData(globalCandleData);
-  
-          ma7Series = chartInstance.addLineSeries({ color: '#2196F3', lineWidth: 1 });
-          ma7Series.setData(generateMA(globalCandleData, 7));
-  
-          ma14Series = chartInstance.addLineSeries({ color: '#FF9800', lineWidth: 1 });
-          ma14Series.setData(generateMA(globalCandleData, 14));
-  
-          ma28Series = chartInstance.addLineSeries({ color: '#E91E63', lineWidth: 1 });
-          ma28Series.setData(generateMA(globalCandleData, 28));
-  
-          window.addEventListener('resize', () => {
-            if (chartContainer.value) {
-              chartInstance.applyOptions({
-                width: chartContainer.value.clientWidth,
-                height: chartContainer.value.clientHeight,
-              });
-            }
-          });
-        };
-  
-        // 產生隨機 K 線數據
-        const generateCandleData = () => {
-          const data = [];
-          let currentTime = Math.floor(Date.now() / 1000) - 99 * 15 * 60;
-          let basePrice = 1840;
-          for (let i = 0; i < 100; i++) {
-            const open = basePrice + (Math.random() - 0.5) * 2;
-            const close = open + (Math.random() - 0.5) * 2;
-            const high = Math.max(open, close) + Math.random() * 2;
-            const low = Math.min(open, close) - Math.random() * 2;
-            data.push({
-              time: currentTime,
-              open: parseFloat(open.toFixed(2)),
-              high: parseFloat(high.toFixed(2)),
-              low: parseFloat(low.toFixed(2)),
-              close: parseFloat(close.toFixed(2))
-            });
-            basePrice = close;
-            currentTime += 15 * 60;
-          }
-          return data;
-        };
-  
-        // 計算移動平均線
-        const generateMA = (candleData, period) => {
-          const result = [];
-          for (let i = 0; i < candleData.length; i++) {
-            if (i >= period - 1) {
-              let sum = 0;
-              for (let j = 0; j < period; j++) {
-                sum += candleData[i - j].close;
-              }
-              result.push({ time: candleData[i].time, value: parseFloat((sum / period).toFixed(2)) });
-            }
-          }
-          return result;
-        };
-  
-        // 模擬實時數據更新
-        const simulateRealTimeUpdates = () => {
-          let lastPriceLocal = currentPrice.value;
-          setInterval(() => {
-            const volatility = Math.random() * 0.5;
-            const direction = Math.random() > 0.5 ? 1 : -1;
-            let newPrice = currentPrice.value + direction * volatility;
-            newPrice = parseFloat(newPrice.toFixed(2));
-            const diff = newPrice - lastPriceLocal;
-            const diffPercent = (diff / lastPriceLocal) * 100;
-            lastPriceLocal = newPrice;
-            currentPrice.value = newPrice;
-            priceChange.value = diffPercent;
-  
-            // 更新圖表最後一根 K 線
-            const lastCandle = globalCandleData[globalCandleData.length - 1];
-            lastCandle.close = newPrice;
-            if (newPrice > lastCandle.high) lastCandle.high = newPrice;
-            if (newPrice < lastCandle.low) lastCandle.low = newPrice;
-            candleSeries.update(lastCandle);
-  
-            // 更新 MA 數據
-            ma7Series.setData(generateMA(globalCandleData, 7));
-            ma14Series.setData(generateMA(globalCandleData, 14));
-            ma28Series.setData(generateMA(globalCandleData, 28));
-  
-            // 更新 MA 顯示
-            const ma7Data = generateMA(globalCandleData, 7);
-            const ma14Data = generateMA(globalCandleData, 14);
-            const ma28Data = generateMA(globalCandleData, 28);
-            ma7Value.value = ma7Data[ma7Data.length - 1] ? ma7Data[ma7Data.length - 1].value.toFixed(2) : '--';
-            ma14Value.value = ma14Data[ma14Data.length - 1] ? ma14Data[ma14Data.length - 1].value.toFixed(2) : '--';
-            ma28Value.value = ma28Data[ma28Data.length - 1] ? ma28Data[ma28Data.length - 1].value.toFixed(2) : '--';
-          }, 2000);
-        };
-  
-        onMounted(() => {
-          initChart();
-          simulateRealTimeUpdates();
+      <div class="tab-switcher">
+        <button class="tab-btn active" data-tab="chart"><i class="fas fa-chart-line"></i> 走勢圖</button>
+        <button class="tab-btn" data-tab="trade"><i class="fas fa-exchange-alt"></i> 交易</button>
+      </div>
+    </div>
+
+    <!-- 主內容區 -->
+    <div class="main-content">
+      <!-- 圖表區域 -->
+      <div class="content-section active" id="chart-section">
+        <div class="timeframe-selector">
+          <button class="timeframe-btn">1秒</button>
+          <button class="timeframe-btn">1分</button>
+          <button class="timeframe-btn">3分</button>
+          <button class="timeframe-btn">5分</button>
+          <button class="timeframe-btn active">15分</button>
+          <button class="timeframe-btn">30分</button>
+          <button class="timeframe-btn">1小時</button>
+          <button class="timeframe-btn">4小時</button>
+          <button class="timeframe-btn">1天</button>
+        </div>
+        <div class="chart-container" id="chart"></div>
+        <div class="indicators">
+          <div class="indicator">
+            <span class="indicator-name">MA7:</span>
+            <span class="indicator-value">--</span>
+          </div>
+          <div class="indicator">
+            <span class="indicator-name">MA14:</span>
+            <span class="indicator-value">--</span>
+          </div>
+          <div class="indicator">
+            <span class="indicator-name">MA28:</span>
+            <span class="indicator-value">--</span>
+          </div>
+          <div class="indicator">
+            <span class="indicator-name">RSI:</span>
+            <span class="indicator-value">65.3</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 交易區域 -->
+      <div class="content-section" id="trade-section">
+        <div class="trade-tabs">
+          <button class="trade-tab-btn active" data-trade-tab="market">市價單</button>
+          <button class="trade-tab-btn" data-trade-tab="limit">限價單</button>
+        </div>
+
+        <div class="trade-content active" id="market-tab">
+          <div class="leverage-slider">
+            <label>槓桿倍數: <span id="leverage-value">10x</span></label>
+            <input type="range" min="1" max="75" value="10" class="slider" id="leverage-slider">
+            <div class="leverage-marks">
+              <span>1x</span>
+              <span>25x</span>
+              <span>50x</span>
+              <span>75x</span>
+            </div>
+          </div>
+
+          <div class="order-input">
+            <label>數量 (ETH)</label>
+            <input type="number" step="0.001" value="0.01" min="0.001">
+          </div>
+
+          <div class="available-balance">
+            <span>可用資金: 31.35 USDT</span>
+          </div>
+
+          <div class="order-buttons">
+            <button class="btn-long"><i class="fas fa-arrow-up"></i> 做多</button>
+            <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
+          </div>
+        </div>
+
+        <div class="trade-content" id="limit-tab">
+          <div class="leverage-slider">
+            <label>槓桿倍數: <span id="leverage-value-limit">10x</span></label>
+            <input type="range" min="1" max="75" value="10" class="slider" id="leverage-slider-limit">
+            <div class="leverage-marks">
+              <span>1x</span>
+              <span>25x</span>
+              <span>50x</span>
+              <span>75x</span>
+            </div>
+          </div>
+
+          <div class="order-input">
+            <label>價格 (USDT)</label>
+            <input type="number" step="0.01" value="1842.35" min="0.01">
+          </div>
+
+          <div class="order-input">
+            <label>數量 (ETH)</label>
+            <input type="number" step="0.001" value="0.01" min="0.001">
+          </div>
+
+          <div class="available-balance">
+            <span>可用資金: 31.35 USDT</span>
+          </div>
+
+          <div class="order-buttons">
+            <button class="btn-long"><i class="fas fa-arrow-up"></i> 做多</button>
+            <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
+          </div>
+        </div>
+
+        <!-- 持倉區塊 -->
+        <div class="positions-section">
+          <h3>持倉</h3>
+          <div class="position-card">
+            <div class="position-header">
+              <span class="position-symbol">ETHUSDT</span>
+              <span class="position-type long">做多 10x</span>
+            </div>
+            <div class="position-details">
+              <div class="position-info">
+                <div class="info-row">
+                  <span>持倉數量:</span>
+                  <span>0.025 ETH</span>
+                </div>
+                <div class="info-row">
+                  <span>入場價格:</span>
+                  <span>1820.45 USDT</span>
+                </div>
+                <div class="info-row">
+                  <span>標記價格:</span>
+                  <span>1842.35 USDT</span>
+                </div>
+                <div class="info-row">
+                  <span>強平價格:</span>
+                  <span>1638.40 USDT</span>
+                </div>
+                <div class="info-row">
+                  <span>未結盈虧:</span>
+                  <span class="profit">+5.47 USDT (+1.20%)</span>
+                </div>
+              </div>
+              <div class="position-actions">
+                <button class="position-btn"><i class="fas fa-stop-circle"></i> 止盈止損</button>
+                <button class="position-btn"><i class="fas fa-chart-area"></i> 追蹤出場</button>
+                <button class="position-btn close-btn"><i class="fas fa-hand-holding-usd"></i> 平倉</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 訂單簿 -->
+        <div class="orderbook-section">
+          <h3>訂單簿 <i class="fas fa-sort"></i> <i class="fas fa-align-justify"></i></h3>
+          <div class="orderbook">
+            <div class="orderbook-header">
+              <span>價格</span>
+              <span>數量</span>
+              <span>總額</span>
+            </div>
+            <div class="orderbook-asks">
+              <div class="orderbook-row">
+                <span class="price sell">1845.20</span>
+                <span class="amount">0.542</span>
+                <span class="total">999.54</span>
+                <div class="depth-bar sell" style="width: 15%;"></div>
+              </div>
+              <div class="orderbook-row">
+                <span class="price sell">1844.85</span>
+                <span class="amount">0.231</span>
+                <span class="total">426.16</span>
+                <div class="depth-bar sell" style="width: 8%;"></div>
+              </div>
+              <div class="orderbook-row">
+                <span class="price sell">1844.10</span>
+                <span class="amount">0.867</span>
+                <span class="total">1598.83</span>
+                <div class="depth-bar sell" style="width: 25%;"></div>
+              </div>
+              <div class="orderbook-row">
+                <span class="price sell">1843.75</span>
+                <span class="amount">0.325</span>
+                <span class="total">599.22</span>
+                <div class="depth-bar sell" style="width: 12%;"></div>
+              </div>
+              <div class="orderbook-row">
+                <span class="price sell">1843.00</span>
+                <span class="amount">0.423</span>
+                <span class="total">779.59</span>
+                <div class="depth-bar sell" style="width: 18%;"></div>
+              </div>
+            </div>
+            <div class="orderbook-current-price">
+              <span class="current">1842.35</span>
+            </div>
+            <div class="orderbook-bids">
+              <div class="orderbook-row">
+                <span class="price buy">1842.00</span>
+                <span class="amount">0.356</span>
+                <span class="total">655.75</span>
+                <div class="depth-bar buy" style="width: 16%;"></div>
+              </div>
+              <div class="orderbook-row">
+                <span class="price buy">1841.50</span>
+                <span class="amount">0.725</span>
+                <span class="total">1335.09</span>
+                <div class="depth-bar buy" style="width: 30%;"></div>
+              </div>
+              <div class="orderbook-row">
+                <span class="price buy">1840.85</span>
+                <span class="amount">0.218</span>
+                <span class="total">401.31</span>
+                <div class="depth-bar buy" style="width: 9%;"></div>
+              </div>
+              <div class="orderbook-row">
+                <span class="price buy">1840.25</span>
+                <span class="amount">0.542</span>
+                <span class="total">997.42</span>
+                <div class="depth-bar buy" style="width: 22%;"></div>
+              </div>
+              <div class="orderbook-row">
+                <span class="price buy">1839.75</span>
+                <span class="amount">0.320</span>
+                <span class="total">588.72</span>
+                <div class="depth-bar buy" style="width: 14%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部導航欄 -->
+    <div class="bottom-nav">
+      <button class="nav-btn"><i class="fas fa-home"></i><span>首頁</span></button>
+      <button class="nav-btn"><i class="fas fa-chart-bar"></i><span>行情</span></button>
+      <button class="nav-btn active"><i class="fas fa-exchange-alt"></i><span>交易</span></button>
+      <button class="nav-btn"><i class="fas fa-wallet"></i><span>資產</span></button>
+      <button class="nav-btn"><i class="fas fa-cog"></i><span>設置</span></button>
+    </div>
+  </div>
+
+  <script>
+    const { createChart } = window.LightweightCharts;
+
+    // 全局變數用於圖表更新
+    let globalChart;
+    let globalCandleSeries;
+    let globalMA7Series;
+    let globalMA14Series;
+    let globalMA28Series;
+    let globalVolumeSeries;
+    let globalSupportAreaSeries;
+    let globalCandleData = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+      initChart();
+      initTabSwitcher();
+      initTradeTabSwitcher();
+      initLeverageSliders();
+      simulateRealTimeUpdates();
+    });
+
+    // 初始化圖表
+    function initChart() {
+      const chartContainer = document.getElementById('chart');
+      globalChart = createChart(chartContainer, {
+        width: chartContainer.clientWidth,
+        height: chartContainer.clientHeight,
+        layout: {
+          backgroundColor: '#151b29',
+          textColor: '#d1d4dc'
+        },
+        grid: {
+          vertLines: { color: 'rgba(42, 46, 57, 0.5)' },
+          horzLines: { color: 'rgba(42, 46, 57, 0.5)' }
+        },
+        crosshair: { mode: 0 },
+        priceScale: { borderColor: '#2c3647' },
+        timeScale: { borderColor: '#2c3647', timeVisible: true }
+      });
+
+      globalCandleSeries = globalChart.addCandlestickSeries({
+        upColor: '#28a745',
+        downColor: '#dc3545',
+        borderDownColor: '#dc3545',
+        borderUpColor: '#28a745',
+        wickDownColor: '#dc3545',
+        wickUpColor: '#28a745'
+      });
+
+      globalCandleData = generateCandleData();
+      globalCandleSeries.setData(globalCandleData);
+
+      globalMA7Series = globalChart.addLineSeries({ color: '#2196F3', lineWidth: 1 });
+      globalMA7Series.setData(generateMA(globalCandleData, 7));
+
+      globalMA14Series = globalChart.addLineSeries({ color: '#FF9800', lineWidth: 1 });
+      globalMA14Series.setData(generateMA(globalCandleData, 14));
+
+      globalMA28Series = globalChart.addLineSeries({ color: '#E91E63', lineWidth: 1 });
+      globalMA28Series.setData(generateMA(globalCandleData, 28));
+
+      globalVolumeSeries = globalChart.addHistogramSeries({
+        color: '#3a7bd5',
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',
+        scaleMargins: { top: 0.85, bottom: 0 }
+      });
+      globalVolumeSeries.setData(generateVolumeData());
+
+      // 阻力與支撐線
+      globalCandleSeries.createPriceLine({
+        price: 1846.50,
+        color: '#f44336',
+        lineWidth: 1,
+        lineStyle: 2,
+        axisLabelVisible: true,
+        title: '阻力位'
+      });
+      globalCandleSeries.createPriceLine({
+        price: 1837.20,
+        color: '#2196F3',
+        lineWidth: 1,
+        lineStyle: 2,
+        axisLabelVisible: true,
+        title: '支撐位'
+      });
+
+      globalSupportAreaSeries = globalChart.addAreaSeries({
+        topColor: 'rgba(51, 153, 255, 0.1)',
+        bottomColor: 'rgba(51, 153, 255, 0.02)',
+        lineColor: 'rgba(51, 153, 255, 0.2)',
+        lineWidth: 1,
+        title: '支撐區'
+      });
+      globalSupportAreaSeries.setData(generateSupportArea(globalCandleData));
+
+      window.addEventListener('resize', () => {
+        globalChart.applyOptions({
+          width: chartContainer.clientWidth,
+          height: chartContainer.clientHeight
         });
-  
-        return {
-          activeTab,
-          activeTradeTab,
-          timeframes,
-          activeTimeframe,
-          currentPrice,
-          priceChange,
-          marketLeverage,
-          limitLeverage,
-          marketOrderQty,
-          limitOrderPrice,
-          limitOrderQty,
-          chartContainer,
-          ma7Value,
-          ma14Value,
-          ma28Value
-        };
+      });
+    }
+
+    // 產生K線數據（15分鐘K線，共100根）
+    function generateCandleData() {
+      const data = [];
+      let currentTime = Math.floor(Date.now() / 1000) - 99 * 15 * 60;
+      let basePrice = 1840;
+      for (let i = 0; i < 100; i++) {
+        const open = basePrice + (Math.random() - 0.5) * 2;
+        const close = open + (Math.random() - 0.5) * 2;
+        const high = Math.max(open, close) + Math.random() * 2;
+        const low = Math.min(open, close) - Math.random() * 2;
+        data.push({
+          time: currentTime,
+          open: parseFloat(open.toFixed(2)),
+          high: parseFloat(high.toFixed(2)),
+          low: parseFloat(low.toFixed(2)),
+          close: parseFloat(close.toFixed(2))
+        });
+        basePrice = close;
+        currentTime += 15 * 60;
       }
-    };
-  
-    createApp(App).mount("#app");
+      return data;
+    }
+
+    // 產生成交量數據
+    function generateVolumeData() {
+      const data = [];
+      let currentTime = Math.floor(Date.now() / 1000) - 99 * 15 * 60;
+      for (let i = 0; i < 100; i++) {
+        data.push({
+          time: currentTime,
+          value: Math.random() * 5000 + 1000,
+          color: Math.random() > 0.5 ? 'rgba(40, 167, 69, 0.5)' : 'rgba(220, 53, 69, 0.5)'
+        });
+        currentTime += 15 * 60;
+      }
+      return data;
+    }
+
+    // 產生移動平均線數據，使用傳入的 candleData
+    function generateMA(candleData, period) {
+      const result = [];
+      for (let i = 0; i < candleData.length; i++) {
+        if (i >= period - 1) {
+          let sum = 0;
+          for (let j = 0; j < period; j++) {
+            sum += candleData[i - j].close;
+          }
+          result.push({
+            time: candleData[i].time,
+            value: parseFloat((sum / period).toFixed(2))
+          });
+        }
+      }
+      return result;
+    }
+
+    // 產生支撐區數據（固定支撐水平）
+    function generateSupportArea(candleData) {
+      const data = [];
+      const supportLevel = 1837;
+      for (let i = 0; i < candleData.length; i++) {
+        data.push({
+          time: candleData[i].time,
+          value: supportLevel
+        });
+      }
+      return data;
+    }
+
+    // 標籤切換功能
+    function initTabSwitcher() {
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      const contentSections = document.querySelectorAll('.content-section');
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const targetTab = this.getAttribute('data-tab');
+          tabBtns.forEach(btn => btn.classList.remove('active'));
+          contentSections.forEach(section => section.classList.remove('active'));
+          this.classList.add('active');
+          document.getElementById(`${targetTab}-section`).classList.add('active');
+        });
+      });
+    }
+
+    // 交易頁籤切換功能
+    function initTradeTabSwitcher() {
+      const tradeTabBtns = document.querySelectorAll('.trade-tab-btn');
+      const tradeContents = document.querySelectorAll('.trade-content');
+      tradeTabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const targetTab = this.getAttribute('data-trade-tab');
+          tradeTabBtns.forEach(btn => btn.classList.remove('active'));
+          tradeContents.forEach(content => content.classList.remove('active'));
+          this.classList.add('active');
+          document.getElementById(`${targetTab}-tab`).classList.add('active');
+        });
+      });
+    }
+
+    // 槓桿滑塊功能
+    function initLeverageSliders() {
+      const marketLeverageSlider = document.getElementById('leverage-slider');
+      const marketLeverageValue = document.getElementById('leverage-value');
+      const limitLeverageSlider = document.getElementById('leverage-slider-limit');
+      const limitLeverageValue = document.getElementById('leverage-value-limit');
+      marketLeverageSlider.addEventListener('input', function() {
+        marketLeverageValue.textContent = this.value + 'x';
+      });
+      limitLeverageSlider.addEventListener('input', function() {
+        limitLeverageValue.textContent = this.value + 'x';
+      });
+    }
+
+    // 模擬實時數據更新（同時更新價格顯示與圖表最後一根K線及MA）
+    function simulateRealTimeUpdates() {
+      let currentPrice = 1842.35;
+      setInterval(() => {
+        const volatility = Math.random() * 0.5;
+        const direction = Math.random() > 0.5 ? 1 : -1;
+        let newPrice = currentPrice + direction * volatility;
+        newPrice = parseFloat(newPrice.toFixed(2));
+        const diff = newPrice - currentPrice;
+        const diffPercent = (diff / currentPrice) * 100;
+        currentPrice = newPrice;
+
+        // 更新 UI 中的價格
+        const currentPriceEl = document.querySelector('.current-price');
+        const priceChangeEl = document.querySelector('.price-change');
+        const orderBookCurrentEl = document.querySelector('.orderbook-current-price .current');
+        if (currentPriceEl) {
+          currentPriceEl.textContent = currentPrice.toFixed(2);
+        }
+        if (priceChangeEl) {
+          priceChangeEl.textContent = (diffPercent >= 0 ? '+' : '') + diffPercent.toFixed(2) + '%';
+          priceChangeEl.className = `price-change ${diffPercent >= 0 ? 'positive' : 'negative'}`;
+        }
+        if (orderBookCurrentEl) {
+          orderBookCurrentEl.textContent = currentPrice.toFixed(2);
+        }
+
+        // 更新圖表：修改全局K線資料中最後一根的價格
+        const lastIndex = globalCandleData.length - 1;
+        const lastCandle = globalCandleData[lastIndex];
+        lastCandle.close = currentPrice;
+        if (currentPrice > lastCandle.high) lastCandle.high = currentPrice;
+        if (currentPrice < lastCandle.low) lastCandle.low = currentPrice;
+        globalCandleSeries.update(lastCandle);
+
+        // 更新MA線
+        globalMA7Series.setData(generateMA(globalCandleData, 7));
+        globalMA14Series.setData(generateMA(globalCandleData, 14));
+        globalMA28Series.setData(generateMA(globalCandleData, 28));
+      }, 2000);
+    }
   </script>
 </body>
 </html>
