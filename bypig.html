@@ -1,984 +1,1052 @@
 <!DOCTYPE html>
 <html lang="zh">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>加密貨幣交易平台</title>
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <!-- Importmap for Lightweight Charts -->
-  <script type="importmap">
-  {
-    "imports": {
-      "lightweight-charts": "https://cdn.jsdelivr.net/npm/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"
-    }
-  }
-  </script>
-  <style>
-    /* ===== 基本重置與字型 ===== */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
-    :root {
-      --primary-bg: #0a0e17;
-      --secondary-bg: #151b29;
-      --tertiary-bg: #1c2536;
-      --border-color: #2c3647;
-      --text-color: #e5e5e5;
-      --text-secondary: #8c8c8c;
-      --green-color: #28a745;
-      --red-color: #dc3545;
-      --accent-color: #3a7bd5;
-      --support-area: rgba(51, 153, 255, 0.1);
-    }
-    body {
-      background-color: var(--primary-bg);
-      color: var(--text-color);
-      height: 100vh;
-      overflow: hidden;
-    }
-    .app-container {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      max-width: 100%;
-      margin: 0 auto;
-    }
-    /* ===== 頂部信息 ===== */
-    .header {
-      padding: 10px 15px;
-      background-color: var(--secondary-bg);
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .symbol-info h1 {
-      font-size: 18px;
-      margin-bottom: 4px;
-    }
-    .price-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .current-price {
-      font-size: 16px;
-      font-weight: bold;
-    }
-    .price-change {
-      font-size: 14px;
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-    .price-change.positive {
-      color: var(--green-color);
-      background-color: rgba(40, 167, 69, 0.1);
-    }
-    .price-change.negative {
-      color: var(--red-color);
-      background-color: rgba(220, 53, 69, 0.1);
-    }
-    .tab-switcher {
-      display: flex;
-      gap: 10px;
-    }
-    .tab-btn {
-      padding: 8px 15px;
-      background-color: transparent;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      color: var(--text-color);
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s ease;
-    }
-    .tab-btn:hover {
-      background-color: var(--tertiary-bg);
-    }
-    .tab-btn.active {
-      background-color: var(--tertiary-bg);
-      border-color: var(--accent-color);
-    }
-    /* ===== 主內容 ===== */
-    .main-content {
-      flex: 1;
-      overflow: hidden;
-      position: relative;
-    }
-    .content-section {
-      display: none;
-      height: 100%;
-      overflow-y: auto;
-    }
-    .content-section.active {
-      display: block;
-    }
-    /* ===== 圖表區 ===== */
-    .timeframe-selector {
-      display: flex;
-      gap: 2px;
-      padding: 10px;
-      background-color: var(--secondary-bg);
-      overflow-x: auto;
-      white-space: nowrap;
-    }
-    .timeframe-btn {
-      padding: 5px 10px;
-      background-color: transparent;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      color: var(--text-color);
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .timeframe-btn.active {
-      background-color: var(--tertiary-bg);
-      border-color: var(--accent-color);
-    }
-    .chart-container {
-      height: calc(100% - 120px);
-      width: 100%;
-      background-color: var(--secondary-bg);
-      position: relative;
-    }
-    .indicators {
-      display: flex;
-      flex-wrap: wrap;
-      padding: 10px;
-      background-color: var(--secondary-bg);
-      border-top: 1px solid var(--border-color);
-    }
-    .indicator {
-      margin-right: 15px;
-      font-size: 12px;
-    }
-    .indicator-name {
-      color: var(--text-secondary);
-    }
-    /* ===== 交易區 ===== */
-    .trade-tabs {
-      display: flex;
-      padding: 10px;
-      background-color: var(--secondary-bg);
-      border-bottom: 1px solid var(--border-color);
-    }
-    .trade-tab-btn {
-      flex: 1;
-      padding: 8px;
-      background-color: transparent;
-      border: none;
-      color: var(--text-color);
-      font-size: 14px;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-    }
-    .trade-tab-btn.active {
-      border-bottom: 2px solid var(--accent-color);
-      font-weight: bold;
-    }
-    .trade-content {
-      display: none;
-      padding: 15px;
-      background-color: var(--secondary-bg);
-    }
-    .trade-content.active {
-      display: block;
-    }
-    .leverage-slider {
-      margin-bottom: 20px;
-    }
-    .leverage-slider label {
-      display: block;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-    .slider {
-      width: 100%;
-      height: 5px;
-      background: var(--tertiary-bg);
-      border-radius: 5px;
-      outline: none;
-      -webkit-appearance: none;
-    }
-    .slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 15px;
-      height: 15px;
-      border-radius: 50%;
-      background: var(--accent-color);
-      cursor: pointer;
-    }
-    .leverage-marks {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 5px;
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-    .order-input {
-      margin-bottom: 15px;
-    }
-    .order-input label {
-      display: block;
-      margin-bottom: 5px;
-      font-size: 14px;
-    }
-    .order-input input {
-      width: 100%;
-      padding: 10px;
-      background-color: var(--tertiary-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      color: var(--text-color);
-      font-size: 14px;
-    }
-    .available-balance {
-      margin-bottom: 15px;
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-    .order-buttons {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .btn-long, .btn-short {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: bold;
-      color: white;
-      cursor: pointer;
-    }
-    .btn-long {
-      background-color: var(--green-color);
-    }
-    .btn-short {
-      background-color: var(--red-color);
-    }
-    /* ===== 持倉區塊 ===== */
-    .positions-section {
-      padding: 15px;
-      background-color: var(--secondary-bg);
-      border-top: 1px solid var(--border-color);
-      border-bottom: 1px solid var(--border-color);
-    }
-    .positions-section h3 {
-      margin-bottom: 15px;
-      font-size: 16px;
-    }
-    .position-card {
-      background-color: var(--tertiary-bg);
-      border-radius: 6px;
-      overflow: hidden;
-      margin-bottom: 10px;
-    }
-    .position-header {
-      padding: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-    .position-symbol {
-      font-weight: bold;
-    }
-    .position-type {
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 12px;
-    }
-    .position-type.long {
-      background-color: rgba(40, 167, 69, 0.2);
-      color: var(--green-color);
-    }
-    .position-type.short {
-      background-color: rgba(220, 53, 69, 0.2);
-      color: var(--red-color);
-    }
-    .position-details {
-      padding: 10px;
-    }
-    .position-info {
-      margin-bottom: 15px;
-    }
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-    .info-row span:first-child {
-      color: var(--text-secondary);
-    }
-    .profit {
-      color: var(--green-color);
-    }
-    .loss {
-      color: var(--red-color);
-    }
-    .position-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .position-btn {
-      flex: 1;
-      padding: 8px;
-      background-color: var(--secondary-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      color: var(--text-color);
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .position-btn.close-btn {
-      background-color: rgba(220, 53, 69, 0.1);
-      border-color: var(--red-color);
-      color: var(--red-color);
-    }
-    /* ===== 訂單簿 ===== */
-    .orderbook-section {
-      padding: 15px;
-      background-color: var(--secondary-bg);
-    }
-    .orderbook-section h3 {
-      margin-bottom: 15px;
-      font-size: 16px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .orderbook-section h3 i {
-      font-size: 14px;
-      cursor: pointer;
-      color: var(--text-secondary);
-    }
-    .orderbook {
-      position: relative;
-    }
-    .orderbook-header {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      padding: 8px 0;
-      font-size: 13px;
-      color: var(--text-secondary);
-      border-bottom: 1px solid var(--border-color);
-    }
-    .orderbook-asks, .orderbook-bids {
-      position: relative;
-    }
-    .orderbook-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      padding: 6px 0;
-      font-size: 13px;
-      position: relative;
-      z-index: 1;
-    }
-    .depth-bar {
-      position: absolute;
-      top: 0;
-      right: 0;
-      height: 100%;
-      z-index: -1;
-    }
-    .depth-bar.sell {
-      background-color: rgba(220, 53, 69, 0.1);
-    }
-    .depth-bar.buy {
-      background-color: rgba(40, 167, 69, 0.1);
-    }
-    .price.sell {
-      color: var(--red-color);
-    }
-    .price.buy {
-      color: var(--green-color);
-    }
-    .orderbook-current-price {
-      text-align: center;
-      padding: 8px 0;
-      background-color: var(--tertiary-bg);
-      margin: 5px 0;
-    }
-    .current {
-      font-weight: bold;
-      font-size: 14px;
-    }
-    /* ===== 底部導航欄 ===== */
-    .bottom-nav {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      background-color: var(--secondary-bg);
-      border-top: 1px solid var(--border-color);
-      padding: 8px 0;
-    }
-    .nav-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      background-color: transparent;
-      border: none;
-      color: var(--text-secondary);
-      font-size: 12px;
-      cursor: pointer;
-      padding: 8px;
-    }
-    .nav-btn i {
-      font-size: 16px;
-    }
-    .nav-btn.active {
-      color: var(--accent-color);
-    }
-    /* ===== 響應式 ===== */
-    @media (max-width: 768px) {
-      .header {
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>加密貨幣交易平台</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <!-- Importmap for Lightweight Charts -->
+    <script type="importmap">
+      {
+        "imports": {
+          "lightweight-charts": "https://cdn.jsdelivr.net/npm/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"
+        }
+      }
+    </script>
+    <style>
+      /* ===== 基本重置與字型 ===== */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+      :root {
+        --primary-bg: #0a0e17;
+        --secondary-bg: #151b29;
+        --tertiary-bg: #1c2536;
+        --border-color: #2c3647;
+        --text-color: #e5e5e5;
+        --text-secondary: #8c8c8c;
+        --green-color: #28a745;
+        --red-color: #dc3545;
+        --accent-color: #3a7bd5;
+        --support-area: rgba(51, 153, 255, 0.1);
+      }
+      body {
+        background-color: var(--primary-bg);
+        color: var(--text-color);
+        height: 100vh;
+        overflow: hidden;
+      }
+      .app-container {
+        display: flex;
         flex-direction: column;
-        align-items: flex-start;
+        height: 100vh;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+      /* ===== 頂部信息 ===== */
+      .header {
+        padding: 10px 15px;
+        background-color: var(--secondary-bg);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .symbol-info h1 {
+        font-size: 18px;
+        margin-bottom: 4px;
+      }
+      .price-info {
+        display: flex;
+        align-items: center;
         gap: 10px;
       }
+      .current-price {
+        font-size: 16px;
+        font-weight: bold;
+      }
+      .price-change {
+        font-size: 14px;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      .price-change.positive {
+        color: var(--green-color);
+        background-color: rgba(40, 167, 69, 0.1);
+      }
+      .price-change.negative {
+        color: var(--red-color);
+        background-color: rgba(220, 53, 69, 0.1);
+      }
       .tab-switcher {
-        width: 100%;
+        display: flex;
+        gap: 10px;
       }
       .tab-btn {
+        padding: 8px 15px;
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        color: var(--text-color);
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+      }
+      .tab-btn:hover {
+        background-color: var(--tertiary-bg);
+      }
+      .tab-btn.active {
+        background-color: var(--tertiary-bg);
+        border-color: var(--accent-color);
+      }
+      /* ===== 主內容 ===== */
+      .main-content {
         flex: 1;
-        text-align: center;
+        overflow: hidden;
+        position: relative;
+      }
+      .content-section {
+        display: none;
+        height: 100%;
+        overflow-y: auto;
+      }
+      .content-section.active {
+        display: block;
+      }
+      /* ===== 圖表區 ===== */
+      .timeframe-selector {
+        display: flex;
+        gap: 2px;
+        padding: 10px;
+        background-color: var(--secondary-bg);
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+      .timeframe-btn {
+        padding: 5px 10px;
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        color: var(--text-color);
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .timeframe-btn.active {
+        background-color: var(--tertiary-bg);
+        border-color: var(--accent-color);
+      }
+      .chart-container {
+        height: calc(100% - 120px);
+        width: 100%;
+        background-color: var(--secondary-bg);
+        position: relative;
+      }
+      .indicators {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 10px;
+        background-color: var(--secondary-bg);
+        border-top: 1px solid var(--border-color);
+      }
+      .indicator {
+        margin-right: 15px;
+        font-size: 12px;
+      }
+      .indicator-name {
+        color: var(--text-secondary);
+      }
+      /* ===== 交易區 ===== */
+      .trade-tabs {
+        display: flex;
+        padding: 10px;
+        background-color: var(--secondary-bg);
+        border-bottom: 1px solid var(--border-color);
+      }
+      .trade-tab-btn {
+        flex: 1;
+        padding: 8px;
+        background-color: transparent;
+        border: none;
+        color: var(--text-color);
+        font-size: 14px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+      }
+      .trade-tab-btn.active {
+        border-bottom: 2px solid var(--accent-color);
+        font-weight: bold;
+      }
+      .trade-content {
+        display: none;
+        padding: 15px;
+        background-color: var(--secondary-bg);
+      }
+      .trade-content.active {
+        display: block;
+      }
+      .leverage-slider {
+        margin-bottom: 20px;
+      }
+      .leverage-slider label {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 14px;
+      }
+      .slider {
+        width: 100%;
+        height: 5px;
+        background: var(--tertiary-bg);
+        border-radius: 5px;
+        outline: none;
+        -webkit-appearance: none;
+      }
+      .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: var(--accent-color);
+        cursor: pointer;
+      }
+      .leverage-marks {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 5px;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .order-input {
+        margin-bottom: 15px;
+      }
+      .order-input label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 14px;
+      }
+      .order-input input {
+        width: 100%;
+        padding: 10px;
+        background-color: var(--tertiary-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        color: var(--text-color);
+        font-size: 14px;
+      }
+      .available-balance {
+        margin-bottom: 15px;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .order-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .btn-long, .btn-short {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: bold;
+        color: white;
+        cursor: pointer;
+      }
+      .btn-long {
+        background-color: var(--green-color);
+      }
+      .btn-short {
+        background-color: var(--red-color);
+      }
+      /* ===== 持倉區塊 ===== */
+      .positions-section {
+        padding: 15px;
+        background-color: var(--secondary-bg);
+        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+      }
+      .positions-section h3 {
+        margin-bottom: 15px;
+        font-size: 16px;
+      }
+      .position-card {
+        background-color: var(--tertiary-bg);
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+      .position-header {
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      .position-symbol {
+        font-weight: bold;
+      }
+      .position-type {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      .position-type.long {
+        background-color: rgba(40, 167, 69, 0.2);
+        color: var(--green-color);
+      }
+      .position-type.short {
+        background-color: rgba(220, 53, 69, 0.2);
+        color: var(--red-color);
+      }
+      .position-details {
+        padding: 10px;
+      }
+      .position-info {
+        margin-bottom: 15px;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 13px;
+      }
+      .info-row span:first-child {
+        color: var(--text-secondary);
+      }
+      .profit {
+        color: var(--green-color);
+      }
+      .loss {
+        color: var(--red-color);
       }
       .position-actions {
-        flex-direction: column;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
       }
       .position-btn {
-        width: 100%;
+        flex: 1;
+        padding: 8px;
+        background-color: var(--secondary-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        color: var(--text-color);
+        font-size: 12px;
+        cursor: pointer;
       }
-    }
-    /* ===== 平滑過渡 ===== */
-    .tab-btn, .trade-tab-btn, .position-btn, .btn-long, .btn-short, .nav-btn {
-      transition: all 0.2s ease;
-    }
-    /* ===== 支撐區域 ===== */
-    .support-area {
-      background-color: var(--support-area);
-      position: absolute;
-      z-index: 1;
-    }
-  </style>
-</head>
-<body>
-  <div class="app-container">
-    <!-- 頂部交易對信息 -->
-    <div class="header">
-      <div class="symbol-info">
-        <h1>ETHUSDT</h1>
-        <div class="price-info">
-          <span class="current-price">1842.35</span>
-          <span class="price-change positive">+2.45%</span>
+      .position-btn.close-btn {
+        background-color: rgba(220, 53, 69, 0.1);
+        border-color: var(--red-color);
+        color: var(--red-color);
+      }
+      /* ===== 訂單簿 ===== */
+      .orderbook-section {
+        padding: 15px;
+        background-color: var(--secondary-bg);
+      }
+      .orderbook-section h3 {
+        margin-bottom: 15px;
+        font-size: 16px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .orderbook-section h3 i {
+        font-size: 14px;
+        cursor: pointer;
+        color: var(--text-secondary);
+      }
+      .orderbook {
+        position: relative;
+      }
+      .orderbook-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        padding: 8px 0;
+        font-size: 13px;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-color);
+      }
+      .orderbook-asks, .orderbook-bids {
+        position: relative;
+      }
+      .orderbook-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        padding: 6px 0;
+        font-size: 13px;
+        position: relative;
+        z-index: 1;
+      }
+      .depth-bar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 100%;
+        z-index: -1;
+      }
+      .depth-bar.sell {
+        background-color: rgba(220, 53, 69, 0.1);
+      }
+      .depth-bar.buy {
+        background-color: rgba(40, 167, 69, 0.1);
+      }
+      .price.sell {
+        color: var(--red-color);
+      }
+      .price.buy {
+        color: var(--green-color);
+      }
+      .orderbook-current-price {
+        text-align: center;
+        padding: 8px 0;
+        background-color: var(--tertiary-bg);
+        margin: 5px 0;
+      }
+      .current {
+        font-weight: bold;
+        font-size: 14px;
+      }
+      /* ===== 底部導航欄 ===== */
+      .bottom-nav {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        background-color: var(--secondary-bg);
+        border-top: 1px solid var(--border-color);
+        padding: 8px 0;
+      }
+      .nav-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        background-color: transparent;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 12px;
+        cursor: pointer;
+        padding: 8px;
+      }
+      .nav-btn i {
+        font-size: 16px;
+      }
+      .nav-btn.active {
+        color: var(--accent-color);
+      }
+      /* ===== 響應式 ===== */
+      @media (max-width: 768px) {
+        .header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+        .tab-switcher {
+          width: 100%;
+        }
+        .tab-btn {
+          flex: 1;
+          text-align: center;
+        }
+        .position-actions {
+          flex-direction: column;
+        }
+        .position-btn {
+          width: 100%;
+        }
+      }
+      /* ===== 平滑過渡 ===== */
+      .tab-btn, .trade-tab-btn, .position-btn, .btn-long, .btn-short, .nav-btn {
+        transition: all 0.2s ease;
+      }
+      /* ===== 支撐區域 ===== */
+      .support-area {
+        background-color: var(--support-area);
+        position: absolute;
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- 頂部交易對信息 -->
+      <div class="header">
+        <div class="symbol-info">
+          <h1>ETHUSDT</h1>
+          <div class="price-info">
+            <span class="current-price" id="currentPrice">1842.35</span>
+            <span class="price-change positive" id="priceChange">+2.45%</span>
+          </div>
+        </div>
+        <div class="tab-switcher">
+          <button class="tab-btn active" data-tab="chart"> <i class="fas fa-chart-line"></i> 走勢圖</button>
+          <button class="tab-btn" data-tab="trade"><i class="fas fa-exchange-alt"></i> 交易</button>
         </div>
       </div>
-      <div class="tab-switcher">
-        <button class="tab-btn active" data-tab="chart"><i class="fas fa-chart-line"></i> 走勢圖</button>
-        <button class="tab-btn" data-tab="trade"><i class="fas fa-exchange-alt"></i> 交易</button>
+
+      <!-- 主內容區 -->
+      <div class="main-content">
+        <!-- 圖表區域 -->
+        <div class="content-section active" id="chart-section">
+          <div class="timeframe-selector">
+            <button class="timeframe-btn" onclick="changeTimeFrame('1M')">1月</button>
+            <button class="timeframe-btn" onclick="changeTimeFrame('3M')">3月</button>
+            <button class="timeframe-btn" onclick="changeTimeFrame('6M')">6月</button>
+            <button class="timeframe-btn" onclick="changeTimeFrame('1Y')">1年</button>
+            <button class="timeframe-btn active" onclick="changeTimeFrame('ALL')">全部</button>
+          </div>
+          <div class="chart-container" id="chart"></div>
+          <div class="indicators">
+            <div class="indicator">
+              <span class="indicator-name">MA7:</span>
+              <span class="indicator-value" id="ma7Value">--</span>
+            </div>
+            <div class="indicator">
+              <span class="indicator-name">MA14:</span>
+              <span class="indicator-value" id="ma14Value">--</span>
+            </div>
+            <div class="indicator">
+              <span class="indicator-name">MA28:</span>
+              <span class="indicator-value" id="ma28Value">--</span>
+            </div>
+            <div class="indicator">
+              <span class="indicator-name">RSI:</span>
+              <span class="indicator-value">65.3</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 交易區域 -->
+        <div class="content-section" id="trade-section">
+          <div class="trade-tabs">
+            <button class="trade-tab-btn active" data-trade-tab="market">市價單</button>
+            <button class="trade-tab-btn" data-trade-tab="limit">限價單</button>
+          </div>
+          <div class="trade-content active" id="market-tab">
+            <div class="leverage-slider">
+              <label>槓桿倍數: <span id="leverage-value">10x</span></label>
+              <input type="range" min="1" max="75" value="10" class="slider" id="leverage-slider">
+              <div class="leverage-marks">
+                <span>1x</span>
+                <span>25x</span>
+                <span>50x</span>
+                <span>75x</span>
+              </div>
+            </div>
+            <div class="order-input">
+              <label>數量 (ETH)</label>
+              <input type="number" step="0.001" value="0.01" min="0.001">
+            </div>
+            <div class="available-balance">
+              <span>可用資金: 31.35 USDT</span>
+            </div>
+            <div class="order-buttons">
+              <button class="btn-long"><i class="fas fa-arrow-up"></i> 做多</button>
+              <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
+            </div>
+          </div>
+          <div class="trade-content" id="limit-tab">
+            <div class="leverage-slider">
+              <label>槓桿倍數: <span id="leverage-value-limit">10x</span></label>
+              <input type="range" min="1" max="75" value="10" class="slider" id="leverage-slider-limit">
+              <div class="leverage-marks">
+                <span>1x</span>
+                <span>25x</span>
+                <span>50x</span>
+                <span>75x</span>
+              </div>
+            </div>
+            <div class="order-input">
+              <label>價格 (USDT)</label>
+              <input type="number" step="0.01" value="1842.35" min="0.01">
+            </div>
+            <div class="order-input">
+              <label>數量 (ETH)</label>
+              <input type="number" step="0.001" value="0.01" min="0.001">
+            </div>
+            <div class="available-balance">
+              <span>可用資金: 31.35 USDT</span>
+            </div>
+            <div class="order-buttons">
+              <button class="btn-long"><i class="fas fa-arrow-up"></i> 做多</button>
+              <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
+            </div>
+          </div>
+          <!-- 持倉區塊 -->
+          <div class="positions-section">
+            <h3>持倉</h3>
+            <div class="position-card">
+              <div class="position-header">
+                <span class="position-symbol">ETHUSDT</span>
+                <span class="position-type long">做多 10x</span>
+              </div>
+              <div class="position-details">
+                <div class="position-info">
+                  <div class="info-row">
+                    <span>持倉數量:</span>
+                    <span>0.025 ETH</span>
+                  </div>
+                  <div class="info-row">
+                    <span>入場價格:</span>
+                    <span>1820.45 USDT</span>
+                  </div>
+                  <div class="info-row">
+                    <span>標記價格:</span>
+                    <span id="tradeMarkPrice">1842.35 USDT</span>
+                  </div>
+                  <div class="info-row">
+                    <span>強平價格:</span>
+                    <span>1638.40 USDT</span>
+                  </div>
+                  <div class="info-row">
+                    <span>未結盈虧:</span>
+                    <span class="profit">+5.47 USDT (+1.20%)</span>
+                  </div>
+                </div>
+                <div class="position-actions">
+                  <button class="position-btn"><i class="fas fa-stop-circle"></i> 止盈止損</button>
+                  <button class="position-btn"><i class="fas fa-chart-area"></i> 追蹤出場</button>
+                  <button class="position-btn close-btn"><i class="fas fa-hand-holding-usd"></i> 平倉</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 訂單簿 -->
+          <div class="orderbook-section">
+            <h3>訂單簿 <i class="fas fa-sort"></i> <i class="fas fa-align-justify"></i></h3>
+            <div class="orderbook">
+              <div class="orderbook-header">
+                <span>價格</span>
+                <span>數量</span>
+                <span>總額</span>
+              </div>
+              <div class="orderbook-asks">
+                <div class="orderbook-row">
+                  <span class="price sell">1845.20</span>
+                  <span class="amount">0.542</span>
+                  <span class="total">999.54</span>
+                  <div class="depth-bar sell" style="width: 15%;"></div>
+                </div>
+                <div class="orderbook-row">
+                  <span class="price sell">1844.85</span>
+                  <span class="amount">0.231</span>
+                  <span class="total">426.16</span>
+                  <div class="depth-bar sell" style="width: 8%;"></div>
+                </div>
+                <div class="orderbook-row">
+                  <span class="price sell">1844.10</span>
+                  <span class="amount">0.867</span>
+                  <span class="total">1598.83</span>
+                  <div class="depth-bar sell" style="width: 25%;"></div>
+                </div>
+                <div class="orderbook-row">
+                  <span class="price sell">1843.75</span>
+                  <span class="amount">0.325</span>
+                  <span class="total">599.22</span>
+                  <div class="depth-bar sell" style="width: 12%;"></div>
+                </div>
+                <div class="orderbook-row">
+                  <span class="price sell">1843.00</span>
+                  <span class="amount">0.423</span>
+                  <span class="total">779.59</span>
+                  <div class="depth-bar sell" style="width: 18%;"></div>
+                </div>
+              </div>
+              <div class="orderbook-current-price">
+                <span class="current" id="orderBookPrice">1842.35</span>
+              </div>
+              <div class="orderbook-bids">
+                <div class="orderbook-row">
+                  <span class="price buy">1842.00</span>
+                  <span class="amount">0.356</span>
+                  <span class="total">655.75</span>
+                  <div class="depth-bar buy" style="width: 16%;"></div>
+                </div>
+                <div class="orderbook-row">
+                  <span class="price buy">1841.50</span>
+                  <span class="amount">0.725</span>
+                  <span class="total">1335.09</span>
+                  <div class="depth-bar buy" style="width: 30%;"></div>
+                </div>
+                <div class="orderbook-row">
+                  <span class="price buy">1840.85</span>
+                  <span class="amount">0.218</span>
+                  <span class="total">401.31</span>
+                  <div class="depth-bar buy" style="width: 9%;"></div>
+                </div>
+                <div class="orderbook-row">
+                  <span class="price buy">1840.25</span>
+                  <span class="amount">0.542</span>
+                  <span class="total">997.42</span>
+                  <div class="depth-bar buy" style="width: 22%;"></div>
+                </div>
+                <div class="orderbook-row">
+                  <span class="price buy">1839.75</span>
+                  <span class="amount">0.320</span>
+                  <span class="total">588.72</span>
+                  <div class="depth-bar buy" style="width: 14%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部導航欄 -->
+      <div class="bottom-nav">
+        <button class="nav-btn"><i class="fas fa-home"></i><span>首頁</span></button>
+        <button class="nav-btn"><i class="fas fa-chart-bar"></i><span>行情</span></button>
+        <button class="nav-btn active"><i class="fas fa-exchange-alt"></i><span>交易</span></button>
+        <button class="nav-btn"><i class="fas fa-wallet"></i><span>資產</span></button>
+        <button class="nav-btn"><i class="fas fa-cog"></i><span>設置</span></button>
       </div>
     </div>
 
-    <!-- 主內容區 -->
-    <div class="main-content">
-      <!-- 圖表區域 -->
-      <div class="content-section active" id="chart-section">
-        <div class="timeframe-selector">
-          <button class="timeframe-btn">1秒</button>
-          <button class="timeframe-btn">1分</button>
-          <button class="timeframe-btn">3分</button>
-          <button class="timeframe-btn">5分</button>
-          <button class="timeframe-btn active">15分</button>
-          <button class="timeframe-btn">30分</button>
-          <button class="timeframe-btn">1小時</button>
-          <button class="timeframe-btn">4小時</button>
-          <button class="timeframe-btn">1天</button>
-        </div>
-        <div class="chart-container" id="chart"></div>
-        <div class="indicators">
-          <div class="indicator">
-            <span class="indicator-name">MA7:</span>
-            <span class="indicator-value">--</span>
-          </div>
-          <div class="indicator">
-            <span class="indicator-name">MA14:</span>
-            <span class="indicator-value">--</span>
-          </div>
-          <div class="indicator">
-            <span class="indicator-name">MA28:</span>
-            <span class="indicator-value">--</span>
-          </div>
-          <div class="indicator">
-            <span class="indicator-name">RSI:</span>
-            <span class="indicator-value">65.3</span>
-          </div>
-        </div>
-      </div>
+    <script>
+      // 使用 LightweightCharts
+      const { createChart } = window.LightweightCharts;
 
-      <!-- 交易區域 -->
-      <div class="content-section" id="trade-section">
-        <div class="trade-tabs">
-          <button class="trade-tab-btn active" data-trade-tab="market">市價單</button>
-          <button class="trade-tab-btn" data-trade-tab="limit">限價單</button>
-        </div>
+      // 模擬參數設定（將 15 分鐘改為 5 秒，方便測試）
+      let candleInterval = 5000; // 每根K線間隔：5秒
+      let simulationInterval = 2000; // 每2秒更新一次價格
+      // 初始新K線的起始時間（以毫秒計）
+      let lastTimestamp = Date.now();
 
-        <div class="trade-content active" id="market-tab">
-          <div class="leverage-slider">
-            <label>槓桿倍數: <span id="leverage-value">10x</span></label>
-            <input type="range" min="1" max="75" value="10" class="slider" id="leverage-slider">
-            <div class="leverage-marks">
-              <span>1x</span>
-              <span>25x</span>
-              <span>50x</span>
-              <span>75x</span>
-            </div>
-          </div>
+      // 全局圖表變數
+      let globalChart;
+      let globalCandleSeries;
+      let globalMA7Series;
+      let globalMA14Series;
+      let globalMA28Series;
+      let globalVolumeSeries;
+      let globalSupportAreaSeries;
+      let globalCandleData = [];
 
-          <div class="order-input">
-            <label>數量 (ETH)</label>
-            <input type="number" step="0.001" value="0.01" min="0.001">
-          </div>
-
-          <div class="available-balance">
-            <span>可用資金: 31.35 USDT</span>
-          </div>
-
-          <div class="order-buttons">
-            <button class="btn-long"><i class="fas fa-arrow-up"></i> 做多</button>
-            <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
-          </div>
-        </div>
-
-        <div class="trade-content" id="limit-tab">
-          <div class="leverage-slider">
-            <label>槓桿倍數: <span id="leverage-value-limit">10x</span></label>
-            <input type="range" min="1" max="75" value="10" class="slider" id="leverage-slider-limit">
-            <div class="leverage-marks">
-              <span>1x</span>
-              <span>25x</span>
-              <span>50x</span>
-              <span>75x</span>
-            </div>
-          </div>
-
-          <div class="order-input">
-            <label>價格 (USDT)</label>
-            <input type="number" step="0.01" value="1842.35" min="0.01">
-          </div>
-
-          <div class="order-input">
-            <label>數量 (ETH)</label>
-            <input type="number" step="0.001" value="0.01" min="0.001">
-          </div>
-
-          <div class="available-balance">
-            <span>可用資金: 31.35 USDT</span>
-          </div>
-
-          <div class="order-buttons">
-            <button class="btn-long"><i class="fas fa-arrow-up"></i> 做多</button>
-            <button class="btn-short"><i class="fas fa-arrow-down"></i> 做空</button>
-          </div>
-        </div>
-
-        <!-- 持倉區塊 -->
-        <div class="positions-section">
-          <h3>持倉</h3>
-          <div class="position-card">
-            <div class="position-header">
-              <span class="position-symbol">ETHUSDT</span>
-              <span class="position-type long">做多 10x</span>
-            </div>
-            <div class="position-details">
-              <div class="position-info">
-                <div class="info-row">
-                  <span>持倉數量:</span>
-                  <span>0.025 ETH</span>
-                </div>
-                <div class="info-row">
-                  <span>入場價格:</span>
-                  <span>1820.45 USDT</span>
-                </div>
-                <div class="info-row">
-                  <span>標記價格:</span>
-                  <span>1842.35 USDT</span>
-                </div>
-                <div class="info-row">
-                  <span>強平價格:</span>
-                  <span>1638.40 USDT</span>
-                </div>
-                <div class="info-row">
-                  <span>未結盈虧:</span>
-                  <span class="profit">+5.47 USDT (+1.20%)</span>
-                </div>
-              </div>
-              <div class="position-actions">
-                <button class="position-btn"><i class="fas fa-stop-circle"></i> 止盈止損</button>
-                <button class="position-btn"><i class="fas fa-chart-area"></i> 追蹤出場</button>
-                <button class="position-btn close-btn"><i class="fas fa-hand-holding-usd"></i> 平倉</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 訂單簿 -->
-        <div class="orderbook-section">
-          <h3>訂單簿 <i class="fas fa-sort"></i> <i class="fas fa-align-justify"></i></h3>
-          <div class="orderbook">
-            <div class="orderbook-header">
-              <span>價格</span>
-              <span>數量</span>
-              <span>總額</span>
-            </div>
-            <div class="orderbook-asks">
-              <div class="orderbook-row">
-                <span class="price sell">1845.20</span>
-                <span class="amount">0.542</span>
-                <span class="total">999.54</span>
-                <div class="depth-bar sell" style="width: 15%;"></div>
-              </div>
-              <div class="orderbook-row">
-                <span class="price sell">1844.85</span>
-                <span class="amount">0.231</span>
-                <span class="total">426.16</span>
-                <div class="depth-bar sell" style="width: 8%;"></div>
-              </div>
-              <div class="orderbook-row">
-                <span class="price sell">1844.10</span>
-                <span class="amount">0.867</span>
-                <span class="total">1598.83</span>
-                <div class="depth-bar sell" style="width: 25%;"></div>
-              </div>
-              <div class="orderbook-row">
-                <span class="price sell">1843.75</span>
-                <span class="amount">0.325</span>
-                <span class="total">599.22</span>
-                <div class="depth-bar sell" style="width: 12%;"></div>
-              </div>
-              <div class="orderbook-row">
-                <span class="price sell">1843.00</span>
-                <span class="amount">0.423</span>
-                <span class="total">779.59</span>
-                <div class="depth-bar sell" style="width: 18%;"></div>
-              </div>
-            </div>
-            <div class="orderbook-current-price">
-              <span class="current">1842.35</span>
-            </div>
-            <div class="orderbook-bids">
-              <div class="orderbook-row">
-                <span class="price buy">1842.00</span>
-                <span class="amount">0.356</span>
-                <span class="total">655.75</span>
-                <div class="depth-bar buy" style="width: 16%;"></div>
-              </div>
-              <div class="orderbook-row">
-                <span class="price buy">1841.50</span>
-                <span class="amount">0.725</span>
-                <span class="total">1335.09</span>
-                <div class="depth-bar buy" style="width: 30%;"></div>
-              </div>
-              <div class="orderbook-row">
-                <span class="price buy">1840.85</span>
-                <span class="amount">0.218</span>
-                <span class="total">401.31</span>
-                <div class="depth-bar buy" style="width: 9%;"></div>
-              </div>
-              <div class="orderbook-row">
-                <span class="price buy">1840.25</span>
-                <span class="amount">0.542</span>
-                <span class="total">997.42</span>
-                <div class="depth-bar buy" style="width: 22%;"></div>
-              </div>
-              <div class="orderbook-row">
-                <span class="price buy">1839.75</span>
-                <span class="amount">0.320</span>
-                <span class="total">588.72</span>
-                <div class="depth-bar buy" style="width: 14%;"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 底部導航欄 -->
-    <div class="bottom-nav">
-      <button class="nav-btn"><i class="fas fa-home"></i><span>首頁</span></button>
-      <button class="nav-btn"><i class="fas fa-chart-bar"></i><span>行情</span></button>
-      <button class="nav-btn active"><i class="fas fa-exchange-alt"></i><span>交易</span></button>
-      <button class="nav-btn"><i class="fas fa-wallet"></i><span>資產</span></button>
-      <button class="nav-btn"><i class="fas fa-cog"></i><span>設置</span></button>
-    </div>
-  </div>
-
-  <script>
-    const { createChart } = window.LightweightCharts;
-
-    // 全局變數用於圖表更新
-    let globalChart;
-    let globalCandleSeries;
-    let globalMA7Series;
-    let globalMA14Series;
-    let globalMA28Series;
-    let globalVolumeSeries;
-    let globalSupportAreaSeries;
-    let globalCandleData = [];
-
-    document.addEventListener('DOMContentLoaded', function() {
-      initChart();
-      initTabSwitcher();
-      initTradeTabSwitcher();
-      initLeverageSliders();
-      simulateRealTimeUpdates();
-    });
-
-    // 初始化圖表
-    function initChart() {
-      const chartContainer = document.getElementById('chart');
-      globalChart = createChart(chartContainer, {
-        width: chartContainer.clientWidth,
-        height: chartContainer.clientHeight,
-        layout: {
-          backgroundColor: '#151b29',
-          textColor: '#d1d4dc'
-        },
-        grid: {
-          vertLines: { color: 'rgba(42, 46, 57, 0.5)' },
-          horzLines: { color: 'rgba(42, 46, 57, 0.5)' }
-        },
-        crosshair: { mode: 0 },
-        priceScale: { borderColor: '#2c3647' },
-        timeScale: { borderColor: '#2c3647', timeVisible: true }
+      document.addEventListener('DOMContentLoaded', function() {
+        initChart();
+        initTabSwitcher();
+        initTradeTabSwitcher();
+        initLeverageSliders();
+        simulateRealTimeUpdates();
       });
 
-      globalCandleSeries = globalChart.addCandlestickSeries({
-        upColor: '#28a745',
-        downColor: '#dc3545',
-        borderDownColor: '#dc3545',
-        borderUpColor: '#28a745',
-        wickDownColor: '#dc3545',
-        wickUpColor: '#28a745'
-      });
-
-      globalCandleData = generateCandleData();
-      globalCandleSeries.setData(globalCandleData);
-
-      globalMA7Series = globalChart.addLineSeries({ color: '#2196F3', lineWidth: 1 });
-      globalMA7Series.setData(generateMA(globalCandleData, 7));
-
-      globalMA14Series = globalChart.addLineSeries({ color: '#FF9800', lineWidth: 1 });
-      globalMA14Series.setData(generateMA(globalCandleData, 14));
-
-      globalMA28Series = globalChart.addLineSeries({ color: '#E91E63', lineWidth: 1 });
-      globalMA28Series.setData(generateMA(globalCandleData, 28));
-
-      globalVolumeSeries = globalChart.addHistogramSeries({
-        color: '#3a7bd5',
-        priceFormat: { type: 'volume' },
-        priceScaleId: '',
-        scaleMargins: { top: 0.85, bottom: 0 }
-      });
-      globalVolumeSeries.setData(generateVolumeData());
-
-      // 阻力與支撐線
-      globalCandleSeries.createPriceLine({
-        price: 1846.50,
-        color: '#f44336',
-        lineWidth: 1,
-        lineStyle: 2,
-        axisLabelVisible: true,
-        title: '阻力位'
-      });
-      globalCandleSeries.createPriceLine({
-        price: 1837.20,
-        color: '#2196F3',
-        lineWidth: 1,
-        lineStyle: 2,
-        axisLabelVisible: true,
-        title: '支撐位'
-      });
-
-      globalSupportAreaSeries = globalChart.addAreaSeries({
-        topColor: 'rgba(51, 153, 255, 0.1)',
-        bottomColor: 'rgba(51, 153, 255, 0.02)',
-        lineColor: 'rgba(51, 153, 255, 0.2)',
-        lineWidth: 1,
-        title: '支撐區'
-      });
-      globalSupportAreaSeries.setData(generateSupportArea(globalCandleData));
-
-      window.addEventListener('resize', () => {
-        globalChart.applyOptions({
+      // 初始化圖表，利用 LightweightCharts 畫出K線、MA線、成交量與支撐區
+      function initChart() {
+        const chartContainer = document.getElementById('chart');
+        globalChart = createChart(chartContainer, {
           width: chartContainer.clientWidth,
-          height: chartContainer.clientHeight
+          height: chartContainer.clientHeight,
+          layout: {
+            backgroundColor: '#151b29',
+            textColor: '#d1d4dc'
+          },
+          grid: {
+            vertLines: { color: 'rgba(42, 46, 57, 0.5)' },
+            horzLines: { color: 'rgba(42, 46, 57, 0.5)' }
+          },
+          crosshair: { mode: 0 },
+          priceScale: { borderColor: '#2c3647' },
+          timeScale: { borderColor: '#2c3647', timeVisible: true }
         });
-      });
-    }
 
-    // 產生K線數據（15分鐘K線，共100根）
-    function generateCandleData() {
-      const data = [];
-      let currentTime = Math.floor(Date.now() / 1000) - 99 * 15 * 60;
-      let basePrice = 1840;
-      for (let i = 0; i < 100; i++) {
-        const open = basePrice + (Math.random() - 0.5) * 2;
-        const close = open + (Math.random() - 0.5) * 2;
-        const high = Math.max(open, close) + Math.random() * 2;
-        const low = Math.min(open, close) - Math.random() * 2;
-        data.push({
-          time: currentTime,
-          open: parseFloat(open.toFixed(2)),
-          high: parseFloat(high.toFixed(2)),
-          low: parseFloat(low.toFixed(2)),
-          close: parseFloat(close.toFixed(2))
+        globalCandleSeries = globalChart.addCandlestickSeries({
+          upColor: '#28a745',
+          downColor: '#dc3545',
+          borderDownColor: '#dc3545',
+          borderUpColor: '#28a745',
+          wickDownColor: '#dc3545',
+          wickUpColor: '#28a745'
         });
-        basePrice = close;
-        currentTime += 15 * 60;
+
+        // 產生初始50根K線資料
+        globalCandleData = generateCandleData();
+        globalCandleSeries.setData(globalCandleData);
+
+        // 加入MA線
+        globalMA7Series = globalChart.addLineSeries({ color: '#2196F3', lineWidth: 1 });
+        globalMA7Series.setData(generateMA(globalCandleData, 7));
+
+        globalMA14Series = globalChart.addLineSeries({ color: '#FF9800', lineWidth: 1 });
+        globalMA14Series.setData(generateMA(globalCandleData, 14));
+
+        globalMA28Series = globalChart.addLineSeries({ color: '#E91E63', lineWidth: 1 });
+        globalMA28Series.setData(generateMA(globalCandleData, 28));
+
+        // 加入成交量資料
+        globalVolumeSeries = globalChart.addHistogramSeries({
+          color: '#3a7bd5',
+          priceFormat: { type: 'volume' },
+          priceScaleId: '',
+          scaleMargins: { top: 0.85, bottom: 0 }
+        });
+        globalVolumeSeries.setData(generateVolumeData());
+
+        // 阻力與支撐線
+        globalCandleSeries.createPriceLine({
+          price: 1846.50,
+          color: '#f44336',
+          lineWidth: 1,
+          lineStyle: 2,
+          axisLabelVisible: true,
+          title: '阻力位'
+        });
+        globalCandleSeries.createPriceLine({
+          price: 1837.20,
+          color: '#2196F3',
+          lineWidth: 1,
+          lineStyle: 2,
+          axisLabelVisible: true,
+          title: '支撐位'
+        });
+
+        // 支撐區域
+        globalSupportAreaSeries = globalChart.addAreaSeries({
+          topColor: 'rgba(51, 153, 255, 0.1)',
+          bottomColor: 'rgba(51, 153, 255, 0.02)',
+          lineColor: 'rgba(51, 153, 255, 0.2)',
+          lineWidth: 1,
+          title: '支撐區'
+        });
+        globalSupportAreaSeries.setData(generateSupportArea(globalCandleData));
+
+        window.addEventListener('resize', () => {
+          globalChart.applyOptions({
+            width: chartContainer.clientWidth,
+            height: chartContainer.clientHeight
+          });
+        });
       }
-      return data;
-    }
 
-    // 產生成交量數據
-    function generateVolumeData() {
-      const data = [];
-      let currentTime = Math.floor(Date.now() / 1000) - 99 * 15 * 60;
-      for (let i = 0; i < 100; i++) {
-        data.push({
-          time: currentTime,
-          value: Math.random() * 5000 + 1000,
-          color: Math.random() > 0.5 ? 'rgba(40, 167, 69, 0.5)' : 'rgba(220, 53, 69, 0.5)'
-        });
-        currentTime += 15 * 60;
+      // 產生初始50根K線資料（以5秒為間隔）
+      function generateCandleData() {
+        const data = [];
+        const count = 50;
+        let currentTime = Math.floor(Date.now() / 1000) - count * (candleInterval / 1000);
+        let basePrice = 1840;
+        for (let i = 0; i < count; i++) {
+          let open = basePrice + (Math.random() - 0.5) * 10;
+          let close = open + (Math.random() - 0.5) * 10;
+          let high = Math.max(open, close) + Math.random() * 5;
+          let low = Math.min(open, close) - Math.random() * 5;
+          data.push({
+            time: currentTime,
+            open: parseFloat(open.toFixed(2)),
+            high: parseFloat(high.toFixed(2)),
+            low: parseFloat(low.toFixed(2)),
+            close: parseFloat(close.toFixed(2))
+          });
+          basePrice = close;
+          currentTime += candleInterval / 1000;
+        }
+        return data;
       }
-      return data;
-    }
 
-    // 產生移動平均線數據，使用傳入的 candleData
-    function generateMA(candleData, period) {
-      const result = [];
-      for (let i = 0; i < candleData.length; i++) {
-        if (i >= period - 1) {
-          let sum = 0;
-          for (let j = 0; j < period; j++) {
-            sum += candleData[i - j].close;
+      // 產生成交量資料（同樣50根資料）
+      function generateVolumeData() {
+        const data = [];
+        let currentTime = Math.floor(Date.now() / 1000) - 50 * (candleInterval / 1000);
+        for (let i = 0; i < 50; i++) {
+          data.push({
+            time: currentTime,
+            value: Math.random() * 5000 + 1000,
+            color: Math.random() > 0.5 ? 'rgba(40, 167, 69, 0.5)' : 'rgba(220, 53, 69, 0.5)'
+          });
+          currentTime += candleInterval / 1000;
+        }
+        return data;
+      }
+
+      // 計算移動平均線資料
+      function generateMA(candleData, period) {
+        const result = [];
+        for (let i = 0; i < candleData.length; i++) {
+          if (i >= period - 1) {
+            let sum = 0;
+            for (let j = 0; j < period; j++) {
+              sum += candleData[i - j].close;
+            }
+            result.push({
+              time: candleData[i].time,
+              value: parseFloat((sum / period).toFixed(2))
+            });
           }
-          result.push({
+        }
+        return result;
+      }
+
+      // 產生固定支撐區資料
+      function generateSupportArea(candleData) {
+        const data = [];
+        const supportLevel = 1837;
+        for (let i = 0; i < candleData.length; i++) {
+          data.push({
             time: candleData[i].time,
-            value: parseFloat((sum / period).toFixed(2))
+            value: supportLevel
           });
         }
+        return data;
       }
-      return result;
-    }
 
-    // 產生支撐區數據（固定支撐水平）
-    function generateSupportArea(candleData) {
-      const data = [];
-      const supportLevel = 1837;
-      for (let i = 0; i < candleData.length; i++) {
-        data.push({
-          time: candleData[i].time,
-          value: supportLevel
+      // 標籤切換功能
+      function initTabSwitcher() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const contentSections = document.querySelectorAll('.content-section');
+        tabBtns.forEach(btn => {
+          btn.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            tabBtns.forEach(btn => btn.classList.remove('active'));
+            contentSections.forEach(section => section.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById(`${targetTab}-section`).classList.add('active');
+          });
         });
       }
-      return data;
-    }
 
-    // 標籤切換功能
-    function initTabSwitcher() {
-      const tabBtns = document.querySelectorAll('.tab-btn');
-      const contentSections = document.querySelectorAll('.content-section');
-      tabBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-          const targetTab = this.getAttribute('data-tab');
-          tabBtns.forEach(btn => btn.classList.remove('active'));
-          contentSections.forEach(section => section.classList.remove('active'));
-          this.classList.add('active');
-          document.getElementById(`${targetTab}-section`).classList.add('active');
+      // 交易頁籤切換功能
+      function initTradeTabSwitcher() {
+        const tradeTabBtns = document.querySelectorAll('.trade-tab-btn');
+        const tradeContents = document.querySelectorAll('.trade-content');
+        tradeTabBtns.forEach(btn => {
+          btn.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-trade-tab');
+            tradeTabBtns.forEach(btn => btn.classList.remove('active'));
+            tradeContents.forEach(content => content.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById(`${targetTab}-tab`).classList.add('active');
+          });
         });
-      });
-    }
+      }
 
-    // 交易頁籤切換功能
-    function initTradeTabSwitcher() {
-      const tradeTabBtns = document.querySelectorAll('.trade-tab-btn');
-      const tradeContents = document.querySelectorAll('.trade-content');
-      tradeTabBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-          const targetTab = this.getAttribute('data-trade-tab');
-          tradeTabBtns.forEach(btn => btn.classList.remove('active'));
-          tradeContents.forEach(content => content.classList.remove('active'));
-          this.classList.add('active');
-          document.getElementById(`${targetTab}-tab`).classList.add('active');
+      // 槓桿滑塊功能
+      function initLeverageSliders() {
+        const marketLeverageSlider = document.getElementById('leverage-slider');
+        const marketLeverageValue = document.getElementById('leverage-value');
+        const limitLeverageSlider = document.getElementById('leverage-slider-limit');
+        const limitLeverageValue = document.getElementById('leverage-value-limit');
+        marketLeverageSlider.addEventListener('input', function() {
+          marketLeverageValue.textContent = this.value + 'x';
         });
-      });
-    }
+        limitLeverageSlider.addEventListener('input', function() {
+          limitLeverageValue.textContent = this.value + 'x';
+        });
+      }
 
-    // 槓桿滑塊功能
-    function initLeverageSliders() {
-      const marketLeverageSlider = document.getElementById('leverage-slider');
-      const marketLeverageValue = document.getElementById('leverage-value');
-      const limitLeverageSlider = document.getElementById('leverage-slider-limit');
-      const limitLeverageValue = document.getElementById('leverage-value-limit');
-      marketLeverageSlider.addEventListener('input', function() {
-        marketLeverageValue.textContent = this.value + 'x';
-      });
-      limitLeverageSlider.addEventListener('input', function() {
-        limitLeverageValue.textContent = this.value + 'x';
-      });
-    }
-
-    // 模擬實時數據更新（同時更新價格顯示與圖表最後一根K線及MA）
-    function simulateRealTimeUpdates() {
-      let currentPrice = 1842.35;
-      setInterval(() => {
-        const volatility = Math.random() * 0.5;
-        const direction = Math.random() > 0.5 ? 1 : -1;
-        let newPrice = currentPrice + direction * volatility;
-        newPrice = parseFloat(newPrice.toFixed(2));
-        const diff = newPrice - currentPrice;
-        const diffPercent = (diff / currentPrice) * 100;
-        currentPrice = newPrice;
-
-        // 更新 UI 中的價格
-        const currentPriceEl = document.querySelector('.current-price');
-        const priceChangeEl = document.querySelector('.price-change');
-        const orderBookCurrentEl = document.querySelector('.orderbook-current-price .current');
+      // 更新頁面上價格顯示
+      function updatePriceDisplay(latestPrice) {
+        const currentPriceEl = document.getElementById("currentPrice");
+        const orderBookEl = document.getElementById("orderBookPrice");
         if (currentPriceEl) {
-          currentPriceEl.textContent = currentPrice.toFixed(2);
+          currentPriceEl.textContent = latestPrice.toFixed(2);
         }
-        if (priceChangeEl) {
-          priceChangeEl.textContent = (diffPercent >= 0 ? '+' : '') + diffPercent.toFixed(2) + '%';
-          priceChangeEl.className = `price-change ${diffPercent >= 0 ? 'positive' : 'negative'}`;
+        if (orderBookEl) {
+          orderBookEl.textContent = latestPrice.toFixed(2);
         }
-        if (orderBookCurrentEl) {
-          orderBookCurrentEl.textContent = currentPrice.toFixed(2);
+        // 同時更新交易區標記價格
+        const tradeMarkPriceEl = document.getElementById("tradeMarkPrice");
+        if (tradeMarkPriceEl) {
+          tradeMarkPriceEl.textContent = latestPrice.toFixed(2) + " USDT";
         }
+      }
 
-        // 更新圖表：修改全局K線資料中最後一根的價格
-        const lastIndex = globalCandleData.length - 1;
-        const lastCandle = globalCandleData[lastIndex];
-        lastCandle.close = currentPrice;
-        if (currentPrice > lastCandle.high) lastCandle.high = currentPrice;
-        if (currentPrice < lastCandle.low) lastCandle.low = currentPrice;
-        globalCandleSeries.update(lastCandle);
+      // 更新最後更新時間顯示
+      function updateLastUpdated() {
+        const now = new Date();
+        document.getElementById("lastUpdated").textContent =
+          "數據更新時間: " + now.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
+      }
 
-        // 更新MA線
+      // 模擬實時數據更新：
+      // 每 simulationInterval 更新當前K線價格，
+      // 當時間超過 lastTimestamp（即新K線到來）時，產生新K線。
+      function simulateRealTimeUpdates() {
+        // 初始當前價格取自最後一根K線
+        let currentPrice = globalCandleData[globalCandleData.length - 1].close;
+        setInterval(() => {
+          // 模擬當前K線內價格波動
+          const volatility = Math.random() * 10; // 調整波動範圍
+          const direction = Math.random() > 0.5 ? 1 : -1;
+          let newPrice = currentPrice + direction * volatility;
+          newPrice = parseFloat(newPrice.toFixed(2));
+
+          // 若當前時間已超過下一根K線時間，則新增新K線
+          if (Date.now() >= lastTimestamp) {
+            simulateNewCandle(newPrice);
+            currentPrice = newPrice;
+          } else {
+            // 更新當前K線
+            const lastCandle = globalCandleData[globalCandleData.length - 1];
+            lastCandle.close = newPrice;
+            if (newPrice > lastCandle.high) lastCandle.high = newPrice;
+            if (newPrice < lastCandle.low) lastCandle.low = newPrice;
+            globalCandleSeries.update(lastCandle);
+            // 更新MA線
+            globalMA7Series.setData(generateMA(globalCandleData, 7));
+            globalMA14Series.setData(generateMA(globalCandleData, 14));
+            globalMA28Series.setData(generateMA(globalCandleData, 28));
+            currentPrice = newPrice;
+          }
+          updatePriceDisplay(newPrice);
+        }, simulationInterval);
+      }
+
+      // 新K線模擬：利用上一根K線數據生成新K線
+      function simulateNewCandle(newPrice) {
+        const lastCandle = globalCandleData[globalCandleData.length - 1];
+        const newCandle = {
+          time: Math.floor(lastTimestamp / 1000),
+          open: lastCandle.close,
+          high: newPrice,
+          low: newPrice,
+          close: newPrice
+        };
+        globalCandleData.push(newCandle);
+        // 若資料過多則移除最舊的
+        if (globalCandleData.length > 100) {
+          globalCandleData.shift();
+        }
+        globalCandleSeries.update(newCandle);
         globalMA7Series.setData(generateMA(globalCandleData, 7));
         globalMA14Series.setData(generateMA(globalCandleData, 14));
         globalMA28Series.setData(generateMA(globalCandleData, 28));
-      }, 2000);
-    }
-  </script>
-</body>
+        updateLastUpdated();
+        // 更新成交量與支撐區（此處以固定模擬值，不做更新）
+        // 可根據需要擴充
+        // 設定下一根K線的起始時間
+        lastTimestamp += candleInterval;
+      }
+
+      // 改變時間範圍（簡單以 xRange 設定，不做更複雜處理）
+      function changeTimeFrame(frame) {
+        const endDate = new Date(globalCandleData[globalCandleData.length - 1].time * 1000);
+        let startDate = new Date(endDate);
+        switch (frame) {
+          case "1M":
+            startDate.setMonth(endDate.getMonth() - 1);
+            break;
+          case "3M":
+            startDate.setMonth(endDate.getMonth() - 3);
+            break;
+          case "6M":
+            startDate.setMonth(endDate.getMonth() - 6);
+            break;
+          case "1Y":
+            startDate.setFullYear(endDate.getFullYear() - 1);
+            break;
+          default:
+            startDate = new Date(globalCandleData[0].time * 1000);
+        }
+        xRange = [
+          startDate.toISOString().split("T")[0],
+          endDate.toISOString().split("T")[0]
+        ];
+        // LightweightCharts 不支援直接設定 xRange，此處略過，可自行加入 zoom 功能
+        // 目前只呼叫 updateLastUpdated() 以刷新圖表外觀
+        updateLastUpdated();
+      }
+    </script>
+  </body>
 </html>
