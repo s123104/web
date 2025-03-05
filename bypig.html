@@ -6,12 +6,11 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <title>加密貨幣交易平台 - 模擬大幅波動 K 線圖與交易介面</title>
+    <title>加密貨幣交易平台 - 修正版</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
     />
-    <!-- 用最新版的 Lightweight Charts，支援 addCandlestickSeries -->
     <script src="https://unpkg.com/lightweight-charts@4.0.1/dist/lightweight-charts.standalone.production.js"></script>
     <script type="importmap">
       {
@@ -21,6 +20,7 @@
       }
     </script>
     <style>
+      /* === 通用 Reset === */
       * {
         margin: 0;
         padding: 0;
@@ -31,20 +31,22 @@
         height: 100%;
       }
       body {
-        min-height: 100dvh;
-        padding: env(safe-area-inset-top) env(safe-area-inset-right)
-          env(safe-area-inset-bottom) env(safe-area-inset-left);
         background-color: #0a0e17;
         color: #e5e5e5;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           Helvetica, Arial, sans-serif;
         overflow: hidden;
+        min-height: 100dvh;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right)
+          env(safe-area-inset-bottom) env(safe-area-inset-left);
       }
       .app-container {
         display: flex;
         flex-direction: column;
         height: 100dvh;
       }
+
+      /* === 頂部 Header === */
       .header {
         padding: 10px 15px;
         background-color: #151b29;
@@ -100,18 +102,21 @@
         background-color: #1c2536;
         border-color: #3a7bd5;
       }
+
+      /* === 主內容區 === */
       .main-content {
         flex: 1;
         overflow-y: auto;
         padding-bottom: 60px;
       }
+      /* 改用 v-show 來隱藏，而不是 v-if，避免 chart 被銷毀 */
       .content-section {
-        display: none;
-        flex: 1;
+        display: block; /* 不用 display:none; 直接用 v-show hidden 就好 */
       }
-      .content-section.active {
-        display: block;
+      .content-section.hidden {
+        display: none; /* 也可以 class hidden 來隱藏 */
       }
+
       .timeframe-selector {
         display: flex;
         flex-wrap: wrap;
@@ -151,20 +156,20 @@
         color: #e5e5e5;
       }
 
-      /* === K 線圖 & 成交量上下分離：上 80%，下 20% === */
+      /* === 走勢圖 85% + 成交量 15% === */
       .chart-volume-container {
         display: flex;
         flex-direction: column;
-        height: 400px; /* 可自行調整 */
+        height: 400px;
         width: 100%;
       }
       .chart-area {
-        flex: 0 0 80%;
+        flex: 0 0 85%;
         background-color: #151b29;
         position: relative;
       }
       .volume-area {
-        flex: 0 0 20%;
+        flex: 0 0 15%;
         background-color: #151b29;
         border-top: 1px solid #2c3647;
         position: relative;
@@ -185,7 +190,7 @@
         color: #8c8c8c;
       }
 
-      /* === 訂單簿在最下面 === */
+      /* === 訂單簿下方 === */
       .orderbook-below-chart {
         padding: 15px;
         background-color: #151b29;
@@ -248,7 +253,7 @@
         font-size: 14px;
       }
 
-      /* === 交易介面：左下單 60%，右訂單簿 40% === */
+      /* === 交易頁面 === */
       .trade-section {
         background-color: #151b29;
       }
@@ -363,7 +368,6 @@
       .btn-short {
         background-color: #dc3545;
       }
-      /* 交易區塊右側訂單簿 (40%) */
       .orderbook-right-container {
         flex: 4;
         padding: 10px;
@@ -501,6 +505,8 @@
         border-color: #dc3545;
         color: #dc3545;
       }
+
+      /* === 底部導航 === */
       .bottom-nav {
         position: fixed;
         left: 0;
@@ -566,10 +572,11 @@
           </div>
         </div>
         <div class="main-content">
-          <!-- 走勢圖 TAB -->
+          <!-- 改用 v-show 來隱藏 / 顯示 -->
           <div
-            v-if="currentTab==='chart'"
-            class="content-section chart-section active"
+            class="content-section chart-section"
+            :class="{ hidden: currentTab !== 'chart' }"
+            v-show="currentTab === 'chart'"
           >
             <div class="timeframe-selector">
               <button
@@ -590,12 +597,11 @@
                 <option value="bear">熊市行情</option>
               </select>
             </div>
-            <!-- 上面 80% K 線 + 下面 20% 成交量 -->
+            <!-- 走勢圖 85% + 成交量 15% -->
             <div class="chart-volume-container">
               <div class="chart-area" ref="chartRef"></div>
               <div class="volume-area" ref="volumeRef"></div>
             </div>
-            <!-- 指標區 -->
             <div class="indicators">
               <div class="indicator">
                 <span class="indicator-name">MA7:</span>
@@ -618,7 +624,6 @@
                 <span class="indicator-value">65.3</span>
               </div>
             </div>
-            <!-- 原本的訂單簿區塊 (在走勢圖最下方) -->
             <div class="orderbook-below-chart">
               <h3>訂單簿</h3>
               <div class="orderbook">
@@ -668,14 +673,13 @@
             </div>
           </div>
 
-          <!-- 交易 TAB -->
           <div
-            v-if="currentTab==='trade'"
-            class="content-section trade-section active"
+            class="content-section trade-section"
+            :class="{ hidden: currentTab !== 'trade' }"
+            v-show="currentTab === 'trade'"
             id="trade-section"
           >
             <div class="trade-layout">
-              <!-- 左下單 (60%) -->
               <div class="trade-form-container">
                 <div class="trade-tabs">
                   <button
@@ -711,7 +715,6 @@
                       max="75"
                       v-model="leverageMarket"
                       class="slider"
-                      id="leverage-slider"
                     />
                     <div class="leverage-marks">
                       <span>1x</span>
@@ -765,7 +768,6 @@
                       max="75"
                       v-model="leverageLimit"
                       class="slider"
-                      id="leverage-slider-limit"
                     />
                     <div class="leverage-marks">
                       <span>1x</span>
@@ -811,7 +813,6 @@
                   </div>
                 </div>
               </div>
-              <!-- 右側訂單簿 (只顯示 6 筆買、6 筆賣) -->
               <div class="orderbook-right-container">
                 <div class="orderbook">
                   <div class="orderbook-header">
@@ -943,6 +944,7 @@
             <!-- 持倉區塊結束 -->
           </div>
         </div>
+
         <div class="bottom-nav">
           <button class="nav-btn" @click="switchToChart">
             <i class="fas fa-home"></i>
@@ -974,7 +976,6 @@
       const app = createApp({
         setup() {
           const currentTab = ref("chart");
-          // 預設交易頁籤改成限價單
           const tradeTab = ref("limit");
           const leverageMarket = ref(10);
           const leverageLimit = ref(34);
@@ -1004,11 +1005,10 @@
           const volumeRef = ref(null);
           const marketCondition = ref("volatile");
 
-          // chart 頁面下方的訂單簿 (6 asks + 6 bids 也可以，但你沒特別說要改這個，我還是用同一個function)
+          // Chart tab orderbook
           const orderbookAsks = ref([]);
           const orderbookBids = ref([]);
-
-          // 交易頁面的訂單簿 (只要 6 asks, 6 bids)
+          // Trade tab orderbook (6 each)
           const tradeOrderbookAsks = ref([]);
           const tradeOrderbookBids = ref([]);
 
@@ -1017,154 +1017,113 @@
           let volumeChart = null;
           let candlestickSeries = null;
           let volumeSeries = null;
-          let retryCount = 0;
-          const MAX_RETRIES = 5;
 
           onMounted(() => {
             initCharts();
-            // init for chart tab
             initOrderbook();
-            // init for trade tab (only 6 each)
             initTradeOrderbook();
             simulateRealTimeUpdates();
           });
 
+          // === [關鍵] 監看 currentTab，用 v-show，不銷毀 chart，但還要手動 resize & fitContent
           watch(currentTab, (newVal) => {
-            if (newVal === "trade") {
-              nextTick(() => {
-                checkTradeSection();
-              });
-            }
             if (newVal === "chart") {
               nextTick(() => {
-                if (mainChart) mainChart.timeScale().fitContent();
-                if (volumeChart) volumeChart.timeScale().fitContent();
+                if (mainChart && chartRef.value) {
+                  mainChart.resize(
+                    chartRef.value.clientWidth,
+                    chartRef.value.clientHeight
+                  );
+                  mainChart.timeScale().fitContent();
+                }
+                if (volumeChart && volumeRef.value) {
+                  volumeChart.resize(
+                    volumeRef.value.clientWidth,
+                    volumeRef.value.clientHeight
+                  );
+                  volumeChart.timeScale().fitContent();
+                }
               });
             }
           });
 
-          function checkTradeSection() {
-            const tradeSection = document.getElementById("trade-section");
-            if (!tradeSection) {
-              console.error("【錯誤】找不到 #trade-section DOM 元素！");
-            } else {
-              console.log("✔ #trade-section DOM 元素存在");
-            }
-          }
-
           function initCharts() {
-            if (
-              typeof LightweightCharts !== "undefined" &&
-              typeof LightweightCharts.createChart === "function" &&
-              chartRef.value &&
-              volumeRef.value
-            ) {
-              // 建立主走勢圖
-              mainChart = LightweightCharts.createChart(chartRef.value, {
-                width: chartRef.value.clientWidth,
-                height: chartRef.value.clientHeight,
-                layout: {
-                  background: { color: "#151b29" },
-                  textColor: "#e5e5e5",
-                },
-                grid: {
-                  vertLines: { color: "#2c3647" },
-                  horzLines: { color: "#2c3647" },
-                },
-                timeScale: {
-                  timeVisible: true,
-                  secondsVisible: false,
-                },
-                priceScale: {
-                  borderColor: "#2c3647",
-                },
-              });
+            if (!chartRef.value || !volumeRef.value) return;
+            // === [修改] layout.fontSize: 10, 讓文字更小
+            mainChart = LightweightCharts.createChart(chartRef.value, {
+              width: chartRef.value.clientWidth,
+              height: chartRef.value.clientHeight,
+              layout: {
+                background: { color: "#151b29" },
+                textColor: "#e5e5e5",
+                fontSize: 10, // <--- 數字更小
+              },
+              grid: {
+                vertLines: { color: "#2c3647" },
+                horzLines: { color: "#2c3647" },
+              },
+              timeScale: {
+                timeVisible: true,
+                secondsVisible: false,
+              },
+              priceScale: {
+                borderColor: "#2c3647",
+              },
+            });
+            candlestickSeries = mainChart.addCandlestickSeries({
+              upColor: "#26a69a",
+              downColor: "#ef5350",
+              borderVisible: false,
+              wickVisible: true,
+            });
 
-              candlestickSeries = mainChart.addCandlestickSeries({
-                upColor: "#26a69a",
-                downColor: "#ef5350",
-                borderVisible: false,
-                wickVisible: true,
-              });
+            volumeChart = LightweightCharts.createChart(volumeRef.value, {
+              width: volumeRef.value.clientWidth,
+              height: volumeRef.value.clientHeight,
+              layout: {
+                background: { color: "#151b29" },
+                textColor: "#e5e5e5",
+                fontSize: 10, // <--- 同樣縮小
+              },
+              grid: {
+                vertLines: { color: "#2c3647" },
+                horzLines: { color: "#2c3647" },
+              },
+              timeScale: {
+                visible: false, // 隱藏時間刻度
+              },
+              priceScale: {
+                borderColor: "#2c3647",
+              },
+            });
+            volumeSeries = volumeChart.addHistogramSeries({
+              priceFormat: { type: "volume" },
+              color: "#26a69a",
+            });
 
-              // 建立成交量圖
-              volumeChart = LightweightCharts.createChart(volumeRef.value, {
-                width: volumeRef.value.clientWidth,
-                height: volumeRef.value.clientHeight,
-                layout: {
-                  background: { color: "#151b29" },
-                  textColor: "#e5e5e5",
-                },
-                grid: {
-                  vertLines: { color: "#2c3647" },
-                  horzLines: { color: "#2c3647" },
-                },
-                // 隱藏 timeScale
-                timeScale: {
-                  visible: false, // 把時間軸藏掉
-                },
-                priceScale: {
-                  borderColor: "#2c3647",
-                  scaleMargins: {
-                    top: 0.05,
-                    bottom: 0,
-                  },
-                },
-              });
+            chartData = generateInitialData();
+            candlestickSeries.setData(chartData);
+            const volData = chartData.map((c) => ({
+              time: c.time,
+              value: c.volume,
+              color: c.close >= c.open ? "#26a69a" : "#ef5350",
+            }));
+            volumeSeries.setData(volData);
 
-              volumeSeries = volumeChart.addHistogramSeries({
-                priceFormat: { type: "volume" },
-                color: "#26a69a",
-              });
-
-              // 初始化假資料
-              chartData = generateInitialData();
-              candlestickSeries.setData(chartData);
-              setVolumeData(chartData);
-
-              mainChart.timeScale().fitContent();
-              volumeChart.timeScale().fitContent();
-
-              // 同步 timeScales (主要是為了讓滑動對齊)
-              syncTimeScales(mainChart, volumeChart);
-            } else if (retryCount < MAX_RETRIES) {
-              console.error("輕量圖尚未正確載入或 chartRef 未就緒，重試中...");
-              retryCount++;
-              setTimeout(initCharts, 1000 * retryCount);
-            } else {
-              console.error(
-                "無法載入 TradingView Lightweight Charts，請確認網路連線或腳本 URL"
-              );
-            }
+            mainChart.timeScale().fitContent();
+            volumeChart.timeScale().fitContent();
+            syncTimeScales(mainChart, volumeChart);
           }
 
           function syncTimeScales(chart1, chart2) {
-            const onVisibleLogicalRangeChanged = () => {
+            chart1.timeScale().subscribeVisibleLogicalRangeChange(() => {
               const range = chart1.timeScale().getVisibleLogicalRange();
-              if (range) {
-                chart2.timeScale().setVisibleLogicalRange(range);
-              }
-            };
-            chart1
-              .timeScale()
-              .subscribeVisibleLogicalRangeChange(onVisibleLogicalRangeChanged);
+              if (range) chart2.timeScale().setVisibleLogicalRange(range);
+            });
             chart2.timeScale().subscribeVisibleLogicalRangeChange(() => {
               const range = chart2.timeScale().getVisibleLogicalRange();
-              if (range) {
-                chart1.timeScale().setVisibleLogicalRange(range);
-              }
+              if (range) chart1.timeScale().setVisibleLogicalRange(range);
             });
-          }
-
-          function setVolumeData(data) {
-            const volumeData = data.map((c) => {
-              return {
-                time: c.time,
-                value: c.volume,
-                color: c.close >= c.open ? "#26a69a" : "#ef5350",
-              };
-            });
-            volumeSeries.setData(volumeData);
           }
 
           function generateInitialData() {
@@ -1172,8 +1131,7 @@
             let basePrice = 2148;
             let currentTime =
               Date.now() - 100 * getIntervalMs(selectedTimeframe.value);
-            const candleCount = 100;
-            for (let i = 0; i < candleCount; i++) {
+            for (let i = 0; i < 100; i++) {
               let priceVariation;
               switch (marketCondition.value) {
                 case "bull":
@@ -1192,7 +1150,7 @@
               const close = open + (Math.random() - 0.5) * 50;
               const high = Math.max(open, close) + Math.random() * 30;
               const low = Math.min(open, close) - Math.random() * 30;
-              const volume = Math.floor(Math.random() * 1000) + 1; // 模擬交易量
+              const volume = Math.floor(Math.random() * 1000) + 1;
 
               data.push({
                 time: Math.floor(currentTime / 1000),
@@ -1208,8 +1166,26 @@
             return data;
           }
 
+          function getIntervalMs(frame) {
+            const map = {
+              "1秒": 1000,
+              "1分": 60000,
+              "3分": 180000,
+              "5分": 300000,
+              "15分": 900000,
+              "30分": 1800000,
+              "1小時": 3600000,
+              "4小時": 14400000,
+              "1天": 86400000,
+              "1週": 604800000,
+              "1月": 2592000000,
+            };
+            return map[frame] || 1000;
+          }
+
           function simulateRealTimeUpdates() {
             setInterval(() => {
+              if (!chartData.length) return;
               const lastCandle = chartData[chartData.length - 1];
               let newPrice;
               switch (marketCondition.value) {
@@ -1241,10 +1217,7 @@
                 volume: newVolume,
               };
               chartData.push(newCandle);
-
-              // 更新走勢
               candlestickSeries.update(newCandle);
-              // 更新成交量
               volumeSeries.update({
                 time: newCandle.time,
                 value: newCandle.volume,
@@ -1252,10 +1225,10 @@
                   newCandle.close >= newCandle.open ? "#26a69a" : "#ef5350",
               });
 
-              // 指標
-              ma7Value.value = calculateMA(7).toFixed(2) || "--";
-              ma14Value.value = calculateMA(14).toFixed(2) || "--";
-              ma28Value.value = calculateMA(28).toFixed(2) || "--";
+              // 更新指標
+              ma7Value.value = calculateMA(7).toFixed(2);
+              ma14Value.value = calculateMA(14).toFixed(2);
+              ma28Value.value = calculateMA(28).toFixed(2);
               macdValue.value = "--";
 
               // 更新訂單簿
@@ -1273,35 +1246,21 @@
             return sum / period;
           }
 
-          function selectTimeframe(frame) {
-            selectedTimeframe.value = frame;
-            if (mainChart && volumeChart) {
-              chartData = generateInitialData();
-              candlestickSeries.setData(chartData);
-              setVolumeData(chartData);
-              mainChart.timeScale().fitContent();
-              volumeChart.timeScale().fitContent();
-            }
+          function selectTimeframe(tf) {
+            selectedTimeframe.value = tf;
+            chartData = generateInitialData();
+            candlestickSeries.setData(chartData);
+            const volData = chartData.map((c) => ({
+              time: c.time,
+              value: c.volume,
+              color: c.close >= c.open ? "#26a69a" : "#ef5350",
+            }));
+            volumeSeries.setData(volData);
+            if (mainChart) mainChart.timeScale().fitContent();
+            if (volumeChart) volumeChart.timeScale().fitContent();
           }
 
-          function getIntervalMs(frame) {
-            const mappings = {
-              "1秒": 1000,
-              "1分": 60000,
-              "3分": 180000,
-              "5分": 300000,
-              "15分": 900000,
-              "30分": 1800000,
-              "1小時": 3600000,
-              "4小時": 14400000,
-              "1天": 86400000,
-              "1週": 604800000,
-              "1月": 2592000000,
-            };
-            return mappings[frame] || 1000;
-          }
-
-          // chart tab 訂單簿 (預設 6 筆就好)
+          // chart 頁面的訂單簿
           function initOrderbook() {
             orderbookAsks.value = generateOrderbookSide("ask", 6);
             orderbookBids.value = generateOrderbookSide("bid", 6);
@@ -1311,7 +1270,7 @@
             orderbookBids.value = generateOrderbookSide("bid", 6);
           }
 
-          // trade tab 訂單簿 (6 筆)
+          // trade 頁面的訂單簿 (6 each)
           function initTradeOrderbook() {
             tradeOrderbookAsks.value = generateOrderbookSide("ask", 6);
             tradeOrderbookBids.value = generateOrderbookSide("bid", 6);
@@ -1321,7 +1280,6 @@
             tradeOrderbookBids.value = generateOrderbookSide("bid", 6);
           }
 
-          // side = "ask" or "bid", count = 6
           function generateOrderbookSide(side, count) {
             const result = [];
             for (let i = 0; i < count; i++) {
@@ -1341,15 +1299,13 @@
             return result;
           }
 
-          function placeOrder(type, orderType = "market") {
-            const usedLeverage =
-              orderType === "limit"
-                ? leverageLimit.value
-                : leverageMarket.value;
+          function placeOrder(type, orderType) {
             console.log(
-              `下單 ${type} ${orderType} 訂單，槓桿 ${usedLeverage}x，數量 ${
-                quantity.value
-              }，價格 ${
+              `下單 ${type} ${orderType} 槓桿: ${
+                orderType === "limit"
+                  ? leverageLimit.value
+                  : leverageMarket.value
+              }x, 數量: ${quantity.value}, 價格: ${
                 orderType === "limit" ? limitPrice.value : currentPrice.value
               }`
             );
@@ -1357,10 +1313,6 @@
 
           function switchToChart() {
             currentTab.value = "chart";
-            nextTick(() => {
-              if (mainChart) mainChart.timeScale().fitContent();
-              if (volumeChart) volumeChart.timeScale().fitContent();
-            });
           }
 
           return {
