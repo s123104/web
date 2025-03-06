@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2048 AI 純數字模擬</title>
+    <title>2048 AI 持續模擬</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
         table { border-collapse: collapse; margin: 20px auto; }
@@ -12,16 +12,29 @@
     </style>
 </head>
 <body>
-    <h1>2048 AI 純數字模擬</h1>
+    <h1>2048 AI 持續模擬</h1>
     <h2>分數: <span id="score">0</span></h2>
     <table id="board"></table>
     <h2>遊戲紀錄</h2>
     <div id="log"></div>
+    <h2>統計結果</h2>
+    <table id="results">
+        <thead>
+            <tr>
+                <th>局數</th>
+                <th>總分</th>
+                <th>最大方塊</th>
+                <th>總步數</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
     <script>
         const SIZE = 4;
         const MOVES = ["↑", "→", "↓", "←"];
-        let board, score, gameOver, moveCount;
+        let board, score, gameOver, moveCount, gameCount = 0;
+        let resultsTable = document.getElementById("results").getElementsByTagName("tbody")[0];
 
         function init() {
             board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
@@ -142,27 +155,25 @@
                     moveCount++;
                     document.getElementById("log").innerHTML += `<p><strong>Step ${moveCount}:</strong> AI 選擇 ${MOVES[move]}，預測未來分數: ${predictedScore}</p>`;
                     move(move);
-                    setTimeout(aiLoop, 200);
+                    setTimeout(aiLoop, 100);
                 }
             } else {
-                document.getElementById("log").innerHTML += `<p><strong>遊戲結束！</strong> 總分：${score}，總步數：${moveCount}</p><hr>`;
+                gameCount++;
+                let maxTile = Math.max(...board.flat());
+                resultsTable.innerHTML += `<tr>
+                    <td>${gameCount}</td>
+                    <td>${score}</td>
+                    <td>${maxTile}</td>
+                    <td>${moveCount}</td>
+                </tr>`;
+
+                document.getElementById("log").innerHTML += `<p><strong>遊戲結束！</strong> 總分：${score}，最大方塊：${maxTile}，總步數：${moveCount}</p><hr>`;
                 setTimeout(init, 2000);
             }
         }
 
         function updateUI() {
             document.getElementById("score").textContent = score;
-            let table = document.getElementById("board");
-            table.innerHTML = "";
-            for (let row of board) {
-                let tr = document.createElement("tr");
-                for (let cell of row) {
-                    let td = document.createElement("td");
-                    td.textContent = cell || "";
-                    tr.appendChild(td);
-                }
-                table.appendChild(tr);
-            }
         }
 
         init();
