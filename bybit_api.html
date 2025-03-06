@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bybit WebSocket 測試 - publicTrade & orderbook</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .status {
+        font-size: 16px;
+        margin: 5px 0;
+      }
+      .error {
+        color: red;
+        font-weight: bold;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 10px;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
+      }
+      th {
+        background: #f4f4f4;
+      }
+      #orderbookTable td {
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Bybit WebSocket 測試 - publicTrade & orderbook</h2>
+
+    <div class="status">
+      WebSocket 連線狀態：<span id="connStatus">未連線</span>
+    </div>
+    <div class="status error">錯誤訊息：<span id="errorMsg"></span></div>
+
+    <h3>即時成交數據 (`publicTrade.ETHUSDT`)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>時間</th>
+          <th>價格 (USD)</th>
+          <th>成交量 (ETH)</th>
+          <th>方向</th>
+        </tr>
+      </thead>
+      <tbody id="tradeBody"></tbody>
+    </table>
+
+    <h3>訂單簿 (`orderbook.1.ETHUSDT`)</h3>
+    <table id="orderbookTable">
+      <thead>
+        <tr>
+          <th>買單價格</th>
+          <th>買單數量</th>
+          <th>賣單價格</th>
+          <th>賣單數量</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td id="bidPrice">-</td>
+          <td id="bidSize">-</td>
+          <td id="askPrice">-</td>
+          <td id="askSize">-</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <script>
+      let ws;
+      let tradeBody = document.getElementById("tradeBody");
+      let bidPriceEl = document.getElementById("bidPrice");
+      let bidSizeEl = document.getElementById("bidSize");
+      let askPriceEl = document.getElementById("askPrice");
+      let askSizeEl = document.getElementById("askSize");
+
+      // 初始化 WebSocket
+      function initWebSocket() {
+        ws = new WebSocket("wss://stream.bybit.com/v5/public/linear");
+
+        ws.onopen = () => {
+          document.getElementById("connStatus").innerText = "✅ 已連線";
+          ws.send(
+            JSON.stringify({
+              op: "subscribe",
+              args: ["publicTrade.ETHUSDT", "orderbook.1.ETHUSDT"],
+            })
+          );
+
+          // 每 20 秒發送 ping
+          setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ op: "ping" }));
+            }
+          }, 20000);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+
+            // 處理 `publicTrade`
+            if (msg.topic === "publicTrade.ETHUSDT" && msg.data) {
+              updateTradeTable(msg.data[0]);
+            }
+
+            // 處理 `orderbook.1`
+            if (msg.topic === "orderbook.1.ETHUSDT" && msg.data) {
+              updateOrderbook(msg.data);
+            }
+
+            if (msg.op === "pong") {
+              console.log("✅ 收到 PONG，連線保持中...");
+            }
+          } catch (e) {
+            document.getElementById("errorMsg").innerText =
+              "解析錯誤: " + e.message;
+          }
+        };
+
+        ws.onclose = () =>
+          (document.getElementById("connStatus").innerText = "❌ 已關閉");
+        ws.onerror = (error) =>
+          (document.getElementById("errorMsg").innerText =
+            "❌ 連線錯誤: " + error.message);
+      }
+
+      // 更新成交表格
+      function updateTradeTable(trade) {
+        let time = new Date(trade.T).toLocaleTimeString();
+        let price = parseFloat(trade.p).toFixed(2);
+        let size = parseFloat(trade.q).toFixed(4);
+        let side = trade.S === "Buy" ? "🟢 買入" : "🔴 賣出";
+
+        let row = `<tr>
+    <td>${time}</td>
+    <td>${price}</td>
+    <td>${size}</td>
+    <td>${side}</td>
+  </tr>`;
+
+        tradeBody.insertAdjacentHTML("afterbegin", row);
+        if (tradeBody.rows.length > 10) {
+          tradeBody.deleteRow(tradeBody.rows.length - 1);
+        }
+      }
+
+      // 更新訂單簿
+      function updateOrderbook(data) {
+        if (data.b.length > 0) {
+          bidPriceEl.innerText = parseFloat(data.b[0][0]).toFixed(2);
+          bidSizeEl.innerText = parseFloat(data.b[0][1]).toFixed(4);
+        }
+        if (data.a.length > 0) {
+          askPriceEl.innerText = parseFloat(data.a[0][0]).toFixed(2);
+          askSizeEl.innerText = parseFloat(data.a[0][1]).toFixed(4);
+        }
+      }
+
+      // 啟動 WebSocket
+      initWebSocket();
+    </script>
+  </body>
+</html>
