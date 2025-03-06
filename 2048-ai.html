@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 AI 純數字模擬</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        table { border-collapse: collapse; margin: 20px auto; }
+        td, th { border: 1px solid black; padding: 10px; font-size: 18px; }
+        #log { max-height: 400px; overflow-y: auto; text-align: left; margin: 20px auto; width: 80%; border: 1px solid black; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>2048 AI 純數字模擬</h1>
+    <table id="board"></table>
+    <h2>遊戲紀錄</h2>
+    <div id="log"></div>
+    <script>
+        const SIZE = 4;
+        const MOVES = ["↑", "→", "↓", "←"];
+        let board, score, gameOver;
+
+        function init() {
+            board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+            score = 0;
+            gameOver = false;
+            addRandomTile();
+            addRandomTile();
+            updateUI();
+            aiLoop();
+        }
+
+        function addRandomTile() {
+            let emptyCells = [];
+            for (let i = 0; i < SIZE; i++)
+                for (let j = 0; j < SIZE; j++)
+                    if (board[i][j] === 0) emptyCells.push([i, j]);
+
+            if (emptyCells.length > 0) {
+                let [r, c] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                board[r][c] = Math.random() < 0.9 ? 2 : 4;
+            }
+        }
+
+        function move(direction) {
+            let moved = false;
+            let merged = Array.from({ length: SIZE }, () => Array(SIZE).fill(false));
+
+            let iterate = (i, j) => direction < 2 ? i : SIZE - 1 - i;
+            let iterate2 = (i, j) => direction % 2 === 0 ? j : SIZE - 1 - j;
+
+            for (let i = 0; i < SIZE; i++) {
+                let line = [];
+                for (let j = 0; j < SIZE; j++) {
+                    let x = direction % 2 ? i : iterate(i, j);
+                    let y = direction % 2 ? iterate(i, j) : i;
+                    if (board[x][y]) line.push(board[x][y]);
+                }
+
+                let newLine = [];
+                while (line.length) {
+                    let value = line.shift();
+                    if (line.length && value === line[0] && !merged[i][newLine.length]) {
+                        value *= 2;
+                        score += value;
+                        line.shift();
+                        merged[i][newLine.length] = true;
+                    }
+                    newLine.push(value);
+                }
+
+                while (newLine.length < SIZE) newLine.push(0);
+
+                for (let j = 0; j < SIZE; j++) {
+                    let x = direction % 2 ? i : iterate(i, j);
+                    let y = direction % 2 ? iterate(i, j) : i;
+                    if (board[x][y] !== newLine[j]) moved = true;
+                    board[x][y] = newLine[j];
+                }
+            }
+
+            if (moved) addRandomTile();
+            gameOver = checkGameOver();
+            updateUI();
+            return moved;
+        }
+
+        function checkGameOver() {
+            for (let i = 0; i < SIZE; i++)
+                for (let j = 0; j < SIZE; j++)
+                    if (board[i][j] === 0) return false;
+
+            for (let i = 0; i < SIZE; i++)
+                for (let j = 0; j < SIZE - 1; j++)
+                    if (board[i][j] === board[i][j + 1] || board[j][i] === board[j + 1][i])
+                        return false;
+
+            return true;
+        }
+
+        function evaluateBoard() {
+            let emptyCells = board.flat().filter(x => x === 0).length;
+            let maxTile = Math.max(...board.flat());
+            let monotonicity = 0;
+
+            for (let i = 0; i < SIZE; i++)
+                for (let j = 0; j < SIZE - 1; j++)
+                    monotonicity += Math.abs(board[i][j] - board[i][j + 1]);
+
+            return emptyCells * 300 + maxTile * 10 - monotonicity * 2;
+        }
+
+        function getBestMove() {
+            let bestScore = -Infinity;
+            let bestMove = null;
+
+            for (let dir = 0; dir < 4; dir++) {
+                let clone = JSON.parse(JSON.stringify(board));
+                let cloneScore = score;
+                if (move(dir)) {
+                    let futureScore = evaluateBoard();
+                    if (futureScore > bestScore) {
+                        bestScore = futureScore;
+                        bestMove = dir;
+                    }
+                }
+                board = clone;
+                score = cloneScore;
+            }
+
+            return { move: bestMove, predictedScore: bestScore };
+        }
+
+        function aiLoop() {
+            if (!gameOver) {
+                let { move, predictedScore } = getBestMove();
+                if (move !== null) {
+                    let moveText = `AI 選擇 ${MOVES[move]}，預測未來分數: ${predictedScore}`;
+                    document.getElementById("log").innerHTML += `<p>${moveText}</p>`;
+                    move(move);
+                    setTimeout(aiLoop, 100);
+                }
+            } else {
+                document.getElementById("log").innerHTML += `<p>遊戲結束！總分：${score}</p>`;
+                setTimeout(init, 2000);
+            }
+        }
+
+        function updateUI() {
+            let table = document.getElementById("board");
+            table.innerHTML = "";
+            for (let row of board) {
+                let tr = document.createElement("tr");
+                for (let cell of row) {
+                    let td = document.createElement("td");
+                    td.textContent = cell || "";
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
