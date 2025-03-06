@@ -7,23 +7,26 @@
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
         table { border-collapse: collapse; margin: 20px auto; }
-        td, th { border: 1px solid black; padding: 10px; font-size: 18px; }
+        td, th { border: 1px solid black; padding: 10px; font-size: 18px; width: 50px; height: 50px; text-align: center; }
         #log { max-height: 400px; overflow-y: auto; text-align: left; margin: 20px auto; width: 80%; border: 1px solid black; padding: 10px; }
     </style>
 </head>
 <body>
     <h1>2048 AI 純數字模擬</h1>
+    <h2>分數: <span id="score">0</span></h2>
     <table id="board"></table>
     <h2>遊戲紀錄</h2>
     <div id="log"></div>
+
     <script>
         const SIZE = 4;
         const MOVES = ["↑", "→", "↓", "←"];
-        let board, score, gameOver;
+        let board, score, gameOver, moveCount;
 
         function init() {
             board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
             score = 0;
+            moveCount = 0;
             gameOver = false;
             addRandomTile();
             addRandomTile();
@@ -136,18 +139,19 @@
             if (!gameOver) {
                 let { move, predictedScore } = getBestMove();
                 if (move !== null) {
-                    let moveText = `AI 選擇 ${MOVES[move]}，預測未來分數: ${predictedScore}`;
-                    document.getElementById("log").innerHTML += `<p>${moveText}</p>`;
+                    moveCount++;
+                    document.getElementById("log").innerHTML += `<p><strong>Step ${moveCount}:</strong> AI 選擇 ${MOVES[move]}，預測未來分數: ${predictedScore}</p>`;
                     move(move);
-                    setTimeout(aiLoop, 100);
+                    setTimeout(aiLoop, 200);
                 }
             } else {
-                document.getElementById("log").innerHTML += `<p>遊戲結束！總分：${score}</p>`;
+                document.getElementById("log").innerHTML += `<p><strong>遊戲結束！</strong> 總分：${score}，總步數：${moveCount}</p><hr>`;
                 setTimeout(init, 2000);
             }
         }
 
         function updateUI() {
+            document.getElementById("score").textContent = score;
             let table = document.getElementById("board");
             table.innerHTML = "";
             for (let row of board) {
