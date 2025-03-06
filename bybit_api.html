@@ -2,7 +2,7 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <title>Bybit WebSocket 測試 - publicTrade & orderbook</title>
+    <title>Bybit ETHUSDT 全部數據測試</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -20,6 +20,7 @@
         border-collapse: collapse;
         width: 100%;
         margin-top: 10px;
+        font-size: 14px;
       }
       table,
       th,
@@ -31,20 +32,28 @@
       th {
         background: #f4f4f4;
       }
-      #orderbookTable td {
-        font-weight: bold;
+      #chartContainer {
+        width: 600px;
+        height: 300px;
+        margin-top: 10px;
       }
     </style>
   </head>
   <body>
-    <h2>Bybit WebSocket 測試 - publicTrade & orderbook</h2>
-
+    <h2>Bybit ETHUSDT 全部數據測試</h2>
+    <!-- 狀態面板 -->
     <div class="status">
       WebSocket 連線狀態：<span id="connStatus">未連線</span>
     </div>
+    <div class="status">最新價格（K 線）：<span id="latestPrice">-</span></div>
+    <div class="status">Ticker：<span id="tickerInfo">-</span></div>
     <div class="status error">錯誤訊息：<span id="errorMsg"></span></div>
 
-    <h3>即時成交數據 (`publicTrade.ETHUSDT`)</h3>
+    <!-- 圖表區 -->
+    <div id="chartContainer"></div>
+
+    <!-- 成交數據表 -->
+    <h3>成交數據 (publicTrade.ETHUSDT)</h3>
     <table>
       <thead>
         <tr>
@@ -57,8 +66,9 @@
       <tbody id="tradeBody"></tbody>
     </table>
 
-    <h3>訂單簿 (`orderbook.1.ETHUSDT`)</h3>
-    <table id="orderbookTable">
+    <!-- 訂單簿表 -->
+    <h3>訂單簿 (orderbook.1.ETHUSDT)</h3>
+    <table>
       <thead>
         <tr>
           <th>買單價格</th>
@@ -79,26 +89,124 @@
 
     <script>
       let ws;
-      let tradeBody = document.getElementById("tradeBody");
-      let bidPriceEl = document.getElementById("bidPrice");
-      let bidSizeEl = document.getElementById("bidSize");
-      let askPriceEl = document.getElementById("askPrice");
-      let askSizeEl = document.getElementById("askSize");
+      let candleSeries;
+      let currentCandle = null;
+      let lastCandleTime = null;
+      const tradeBody = document.getElementById("tradeBody");
+      const bidPriceEl = document.getElementById("bidPrice");
+      const bidSizeEl = document.getElementById("bidSize");
+      const askPriceEl = document.getElementById("askPrice");
+      const askSizeEl = document.getElementById("askSize");
+      const latestPriceEl = document.getElementById("latestPrice");
+      const tickerInfoEl = document.getElementById("tickerInfo");
 
-      // 初始化 WebSocket
+      // 初始化圖表 (K 線)
+      function initChart() {
+        if (typeof LightweightCharts === "undefined") {
+          document.getElementById("errorMsg").innerText = "❌ 圖表庫載入失敗";
+          return;
+        }
+        const chart = LightweightCharts.createChart(
+          document.getElementById("chartContainer"),
+          { width: 600, height: 300 }
+        );
+        candleSeries = chart.addCandlestickSeries();
+      }
+
+      // 更新 K 線資料（僅更新最新價格顯示及圖表）
+      function updateKline(time, open, high, low, close) {
+        latestPriceEl.innerText = close.toFixed(2);
+        if (candleSeries) {
+          if (currentCandle === null || time !== lastCandleTime) {
+            currentCandle = {
+              time: time,
+              open: open,
+              high: high,
+              low: low,
+              close: close,
+            };
+            lastCandleTime = time;
+            candleSeries.update(currentCandle);
+          } else {
+            currentCandle.high = Math.max(currentCandle.high, high);
+            currentCandle.low = Math.min(currentCandle.low, low);
+            currentCandle.close = close;
+            candleSeries.update(currentCandle);
+          }
+        }
+      }
+
+      // 更新成交數據表，嘗試讀取多個可能的成交量欄位
+      function updateTradeTable(trade) {
+        let time = new Date(trade.T).toLocaleTimeString();
+        let volume = 0;
+        if (trade.q) {
+          volume = parseFloat(trade.q);
+        } else if (trade.qty) {
+          volume = parseFloat(trade.qty);
+        } else if (trade.v) {
+          volume = parseFloat(trade.v);
+        } else if (trade.volume) {
+          volume = parseFloat(trade.volume);
+        }
+        let price = parseFloat(trade.p).toFixed(2);
+        let volumeStr = volume.toFixed(4);
+        let side = trade.S === "Buy" ? "🟢 買入" : "🔴 賣出";
+
+        let row = `<tr>
+          <td>${time}</td>
+          <td>${price}</td>
+          <td>${volumeStr}</td>
+          <td>${side}</td>
+        </tr>`;
+        tradeBody.insertAdjacentHTML("afterbegin", row);
+        if (tradeBody.rows.length > 10) {
+          tradeBody.deleteRow(tradeBody.rows.length - 1);
+        }
+      }
+
+      // 更新訂單簿
+      function updateOrderbook(data) {
+        if (data.b && data.b.length > 0) {
+          bidPriceEl.innerText = parseFloat(data.b[0][0]).toFixed(2);
+          bidSizeEl.innerText = parseFloat(data.b[0][1]).toFixed(4);
+        }
+        if (data.a && data.a.length > 0) {
+          askPriceEl.innerText = parseFloat(data.a[0][0]).toFixed(2);
+          askSizeEl.innerText = parseFloat(data.a[0][1]).toFixed(4);
+        }
+      }
+
+      // 更新 Ticker 資料
+      function updateTicker(data) {
+        if (data && data.length > 0) {
+          const t = data[0];
+          let info = `最新價: ${parseFloat(t.lastPrice).toFixed(
+            2
+          )} USD, 成交量: ${parseFloat(t.volume).toFixed(2)}, 漲跌: ${
+            t.change
+          }`;
+          tickerInfoEl.innerText = info;
+        }
+      }
+
+      // 初始化 WebSocket，接入所有可用數據
       function initWebSocket() {
         ws = new WebSocket("wss://stream.bybit.com/v5/public/linear");
-
         ws.onopen = () => {
           document.getElementById("connStatus").innerText = "✅ 已連線";
           ws.send(
             JSON.stringify({
               op: "subscribe",
-              args: ["publicTrade.ETHUSDT", "orderbook.1.ETHUSDT"],
+              args: [
+                "kline.1.ETHUSDT", // 1秒 K 線
+                "publicTrade.ETHUSDT", // 成交數據
+                "orderbook.1.ETHUSDT", // L1 訂單簿
+                "tickers.ETHUSDT", // Ticker 資料 (若有)
+              ],
             })
           );
-
-          // 每 20 秒發送 ping
+          // 每 20 秒發送 ping 防止斷線
           setInterval(() => {
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({ op: "ping" }));
@@ -109,19 +217,27 @@
         ws.onmessage = (event) => {
           try {
             const msg = JSON.parse(event.data);
-
-            // 處理 `publicTrade`
+            if (msg.op === "pong") {
+              console.log("✅ 收到 PONG");
+            }
+            if (msg.topic === "kline.1.ETHUSDT" && msg.data) {
+              const kline = msg.data[0];
+              updateKline(
+                kline.start,
+                parseFloat(kline.open),
+                parseFloat(kline.high),
+                parseFloat(kline.low),
+                parseFloat(kline.close)
+              );
+            }
             if (msg.topic === "publicTrade.ETHUSDT" && msg.data) {
               updateTradeTable(msg.data[0]);
             }
-
-            // 處理 `orderbook.1`
             if (msg.topic === "orderbook.1.ETHUSDT" && msg.data) {
               updateOrderbook(msg.data);
             }
-
-            if (msg.op === "pong") {
-              console.log("✅ 收到 PONG，連線保持中...");
+            if (msg.topic === "tickers.ETHUSDT" && msg.data) {
+              updateTicker(msg.data);
             }
           } catch (e) {
             document.getElementById("errorMsg").innerText =
@@ -129,47 +245,27 @@
           }
         };
 
-        ws.onclose = () =>
-          (document.getElementById("connStatus").innerText = "❌ 已關閉");
-        ws.onerror = (error) =>
-          (document.getElementById("errorMsg").innerText =
-            "❌ 連線錯誤: " + error.message);
+        ws.onclose = () => {
+          document.getElementById("connStatus").innerText = "❌ 已關閉";
+        };
+        ws.onerror = (error) => {
+          document.getElementById("errorMsg").innerText =
+            "❌ 連線錯誤: " + error.message;
+        };
       }
 
-      // 更新成交表格
-      function updateTradeTable(trade) {
-        let time = new Date(trade.T).toLocaleTimeString();
-        let price = parseFloat(trade.p).toFixed(2);
-        let size = parseFloat(trade.q).toFixed(4);
-        let side = trade.S === "Buy" ? "🟢 買入" : "🔴 賣出";
-
-        let row = `<tr>
-    <td>${time}</td>
-    <td>${price}</td>
-    <td>${size}</td>
-    <td>${side}</td>
-  </tr>`;
-
-        tradeBody.insertAdjacentHTML("afterbegin", row);
-        if (tradeBody.rows.length > 10) {
-          tradeBody.deleteRow(tradeBody.rows.length - 1);
-        }
+      function startApp() {
+        initChart();
+        initWebSocket();
       }
 
-      // 更新訂單簿
-      function updateOrderbook(data) {
-        if (data.b.length > 0) {
-          bidPriceEl.innerText = parseFloat(data.b[0][0]).toFixed(2);
-          bidSizeEl.innerText = parseFloat(data.b[0][1]).toFixed(4);
-        }
-        if (data.a.length > 0) {
-          askPriceEl.innerText = parseFloat(data.a[0][0]).toFixed(2);
-          askSizeEl.innerText = parseFloat(data.a[0][1]).toFixed(4);
-        }
-      }
-
-      // 啟動 WebSocket
-      initWebSocket();
+      startApp();
     </script>
+
+    <!-- 載入 Lightweight Charts 圖表庫 -->
+    <script
+      src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"
+      onerror="document.getElementById('errorMsg').innerText='❌ 圖表庫載入失敗'"
+    ></script>
   </body>
 </html>
