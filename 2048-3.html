@@ -393,6 +393,8 @@
       <div class="above-game">
         <div class="buttons-area">
           <button class="btn" id="restart-button">重新開始😈</button>
+          <!-- 新增一個回到上一步的按鈕 -->
+          <button class="btn" id="undo-button">回到上一步🤡</button>
         </div>
       </div>
 
@@ -442,6 +444,9 @@
       ********************************************/
       class GameCore {
         constructor() {
+          // 用來記錄上一個狀態 (只記錄一次，想多次就自己改陣列囉)
+          this.previousState = null;
+
           this.board = Array(4)
             .fill()
             .map(() => Array(4).fill(0));
@@ -464,6 +469,28 @@
           this.keepPlaying = false;
           this.addRandomTile();
           this.addRandomTile();
+        }
+        // 儲存目前的狀態，幫忙Undo用
+        savePreviousState() {
+          this.previousState = {
+            board: JSON.parse(JSON.stringify(this.board)),
+            score: this.score,
+            gameOver: this.gameOver,
+            gameWon: this.gameWon,
+            keepPlaying: this.keepPlaying,
+          };
+        }
+        // 回到上一個狀態
+        undo() {
+          if (this.previousState) {
+            this.board = JSON.parse(JSON.stringify(this.previousState.board));
+            this.score = this.previousState.score;
+            this.gameOver = this.previousState.gameOver;
+            this.gameWon = this.previousState.gameWon;
+            this.keepPlaying = this.previousState.keepPlaying;
+            // 只允許一次Undo，用完就丟
+            this.previousState = null;
+          }
         }
         addRandomTile() {
           const emptyCells = [];
@@ -488,10 +515,14 @@
           return null;
         }
         move(direction) {
+          // 先存一下當前狀態，好讓可以undo
+          this.savePreviousState();
+
           this.moved = false;
           let mergedTiles = [];
           let movedTiles = [];
           const originalBoard = JSON.parse(JSON.stringify(this.board));
+
           switch (direction) {
             case 0: // 上
               for (let col = 0; col < 4; col++) {
@@ -514,6 +545,7 @@
               }
               break;
           }
+
           // 追蹤 tile 的移動來源
           movedTiles = movedTiles.map((tile) => {
             let fromRow = -1,
@@ -539,6 +571,7 @@
             if (fromRow === -1) return tile;
             return { ...tile, fromRow, fromCol };
           });
+
           if (this.moved) {
             const newTile = this.addRandomTile();
             if (newTile) {
@@ -549,8 +582,13 @@
                 isNew: true,
               });
             }
+          } else {
+            // 如果這次根本沒有移動，就把previousState清掉，代表沒有更新可undo
+            this.previousState = null;
           }
+
           this.checkGameStatus();
+
           return {
             moved: this.moved,
             mergedTiles,
@@ -802,29 +840,42 @@
             }
             this.handleMove(direction);
           });
+
+          // 重新開始
           document
             .getElementById("restart-button")
             .addEventListener("click", () => {
               this.restartGame();
             });
+
+          // 再玩一次
           document
             .getElementById("retry-button")
             .addEventListener("click", () => {
               this.restartGame();
             });
+
+          // 繼續玩
           document
             .getElementById("keep-playing-button")
             .addEventListener("click", () => {
               this.gameCore.setKeepPlaying();
               this.hideMessage();
             });
+
+          // 監聽「回到上一步」按鈕
+          document
+            .getElementById("undo-button")
+            .addEventListener("click", () => {
+              this.gameCore.undo();
+              this.drawBoard();
+              this.updateScore();
+            });
+
+          // 手勢偵測
           this.addSwipeListeners();
         }
         showTaunt(dir) {
-          /* 
-            依照方向給嘲諷文字，你可以自定！
-            下面只是範例 
-          */
           const taunts = {
             上: [
               "幹嘛往上？想上天？🙄",
