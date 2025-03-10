@@ -2,8 +2,11 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <!-- 防止雙擊縮放 + 自動套用手機寬度、用 dvh -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <!-- 防止雙擊縮放 + 自動套用手機寬度 + 不可縮放 -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
     <title>2048 兔兔爆粗口版</title>
     <!-- Google Fonts：ZCOOL KuaiLe + Noto Sans TC -->
     <link
@@ -12,7 +15,7 @@
     />
     <style>
       /********************************************
-       1) 全域＆排版：用 dvh、關掉捲軸
+       1) 全域＆排版：鎖死捲軸、強制不晃
       ********************************************/
       html,
       body {
@@ -22,6 +25,9 @@
         height: 100dvh;
         /* 關掉所有捲軸 */
         overflow: hidden;
+        /* 讓整頁都不要有滾動彈性 */
+        overscroll-behavior: none;
+        /* 也可以用 touch-action: none; 不過要留意會不會影響手勢判斷 */
       }
       body {
         font-family: "Noto Sans TC", sans-serif;
@@ -29,8 +35,6 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        /* 有些瀏覽器可能要加 overscroll-behavior 來防橫向晃動 */
-        overscroll-behavior: none;
       }
       .container {
         width: 100%;
@@ -445,7 +449,7 @@
       ********************************************/
       class GameCore {
         constructor() {
-          // 用來記錄上一個狀態 (只記錄一次，想多次就自己改陣列或stack吧)
+          // 用來記錄上一個狀態 (只記錄一次，想多次就自己改stack)
           this.previousState = null;
 
           this.board = Array(4)
@@ -964,6 +968,10 @@
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
           });
+          document.addEventListener("touchmove", (e) => {
+            // 防止滾動晃動
+            e.preventDefault();
+          }, { passive: false }); 
           document.addEventListener("touchend", (e) => {
             const touchEndX = e.changedTouches[0].clientX;
             const touchEndY = e.changedTouches[0].clientY;
@@ -999,7 +1007,12 @@
       ********************************************/
       document.addEventListener("DOMContentLoaded", () => {
         window.gameCore = new GameCore();
-        new UIManager(window.gameCore);
+        const uiManager = new UIManager(window.gameCore);
+
+        // 保險起見再加一次, 也可直接加在 DOMContentLoaded 外
+        document.addEventListener("touchmove", (e) => {
+          e.preventDefault();
+        }, { passive: false });
       });
     </script>
   </body>
