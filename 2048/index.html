@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>2048 甜心版</title>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- iOS 相關設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="2048甜心版" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+
+    <!-- 引入 Google Fonts：ZCOOL KuaiLe 與 Noto Sans TC -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+QingKe+HuangYou&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ======= 全域設定：避免捲軸、使用 dvh ======= */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100dvh;
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background-color: #faf8ef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .container {
+        width: 100%;
+        max-width: 600px;
+        padding: 20px;
+        background: #fff6ea;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        position: relative;
+      }
+
+      /* ======= 標題與分數 ======= */
+      .header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .title {
+        font-family: "Lobster", cursive;
+        font-size: 60px;
+        font-weight: bold;
+        color: #776e65;
+      }
+      .scores-container {
+        display: flex;
+        gap: 10px;
+      }
+      .score-box {
+        background-color: #bbada0;
+        padding: 5px 15px;
+        border-radius: 3px;
+        color: #fff;
+        text-align: center;
+      }
+      .score-box-title {
+        font-size: 14px;
+        text-transform: uppercase;
+      }
+      .score-box-value {
+        font-size: 24px;
+        font-weight: bold;
+      }
+
+      /* ======= 遊戲說明 + 按鈕群 ======= */
+      .above-game {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+      .game-intro {
+        color: #776e65;
+        line-height: 1.4;
+        text-align: center;
+      }
+      .buttons-area {
+        display: flex;
+        gap: 15px;
+      }
+      .restart-button,
+      .undo-button {
+        background-color: #8f7a66;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        padding: 10px 20px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      .restart-button:hover,
+      .undo-button:hover {
+        background-color: #9f8b77;
+      }
+
+      /* ======= 遊戲容器 ======= */
+      .game-container {
+        position: relative;
+        width: 480px;
+        height: 480px;
+        background-color: #bbada0;
+        border-radius: 6px;
+        margin: 0 auto 20px auto;
+        padding: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      }
+      .grid-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+        width: 100%;
+        height: 100%;
+      }
+      .grid-cell {
+        border: 1px solid #b9aca0;
+        background-color: #ccc0b3;
+      }
+
+      /* ======= 動態方塊容器 ======= */
+      .tile-container {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        z-index: 2;
+      }
+      .tile {
+        position: absolute;
+        width: 24.6%;
+        height: 24.6%;
+        border-radius: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+        transition: transform 0.2s, opacity 0.2s;
+        z-index: 10;
+        animation: appear 0.2s;
+        font-size: 24px;
+      }
+      @keyframes appear {
+        0% {
+          opacity: 0;
+          transform: scale(0);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      /* ======= 方塊數字顏色 ======= */
+      .tile-2 {
+        background-color: #eee4da;
+        color: #776e65;
+        font-size: 40px;
+      }
+      .tile-4 {
+        background-color: #ede0c8;
+        color: #776e65;
+        font-size: 40px;
+      }
+      .tile-8 {
+        background-color: #f2b179;
+        color: #fff;
+        font-size: 40px;
+      }
+      .tile-16 {
+        background-color: #f59563;
+        color: #fff;
+        font-size: 36px;
+      }
+      .tile-32 {
+        background-color: #f67c5f;
+        color: #fff;
+        font-size: 36px;
+      }
+      .tile-64 {
+        background-color: #f65e3b;
+        color: #fff;
+        font-size: 36px;
+      }
+      .tile-128 {
+        background-color: #edcf72;
+        color: #fff;
+        font-size: 32px;
+        box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.2381);
+      }
+      .tile-256 {
+        background-color: #edcc61;
+        color: #fff;
+        font-size: 32px;
+        box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.31746);
+      }
+      .tile-512 {
+        background-color: #edc850;
+        color: #fff;
+        font-size: 32px;
+        box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.39683);
+      }
+      .tile-1024 {
+        background-color: #edc53f;
+        color: #fff;
+        font-size: 24px;
+        box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.47619);
+      }
+      .tile-2048 {
+        background-color: #edc22e;
+        color: #fff;
+        font-size: 24px;
+        box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.55556);
+      }
+
+      /* ======= 遊戲訊息 (結束／勝利) ======= */
+      .game-message {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(238, 228, 218, 0.73);
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        animation: fade-in 0.8s;
+        display: none;
+      }
+      @keyframes fade-in {
+        0% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+      .game-message p {
+        font-size: 60px;
+        font-weight: bold;
+        height: 60px;
+        line-height: 60px;
+        margin-bottom: 20px;
+        color: #776e65;
+      }
+      .game-message .lower {
+        display: flex;
+        margin-top: 30px;
+      }
+      .retry-button,
+      .keep-playing-button {
+        background-color: #8f7a66;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        padding: 10px 20px;
+        font-weight: bold;
+        cursor: pointer;
+        margin: 0 5px;
+      }
+
+      /* ======= 觸控說明 ======= */
+      .touch-instructions {
+        margin-top: 10px;
+        color: #776e65;
+        font-size: 14px;
+        text-align: center;
+      }
+
+      /* ======= iOS 加主畫面教學模組 ======= */
+      .modal-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease;
+      }
+      .modal-container.show {
+        opacity: 1;
+        visibility: visible;
+      }
+      .modal-content {
+        width: 90%;
+        max-width: 340px;
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        position: relative;
+        transform: translateY(20px);
+        opacity: 0;
+        transition: transform 0.4s ease, opacity 0.4s ease;
+      }
+      .modal-container.show .modal-content {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      .close-button {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 30px;
+        height: 30px;
+        background: #f0f0f0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+      .close-button:hover {
+        background: #e0e0e0;
+      }
+      .close-icon {
+        position: relative;
+        width: 15px;
+        height: 15px;
+      }
+      .close-icon:before,
+      .close-icon:after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: #666;
+      }
+      .close-icon:before {
+        transform: rotate(45deg);
+      }
+      .close-icon:after {
+        transform: rotate(-45deg);
+      }
+      .modal-title {
+        font-size: 22px;
+        font-weight: 600;
+        color: #4a90e2;
+        margin-bottom: 12px;
+        text-align: center;
+      }
+      .modal-description {
+        font-size: 16px;
+        color: #666;
+        line-height: 1.5;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      .modal-illustration {
+        position: relative;
+        height: 280px;
+        margin: 30px 0;
+        background: #f8f9fa;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px dashed #ddd;
+      }
+      .iphone-frame {
+        width: 200px;
+        height: 380px;
+        background: #222;
+        border-radius: 32px;
+        margin: 0 auto;
+        position: relative;
+        overflow: hidden;
+        border: 2px solid #111;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        transform: scale(0.7);
+        margin-top: -50px;
+      }
+      .iphone-screen {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        background: #fff;
+        border-radius: 24px;
+        overflow: hidden;
+      }
+      .browser-bar {
+        height: 30px;
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-bottom: 1px solid #ddd;
+      }
+      .browser-url {
+        width: 80%;
+        height: 20px;
+        background: #e0e0e0;
+        border-radius: 10px;
+      }
+      .browser-content {
+        height: calc(100% - 70px);
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+      }
+      .content-placeholder {
+        width: 80%;
+        height: 15px;
+        background: #f0f0f0;
+        border-radius: 4px;
+        margin-bottom: 10px;
+      }
+      .content-placeholder:nth-child(2) {
+        width: 65%;
+      }
+      .safari-toolbar {
+        height: 40px;
+        background: #f8f8f8;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        border-top: 1px solid #ddd;
+      }
+      .toolbar-button {
+        width: 24px;
+        height: 24px;
+        background: #d0d0d0;
+        border-radius: 50%;
+      }
+      .share-button {
+        position: relative;
+        width: 24px;
+        height: 24px;
+        background: #4a90e2;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .share-icon {
+        width: 14px;
+        height: 14px;
+        position: relative;
+      }
+      .share-icon:before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 2px;
+        height: 10px;
+        background: #fff;
+        transform: translateX(-50%);
+      }
+      .share-icon:after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 50%;
+        width: 8px;
+        height: 8px;
+        border: 2px solid #fff;
+        border-bottom: none;
+        border-left: none;
+        transform: translateX(-50%) rotate(-45deg);
+      }
+      /* 第一個箭頭 (指向分享按鈕) */
+      .animated-arrow {
+        position: absolute;
+        bottom: 60px;
+        right: 30px;
+        width: 40px;
+        height: 60px;
+        animation: bounce 1.5s infinite;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .arrow-body {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 6px;
+        height: 40px;
+        background: #ff6b6b;
+        transform: translateX(-50%);
+        border-radius: 3px;
+      }
+      .arrow-head {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        background: #ff6b6b;
+        transform: translateX(-50%) rotate(45deg);
+        clip-path: polygon(0 0, 100% 100%, 0 100%);
+      }
+      /* 新增：箭頭下滑動畫 */
+      @keyframes swipeDown {
+        0% {
+          transform: translateY(0) rotate(180deg);
+        }
+        100% {
+          transform: translateY(30px) rotate(180deg);
+        }
+      }
+      .swipe-down {
+        animation: swipeDown 1s forwards;
+      }
+      /* 高亮動畫 */
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 rgba(255, 107, 107, 0);
+        }
+        50% {
+          box-shadow: 0 0 10px rgba(255, 107, 107, 1);
+        }
+        100% {
+          box-shadow: 0 0 0 rgba(255, 107, 107, 0);
+        }
+      }
+      .highlight {
+        animation: pulse 1s infinite;
+      }
+      /* 完成訊息 */
+      .completion-message {
+        font-size: 18px;
+        color: #28a745;
+        font-weight: 600;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        margin-top: 15px;
+        text-align: center;
+      }
+      .completion-message.show {
+        opacity: 1;
+      }
+      @keyframes bounce {
+        0%,
+        20%,
+        50%,
+        80%,
+        100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-10px);
+        }
+        60% {
+          transform: translateY(-5px);
+        }
+      }
+      @keyframes bounce2 {
+        0%,
+        20%,
+        50%,
+        80%,
+        100% {
+          transform: translateY(0) rotate(180deg);
+        }
+        40% {
+          transform: translateY(10px) rotate(180deg);
+        }
+        60% {
+          transform: translateY(5px) rotate(180deg);
+        }
+      }
+      /* ======= 響應式 ======= */
+      @media screen and (max-width: 520px) {
+        .header .title {
+          font-size: 48px;
+        }
+        .game-container {
+          width: 300px;
+          height: 300px;
+        }
+        .tile {
+          font-size: 20px;
+        }
+        .tile-128,
+        .tile-256,
+        .tile-512 {
+          font-size: 18px;
+        }
+        .tile-1024,
+        .tile-2048 {
+          font-size: 16px;
+        }
+      }
+      @media screen and (max-width: 350px) {
+        .header .title {
+          font-size: 36px;
+        }
+        .game-container {
+          width: 280px;
+          height: 280px;
+          padding: 5px;
+        }
+        .tile {
+          font-size: 16px;
+        }
+        .game-message p {
+          font-size: 40px;
+          height: 40px;
+          line-height: 40px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- 頂部：標題 + 分數 -->
+      <div class="header">
+        <div class="title">2048</div>
+        <div class="scores-container">
+          <div class="score-box">
+            <div class="score-box-title">分數</div>
+            <div class="score-box-value" id="score">0</div>
+          </div>
+          <div class="score-box">
+            <div class="score-box-title">最佳</div>
+            <div class="score-box-value" id="best-score">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 遊戲說明 + 按鈕群 -->
+      <div class="above-game">
+        <div class="game-intro">
+          <p>
+            哎呀呀～小笨蛋～快來動動腦袋，把方塊湊成
+            <strong>2048</strong> 啦！(っ´ω`c)💕
+          </p>
+        </div>
+        <div class="buttons-area">
+          <button class="restart-button" id="restart-button">重新開局✨</button>
+          <button class="undo-button" id="undo-button">回上一步</button>
+        </div>
+      </div>
+
+      <!-- 遊戲主要區塊 -->
+      <div class="game-container">
+        <div class="grid-container" id="grid-container">
+          <!-- 16 個網格 -->
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+        </div>
+        <div class="tile-container" id="tile-container">
+          <!-- 動態產生的 tile 放這裡 -->
+        </div>
+        <div class="game-message" id="game-message">
+          <p id="message-text"></p>
+          <div class="lower">
+            <button class="retry-button" id="retry-button">再試一次</button>
+            <button class="keep-playing-button" id="keep-playing-button">
+              繼續玩
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="touch-instructions">
+        <p>電腦玩家請用 ↑↓←→ 方向鍵；手機玩家請用手指滑動。</p>
+      </div>
+    </div>
+
+    <!-- ======= iOS 加主畫面教學模組 ======= -->
+    <div id="addToHomeModal" class="modal-container">
+      <div class="modal-content">
+        <div class="close-button" id="closeModal">
+          <div class="close-icon"></div>
+        </div>
+        <div class="modal-title">加入主畫面教學</div>
+        <div class="modal-description">
+          請先將本應用加入主畫面，才能完整體驗遊戲喔！
+        </div>
+        <div class="modal-illustration">
+          <div class="iphone-frame">
+            <div class="iphone-screen">
+              <div class="browser-bar">
+                <div class="browser-url"></div>
+              </div>
+              <div class="browser-content">
+                <div class="content-placeholder"></div>
+                <div class="content-placeholder"></div>
+                <div class="content-placeholder"></div>
+              </div>
+              <div class="safari-toolbar">
+                <div class="toolbar-button"></div>
+                <div class="toolbar-button"></div>
+                <div class="share-button">
+                  <div class="share-icon"></div>
+                </div>
+                <div class="toolbar-button"></div>
+                <div class="toolbar-button"></div>
+              </div>
+            </div>
+          </div>
+          <!-- 第一個箭頭：指向分享按鈕 -->
+          <div class="animated-arrow" id="shareArrow">
+            <div class="arrow-body"></div>
+            <div class="arrow-head"></div>
+          </div>
+          <!-- Action Menu：模擬分享選單 -->
+          <div class="action-menu" id="actionMenu">
+            <div class="action-button">
+              <div class="action-icon"></div>
+              <div class="action-text">複製</div>
+            </div>
+            <div class="action-button">
+              <div class="action-icon"></div>
+              <div class="action-text">分享…</div>
+            </div>
+            <div class="action-button">
+              <div class="action-icon"></div>
+              <div class="action-text">書籤</div>
+            </div>
+            <div class="action-button" id="addToHomeButton">
+              <div class="action-icon">
+                <div class="add-to-home-icon"></div>
+              </div>
+              <div class="action-text">加入主畫面</div>
+            </div>
+            <div class="action-button">
+              <div class="action-icon"></div>
+              <div class="action-text">下載連結檔案</div>
+            </div>
+          </div>
+          <!-- 第二個箭頭：指向「加入主畫面」按鈕 -->
+          <div class="action-arrow" id="actionArrow">
+            <div class="arrow-body"></div>
+            <div class="arrow-head"></div>
+          </div>
+        </div>
+        <div class="completion-message" id="completionMessage">
+          成功！現在你可以在主畫面找到我們的應用了
+        </div>
+      </div>
+    </div>
+
+    <!-- 引入獨立的 iOS 加主畫面教學模組 -->
+    <script src="ios-tutorial.js"></script>
+
+    <!-- 遊戲與 PWA 腳本 -->
+    <script>
+      /* ================================
+         遊戲核心：GameCore
+      ================================ */
+      class GameCore {
+        constructor() {
+          this.previousState = null;
+          this.board = Array(4)
+            .fill()
+            .map(() => Array(4).fill(0));
+          this.score = 0;
+          this.moved = false;
+          this.gameOver = false;
+          this.gameWon = false;
+          this.keepPlaying = false;
+          this.init();
+        }
+        init() {
+          for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+              this.board[i][j] = 0;
+            }
+          }
+          this.score = 0;
+          this.gameOver = false;
+          this.gameWon = false;
+          this.keepPlaying = false;
+          this.addRandomTile();
+          this.addRandomTile();
+        }
+        savePreviousState() {
+          this.previousState = {
+            board: JSON.parse(JSON.stringify(this.board)),
+            score: this.score,
+            gameOver: this.gameOver,
+            gameWon: this.gameWon,
+            keepPlaying: this.keepPlaying,
+          };
+        }
+        undo() {
+          if (this.previousState) {
+            this.board = JSON.parse(JSON.stringify(this.previousState.board));
+            this.score = this.previousState.score;
+            this.gameOver = this.previousState.gameOver;
+            this.gameWon = this.previousState.gameWon;
+            this.keepPlaying = this.previousState.keepPlaying;
+            this.previousState = null;
+          }
+        }
+        addRandomTile() {
+          const emptyCells = [];
+          for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+              if (this.board[i][j] === 0) {
+                emptyCells.push({ row: i, col: j });
+              }
+            }
+          }
+          if (emptyCells.length > 0) {
+            const randomCell =
+              emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            this.board[randomCell.row][randomCell.col] =
+              Math.random() < 0.9 ? 2 : 4;
+            return {
+              row: randomCell.row,
+              col: randomCell.col,
+              value: this.board[randomCell.row][randomCell.col],
+            };
+          }
+          return null;
+        }
+        move(direction) {
+          this.savePreviousState();
+          this.moved = false;
+          let mergedTiles = [];
+          let movedTiles = [];
+          const originalBoard = JSON.parse(JSON.stringify(this.board));
+          switch (direction) {
+            case 0:
+              for (let col = 0; col < 4; col++) {
+                this.processCellsUpDown(col, true, mergedTiles, movedTiles);
+              }
+              break;
+            case 1:
+              for (let row = 0; row < 4; row++) {
+                this.processCellsLeftRight(row, false, mergedTiles, movedTiles);
+              }
+              break;
+            case 2:
+              for (let col = 0; col < 4; col++) {
+                this.processCellsUpDown(col, false, mergedTiles, movedTiles);
+              }
+              break;
+            case 3:
+              for (let row = 0; row < 4; row++) {
+                this.processCellsLeftRight(row, true, mergedTiles, movedTiles);
+              }
+              break;
+          }
+          movedTiles = movedTiles.map((tile) => {
+            let fromRow = -1,
+              fromCol = -1;
+            for (let i = 0; i < 4; i++) {
+              for (let j = 0; j < 4; j++) {
+                if (
+                  originalBoard[i][j] === tile.value &&
+                  (i !== tile.row || j !== tile.col)
+                ) {
+                  if (
+                    fromRow === -1 ||
+                    Math.abs(i - tile.row) + Math.abs(j - tile.col) <
+                      Math.abs(fromRow - tile.row) +
+                        Math.abs(fromCol - tile.col)
+                  ) {
+                    fromRow = i;
+                    fromCol = j;
+                  }
+                }
+              }
+            }
+            if (fromRow === -1) return tile;
+            return { ...tile, fromRow, fromCol };
+          });
+          if (this.moved) {
+            const newTile = this.addRandomTile();
+            if (newTile) {
+              movedTiles.push({
+                row: newTile.row,
+                col: newTile.col,
+                value: newTile.value,
+                isNew: true,
+              });
+            }
+          }
+          this.checkGameStatus();
+          return {
+            moved: this.moved,
+            mergedTiles,
+            movedTiles,
+            score: this.score,
+            gameOver: this.gameOver,
+            gameWon: this.gameWon && !this.keepPlaying,
+          };
+        }
+        processCellsUpDown(col, isUp, mergedTiles, movedTiles) {
+          const start = isUp ? 0 : 3;
+          const end = isUp ? 3 : 0;
+          const step = isUp ? 1 : -1;
+          let targetPos = start;
+          for (let pos = start; pos !== end + step; pos += step) {
+            if (this.board[pos][col] !== 0) {
+              let value = this.board[pos][col];
+              this.board[pos][col] = 0;
+              if (
+                targetPos !== start &&
+                this.board[targetPos - step][col] === value
+              ) {
+                this.board[targetPos - step][col] *= 2;
+                this.score += this.board[targetPos - step][col];
+                this.moved = true;
+                mergedTiles.push({
+                  row: targetPos - step,
+                  col: col,
+                  value: this.board[targetPos - step][col],
+                  merged: true,
+                });
+                movedTiles.push({
+                  row: targetPos - step,
+                  col: col,
+                  value: this.board[targetPos - step][col],
+                });
+              } else {
+                this.board[targetPos][col] = value;
+                if (targetPos !== pos) {
+                  this.moved = true;
+                  movedTiles.push({ row: targetPos, col: col, value });
+                }
+                targetPos += step;
+              }
+            }
+          }
+        }
+        processCellsLeftRight(row, isLeft, mergedTiles, movedTiles) {
+          const start = isLeft ? 0 : 3;
+          const end = isLeft ? 3 : 0;
+          const step = isLeft ? 1 : -1;
+          let targetPos = start;
+          for (let pos = start; pos !== end + step; pos += step) {
+            if (this.board[row][pos] !== 0) {
+              let value = this.board[row][pos];
+              this.board[row][pos] = 0;
+              if (
+                targetPos !== start &&
+                this.board[row][targetPos - step] === value
+              ) {
+                this.board[row][targetPos - step] *= 2;
+                this.score += this.board[row][targetPos - step];
+                this.moved = true;
+                mergedTiles.push({
+                  row: row,
+                  col: targetPos - step,
+                  value: this.board[row][targetPos - step],
+                  merged: true,
+                });
+                movedTiles.push({
+                  row: row,
+                  col: targetPos - step,
+                  value: this.board[row][targetPos - step],
+                });
+              } else {
+                this.board[row][targetPos] = value;
+                if (targetPos !== pos) {
+                  this.moved = true;
+                  movedTiles.push({ row: row, col: targetPos, value });
+                }
+                targetPos += step;
+              }
+            }
+          }
+        }
+        checkGameStatus() {
+          if (!this.gameWon) {
+            for (let i = 0; i < 4; i++) {
+              for (let j = 0; j < 4; j++) {
+                if (this.board[i][j] === 2048) {
+                  this.gameWon = true;
+                  break;
+                }
+              }
+              if (this.gameWon) break;
+            }
+          }
+          let hasEmptyCell = false;
+          for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+              if (this.board[i][j] === 0) {
+                hasEmptyCell = true;
+                break;
+              }
+            }
+            if (hasEmptyCell) break;
+          }
+          if (!hasEmptyCell) {
+            let canMerge = false;
+            for (let i = 0; i < 4; i++) {
+              for (let j = 0; j < 3; j++) {
+                if (this.board[i][j] === this.board[i][j + 1]) {
+                  canMerge = true;
+                  break;
+                }
+              }
+              if (canMerge) break;
+            }
+            if (!canMerge) {
+              for (let j = 0; j < 4; j++) {
+                for (let i = 0; i < 3; i++) {
+                  if (this.board[i][j] === this.board[i + 1][j]) {
+                    canMerge = true;
+                    break;
+                  }
+                }
+                if (canMerge) break;
+              }
+            }
+            this.gameOver = !canMerge;
+          }
+        }
+        setKeepPlaying() {
+          this.keepPlaying = true;
+        }
+        getBoard() {
+          return this.board;
+        }
+        getStateForAI() {
+          return {
+            board: JSON.parse(JSON.stringify(this.board)),
+            score: this.score,
+            gameOver: this.gameOver,
+            gameWon: this.gameWon,
+            keepPlaying: this.keepPlaying,
+          };
+        }
+        applyMoveFromAI(direction) {
+          return this.move(direction);
+        }
+      }
+
+      /* ================================
+         UI管理：UIManager
+      ================================ */
+      class UIManager {
+        constructor(gameCore) {
+          this.gameCore = gameCore;
+          this.tileContainer = document.getElementById("tile-container");
+          this.scoreElement = document.getElementById("score");
+          this.bestScoreElement = document.getElementById("best-score");
+          this.messageElement = document.getElementById("game-message");
+          this.messageTextElement = document.getElementById("message-text");
+          this.bestScore = this.loadBestScore();
+          this.bestScoreElement.textContent = this.bestScore;
+          this.registerEventListeners();
+          this.drawBoard();
+        }
+        getTilePosition(row, col) {
+          return { top: row * 25 + "%", left: col * 25 + "%" };
+        }
+        drawBoard() {
+          this.tileContainer.innerHTML = "";
+          const board = this.gameCore.getBoard();
+          for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+              if (board[i][j] !== 0) {
+                this.createTile(i, j, board[i][j]);
+              }
+            }
+          }
+        }
+        createTile(
+          row,
+          col,
+          value,
+          isNew = false,
+          isMerged = false,
+          fromRow = null,
+          fromCol = null
+        ) {
+          const tile = document.createElement("div");
+          tile.className = `tile tile-${value}`;
+          const position = this.getTilePosition(row, col);
+          if (fromRow !== null && fromCol !== null) {
+            const fromPos = this.getTilePosition(fromRow, fromCol);
+            tile.style.top = fromPos.top;
+            tile.style.left = fromPos.left;
+            setTimeout(() => {
+              tile.style.top = position.top;
+              tile.style.left = position.left;
+            }, 16);
+          } else {
+            tile.style.top = position.top;
+            tile.style.left = position.left;
+          }
+          tile.textContent = value;
+          if (isNew) tile.classList.add("tile-new");
+          if (isMerged) tile.classList.add("tile-merged");
+          this.tileContainer.appendChild(tile);
+          return tile;
+        }
+        updateScore() {
+          this.scoreElement.textContent = this.gameCore.score;
+          if (this.gameCore.score > this.bestScore) {
+            this.bestScore = this.gameCore.score;
+            this.bestScoreElement.textContent = this.bestScore;
+            localStorage.setItem("bestScore", this.bestScore);
+          }
+        }
+        loadBestScore() {
+          return parseInt(localStorage.getItem("bestScore")) || 0;
+        }
+        registerEventListeners() {
+          document.addEventListener("keydown", (e) => {
+            let direction;
+            switch (e.key) {
+              case "ArrowUp":
+                direction = 0;
+                break;
+              case "ArrowRight":
+                direction = 1;
+                break;
+              case "ArrowDown":
+                direction = 2;
+                break;
+              case "ArrowLeft":
+                direction = 3;
+                break;
+              default:
+                return;
+            }
+            this.handleMove(direction);
+          });
+          document
+            .getElementById("restart-button")
+            .addEventListener("click", () => {
+              this.restartGame();
+            });
+          document
+            .getElementById("retry-button")
+            .addEventListener("click", () => {
+              this.restartGame();
+            });
+          document
+            .getElementById("keep-playing-button")
+            .addEventListener("click", () => {
+              this.gameCore.setKeepPlaying();
+              this.hideMessage();
+            });
+          document
+            .getElementById("undo-button")
+            .addEventListener("click", () => {
+              this.gameCore.undo();
+              this.drawBoard();
+              this.updateScore();
+            });
+          this.addSwipeListeners();
+          document.addEventListener(
+            "touchmove",
+            (e) => {
+              e.preventDefault();
+            },
+            { passive: false }
+          );
+          window.addEventListener("beforeinstallprompt", (e) => {
+            e.preventDefault();
+            this.deferredPrompt = e;
+            document.getElementById("install-button").style.display =
+              "inline-block";
+          });
+          document
+            .getElementById("install-button")
+            .addEventListener("click", () => {
+              if (this.deferredPrompt) {
+                this.deferredPrompt.prompt();
+                this.deferredPrompt.userChoice.then((choiceResult) => {
+                  if (choiceResult.outcome === "accepted") {
+                    console.log("User accepted the A2HS prompt");
+                  } else {
+                    console.log("User dismissed the A2HS prompt");
+                  }
+                  this.deferredPrompt = null;
+                  document.getElementById("install-button").style.display =
+                    "none";
+                });
+              }
+            });
+        }
+        handleMove(direction) {
+          if (
+            this.gameCore.gameOver ||
+            (this.gameCore.gameWon && !this.gameCore.keepPlaying)
+          )
+            return;
+          const result = this.gameCore.move(direction);
+          if (result.moved) {
+            this.drawBoard();
+            this.updateScore();
+            if (result.gameWon) {
+              this.showMessage("你贏啦！");
+            }
+            if (result.gameOver) {
+              this.showMessage("遊戲結束");
+            }
+          }
+        }
+        restartGame() {
+          this.gameCore.init();
+          this.drawBoard();
+          this.updateScore();
+          this.hideMessage();
+        }
+        showMessage(msg) {
+          this.messageTextElement.textContent = msg;
+          this.messageElement.style.display = "flex";
+        }
+        hideMessage() {
+          this.messageElement.style.display = "none";
+        }
+        addSwipeListeners() {
+          let touchStartX = 0;
+          let touchStartY = 0;
+          const threshold = 30;
+          document.addEventListener("touchstart", (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+          });
+          document.addEventListener(
+            "touchend",
+            (e) => {
+              const touchEndX = e.changedTouches[0].clientX;
+              const touchEndY = e.changedTouches[0].clientY;
+              const diffX = touchEndX - touchStartX;
+              const diffY = touchEndY - touchStartY;
+              if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (Math.abs(diffX) > threshold) {
+                  this.handleMove(diffX > 0 ? 1 : 3);
+                }
+              } else {
+                if (Math.abs(diffY) > threshold) {
+                  this.handleMove(diffY > 0 ? 2 : 0);
+                }
+              }
+            },
+            { passive: false }
+          );
+        }
+      }
+      document.addEventListener("DOMContentLoaded", () => {
+        window.gameCore = new GameCore();
+        new UIManager(window.gameCore);
+      });
+    </script>
+
+    <!-- Service Worker 註冊 -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("sw.js")
+          .then(() => console.log("Service Worker 註冊成功"))
+          .catch((err) => console.log("Service Worker 註冊失敗", err));
+      }
+    </script>
+  </body>
+</html>

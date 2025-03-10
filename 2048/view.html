@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>iOS 加到主畫面 - 自動動畫版</title>
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --accent-color: #ff6b6b;
+        --success-color: #28a745;
+        --text-color: #333;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+      }
+
+      body {
+        background-color: #f7f7f7;
+        color: var(--text-color);
+        font-size: 16px;
+        line-height: 1.5;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 500px;
+        text-align: center;
+      }
+
+      /* -- Modal -- */
+      .modal-container {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.75);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease;
+      }
+      .modal-container.show {
+        opacity: 1;
+        visibility: visible;
+      }
+      .modal-content {
+        width: 90%;
+        max-width: 340px;
+        background-color: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        position: relative;
+        transform: translateY(20px);
+        opacity: 0;
+        transition: transform 0.4s ease, opacity 0.4s ease;
+      }
+      .modal-container.show .modal-content {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      .close-button {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 30px;
+        height: 30px;
+        background-color: #f0f0f0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+      .close-button:hover {
+        background-color: #e0e0e0;
+      }
+      .close-icon {
+        position: relative;
+        width: 15px;
+        height: 15px;
+      }
+      .close-icon:before,
+      .close-icon:after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #666;
+      }
+      .close-icon:before {
+        transform: rotate(45deg);
+      }
+      .close-icon:after {
+        transform: rotate(-45deg);
+      }
+
+      .modal-title {
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 12px;
+      }
+      .modal-description {
+        font-size: 16px;
+        color: #666;
+        line-height: 1.5;
+        margin-bottom: 20px;
+      }
+
+      /* -- iPhone 模擬 -- */
+      .modal-illustration {
+        position: relative;
+        height: 280px;
+        margin: 30px 0;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px dashed #ddd;
+      }
+      .iphone-frame {
+        width: 200px;
+        height: 380px;
+        background-color: #222;
+        border-radius: 32px;
+        margin: 0 auto;
+        position: relative;
+        overflow: hidden;
+        border: 2px solid #111;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        transform: scale(0.7);
+        margin-top: -50px;
+      }
+      .iphone-screen {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        background-color: #fff;
+        border-radius: 24px;
+        overflow: hidden;
+      }
+      .browser-bar {
+        height: 30px;
+        background-color: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-bottom: 1px solid #ddd;
+      }
+      .browser-url {
+        width: 80%;
+        height: 20px;
+        background-color: #e0e0e0;
+        border-radius: 10px;
+      }
+      .browser-content {
+        height: calc(100% - 70px);
+        background-color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+      }
+      .content-placeholder {
+        width: 80%;
+        height: 15px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        margin-bottom: 10px;
+      }
+      .content-placeholder:nth-child(2) {
+        width: 65%;
+      }
+      .safari-toolbar {
+        height: 40px;
+        background-color: #f8f8f8;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        border-top: 1px solid #ddd;
+      }
+      .toolbar-button {
+        width: 24px;
+        height: 24px;
+        background-color: #d0d0d0;
+        border-radius: 50%;
+      }
+      .share-button {
+        position: relative;
+        width: 24px;
+        height: 24px;
+        background-color: var(--primary-color);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .share-icon {
+        width: 14px;
+        height: 14px;
+        position: relative;
+      }
+      .share-icon:before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 2px;
+        height: 10px;
+        background-color: #fff;
+        transform: translateX(-50%);
+      }
+      .share-icon:after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 50%;
+        width: 8px;
+        height: 8px;
+        border: 2px solid #fff;
+        border-bottom: none;
+        border-left: none;
+        transform: translateX(-50%) rotate(-45deg);
+      }
+
+      /* -- 箭頭動畫(分享按鈕) -- */
+      .animated-arrow {
+        position: absolute;
+        bottom: 60px;
+        right: 30px;
+        width: 40px;
+        height: 60px;
+        animation: bounce 1.5s infinite;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        opacity: 0; /* 一開始隱藏，等 JS 顯示 */
+        transition: opacity 0.3s ease;
+      }
+      .arrow-body {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 6px;
+        height: 40px;
+        background-color: var(--accent-color);
+        transform: translateX(-50%);
+        border-radius: 3px;
+      }
+      .arrow-head {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        background-color: var(--accent-color);
+        transform: translateX(-50%) rotate(45deg);
+        clip-path: polygon(0 0, 100% 100%, 0 100%);
+      }
+
+      /* -- Action Menu 彈出 -- */
+      .action-menu {
+        position: absolute;
+        width: 250px;
+        background-color: #f8f8f8;
+        border-radius: 12px;
+        padding: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        bottom: 50%;
+        left: 50%;
+        transform: translateX(-50%) translateY(50%) scale(0);
+        transform-origin: center;
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        z-index: 10;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .action-menu.show {
+        transform: translateX(-50%) translateY(50%) scale(1);
+        opacity: 1;
+      }
+      .action-button {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 5px;
+        background-color: #fff;
+      }
+      .action-icon {
+        width: 30px;
+        height: 30px;
+        background-color: #f0f0f0;
+        border-radius: 6px;
+        margin-right: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .add-to-home-icon {
+        position: relative;
+        width: 16px;
+        height: 16px;
+      }
+      .add-to-home-icon:before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 2px;
+        height: 16px;
+        background-color: var(--success-color);
+        transform: translateX(-50%);
+      }
+      .add-to-home-icon:after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 16px;
+        height: 2px;
+        background-color: var(--success-color);
+        transform: translateY(-50%);
+      }
+      .action-text {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      /* -- Action Arrow -- */
+      .action-arrow {
+        position: absolute;
+        top: 65%;
+        right: 50%;
+        width: 30px;
+        height: 50px;
+        animation: bounce2 1.5s infinite;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        opacity: 0;
+        transform: rotate(180deg);
+        transition: opacity 0.3s ease;
+      }
+      .action-arrow.show {
+        opacity: 1;
+      }
+
+      /* -- 完成訊息 -- */
+      .completion-message {
+        font-size: 18px;
+        color: var(--success-color);
+        font-weight: 600;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        margin-top: 15px;
+        text-align: center;
+      }
+      .completion-message.show {
+        opacity: 1;
+      }
+
+      @keyframes bounce {
+        0%,
+        20%,
+        50%,
+        80%,
+        100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-10px);
+        }
+        60% {
+          transform: translateY(-5px);
+        }
+      }
+      @keyframes bounce2 {
+        0%,
+        20%,
+        50%,
+        80%,
+        100% {
+          transform: translateY(0) rotate(180deg);
+        }
+        40% {
+          transform: translateY(10px) rotate(180deg);
+        }
+        60% {
+          transform: translateY(5px) rotate(180deg);
+        }
+      }
+
+      .demo-button {
+        padding: 12px 24px;
+        background-color: var(--primary-color);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        margin: 20px 0;
+      }
+      .demo-button:hover {
+        background-color: #3a80d2;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>iOS「加到主畫面」教學 - 自動播放</h1>
+      <p>此示範將自動播放整個動畫，使用者不用手動按下一步。</p>
+      <button id="showDemo" class="demo-button">顯示教學</button>
+    </div>
+
+    <!-- 模態窗 -->
+    <div id="addToHomeModal" class="modal-container">
+      <div class="modal-content">
+        <!-- 關閉按鈕 -->
+        <div class="close-button" id="closeModal">
+          <div class="close-icon"></div>
+        </div>
+
+        <!-- 標題與描述 -->
+        <div class="modal-title">將應用加入主畫面</div>
+        <div class="modal-description">
+          以下展示操作流程，讓你輕鬆把網站添加到 iOS 主畫面
+        </div>
+
+        <!-- iPhone示意圖 + 箭頭動作 -->
+        <div class="modal-illustration">
+          <div class="iphone-frame">
+            <div class="iphone-screen">
+              <div class="browser-bar">
+                <div class="browser-url"></div>
+              </div>
+              <div class="browser-content">
+                <div class="content-placeholder"></div>
+                <div class="content-placeholder"></div>
+                <div class="content-placeholder"></div>
+              </div>
+              <div class="safari-toolbar">
+                <div class="toolbar-button"></div>
+                <div class="toolbar-button"></div>
+                <div class="share-button">
+                  <div class="share-icon"></div>
+                </div>
+                <div class="toolbar-button"></div>
+                <div class="toolbar-button"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 第1個箭頭：指向分享按鈕 -->
+          <div class="animated-arrow" id="shareArrow">
+            <div class="arrow-body"></div>
+            <div class="arrow-head"></div>
+          </div>
+
+          <!-- 分享選單(彈出) -->
+          <div class="action-menu" id="actionMenu">
+            <div class="action-button">
+              <div class="action-icon"></div>
+              <div class="action-text">複製</div>
+            </div>
+            <div class="action-button">
+              <div class="action-icon"></div>
+              <div class="action-text">分享...</div>
+            </div>
+            <div class="action-button">
+              <div class="action-icon"></div>
+              <div class="action-text">書籤</div>
+            </div>
+            <div class="action-button">
+              <div class="action-icon">
+                <div class="add-to-home-icon"></div>
+              </div>
+              <div class="action-text">加入主畫面</div>
+            </div>
+            <div class="action-button">
+              <div class="action-icon"></div>
+              <div class="action-text">下載連結檔案</div>
+            </div>
+          </div>
+
+          <!-- 第2個箭頭：指向「加入主畫面」那一列 -->
+          <div class="action-arrow" id="actionArrow">
+            <div class="arrow-body"></div>
+            <div class="arrow-head"></div>
+          </div>
+        </div>
+
+        <!-- 完成訊息 -->
+        <div class="completion-message" id="completionMessage">
+          成功！現在你可以在主畫面找到我們的App了
+        </div>
+      </div>
+    </div>
+
+    <script>
+      class IOSAddToHomeTutorial {
+        constructor() {
+          this.modal = document.getElementById("addToHomeModal");
+          this.closeBtn = document.getElementById("closeModal");
+          this.shareArrow = document.getElementById("shareArrow");
+          this.actionMenu = document.getElementById("actionMenu");
+          this.actionArrow = document.getElementById("actionArrow");
+          this.completionMsg = document.getElementById("completionMessage");
+
+          this.demoButton = document.getElementById("showDemo");
+
+          this.init();
+        }
+
+        init() {
+          // 點擊「顯示教學」 => 開啟模態 & 自動播放動畫
+          this.demoButton.addEventListener("click", () => {
+            this.showModal();
+          });
+
+          // 關閉按鈕
+          this.closeBtn.addEventListener("click", () => {
+            this.hideModal();
+          });
+        }
+
+        showModal() {
+          this.modal.classList.add("show");
+
+          // 1秒後，顯示第1個箭頭 (指向「分享」)
+          setTimeout(() => {
+            this.shareArrow.style.opacity = "1";
+          }, 1000);
+
+          // 3秒後，隱藏第1個箭頭 -> 顯示actionMenu
+          setTimeout(() => {
+            this.shareArrow.style.opacity = "0";
+            this.actionMenu.classList.add("show");
+          }, 4000);
+
+          // 4秒後，顯示actionArrow (指向「加入主畫面」項目)
+          setTimeout(() => {
+            this.actionArrow.classList.add("show");
+          }, 5000);
+
+          // 7秒後，隱藏actionMenu & actionArrow -> 顯示完成訊息
+          setTimeout(() => {
+            this.actionMenu.classList.remove("show");
+            this.actionArrow.classList.remove("show");
+            this.completionMsg.classList.add("show");
+          }, 8000);
+
+          // 10秒後，自動關閉整個教學
+          setTimeout(() => {
+            this.hideModal();
+          }, 11000);
+        }
+
+        hideModal() {
+          this.modal.classList.remove("show");
+          // 重置動畫狀態，以便下次再顯示
+          this.shareArrow.style.opacity = "0";
+          this.actionMenu.classList.remove("show");
+          this.actionArrow.classList.remove("show");
+          this.completionMsg.classList.remove("show");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        new IOSAddToHomeTutorial();
+      });
+    </script>
+  </body>
+</html>
