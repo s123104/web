@@ -29,14 +29,14 @@
     // 1.5秒後，開始模擬箭頭下滑（加入 swipeDown 動畫）
     setTimeout(() => {
       shareArrow.classList.add("swipe-down");
-    }, 1500);
+    }, 2000);
 
     // 2秒後，隱藏分享箭頭並顯示 Action Menu
     const actionMenu = document.getElementById("actionMenu");
     setTimeout(() => {
       shareArrow.style.opacity = "0";
       actionMenu.classList.add("show");
-    }, 2000);
+    }, 3000);
 
     // 2.5秒後，針對「加入主畫面」按鈕加上高亮動畫，並顯示第二個箭頭指向它
     const addToHomeButton = document.getElementById("addToHomeButton");
@@ -44,7 +44,7 @@
     setTimeout(() => {
       addToHomeButton.classList.add("highlight");
       actionArrow.classList.add("show");
-    }, 2500);
+    }, 4000);
 
     // 3.5秒後，隱藏動作選單與箭頭，顯示完成訊息
     const completionMsg = document.getElementById("completionMessage");
@@ -53,7 +53,7 @@
       actionArrow.classList.remove("show");
       addToHomeButton.classList.remove("highlight");
       completionMsg.classList.add("show");
-    }, 3500);
+    }, 5000);
 
     // 4.5秒後，自動關閉模態窗並重置動畫
     setTimeout(() => {
@@ -64,6 +64,6 @@
       actionArrow.classList.remove("show");
       addToHomeButton.classList.remove("highlight");
       completionMsg.classList.remove("show");
-    }, 4500);
+    }, 6000);
   }
 })();
