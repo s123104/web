@@ -2,12 +2,15 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <!-- 防止雙擊縮放 + 自動套用手機寬度 + 不可縮放 -->
+    <!-- 防止雙擊縮放 + 不可縮放 -->
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no"
     />
     <title>2048 兔兔爆粗口版</title>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json" />
+
     <!-- Google Fonts：ZCOOL KuaiLe + Noto Sans TC -->
     <link
       href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+QingKe+HuangYou&display=swap"
@@ -27,7 +30,6 @@
         overflow: hidden;
         /* 讓整頁都不要有滾動彈性 */
         overscroll-behavior: none;
-        /* 也可以用 touch-action: none; 不過要留意會不會影響手勢判斷 */
       }
       body {
         font-family: "Noto Sans TC", sans-serif;
@@ -91,11 +93,6 @@
         gap: 15px;
         margin-bottom: 20px;
       }
-      .game-intro {
-        color: #776e65;
-        line-height: 1.4;
-        text-align: center;
-      }
       .buttons-area {
         display: flex;
         gap: 15px;
@@ -112,6 +109,10 @@
       }
       .btn:hover {
         background-color: #9f8b77;
+      }
+      /* 給加到主畫面的按鈕 */
+      #install-button {
+        background-color: #d17e65;
       }
 
       /********************************************
@@ -374,7 +375,7 @@
     <div class="container">
       <!-- 兔兔貼圖 (隨機顯示用) -->
       <img
-        src="https://media.tenor.com/aaTV8ZbZUUgAAAAi/rabbit-cute.gif"
+        src="https://tenor.com/bX9Wz.gif"
         alt="兔兔貼圖"
         class="bunny-image"
         id="bunny-image"
@@ -400,6 +401,8 @@
         <div class="buttons-area">
           <button class="btn" id="restart-button">重新開始😈</button>
           <button class="btn" id="undo-button">回到上一步🤡</button>
+          <!-- 新增「安裝到桌面」按鈕 -->
+          <button class="btn" id="install-button" style="display:none;">安裝到桌面</button>
         </div>
       </div>
 
@@ -759,6 +762,9 @@
           this.bestScoreElement.textContent = this.bestScore;
           this.tauntMessage = document.getElementById("taunt-message");
           this.bunnyImage = document.getElementById("bunny-image");
+          this.installButton = document.getElementById("install-button");
+          this.deferredPrompt = null; // 給 beforeinstallprompt 用
+
           this.registerEventListeners();
           this.drawBoard();
         }
@@ -880,6 +886,39 @@
 
           // 手勢偵測
           this.addSwipeListeners();
+
+          // 阻止手機滾動
+          document.addEventListener(
+            "touchmove",
+            (e) => {
+              e.preventDefault();
+            },
+            { passive: false }
+          );
+
+          // PWA 安裝事件
+          window.addEventListener("beforeinstallprompt", (e) => {
+            e.preventDefault();
+            this.deferredPrompt = e;
+            // 顯示安裝按鈕
+            this.installButton.style.display = "inline-block";
+          });
+
+          // 按下安裝按鈕
+          this.installButton.addEventListener("click", () => {
+            if (this.deferredPrompt) {
+              this.deferredPrompt.prompt();
+              this.deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === "accepted") {
+                  console.log("User accepted the A2HS prompt");
+                } else {
+                  console.log("User dismissed the A2HS prompt");
+                }
+                this.deferredPrompt = null;
+                this.installButton.style.display = "none";
+              });
+            }
+          });
         }
         showTaunt(dir) {
           const taunts = {
@@ -968,37 +1007,37 @@
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
           });
-          document.addEventListener("touchmove", (e) => {
-            // 防止滾動晃動
-            e.preventDefault();
-          }, { passive: false }); 
-          document.addEventListener("touchend", (e) => {
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            const diffX = touchEndX - touchStartX;
-            const diffY = touchEndY - touchStartY;
-            if (Math.abs(diffX) > Math.abs(diffY)) {
-              if (Math.abs(diffX) > threshold) {
-                if (diffX > 0) {
-                  this.showTaunt("右");
-                  this.handleMove(1);
-                } else {
-                  this.showTaunt("左");
-                  this.handleMove(3);
+          document.addEventListener(
+            "touchend",
+            (e) => {
+              const touchEndX = e.changedTouches[0].clientX;
+              const touchEndY = e.changedTouches[0].clientY;
+              const diffX = touchEndX - touchStartX;
+              const diffY = touchEndY - touchStartY;
+              if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (Math.abs(diffX) > threshold) {
+                  if (diffX > 0) {
+                    this.showTaunt("右");
+                    this.handleMove(1);
+                  } else {
+                    this.showTaunt("左");
+                    this.handleMove(3);
+                  }
+                }
+              } else {
+                if (Math.abs(diffY) > threshold) {
+                  if (diffY > 0) {
+                    this.showTaunt("下");
+                    this.handleMove(2);
+                  } else {
+                    this.showTaunt("上");
+                    this.handleMove(0);
+                  }
                 }
               }
-            } else {
-              if (Math.abs(diffY) > threshold) {
-                if (diffY > 0) {
-                  this.showTaunt("下");
-                  this.handleMove(2);
-                } else {
-                  this.showTaunt("上");
-                  this.handleMove(0);
-                }
-              }
-            }
-          });
+            },
+            { passive: false }
+          );
         }
       }
 
@@ -1007,13 +1046,18 @@
       ********************************************/
       document.addEventListener("DOMContentLoaded", () => {
         window.gameCore = new GameCore();
-        const uiManager = new UIManager(window.gameCore);
-
-        // 保險起見再加一次, 也可直接加在 DOMContentLoaded 外
-        document.addEventListener("touchmove", (e) => {
-          e.preventDefault();
-        }, { passive: false });
+        new UIManager(window.gameCore);
       });
+    </script>
+
+    <!-- Service Worker 註冊 -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("sw.js")
+          .then(() => console.log("Service Worker 註冊成功"))
+          .catch((err) => console.log("Service Worker 註冊失敗", err));
+      }
     </script>
   </body>
 </html>
