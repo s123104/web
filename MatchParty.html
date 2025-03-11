@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>彩色方塊益智遊戲</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .container {
+            position: relative;
+            width: 90%;
+            max-width: 600px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            animation: containerFloat 3s ease-in-out infinite;
+        }
+        
+        @keyframes containerFloat {
+            0%, 100% { transform: translateY(0) rotate(0); }
+            50% { transform: translateY(-10px) rotate(1deg); }
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            animation: titleGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 5px rgba(100, 100, 255, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(100, 100, 255, 1); }
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+        
+        .score {
+            font-weight: bold;
+            animation: scoreScale 0.5s ease-in-out;
+        }
+        
+        @keyframes scoreScale {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .timer {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tile {
+            position: relative;
+            aspect-ratio: 1/1;
+            background-color: #3498db;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s, background-color 0.3s;
+            overflow: hidden;
+        }
+        
+        .tile:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tile.flip {
+            transform: rotateY(180deg);
+            background-color: #2ecc71;
+        }
+        
+        .tile.matched {
+            background-color: #9b59b6;
+            animation: matchedPulse 1s ease-in-out infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes matchedPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .tile::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(45deg);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .tile:active::before {
+            opacity: 1;
+            animation: tileShine 0.5s forwards;
+        }
+        
+        @keyframes tileShine {
+            to { top: 150%; left: 150%; }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        button::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300px;
+            height: 300px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            transition: transform 0.5s, opacity 0.5s;
+        }
+        
+        button:active::after {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+        
+        .restart-btn {
+            background-color: #e74c3c;
+        }
+        
+        .restart-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .level-select {
+            margin-top: 15px;
+        }
+        
+        select {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 2px solid #3498db;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        select:focus {
+            border-color: #9b59b6;
+            box-shadow: 0 0 8px rgba(155, 89, 182, 0.6);
+        }
+        
+        .game-complete {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        
+        .game-complete.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .complete-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 80%;
+            transform: scale(0.8);
+            transition: transform 0.5s;
+            animation: popIn 0.5s forwards;
+        }
+        
+        @keyframes popIn {
+            0% { transform: scale(0.8); }
+            40% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .complete-content h2 {
+            color: #9b59b6;
+            margin-bottom: 15px;
+        }
+        
+        .complete-content p {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .stars {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .star {
+            font-size: 36px;
+            color: #f1c40f;
+            animation: starRotate 1s ease-in-out;
+        }
+        
+        @keyframes starRotate {
+            0% { transform: rotate(0) scale(0); }
+            50% { transform: rotate(180deg) scale(1.2); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f1c40f;
+            opacity: 0.8;
+            animation: confettiFall linear;
+        }
+        
+        @keyframes confettiFall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 15px;
+            }
+            
+            .game-board {
+                gap: 8px;
+            }
+            
+            .tile {
+                font-size: 18px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+        
+        .hint-btn {
+            background-color: #f39c12;
+        }
+        
+        .hint-btn:hover {
+            background-color: #e67e22;
+        }
+        
+        .tile.hint {
+            animation: hintPulse 1s infinite;
+        }
+        
+        @keyframes hintPulse {
+            0%, 100% { box-shadow: 0 0 0 rgba(243, 156, 18, 0.7); }
+            50% { box-shadow: 0 0 20px rgba(243, 156, 18, 0.7); }
+        }
+        
+        .particle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            opacity: 0;
+            animation: particleAnim 1s forwards;
+        }
+        
+        @keyframes particleAnim {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>彩色方塊益智遊戲</h1>
+        
+        <div class="game-info">
+            <div>分數: <span class="score">0</span></div>
+            <div>時間: <span class="timer">60</span>秒</div>
+        </div>
+        
+        <div class="game-board"></div>
+        
+        <div class="controls">
+            <button class="restart-btn">重新開始</button>
+            <button class="hint-btn">提示</button>
+        </div>
+        
+        <div class="level-select">
+            <label for="level">難度: </label>
+            <select id="level">
+                <option value="easy">簡單 (4x4)</option>
+                <option value="medium">中等 (6x4)</option>
+                <option value="hard">困難 (6x6)</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="game-complete">
+        <div class="complete-content">
+            <h2>恭喜完成遊戲!</h2>
+            <p>你的分數: <span class="final-score">0</span></p>
+            <p>用時: <span class="final-time">0</span>秒</p>
+            <div class="stars">
+                <div class="star">⭐</div>
+                <div class="star">⭐</div>
+                <div class="star">⭐</div>
+            </div>
+            <button class="play-again-btn">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 遊戲變數
+            let score = 0;
+            let timer = 60;
+            let timerInterval;
+            let gameStarted = false;
+            let flippedTiles = [];
+            let matchedPairs = 0;
+            let totalPairs = 8;
+            let level = 'easy';
+            let hintsRemaining = 3;
+            let gameBoard = document.querySelector('.game-board');
+            let scoreDisplay = document.querySelector('.score');
+            let timerDisplay = document.querySelector('.timer');
+            let restartBtn = document.querySelector('.restart-btn');
+            let hintBtn = document.querySelector('.hint-btn');
+            let levelSelect = document.getElementById('level');
+            let gameComplete = document.querySelector('.game-complete');
+            let finalScore = document.querySelector('.final-score');
+            let finalTime = document.querySelector('.final-time');
+            let playAgainBtn = document.querySelector('.play-again-btn');
+            
+            // 遊戲圖案
+            const emojis = ['🦄', '🌈', '🍭', '🚀', '🎮', '🍕', '🎸', '🎨', '🐉', '💎', '🎁', '🎯', '🏆', '🌮', '🍦', '🧩', '🎭', '🧠'];
+            
+            // 遊戲初始化
+            function initGame() {
+                resetGame();
+                setupBoard();
+                setEventListeners();
+            }
+            
+            // 重設遊戲狀態
+            function resetGame() {
+                score = 0;
+                scoreDisplay.textContent = score;
+                timer = 60;
+                timerDisplay.textContent = timer;
+                gameStarted = false;
+                flippedTiles = [];
+                matchedPairs = 0;
+                clearInterval(timerInterval);
+                
+                // 重設遊戲板
+                gameBoard.innerHTML = '';
+                
+                // 設置難度
+                switch(level) {
+                    case 'easy':
+                        totalPairs = 8;
+                        gameBoard.style.gridTemplateColumns = 'repeat(4, 1fr)';
+                        break;
+                    case 'medium':
+                        totalPairs = 12;
+                        gameBoard.style.gridTemplateColumns = 'repeat(4, 1fr)';
+                        break;
+                    case 'hard':
+                        totalPairs = 18;
+                        gameBoard.style.gridTemplateColumns = 'repeat(6, 1fr)';
+                        break;
+                }
+                
+                hintsRemaining = 3;
+                hintBtn.textContent = `提示 (${hintsRemaining})`;
+            }
+            
+            // 設置遊戲板
+            function setupBoard() {
+                let tiles = [];
+                
+                // 準備遊戲方塊
+                for (let i = 0; i < totalPairs; i++) {
+                    const emoji = emojis[i];
+                    tiles.push(emoji, emoji);
+                }
+                
+                // 洗牌算法
+                for (let i = tiles.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+                }
+                
+                // 創建遊戲方塊
+                tiles.forEach((tile, index) => {
+                    const tileElement = document.createElement('div');
+                    tileElement.classList.add('tile');
+                    tileElement.dataset.id = index;
+                    tileElement.dataset.value = tile;
+                    
+                    // 添加方塊到遊戲板
+                    gameBoard.appendChild(tileElement);
+                    
+                    // 添加方塊出現動畫
+                    setTimeout(() => {
+                        tileElement.style.animation = `tileAppear 0.5s forwards ${index * 0.05}s`;
+                    }, 100);
+                });
+            }
+            
+            // 設置事件監聽器
+            function setEventListeners() {
+                // 方塊點擊事件
+                gameBoard.addEventListener('click', handleTileClick);
+                
+                // 重新開始按鈕
+                restartBtn.addEventListener('click', initGame);
+                
+                // 提示按鈕
+                hintBtn.addEventListener('click', giveHint);
+                
+                // 難度選擇
+                levelSelect.addEventListener('change', function() {
+                    level = this.value;
+                    initGame();
+                });
+                
+                // 再玩一次按鈕
+                playAgainBtn.addEventListener('click', function() {
+                    gameComplete.classList.remove('show');
+                    initGame();
+                });
+                
+                // 添加鼠標移動粒子效果
+                document.addEventListener('mousemove', createParticle);
+            }
+            
+            // 處理方塊點擊
+            function handleTileClick(event) {
+                const clickedTile = event.target;
+                
+                // 確保點擊的是方塊
+                if (!clickedTile.classList.contains('tile')) return;
+                
+                // 如果遊戲未開始，開始計時
+                if (!gameStarted) {
+                    startTimer();
+                    gameStarted = true;
+                }
+                
+                // 防止重複點擊同一方塊或已匹配方塊
+                if (
+                    flippedTiles.length === 2 ||
+                    clickedTile.classList.contains('flip') ||
+                    clickedTile.classList.contains('matched')
+                ) {
+                    return;
+                }
+                
+                // 翻轉方塊
+                flipTile(clickedTile);
+                
+                // 將翻轉的方塊添加到數組
+                flippedTiles.push(clickedTile);
+                
+                // 如果已有兩個翻轉的方塊，檢查匹配
+                if (flippedTiles.length === 2) {
+                    checkMatch();
+                }
+                
+                // 創建點擊波紋效果
+                createRippleEffect(event);
+            }
+            
+            // 翻轉方塊
+            function flipTile(tile) {
+                tile.classList.add('flip');
+                tile.textContent = tile.dataset.value;
+                
+                // 移除提示效果
+                document.querySelectorAll('.tile.hint').forEach(t => {
+                    t.classList.remove('hint');
+                });
+            }
+            
+            // 檢查匹配
+            function checkMatch() {
+                const [firstTile, secondTile] = flippedTiles;
+                
+                if (firstTile.dataset.value === secondTile.dataset.value) {
+                    // 匹配成功
+                    setTimeout(() => {
+                        firstTile.classList.add('matched');
+                        secondTile.classList.add('matched');
+                        
+                        // 更新分數
+                        score += 10;
+                        scoreDisplay.textContent = score;
+                        scoreDisplay.parentElement.classList.add('score-anim');
+                        setTimeout(() => {
+                            scoreDisplay.parentElement.classList.remove('score-anim');
+                        }, 500);
+                        
+                        // 創建匹配動畫
+                        createMatchAnimation(firstTile);
+                        createMatchAnimation(secondTile);
+                        
+                        // 重置翻轉的方塊
+                        flippedTiles = [];
+                        
+                        // 更新匹配對數
+                        matchedPairs++;
+                        
+                        // 檢查遊戲是否完成
+                        if (matchedPairs === totalPairs) {
+                            gameOver(true);
+                        }
+                    }, 500);
+                } else {
+                    // 匹配失敗
+                    setTimeout(() => {
+                        firstTile.classList.remove('flip');
+                        secondTile.classList.remove('flip');
+                        firstTile.textContent = '';
+                        secondTile.textContent = '';
+                        
+                        // 重置翻轉的方塊
+                        flippedTiles = [];
+                    }, 1000);
+                }
+            }
+            
+            // 開始計時器
+            function startTimer() {
+                timerInterval = setInterval(() => {
+                    timer--;
+                    timerDisplay.textContent = timer;
+                    
+                    if (timer <= 10) {
+                        timerDisplay.style.color = '#e74c3c';
+                        timerDisplay.style.animation = 'pulse 1s infinite';
+                    }
+                    
+                    if (timer <= 0) {
+                        gameOver(false);
+                    }
+                }, 1000);
+            }
+            
+            // 遊戲結束
+            function gameOver(isWin) {
+                clearInterval(timerInterval);
+                gameStarted = false;
+                
+                finalScore.textContent = score;
+                finalTime.textContent = 60 - timer;
+                
+                // 設置星級評分
+                const stars = document.querySelectorAll('.star');
+                if (isWin) {
+                    if (timer >= 40) {
+                        // 3星評分
+                        stars.forEach(star => star.style.display = 'block');
+                    } else if (timer >= 20) {
+                        // 2星評分
+                        stars[2].style.display = 'none';
+                    } else {
+                        // 1星評分
+                        stars[1].style.display = 'none';
+                        stars[2].style.display = 'none';
+                    }
+                    
+                    // 添加獲勝時的彩帶效果
+                    createConfetti();
+                } else {
+                    // 失敗時隱藏星星
+                    stars.forEach(star => star.style.display = 'none');
+                    document.querySelector('.complete-content h2').textContent = '時間到!';
+                }
+                
+                // 顯示遊戲完成彈窗
+                gameComplete.classList.add('show');
+            }
+            
+            // 提示功能
+            function giveHint() {
+                if (hintsRemaining <= 0 || matchedPairs === totalPairs) return;
+                
+                hintsRemaining--;
+                hintBtn.textContent = `提示 (${hintsRemaining})`;
+                
+                // 從未匹配的方塊中隨機選擇一對
+                const unmatched = Array.from(document.querySelectorAll('.tile')).filter(
+                    tile => !tile.classList.contains('matched') && !tile.classList.contains('flip')
+                );
+                
+                if (unmatched.length === 0) return;
+                
+                // 創建值對應的映射
+                const valueMap = {};
+                unmatched.forEach(tile => {
+                    const value = tile.dataset.value;
+                    if (!valueMap[value]) {
+                        valueMap[value] = [];
+                    }
+                    valueMap[value].push(tile);
+                });
+                
+                // 過濾出有配對的值
+                const pairs = Object.values(valueMap).filter(tiles => tiles.length === 2);
+                
+                if (pairs.length === 0) return;
+                
+                // 隨機選擇一對
+                const randomPair = pairs[Math.floor(Math.random() * pairs.length)];
+                
+                // 高亮顯示提示的方塊
+                randomPair.forEach(tile => {
+                    tile.classList.add('hint');
+                    
+                    // 3秒後移除提示
+                    setTimeout(() => {
+                        if (!tile.classList.contains('flip') && !tile.classList.contains('matched')) {
+                            tile.classList.remove('hint');
+                        }
+                    }, 3000);
+                });
+            }
+            
+            // 創建彩帶效果
+            function createConfetti() {
+                const confettiCount = 100;
+                const colors = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#1abc9c'];
+                
+                for (let i = 0; i < confettiCount; i++) {
+                    setTimeout(() => {
+                        const confetti = document.createElement('div');
+                        confetti.classList.add('confetti');
+                        
+                        // 隨機位置和大小
+                        const size = Math.random() * 10 + 5;
+                        const posX = Math.random() * window.innerWidth;
+                        
+                        confetti.style.left = `${posX}px`;
+                        confetti.style.width = `${size}px`;
+                        confetti.style.height = `${size}px`;
+                        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        // 隨機旋轉和下落速度
+                        const animDuration = Math.random() * 3 + 2;
+                        confetti.style.animationDuration = `${animDuration}s`;
+                        
+                        document.body.appendChild(confetti);
+                        
+                        // 移除彩帶
+                        setTimeout(() => {
+                            confetti.remove();
+                        }, animDuration * 1000);
+                    }, i * 50);
+                }
+            }
+            
+            // 創建匹配動畫
+            function createMatchAnimation(tile) {
+                const rect = tile.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                for (let i = 0; i < 8; i++) {
+                    setTimeout(() => {
+                        const particle = document.createElement('div');
+                        particle.classList.add('particle');
+                        
+                        const size = Math.random() * 10 + 10;
+                        const angle = (i / 8) * Math.PI * 2;
+                        const distance = rect.width / 2;
+                        
+                        const posX = centerX + Math.cos(angle) * distance;
+                        const posY = centerY + Math.sin(angle) * distance;
+                        
+                        particle.style.left = `${posX}px`;
+                        particle.style.top = `${posY}px`;
+                        particle.style.width = `${size}px`;
+                        particle.style.height = `${size}px`;
+                        
+                        document.body.appendChild(particle);
+                        
+                        // 移除粒子
+                        setTimeout(() => {
+                            particle.remove();
+                        }, 1000);
+                    }, i * 50);
+                }
+            }
+            
+            // 創建鼠標粒子效果
+            function createParticle(e) {
+                if (Math.random() > 0.95) {
+                    const particle = document.createElement('div');
+                    particle.classList.add('particle');
+                    
+                    const size = Math.random() * 10 + 5;
+                    
+                    particle.style.left = `${e.clientX}px`;
+                    particle.style.top = `${e.clientY}px`;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+                    
+                    document.body.appendChild(particle);
+                    
+                    // 移除粒子
+                    setTimeout(() => {
+                        particle.remove();
+                    }, 1000);
+                }
+            }
+            
+            // 創建點擊波紋效果
+            function createRippleEffect(e) {
+                const ripple = document.createElement('div');
+                ripple.classList.add('particle');
+                
+                const size = 100;
+                
+                ripple.style.left = `${e.clientX}px`;
+                ripple.style.top = `${e.clientY}px`;
+                ripple.style.width = `${size}px`;
+                ripple.style.height = `${size}px`;
+                
+                document.body.appendChild(ripple);
+                
+                // 移除波紋
+                setTimeout(() => {
+                    ripple.remove();
+                }, 1000);
+            }
+            
+            // 初始化遊戲
+            initGame();
+        });
+    </script>
+</body>
+</html>
