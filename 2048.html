@@ -271,7 +271,7 @@
       #toast.show {
         visibility: visible;
       }
-      /* AI 控制介面，設定最小高度 */
+      /* AI 控制介面 */
       #ai-control {
         margin-top: 20px;
         height: 120px;
@@ -804,7 +804,7 @@
             .getElementById("ai-help-button")
             .addEventListener("click", () => {
               alert(
-                "AI 模式說明：\n1. ai=1：簡易模式\n2. ai=2：深度模式，利用多次模擬\n3. ai=3：進階模式，結合蒙地卡羅樹搜尋與進階評估\n4. ai=4：Reward 模式，根據精美獎懲參數評估走向"
+                "AI 模式說明：\n1. ai=1：簡易模式\n2. ai=2：深度模式\n3. ai=3：進階模式 (MCTS)\n4. ai=4：Reward 模式，顯示獎懲彈幕"
               );
             });
         }
@@ -835,242 +835,36 @@
         }
       }
 
-      function showToast(message) {
-        const toast = document.getElementById("toast");
-        toast.textContent = message;
-        toast.className = "show";
+      // 顯示彈幕效果函數，不影響棋盤移動
+      function showBarrageEffect(text, options) {
+        let effectDiv = document.createElement("div");
+        effectDiv.textContent = text;
+        effectDiv.style.position = "absolute";
+        effectDiv.style.left = options.left || "50%";
+        effectDiv.style.top = options.top || "10%";
+        effectDiv.style.transform = "translate(-50%, -50%)";
+        effectDiv.style.fontSize = options.size + "px";
+        effectDiv.style.color = options.color;
+        effectDiv.style.fontWeight = "bold";
+        effectDiv.style.opacity = "1";
+        effectDiv.style.pointerEvents = "none";
+        effectDiv.style.zIndex = "999";
+        effectDiv.style.transition = "opacity 0.5s ease-out, top 0.5s ease-out";
+        document.body.appendChild(effectDiv);
+        // 小延遲後啟動動畫（往上移、漸隱）
         setTimeout(() => {
-          toast.className = "";
-        }, 2500);
+          effectDiv.style.opacity = "0";
+          effectDiv.style.top = "5%";
+        }, 10);
+        setTimeout(() => {
+          document.body.removeChild(effectDiv);
+        }, 510);
       }
 
       /*******************************************
-       * AI 策略模組 *
-       *******************************************/
-      // 原始簡易 AI 模式 (ai=1)
-      function aiLoop() {
-        let currentState = window.gameCore.getStateForAI();
-        if (
-          !currentState.gameOver &&
-          !(currentState.gameWon && !currentState.keepPlaying)
-        ) {
-          let iterations = 20;
-          let simulation = chooseBestMoveDeep(currentState, 2, iterations);
-          let bestMove = simulation.bestMove || Math.floor(Math.random() * 4);
-          window.gameCore.applyMoveFromAI(bestMove);
-          window.uiManager.drawBoard();
-          window.uiManager.updateScore();
-          document.getElementById("ai-stats").innerHTML =
-            "AI 簡易模式：最佳移動 " +
-            bestMove +
-            "，模擬平均分 " +
-            simulation.bestScore.toFixed(0);
-          setTimeout(aiLoop, 100);
-        } else {
-          let finalScore = window.gameCore.score;
-          runCount++;
-          learningData.push({ run: runCount, score: finalScore });
-          updateLearningChart();
-          updateResultsTable();
-          window.uiManager.restartGame();
-          showToast("遊戲已重新開始 (AI 簡易模式)");
-          setTimeout(aiLoop, 100);
-        }
-      }
-
-      // 深度模式 (ai=2)
-      function simulateMoves(state, depth) {
-        if (depth === 0 || state.gameOver) {
-          return evaluateState(state);
-        }
-        let bestScore = -Infinity;
-        for (let direction = 0; direction < 4; direction++) {
-          let cloned = cloneGameCoreState(state);
-          let result = cloned.move(direction);
-          if (!result.moved) continue;
-          let score = simulateMoves(cloned.getStateForAI(), depth - 1);
-          if (score > bestScore) bestScore = score;
-        }
-        return bestScore;
-      }
-
-      function chooseBestMoveDeep(state, depth, iterationsPerMove) {
-        let bestMove = null;
-        let bestScore = -Infinity;
-        let moveStats = {};
-        let candidateMoves = [];
-        for (let direction = 0; direction < 4; direction++) {
-          let cloned = cloneGameCoreState(state);
-          let result = cloned.move(direction);
-          if (!result.moved) continue;
-          let totalScore = 0;
-          for (let i = 0; i < iterationsPerMove; i++) {
-            let simState = cloneGameCoreState(cloned.getStateForAI());
-            totalScore += simulateMoves(simState.getStateForAI(), depth);
-          }
-          let avgScore = totalScore / iterationsPerMove;
-          if (direction === 0) {
-            avgScore *= 0.5;
-          }
-          moveStats[direction] = avgScore;
-          candidateMoves.push({ direction, avgScore });
-          if (avgScore > bestScore) {
-            bestScore = avgScore;
-            bestMove = direction;
-          }
-        }
-        if (bestMove === 0) {
-          for (let move of candidateMoves) {
-            if (move.direction !== 0 && move.avgScore >= bestScore * 0.95) {
-              bestMove = move.direction;
-              bestScore = move.avgScore;
-              break;
-            }
-          }
-        }
-        return { bestMove, bestScore, moveStats };
-      }
-
-      function evaluateState(state) {
-        let board = state.board;
-        let score = state.score;
-        let maxTile = 0,
-          maxRow = -1,
-          maxCol = -1;
-        for (let i = 0; i < 4; i++) {
-          for (let j = 0; j < 4; j++) {
-            if (board[i][j] > maxTile) {
-              maxTile = board[i][j];
-              maxRow = i;
-              maxCol = j;
-            }
-          }
-        }
-        if (maxRow === 3 && maxCol === 0) {
-          score += maxTile * 10;
-        } else {
-          score -= maxTile * 20;
-        }
-        let leftColumnFull = true;
-        for (let i = 0; i < 4; i++) {
-          if (board[i][0] === 0) {
-            leftColumnFull = false;
-            break;
-          }
-        }
-        if (leftColumnFull) {
-          score += 80;
-        } else {
-          score -= 40;
-        }
-        let bottomRowFull = true;
-        for (let j = 0; j < 4; j++) {
-          if (board[3][j] === 0) {
-            bottomRowFull = false;
-            break;
-          }
-        }
-        if (bottomRowFull) {
-          score += 100;
-        } else {
-          score -= 50;
-        }
-        let adjacentBonus = 0;
-        for (let i = 0; i < 4; i++) {
-          for (let j = 0; j < 4; j++) {
-            let value = board[i][j];
-            if (value !== 0) {
-              if (j < 3 && board[i][j + 1] === value) {
-                adjacentBonus += value * 2;
-              }
-              if (i < 3 && board[i + 1][j] === value) {
-                adjacentBonus += value * 2;
-              }
-            }
-          }
-        }
-        score += adjacentBonus;
-        return score;
-      }
-
-      // 用來預測未來合併潛力的遞迴模擬函數
-      function predictFutureMergePotential(state, depth) {
-        if (depth === 0 || state.gameOver) {
-          return 0;
-        }
-        let bestPotential = 0;
-        for (let move = 0; move < 4; move++) {
-          let cloned = cloneGameCoreState(state);
-          let result = cloned.move(move);
-          if (!result.moved) continue;
-          let immediateMerge = Math.max(0, cloned.score - state.score);
-          let futureMerge = predictFutureMergePotential(
-            cloned.getStateForAI(),
-            depth - 1
-          );
-          bestPotential = Math.max(bestPotential, immediateMerge + futureMerge);
-        }
-        return bestPotential;
-      }
-
-      // 進階評估函數 (ai=3)
-      function evaluateStateAdvanced(state) {
-        let board = state.board;
-        let score = state.score;
-        let maxTile = 0,
-          maxRow = -1,
-          maxCol = -1;
-        for (let i = 0; i < 4; i++) {
-          for (let j = 0; j < 4; j++) {
-            if (board[i][j] > maxTile) {
-              maxTile = board[i][j];
-              maxRow = i;
-              maxCol = j;
-            }
-          }
-        }
-        if (maxRow === 3 && maxCol === 0) score += maxTile * 15;
-        else score -= maxTile * 20;
-        let orderingReward = 0;
-        for (let i = 3; i >= 0; i--) {
-          for (let j = 0; j < 4; j++) {
-            let tile = board[i][j];
-            if (tile !== 0) {
-              if (j < 3 && board[i][j + 1] < tile) {
-                orderingReward += tile - board[i][j + 1];
-              }
-              if (i > 0 && board[i - 1][j] < tile) {
-                orderingReward += tile - board[i - 1][j];
-              }
-            }
-          }
-        }
-        score += orderingReward * 2;
-        let emptyCount = 0;
-        for (let i = 0; i < 4; i++) {
-          for (let j = 0; j < 4; j++) {
-            if (board[i][j] === 0) emptyCount++;
-          }
-        }
-        score += emptyCount * 150;
-        let chainBonus = 0;
-        for (let move = 0; move < 4; move++) {
-          let cloned = cloneGameCoreState(state);
-          let result = cloned.move(move);
-          if (result.moved) {
-            let mergeScore = Math.max(0, cloned.score - state.score);
-            chainBonus += mergeScore * 4;
-          }
-        }
-        score += chainBonus;
-        let futurePotential = predictFutureMergePotential(state, 3);
-        score += futurePotential * 5;
-        return score;
-      }
-
-      /**************************************************
        * AI Reward 模式 (ai=4) - 根據精美獎懲參數評估走向 *
-       **************************************************/
+       *******************************************/
+      // 回傳總獎懲分數
       function evaluateStateReward(state) {
         let board = state.board;
         let bonus = 0;
@@ -1104,7 +898,7 @@
         } else {
           bonus -= maxTile * 15;
         }
-        // 3. 單調性排列（行與列）
+        // 3. 單調性排列
         let monotonicityBonus = 0;
         for (let i = 0; i < 4; i++) {
           for (let j = 0; j < 3; j++) {
@@ -1127,18 +921,16 @@
           }
         }
         bonus += monotonicityBonus;
-        // 4. 平滑度：相鄰差值
+        // 4. 平滑度
         let smoothnessPenalty = 0;
         for (let i = 0; i < 4; i++) {
           for (let j = 0; j < 4; j++) {
             let tile = board[i][j];
             if (tile !== 0) {
-              if (j < 3 && board[i][j + 1] !== 0) {
+              if (j < 3 && board[i][j + 1] !== 0)
                 smoothnessPenalty -= Math.abs(Math.log2(tile) - Math.log2(board[i][j + 1])) * 50;
-              }
-              if (i < 3 && board[i + 1][j] !== 0) {
+              if (i < 3 && board[i + 1][j] !== 0)
                 smoothnessPenalty -= Math.abs(Math.log2(tile) - Math.log2(board[i + 1][j])) * 50;
-              }
             }
           }
         }
@@ -1157,7 +949,7 @@
         bonus += mergeBonus;
         // 6. 最大值獎勵
         bonus += maxTile * 10;
-        // 7. 鎖定主幹列穩定度：檢查底行是否遞減
+        // 7. 底行穩定
         let bottomRow = board[3];
         let stable = true;
         for (let j = 0; j < 3; j++) {
@@ -1167,8 +959,7 @@
           }
         }
         bonus += stable ? 500 : -500;
-        // 8. (違規動作略)
-        // 9. 生磚區效率：左側2列
+        // 8. 生磚區效率：左側2列
         let productionBonus = 0;
         for (let i = 0; i < 4; i++) {
           for (let j = 0; j < 2; j++) {
@@ -1178,8 +969,114 @@
           }
         }
         bonus += productionBonus;
-        // 10. 每步效率：此處略（無歷史資料）
         return state.score + bonus;
+      }
+
+      // 評估獎懲分數各細項，供彈幕效果顯示
+      function evaluateRewardDetails(state) {
+        let board = state.board;
+        let details = [];
+        // 1. 空格數量
+        let emptyCount = 0;
+        for (let i = 0; i < 4; i++){
+          for (let j = 0; j < 4; j++){
+             if(board[i][j] === 0){
+                emptyCount++;
+             }
+          }
+        }
+        details.push({ label: "空格", value: emptyCount * 100, color: "green", size: 24 });
+        if(emptyCount < 4){
+          details.push({ label: "空格不足", value: -300, color: "red", size: 30 });
+        }
+        // 2. 最大值在角落
+        let maxTile = 0, maxRow = -1, maxCol = -1;
+        for(let i=0;i<4;i++){
+          for(let j=0;j<4;j++){
+            if(board[i][j] > maxTile){
+              maxTile = board[i][j];
+              maxRow = i;
+              maxCol = j;
+            }
+          }
+        }
+        if((maxRow === 0 && maxCol === 0) || (maxRow === 0 && maxCol === 3) || (maxRow === 3 && maxCol === 0) || (maxRow === 3 && maxCol === 3)){
+           details.push({ label:"角落", value: maxTile * 20, color: "green", size: 26 });
+        } else {
+           details.push({ label:"非角落", value: -maxTile * 15, color: "red", size: 26 });
+        }
+        // 3. 單調性排列
+        let monotonicityBonus = 0;
+        for(let i=0;i<4;i++){
+          for(let j=0;j<3;j++){
+             let current = board[i][j];
+             let next = board[i][j+1];
+             if(current !== 0 && next !== 0){
+                if(current >= next) monotonicityBonus += 50;
+                else monotonicityBonus -= 30;
+             }
+          }
+        }
+        for(let j=0;j<4;j++){
+          for(let i=0;i<3;i++){
+             let current = board[i][j];
+             let next = board[i+1][j];
+             if(current !== 0 && next !== 0){
+                if(current >= next) monotonicityBonus += 50;
+                else monotonicityBonus -= 30;
+             }
+          }
+        }
+        details.push({ label:"單調", value: monotonicityBonus, color: monotonicityBonus>=0 ? "green" : "red", size: 24 });
+        // 4. 平滑度
+        let smoothnessPenalty = 0;
+        for(let i=0;i<4;i++){
+          for(let j=0;j<4;j++){
+             let tile = board[i][j];
+             if(tile !== 0){
+                if(j<3 && board[i][j+1]!==0)
+                   smoothnessPenalty -= Math.abs(Math.log2(tile)-Math.log2(board[i][j+1]))*50;
+                if(i<3 && board[i+1][j]!==0)
+                   smoothnessPenalty -= Math.abs(Math.log2(tile)-Math.log2(board[i+1][j]))*50;
+             }
+          }
+        }
+        details.push({ label:"平滑", value: smoothnessPenalty, color: smoothnessPenalty>=0 ? "green" : "red", size: 24 });
+        // 5. 合併機會
+        let mergeBonus = 0;
+        for(let i=0;i<4;i++){
+          for(let j=0;j<4;j++){
+             let tile = board[i][j];
+             if(tile !== 0){
+                if(j<3 && board[i][j+1]===tile) mergeBonus += tile*2;
+                if(i<3 && board[i+1][j]===tile) mergeBonus += tile*2;
+             }
+          }
+        }
+        details.push({ label:"合併", value: mergeBonus, color: mergeBonus>=0 ? "green" : "red", size: 24 });
+        // 6. 最大值獎勵
+        details.push({ label:"最大", value: maxTile*10, color: "green", size: 22 });
+        // 7. 底行穩定
+        let bottomRow = board[3];
+        let stable = true;
+        for(let j=0;j<3;j++){
+           if(bottomRow[j] < bottomRow[j+1]){
+             stable = false;
+             break;
+           }
+        }
+        details.push({ label:"底行", value: stable ? 500 : -500, color: stable ? "green" : "red", size: 28 });
+        // 8. 生磚區效率
+        let productionBonus = 0;
+        for(let i=0;i<4;i++){
+          for(let j=0;j<2;j++){
+             let tile = board[i][j];
+             if(tile >= 64) productionBonus += 500;
+             else if(tile >= 32) productionBonus += 200;
+          }
+        }
+        details.push({ label:"生磚", value: productionBonus, color: productionBonus>=0 ? "green" : "red", size: 24 });
+        return details;
       }
 
       function simulateMovesReward(state, depth) {
@@ -1234,18 +1131,29 @@
           let simulation = chooseBestMoveReward(currentState, depth, iterationsPerMove);
           let bestMove = simulation.bestMove;
           if (bestMove === null) bestMove = Math.floor(Math.random() * 4);
+          // 顯示彈幕：計算獎懲細項
+          let detailsArray = evaluateRewardDetails(currentState);
+          detailsArray.forEach(detail => {
+            showBarrageEffect(
+              (detail.value >= 0 ? "+" : "") + detail.value,
+              {
+                left: Math.random() * 80 + 10 + "%",
+                top: Math.random() * 20 + 5 + "%",
+                size: detail.size,
+                color: detail.color
+              }
+            );
+          });
           window.gameCore.applyMoveFromAI(bestMove);
           window.uiManager.drawBoard();
           window.uiManager.updateScore();
-          // 計算 Reward 分數並顯示出來
-          let rewardScore = evaluateStateReward(currentState);
           document.getElementById("ai-stats").innerHTML =
             "AI Reward 模式 (ai=4)：最佳移動 " +
             bestMove +
             "，模擬平均分 " +
             simulation.bestScore.toFixed(0) +
             "，獎懲分數 " +
-            rewardScore.toFixed(0) +
+            evaluateStateReward(currentState).toFixed(0) +
             "，模擬細節 " +
             JSON.stringify(simulation.moveStats);
           setTimeout(
