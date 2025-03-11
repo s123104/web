@@ -1289,11 +1289,13 @@
 
       // AI Reward 模式 (ai=4)
       let currentMoveNumber = 0;
+      // AI Reward 模式 (ai=4) 的主循環
       function aiLoopReward() {
         let currentState = window.gameCore.getStateForAI();
         if (!currentState.gameOver) {
-          let depth = currentState.score >= 20000 ? 8 : 5;
-          let iterationsPerMove = 5;
+          // 固定模擬深度，不再根據分數調整
+          let depth = 5;
+          let iterationsPerMove = 10;
           let simulation = chooseBestMoveReward(
             currentState,
             depth,
@@ -1340,6 +1342,43 @@
             aiLoopReward,
             parseFloat(document.getElementById("speed-slider").value)
           );
+        }
+      }
+
+      // 深度模式主循環 (ai=2)
+      function aiLoopDeep() {
+        let currentState = window.gameCore.getStateForAI();
+        if (!currentState.gameOver) {
+          // 固定模擬深度，移除了20000分以上增深的規則
+          let depth = 5;
+          let iterationsPerMove = 10;
+          let simulation = chooseBestMoveDeep(
+            currentState,
+            depth,
+            iterationsPerMove
+          );
+          let bestMove = simulation.bestMove;
+          if (bestMove === null) bestMove = Math.floor(Math.random() * 4);
+          window.gameCore.applyMoveFromAI(bestMove);
+          window.uiManager.drawBoard();
+          window.uiManager.updateScore();
+          document.getElementById("ai-stats").innerHTML =
+            "AI 深度模式：最佳移動 " +
+            bestMove +
+            "，模擬平均分 " +
+            simulation.bestScore.toFixed(0) +
+            "，模擬細節 " +
+            JSON.stringify(simulation.moveStats);
+          setTimeout(aiLoopDeep, 0.1);
+        } else {
+          let finalScore = window.gameCore.score;
+          runCount++;
+          learningData.push({ run: runCount, score: finalScore });
+          updateLearningChart();
+          updateResultsTable();
+          window.uiManager.restartGame();
+          showToast("遊戲已重新開始 (AI 深度模式)");
+          setTimeout(aiLoopDeep, 0.1);
         }
       }
 
