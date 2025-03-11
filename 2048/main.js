@@ -1918,7 +1918,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener(
     "touchmove",
     (e) => {
-      e.preventDefault();
+      // 檢查是否來自具有 class "scrollable" 的元素
+      if (!e.target.closest(".scrollable")) {
+        e.preventDefault();
+      }
     },
     { passive: false }
   );
@@ -1929,6 +1932,14 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("ai-mode");
   } else {
     document.body.classList.add("normal-mode");
+    // 一般模式下，才防止手機滾動
+    document.addEventListener(
+      "touchmove",
+      (e) => {
+        e.preventDefault();
+      },
+      { passive: false }
+    );
   }
 
   // 初始化遊戲核心和UI
