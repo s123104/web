@@ -1919,6 +1919,16 @@ document.addEventListener("DOMContentLoaded", () => {
   let aiMode = urlParams.get("ai");
   if (aiMode) {
     document.body.classList.add("ai-mode");
+    document.addEventListener(
+      "touchmove",
+      (e) => {
+        // 如果觸控事件發生在 .scrollable 內，則不阻止預設行為
+        if (!e.target.closest(".scrollable")) {
+          e.preventDefault();
+        }
+      },
+      { passive: false }
+    );
   } else {
     document.body.classList.add("normal-mode");
     // 一般模式下，才防止手機滾動
