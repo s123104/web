@@ -1915,17 +1915,6 @@ function findBestMove(state) {
  * 應用程式初始化
  ***********************/
 document.addEventListener("DOMContentLoaded", () => {
-  document.addEventListener(
-    "touchmove",
-    (e) => {
-      // 檢查是否來自具有 class "scrollable" 的元素
-      if (!e.target.closest(".scrollable")) {
-        e.preventDefault();
-      }
-    },
-    { passive: false }
-  );
-
   const urlParams = new URLSearchParams(window.location.search);
   let aiMode = urlParams.get("ai");
   if (aiMode) {
