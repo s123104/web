@@ -801,11 +801,12 @@ class UIManager {
     }
   }
 
+  // ★★ 這裡就是改動關鍵：把 >= 2048 改成 >= 999999 ★★
   has2048() {
     const board = this.gameCore.getBoard();
     for (let i = 0; i < 4; i++) {
       for (let j = 0; j < 4; j++) {
-        if (board[i][j] >= 2048) return true;
+        if (board[i][j] >= 999999) return true;
       }
     }
     return false;
