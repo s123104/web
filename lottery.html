@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日式八角抽選機</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        
+        .scene {
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            position: relative;
+            perspective: 1500px;
+        }
+        
+        .lottery-machine {
+            width: 80%;
+            height: 80%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotateX(10deg);
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+        }
+        
+        .octagon {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+        
+        .octagon-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-origin: center;
+            backface-visibility: visible;
+            border: 8px solid #b8a37e;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Define the 8 faces of the octagon */
+        .face-1 {
+            transform: rotateY(0deg) translateZ(200px);
+        }
+        
+        .face-2 {
+            transform: rotateY(45deg) translateZ(200px);
+        }
+        
+        .face-3 {
+            transform: rotateY(90deg) translateZ(200px);
+        }
+        
+        .face-4 {
+            transform: rotateY(135deg) translateZ(200px);
+        }
+        
+        .face-5 {
+            transform: rotateY(180deg) translateZ(200px);
+        }
+        
+        .face-6 {
+            transform: rotateY(225deg) translateZ(200px);
+        }
+        
+        .face-7 {
+            transform: rotateY(270deg) translateZ(200px);
+        }
+        
+        .face-8 {
+            transform: rotateY(315deg) translateZ(200px);
+        }
+        
+        .top-cap {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: #d4b878;
+            transform: rotateX(90deg) translateZ(-200px) translateX(-50%) translateY(-50%);
+            left: 50%;
+            top: 0;
+            border-radius: 50%;
+            box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .bottom-cap {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: #d4b878;
+            transform: rotateX(90deg) translateZ(200px) translateX(-50%) translateY(-50%);
+            left: 50%;
+            top: 100%;
+            border-radius: 50%;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .handle-container {
+            position: absolute;
+            top: 50%;
+            right: -100px;
+            transform: translateY(-50%);
+            width: 100px;
+            height: 200px;
+            perspective: 1000px;
+            z-index: 100;
+        }
+        
+        .handle {
+            width: 100px;
+            height: 200px;
+            background: #8f6b3b;
+            border-radius: 0 10px 10px 0;
+            position: relative;
+            transform-origin: left center;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+            cursor: grab;
+            transform-style: preserve-3d;
+        }
+        
+        .handle:active {
+            cursor: grabbing;
+        }
+        
+        .handle-knob {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: #d4b878;
+            border-radius: 50%;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.5),
+                        inset -2px -2px 5px rgba(0, 0, 0, 0.3);
+            border: 4px solid #8f6b3b;
+        }
+        
+        .ball {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #fff;
+            font-size: 18px;
+            box-shadow: inset 0 -4px 4px rgba(0, 0, 0, 0.3), 
+                        inset 0 4px 4px rgba(255, 255, 255, 0.5),
+                        0 4px 8px rgba(0, 0, 0, 0.4);
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+            transform-style: preserve-3d;
+            backface-visibility: visible;
+            transition: transform 0.1s linear;
+            will-change: transform;
+        }
+        
+        .control-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 200;
+        }
+        
+        .start-button {
+            background: linear-gradient(145deg, #b8341f, #d4432a);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+        }
+        
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .start-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .result-display {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 8px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .instruction {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 8px 20px;
+            font-size: 16px;
+            border-radius: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 200;
+        }
+        
+        .gold-decor {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #d4af37 0%, #f9d77f 50%, #d4af37 100%);
+            border-radius: 50%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .gold-decor::after {
+            content: "抽";
+            color: #8f6b3b;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+        }
+        
+        .top-decor {
+            top: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .lighting {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .spotlight {
+            position: absolute;
+            width: 80%;
+            height: 120px;
+            top: -60px;
+            left: 10%;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 70%);
+            transform: rotateX(60deg);
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            opacity: 0;
+            z-index: 300;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translate(-50%, -50%) rotateX(10deg) translateX(0) rotateY(0deg); }
+            20% { transform: translate(-50%, -50%) rotateX(10deg) translateX(-5px) rotateY(-2deg); }
+            40% { transform: translate(-50%, -50%) rotateX(10deg) translateX(5px) rotateY(2deg); }
+            60% { transform: translate(-50%, -50%) rotateX(10deg) translateX(-3px) rotateY(-1deg); }
+            80% { transform: translate(-50%, -50%) rotateX(10deg) translateX(3px) rotateY(1deg); }
+        }
+        
+        @keyframes fall {
+            0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(500px) rotate(720deg); opacity: 0; }
+        }
+        
+        .glass-reflection {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.15) 0%, 
+                rgba(255, 255, 255, 0.05) 50%, 
+                rgba(255, 255, 255, 0) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .machine-label {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(to right, #d4af37, #f9d77f, #d4af37);
+            padding: 5px 20px;
+            border-radius: 10px;
+            color: #8f6b3b;
+            font-weight: bold;
+            font-size: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 50;
+            text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="scene">
+        <div class="instruction">拖動手柄或點擊「開始抽選」來啟動抽選機</div>
+        
+        <div class="lottery-machine" id="lotteryMachine">
+            <div class="octagon" id="octagon">
+                <div class="octagon-face face-1">
+                    <div class="glass-reflection"></div>
+                </div>
+                <div class="octagon-face face-2">
+                    <div class="glass-reflection"></div>
+                </div>
+                <div class="octagon-face face-3">
+                    <div class="glass-reflection"></div>
+                </div>
+                <div class="octagon-face face-4">
+                    <div class="glass-reflection"></div>
+                </div>
+                <div class="octagon-face face-5">
+                    <div class="glass-reflection"></div>
+                </div>
+                <div class="octagon-face face-6">
+                    <div class="glass-reflection"></div>
+                </div>
+                <div class="octagon-face face-7">
+                    <div class="glass-reflection"></div>
+                </div>
+                <div class="octagon-face face-8">
+                    <div class="glass-reflection"></div>
+                </div>
+                <div class="top-cap"></div>
+                <div class="bottom-cap"></div>
+            </div>
+            <div class="machine-label">幸運八角抽選機</div>
+            <div class="gold-decor top-decor"></div>
+            <div class="lighting">
+                <div class="spotlight"></div>
+            </div>
+        </div>
+        
+        <div class="handle-container">
+            <div class="handle" id="handle">
+                <div class="handle-knob"></div>
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <button class="start-button" id="startButton">開始抽選</button>
+            <div class="result-display" id="resultDisplay"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const lotteryMachine = document.getElementById('lotteryMachine');
+            const octagon = document.getElementById('octagon');
+            const handle = document.getElementById('handle');
+            const startButton = document.getElementById('startButton');
+            const resultDisplay = document.getElementById('resultDisplay');
+            const scene = document.querySelector('.scene');
+            
+            // Ball colors with more elegant Japanese-style palette
+            const ballColors = [
+                '#e74c3c', '#3498db', '#2ecc71', '#f1c40f', 
+                '#9b59b6', '#1abc9c', '#e67e22', '#34495e',
+                '#c0392b', '#2980b9', '#27ae60', '#f39c12',
+                '#8e44ad', '#16a085', '#d35400', '#2c3e50'
+            ];
+            
+            let isSpinning = false;
+            let spinInterval;
+            let balls = [];
+            let currentRotation = 0;
+            let rotationSpeed = 0;
+            let maxRotationSpeed = 0;
+            let acceleration = 0;
+            let deceleration = 0;
+            let spinDuration = 0;
+            let spinTime = 0;
+            let selectedBall = null;
+            
+            // Handle drag for manual spinning
+            let isDragging = false;
+            let startAngle = 0;
+            let previousAngle = 0;
+            let rotationHistory = [];
+            
+            // Mouse and touch event handlers for handle
+            handle.addEventListener('mousedown', startDrag);
+            handle.addEventListener('touchstart', startDrag, { passive: false });
+            window.addEventListener('mousemove', drag);
+            window.addEventListener('touchmove', drag, { passive: false });
+            window.addEventListener('mouseup', endDrag);
+            window.addEventListener('touchend', endDrag);
+            
+            function startDrag(e) {
+                e.preventDefault();
+                if (isSpinning) return;
+                
+                isDragging = true;
+                handle.style.cursor = 'grabbing';
+                
+                // Get initial angle
+                const rect = handle.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+                
+                startAngle = Math.atan2(clientY - centerY, clientX - centerX) * 180 / Math.PI;
+                previousAngle = startAngle;
+                rotationHistory = [];
+            }
+            
+            function drag(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                
+                const rect = handle.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+                
+                const currentAngle = Math.atan2(clientY - centerY, clientX - centerX) * 180 / Math.PI;
+                let rotation = currentAngle - previousAngle;
+                
+                // Limit rotation to reasonable values
+                rotation = Math.max(-10, Math.min(10, rotation));
+                
+                // Record rotation history for inertia
+                rotationHistory.push({
+                    rotation: rotation,
+                    timestamp: Date.now()
+                });
+                
+                // Keep only the last 5 movements for average calculation
+                if (rotationHistory.length > 5) {
+                    rotationHistory.shift();
+                }
+                
+                // Apply rotation to machine and balls
+                currentRotation += rotation;
+                octagon.style.transform = `rotateY(${currentRotation}deg)`;
+                positionBalls();
+                
+                previousAngle = currentAngle;
+                
+                // If handle is rotated enough, start the spin
+                if (rotationHistory.length >= 3) {
+                    const recentRotations = rotationHistory.slice(-3);
+                    const totalRotation = recentRotations.reduce((sum, r) => sum + Math.abs(r.rotation), 0);
+                    
+                    if (totalRotation > 15) {
+                        endDrag();
+                        startSpin(true); // Start with inertia
+                    }
+                }
+            }
+            
+            function endDrag() {
+                isDragging = false;
+                handle.style.cursor = 'grab';
+                
+                // Calculate inertia
+                if (rotationHistory.length >= 2 && !isSpinning) {
+                    const recentRotations = rotationHistory.slice(-2);
+                    const totalRotation = recentRotations.reduce((sum, r) => sum + Math.abs(r.rotation), 0);
+                    const timeDiff = recentRotations[1].timestamp - recentRotations[0].timestamp;
+                    
+                    // Only apply inertia if there was significant movement
+                    if (totalRotation > 5 && timeDiff < 100) {
+                        startSpin(true); // Start with inertia
+                    }
+                }
+            }
+            
+            // Create balls with numbers
+            function createBalls(count = 30) {
+                // Remove existing balls
+                const existingBalls = document.querySelectorAll('.ball');
+                existingBalls.forEach(ball => ball.remove());
+                
+                balls = [];
+                
+                for (let i = 1; i <= count; i++) {
+                    const ball = document.createElement('div');
+                    ball.className = 'ball';
+                    ball.textContent = i;
+                    ball.dataset.number = i;
+                    
+                    // Assign random color from our palette
+                    const colorIndex = Math.floor(Math.random() * ballColors.length);
+                    ball.style.background = `radial-gradient(circle at 30% 30%, ${ballColors[colorIndex]}, ${adjustBrightness(ballColors[colorIndex], -30)})`;
+                    
+                    // Initially position off-screen
+                    ball.style.opacity = '0';
+                    scene.appendChild(ball);
+                    balls.push(ball);
+                }
+            }
+            
+            // Adjust color brightness
+            function adjustBrightness(hex, percent) {
+                let r = parseInt(hex.substring(1, 3), 16);
+                let g = parseInt(hex.substring(3, 5), 16);
+                let b = parseInt(hex.substring(5, 7), 16);
+
+                r = Math.max(0, Math.min(255, r + percent));
+                g = Math.max(0, Math.min(255, g + percent));
+                b = Math.max(0, Math.min(255, b + percent));
+
+                return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+            }
+            
+            // Position balls in 3D space inside the octagon
+            function positionBalls() {
+                const machineRect = lotteryMachine.getBoundingClientRect();
+                const radius = Math.min(machineRect.width, machineRect.height) * 0.3;
+                const centerX = machineRect.width / 2;
+                const centerY = machineRect.height / 2;
+                
+                balls.forEach((ball, index) => {
+                    // Calculate 3D position with physics-based motion
+                    const angleOffset = (index * 137.5) % 360; // Golden angle for even distribution
+                    const angle = (currentRotation / 30 + angleOffset) * Math.PI / 180;
+                    const height = Math.sin(currentRotation / 50 + index) * 0.5 + 0.5;
+                    
+                    // Spherical coordinates for 3D positioning
+                    const phi = angle;
+                    const theta = Math.PI * (0.2 + height * 0.6);
+                    
+                    // Convert to Cartesian coordinates
+                    const x = radius * Math.sin(theta) * Math.cos(phi);
+                    const y = radius * Math.cos(theta);
+                    const z = radius * Math.sin(theta) * Math.sin(phi);
+                    
+                    // Position the ball relative to the machine center
+                    const posX = machineRect.left + centerX + x;
+                    const posY = machineRect.top + centerY + y;
+                    
+                    // Adjust size based on z-position (depth)
+                    const depth = (z + radius) / (2 * radius);
+                    const scale = 0.7 + depth * 0.6;
+                    
+                    // Set ball position and scale
+                    ball.style.left = `${posX - 20}px`; // 20px is half the ball width
+                    ball.style.top = `${posY - 20}px`; // 20px is half the ball height
+                    ball.style.transform = `scale(${scale.toFixed(2)}) translateZ(${z}px)`;
+                    ball.style.opacity = depth.toFixed(2);
+                    ball.style.zIndex = Math.floor(depth * 100);
+                });
+            }
+            
+            // Update octagon rotation
+            function updateSpin() {
+                if (!isSpinning) return;
+                
+                spinTime += 16; // Approximately 16ms per frame
+                
+                if (spinTime < spinDuration * 0.6) {
+                    // Acceleration phase
+                    rotationSpeed = Math.min(rotationSpeed + acceleration, maxRotationSpeed);
+                } else {
+                    // Deceleration phase
+                    rotationSpeed = Math.max(rotationSpeed - deceleration, 0);
+                    
+                    if (rotationSpeed < 0.1) {
+                        stopSpin();
+                        return;
+                    }
+                }
+                
+                // Update rotation
+                currentRotation += rotationSpeed;
+                octagon.style.transform = `rotateY(${currentRotation}deg)`;
+                
+                // Update ball positions based on rotation
+                positionBalls();
+            }
+            
+            // Start spinning with physics
+            function startSpin(useInertia = false) {
+                if (isSpinning) return;
+                
+                isSpinning = true;
+                startButton.disabled = true;
+                resultDisplay.style.opacity = '0';
+                lotteryMachine.style.animation = 'shake 0.5s ease infinite';
+                
+                // Physics parameters with some randomness for realistic effect
+                maxRotationSpeed = useInertia 
+                    ? 5 + Math.random() * 3    // Faster for inertia-based spin
+                    : 3 + Math.random() * 2;   // Standard button spin
+                    
+                acceleration = useInertia
+                    ? 0.1 + Math.random() * 0.05 // Less acceleration for inertia
+                    : 0.2 + Math.random() * 0.1; // Standard acceleration
+                    
+                spinDuration = 3000 + Math.random() * 2000; // 3-5 seconds
+                deceleration = maxRotationSpeed / (spinDuration * 0.4 / 16); // Adjust for 16ms frames
+                
+                // If using inertia, start with some initial speed
+                rotationSpeed = useInertia
+                    ? maxRotationSpeed * 0.5  // Start with half max speed for inertia
+                    : 0;                      // Start from zero for button press
+                    
+                spinTime = 0;
+                
+                // Choose a winning ball
+                const randomIndex = Math.floor(Math.random() * balls.length);
+                selectedBall = balls[randomIndex];
+                
+                spinInterval = setInterval(updateSpin, 16);
+                
+                // Simulate spinning sound effect
+                playSpinSound();
+            }
+            
+            // Stop spinning and show result
+            function stopSpin() {
+                isSpinning = false;
+                clearInterval(spinInterval);
+                lotteryMachine.style.animation = '';
+                startButton.disabled = false;
+                
+                // Highlight the selected ball
+                balls.forEach(ball => {
+                    if (ball === selectedBall) {
+                        ball.style.boxShadow = '0 0 20px 10px rgba(255, 215, 0, 0.8)';
+                        ball.style.zIndex = '1000';
+                        resultDisplay.textContent = `恭喜抽中 ${ball.dataset.number} 號!`;
+                        resultDisplay.style.opacity = '1';
+                        
+                        // Create celebratory effect
+                        createConfetti();
+                    } else {
+                        ball.style.boxShadow = '';
+                    }
+                });
+                
+                // Play winning sound
+                playWinSound();
+                
+                // Reset after a delay
+                setTimeout(() => {
+                    balls.forEach(ball => {
+                        ball.style.boxShadow = '';
+                        ball.style.zIndex = '';
+                    });
+                }, 5000);
+            }
+            
+            // Create confetti effect
+            function createConfetti() {
+                const colors = ['#f44336', '#2196f3', '#ffeb3b', '#4caf50', '#9c27b0', '#ff9800', '#795548'];
+                
+                for (let i = 0; i < 100; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.left = `${Math.random() * 100}%`;
+                    confetti.style.top = '0';
+                    confetti.style.opacity = '1';
+                    confetti.style.width = `${5 + Math.random() * 10}px`;
+                    confetti.style.height = `${5 + Math.random() * 10}px`;
+                    confetti.style.animation = `fall ${1 + Math.random() * 3}s linear forwards`;
+                    confetti.style.animationDelay = `${Math.random() * 1}s`;
+                    
+                    // Random shape (square, rectangle, circle)
+                    const shape = Math.floor(Math.random() * 3);
+                    if (shape === 0) {
+                        confetti.style.borderRadius = '50%';
+                    } else if (shape === 1) {
+                        confetti.style.width = `${3 + Math.random() * 5}px`;
+                        confetti.style.height = `${10 + Math.random() * 15}px`;
+                    }
+                    
+                    scene.appendChild(confetti);
+                    
+                    // Remove confetti after animation
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 4000);
+                }
+            }
+            
+            // Simulate sound effects
+            function playSpinSound() {
+                // In a real implementation, you would use the Web Audio API
+                console.log('Playing spin sound');
+            }
+            
+            function playWinSound() {
+                console.log('Playing win sound');
+            }
+            
+            // Initialize the lottery machine
+            function initLottery() {
+                createBalls();
+                positionBalls();
+                
+                startButton.addEventListener('click', () => startSpin(false));
+                
+                // Handle window resize
+                window.addEventListener('resize', positionBalls);
+                
+                // Mouse wheel to rotate view slightly
+                scene.addEventListener('wheel', (e) => {
+                    if (!isSpinning) {
+                        currentRotation += e.deltaY * 0.1;
+                        octagon.style.transform = `rotateY(${currentRotation}deg)`;
+                        positionBalls();
+                    }
+                });
+                
+                // Mouse move to add subtle rotation effect
+                scene.addEventListener('mousemove', (e) => {
+                    if (!isSpinning && !isDragging) {
+                        const rect = scene.getBoundingClientRect();
+                        const x = e.clientX - rect.left - rect.width / 2;
+                        
+                        // Subtle rotation based on mouse position
+                        const rotation = x * 0.05;
+                        lotteryMachine.style.transform = `translate(-50%, -50%) rotateX(10deg) rotateY(${rotation}deg)`;
+                        positionBalls();
+                    }
+                });
+            }
+            
+            initLottery();
+        });
+    </script>
+</body>
+</html>
