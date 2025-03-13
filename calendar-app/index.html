@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- 為了防止雙擊放大 -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>雅緻行事曆</title>
+    <meta name="theme-color" content="#304a7d" />
+    <link rel="manifest" href="manifest.json" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23304a7d'/><text x='50' y='50' font-family='Arial' font-size='50' text-anchor='middle' dominant-baseline='central' fill='white'>📅</text></svg>"
+      type="image/svg+xml"
+    />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@400;600;700&family=Playfair+Display:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- CDN Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/dayjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dexie"></script>
+
+    <!-- Font Awesome 圖標庫 -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <!-- 原始樣式（不做修改） -->
+    <style>
+      /* 原始樣式 */
+      :root {
+        /* 色彩方案 */
+        --primary: #304a7d;
+        --primary-light: #c6d8f2;
+        --secondary: #ebc8b2;
+        --background: #f9f9fb;
+        --card-bg: #ffffff;
+        --border: #d4e0f5;
+        --text-primary: #304a7d;
+        --text-secondary: #6b84b6;
+        --text-light: #8ba0c6;
+        --accent: #eaeff8;
+        --highlight: #f6e5dc;
+        --shadow: rgba(48, 74, 125, 0.1);
+
+        /* 字體設置 */
+        --title-font: "Playfair Display", "Noto Serif TC", serif;
+        --body-font: "Noto Sans TC", sans-serif;
+
+        /* 間距 */
+        --spacing-xs: 0.5rem;
+        --spacing-sm: 0.75rem;
+        --spacing-md: 1rem;
+        --spacing-lg: 1.5rem;
+        --spacing-xl: 2rem;
+
+        /* 圓角 */
+        --radius-sm: 10px;
+        --radius-md: 15px;
+        --radius-lg: 20px;
+        --radius-pill: 30px;
+
+        /* 陰影 */
+        --shadow-sm: 0 2px 6px rgba(48, 74, 125, 0.07);
+        --shadow-md: 0 4px 12px rgba(48, 74, 125, 0.1);
+        --shadow-lg: 0 8px 24px rgba(48, 74, 125, 0.12);
+
+        /* 過渡動畫 */
+        --transition-fast: 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+        --transition-normal: 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        --transition-slow: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+      }
+
+      /* 全局重設 */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: var(--body-font);
+        color: var(--text-primary);
+        background-color: var(--background);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* 容器 */
+      .app-container {
+        max-width: 480px;
+        margin: 0 auto;
+        background-color: var(--card-bg);
+        min-height: 100vh;
+        box-shadow: var(--shadow-lg);
+        position: relative;
+        overflow: hidden;
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      @media (min-width: 768px) {
+        .app-container {
+          margin: var(--spacing-xl) auto;
+          min-height: calc(100vh - 4rem);
+          border-radius: var(--radius-lg);
+          max-height: 900px;
+          height: calc(100vh - 4rem);
+        }
+      }
+
+      /* 頂部導航 */
+      .header {
+        padding: var(--spacing-md) !important;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(
+          to right,
+          rgba(255, 255, 255, 0.95),
+          rgba(255, 255, 255, 0.9)
+        );
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 1px solid var(--border);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+      }
+
+      .header-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .header-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .header-title {
+        font-family: var(--title-font);
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary);
+        letter-spacing: -0.03em;
+      }
+
+      .header-subtitle {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: -4px;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+      }
+
+      .icon-button {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition-normal);
+        border: none;
+        background-color: transparent;
+        cursor: pointer;
+        color: var(--text-secondary);
+      }
+
+      .icon-button:hover {
+        background-color: var(--accent);
+        color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .icon-button:active {
+        transform: translateY(0) scale(0.98);
+      }
+
+      /* 月份導航 */
+      .month-nav {
+        padding: var(--spacing-sm) var(--spacing-md) !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .month-selector {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--radius-pill);
+        transition: var(--transition-normal);
+        background-color: var(--accent);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .month-selector:hover {
+        background-color: var(--primary-light);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+      }
+
+      .current-month-year {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--primary);
+        margin-right: var(--spacing-sm);
+      }
+
+      /* 日曆網格 */
+      .calendar-wrap {
+        padding: 0 var(--spacing-md) !important;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .weekday-headers {
+        display: grid !important;
+        grid-template-columns: repeat(7, 1fr) !important;
+        text-align: center;
+        padding: var(--spacing-sm) 0;
+      }
+
+      .weekday {
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+      }
+
+      .weekday.sunday {
+        color: #e57373;
+      }
+
+      .weekday.saturday {
+        color: #5c6bc0;
+      }
+
+      /* 日曆網格 */
+      .calendar-grid {
+        display: grid !important;
+        grid-template-columns: repeat(7, 1fr) !important;
+        grid-auto-rows: minmax(80px, auto) !important;
+        gap: 4px !important;
+        padding: 5px !important;
+        overflow-y: auto;
+        overflow-x: hidden;
+        position: relative;
+        flex: 1 !important;
+      }
+
+      /* 日曆天單元格 - 更新為底部有標籤區的方格 */
+      .calendar-day {
+        aspect-ratio: unset !important;
+        min-height: 80px !important;
+        height: auto !important;
+        padding: 5px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        border: 1px solid var(--border) !important;
+        border-radius: var(--radius-sm) !important;
+        transition: var(--transition-normal);
+        position: relative;
+        cursor: pointer;
+        overflow: visible;
+        background-color: var(--card-bg);
+      }
+
+      .calendar-day:hover:not(.empty-day) {
+        background-color: var(--accent);
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-sm);
+      }
+
+      /* 日期格上半部分 - 日期信息區 */
+      .calendar-day .date-info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+      }
+
+      /* 日期數字 */
+      .day-number {
+        font-size: 0.95rem;
+        font-weight: 500;
+        margin-bottom: 2px;
+        align-self: flex-start;
+      }
+
+      /* 子文本 */
+      .day-subtext {
+        font-size: 0.7rem;
+        color: var(--text-light);
+        align-self: flex-start;
+      }
+
+      /* 空日期樣式 */
+      .empty-day {
+        color: var(--text-light);
+        background-color: rgba(0, 0, 0, 0.02) !important;
+        cursor: default;
+        opacity: 0.6 !important;
+      }
+
+      /* 今天的高亮樣式 */
+      .today {
+        background-color: var(--highlight) !important;
+        border: 2px solid var(--secondary) !important;
+        box-shadow: var(--shadow-sm);
+      }
+
+      /* 選中日期的高亮樣式 */
+      .selected-day {
+        background-color: var(--primary-light) !important;
+        border: 2px solid var(--primary) !important;
+        box-shadow: var(--shadow-sm);
+      }
+
+      /* 事件指示器 */
+      .has-event::after {
+        content: "";
+        position: absolute;
+        bottom: 4px;
+        right: 4px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        box-shadow: 0 0 4px var(--shadow);
+      }
+
+      /* 周末日期顏色 */
+      .sunday .day-number {
+        color: #e57373;
+      }
+
+      .saturday .day-number {
+        color: #5c6bc0;
+      }
+
+      /* 底部標籤區 */
+      .calendar-day .event-tags {
+        width: 100%;
+        margin-top: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-height: 20px;
+      }
+
+      /* 標準標籤樣式 */
+      .event-tag {
+        font-size: 0.7rem;
+        padding: 2px 4px;
+        border-radius: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        background-color: var(--primary-light);
+        color: var(--primary);
+      }
+
+      /* 跨日事件標籤 - 這會定位在日曆格子外部 */
+      .multi-day-event {
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        z-index: 10;
+        border-radius: 3px;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        background-color: var(--primary-light);
+        color: var(--primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--primary);
+      }
+
+      /* 跨日事件的第一天 */
+      .multi-day-event.start {
+        border-top-left-radius: 3px;
+        border-bottom-left-radius: 3px;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        margin-left: 0;
+      }
+
+      /* 跨日事件的最後一天 */
+      .multi-day-event.end {
+        border-top-right-radius: 3px;
+        border-bottom-right-radius: 3px;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+
+      /* 跨日事件的中間天 */
+      .multi-day-event.middle {
+        border-radius: 0;
+      }
+
+      /* 事件容器 */
+      .events-section {
+        background-color: var(--background);
+        padding: var(--spacing-lg);
+        padding-bottom: 100px;
+        border-top-left-radius: var(--radius-lg);
+        border-top-right-radius: var(--radius-lg);
+        box-shadow: 0 -4px 20px var(--shadow);
+        display: none !important;
+      }
+
+      .events-title {
+        font-family: var(--title-font);
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: var(--spacing-md);
+        padding-bottom: var(--spacing-sm);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .holiday-title {
+        font-family: var(--body-font);
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--secondary);
+        margin-left: var(--spacing-sm);
+      }
+
+      .events-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+      }
+
+      .event-card {
+        background-color: var(--card-bg);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-md);
+        border-left: 3px solid var(--primary);
+        transition: var(--transition-normal);
+      }
+
+      .event-card:hover {
+        transform: translateY(-3px) translateX(2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .event-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-xs);
+      }
+
+      .event-date {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+      }
+
+      .event-type {
+        font-size: 0.75rem;
+        padding: 2px 10px;
+        border-radius: var(--radius-pill);
+        font-weight: 500;
+      }
+
+      .event-type.meeting {
+        background-color: rgba(92, 107, 192, 0.15);
+        color: #3949ab;
+      }
+
+      .event-type.training {
+        background-color: rgba(156, 39, 176, 0.1);
+        color: #7b1fa2;
+      }
+
+      .event-type.holiday {
+        background-color: rgba(236, 64, 122, 0.1);
+        color: #c2185b;
+      }
+
+      .event-type.other {
+        background-color: rgba(120, 144, 156, 0.1);
+        color: #455a64;
+      }
+
+      .event-type.national {
+        background-color: rgba(229, 115, 115, 0.15);
+        color: #d32f2f;
+      }
+
+      .event-type.lunar {
+        background-color: rgba(76, 175, 80, 0.1);
+        color: #388e3c;
+      }
+
+      .event-type.makeup {
+        background-color: rgba(120, 144, 156, 0.1);
+        color: #455a64;
+      }
+
+      .event-type.adjustment {
+        background-color: rgba(33, 150, 243, 0.1);
+        color: #1976d2;
+      }
+
+      .event-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin: var(--spacing-xs) 0 var(--spacing-sm);
+        color: var(--text-primary);
+      }
+
+      .event-details {
+        display: flex;
+        align-items: center;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+      }
+
+      .event-details-item {
+        display: flex;
+        align-items: center;
+      }
+
+      .event-details-item i {
+        margin-right: 6px;
+        opacity: 0.8;
+      }
+
+      .empty-events {
+        text-align: center;
+        padding: var(--spacing-xl) 0;
+      }
+
+      .empty-events i {
+        font-size: 3rem;
+        color: var(--primary-light);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .empty-events p {
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .empty-events .btn-primary {
+        display: inline-block;
+        margin: 0 auto;
+      }
+
+      /* 浮動添加按鈕 */
+      .floating-add-btn {
+        position: fixed;
+        bottom: 90px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), #263c68);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        box-shadow: var(--shadow-lg);
+        transition: var(--transition-normal);
+        z-index: 20;
+        font-size: 1.2rem;
+      }
+
+      .floating-add-btn:hover {
+        transform: translateY(-5px) rotate(90deg);
+        box-shadow: 0 8px 25px rgba(48, 74, 125, 0.25);
+      }
+
+      .floating-add-btn:active {
+        transform: scale(0.95);
+      }
+
+      /* 底部選項卡 */
+      .tab-menu {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(
+          to top,
+          rgba(255, 255, 255, 0.98),
+          rgba(255, 255, 255, 0.95)
+        );
+        border-top: 1px solid var(--border);
+        padding: var(--spacing-xs) !important;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        max-width: 480px;
+        margin: 0 auto;
+      }
+
+      @media (min-width: 768px) {
+        .tab-menu {
+          border-bottom-left-radius: var(--radius-lg);
+          border-bottom-right-radius: var(--radius-lg);
+        }
+      }
+
+      .tab-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: var(--text-light);
+        transition: var(--transition-normal);
+        cursor: pointer;
+        position: relative;
+        padding: var(--spacing-xs) var(--spacing-sm);
+      }
+
+      .tab-item.active {
+        color: var(--primary);
+      }
+
+      .tab-item.active::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 15px;
+        height: 3px;
+        background-color: var(--primary);
+        border-radius: 3px;
+      }
+
+      .tab-item:hover {
+        color: var(--primary);
+      }
+
+      .tab-item i {
+        font-size: 1.2rem;
+        transition: var(--transition-normal);
+      }
+
+      .tab-item:hover i {
+        transform: translateY(-2px);
+      }
+
+      .tab-item span {
+        font-size: 0.75rem;
+        margin-top: 4px;
+        font-weight: 500;
+      }
+
+      /* 模態框 */
+      .modal {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(48, 74, 125, 0.4);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        display: none;
+      }
+
+      .modal-content {
+        background-color: var(--card-bg);
+        border-radius: var(--radius-lg);
+        width: 90%;
+        max-width: 450px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-lg);
+        animation: slideUp 0.4s var(--transition-normal);
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(30px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .modal-header {
+        border-bottom: 1px solid var(--border);
+        padding: var(--spacing-lg);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .modal-title {
+        font-family: var(--title-font);
+        font-weight: 600;
+        font-size: 1.4rem;
+        color: var(--primary);
+      }
+
+      .close-modal {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 1.2rem;
+        width: 35px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: var(--transition-fast);
+      }
+
+      .close-modal:hover {
+        background-color: var(--accent);
+        color: var(--primary);
+      }
+
+      .modal-body {
+        padding: var(--spacing-lg);
+      }
+
+      .form-group {
+        margin-bottom: var(--spacing-md);
+      }
+
+      .form-label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-xs);
+      }
+
+      .form-input,
+      .form-select,
+      .form-textarea {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: 1rem;
+        transition: var(--transition-normal);
+        background-color: #f9fafc;
+        color: var(--text-primary);
+        font-family: var(--body-font);
+      }
+
+      .form-input:focus,
+      .form-select:focus,
+      .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(48, 74, 125, 0.1);
+        background-color: white;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-md);
+      }
+
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-xl);
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border-radius: var(--radius-pill);
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        transition: var(--transition-normal);
+        cursor: pointer;
+        border: none;
+        font-size: 0.95rem;
+      }
+
+      .btn-secondary {
+        background-color: var(--accent);
+        color: var(--primary);
+      }
+
+      .btn-secondary:hover {
+        background-color: var(--primary-light);
+        transform: translateY(-2px);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--primary), #263c68);
+        color: white;
+        box-shadow: 0 4px 10px rgba(48, 74, 125, 0.2);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(48, 74, 125, 0.25);
+      }
+
+      .btn-primary:active,
+      .btn-secondary:active {
+        transform: translateY(0) scale(0.98);
+      }
+
+      /* 廣告條幅 */
+      .ad-banner {
+        position: fixed;
+        bottom: 80px !important;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 450px;
+        background-color: var(--card-bg);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        z-index: 30;
+        border: 1px solid var(--border);
+      }
+
+      .ad-icon {
+        flex-shrink: 0;
+        width: 72px;
+        height: 72px;
+        background-color: #1a237e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ad-content {
+        flex-grow: 1;
+        padding: var(--spacing-md) var(--spacing-md);
+      }
+
+      .ad-text {
+        font-weight: 500;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+      }
+
+      .ad-install {
+        background: linear-gradient(135deg, #3949ab, #1a237e);
+        color: white;
+        padding: 10px 16px;
+        border-radius: var(--radius-pill);
+        margin-right: var(--spacing-md);
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        transition: var(--transition-normal);
+        box-shadow: 0 4px 6px rgba(26, 35, 126, 0.2);
+        white-space: nowrap;
+      }
+
+      .ad-install:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(26, 35, 126, 0.25);
+      }
+
+      .ad-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: transparent;
+        border: none;
+        color: var(--text-light);
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: var(--transition-fast);
+      }
+
+      .ad-close:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+        color: var(--text-primary);
+      }
+
+      /* 假期設置面板 */
+      .holiday-settings {
+        position: absolute;
+        top: 70px;
+        right: 15px;
+        background-color: var(--card-bg);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        width: 260px;
+        z-index: 100;
+        overflow: hidden;
+        display: none;
+        animation: slideInSettings 0.3s var(--transition-normal);
+        transform-origin: top right;
+        border: 1px solid var(--border);
+      }
+
+      @keyframes slideInSettings {
+        from {
+          opacity: 0;
+          transform: translateY(-10px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .settings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(to right, #f8fafd, #f5f7fa);
+      }
+
+      .settings-header h3 {
+        font-family: var(--title-font);
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--primary);
+      }
+
+      .close-settings {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: var(--transition-fast);
+      }
+
+      .close-settings:hover {
+        background-color: var(--accent);
+        color: var(--primary);
+      }
+
+      .settings-body {
+        padding: var(--spacing-md) var(--spacing-lg);
+      }
+
+      .settings-group {
+        margin-bottom: var(--spacing-md);
+        position: relative;
+        transition: var(--transition-fast);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-xs) var(--spacing-sm);
+      }
+
+      .settings-group:hover {
+        background-color: var(--accent);
+      }
+
+      .settings-group:last-child {
+        margin-bottom: 0;
+      }
+
+      .toggle-label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        padding: 4px 0;
+      }
+
+      /* 自定義核取方塊樣式 */
+      .toggle-label input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+      }
+
+      .toggle-checkbox {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 22px;
+        background-color: #d1d5db;
+        border-radius: 22px;
+        transition: var(--transition-normal);
+        margin-right: var(--spacing-md);
+        flex-shrink: 0;
+      }
+
+      .toggle-checkbox:after {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: white;
+        top: 2px;
+        left: 2px;
+        transition: var(--transition-normal);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      }
+
+      .toggle-label input:checked + .toggle-checkbox {
+        background-color: var(--primary);
+      }
+
+      .toggle-label input:checked + .toggle-checkbox:after {
+        left: calc(100% - 20px);
+      }
+
+      .toggle-label input:focus + .toggle-checkbox {
+        box-shadow: 0 0 0 2px rgba(48, 74, 125, 0.15);
+      }
+
+      .toggle-text {
+        flex-grow: 1;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+
+      .color-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 假期樣式 */
+      .holiday {
+        position: relative;
+      }
+
+      /* 國定假日樣式 */
+      .national-holiday {
+        background-color: rgba(229, 115, 115, 0.1) !important;
+        transition: background-color 0.3s ease;
+      }
+
+      .national-holiday .day-number {
+        color: #d32f2f !important;
+        font-weight: 600;
+      }
+
+      .national-holiday.hidden-holiday {
+        background-color: transparent !important;
+      }
+
+      /* 農曆假日樣式 */
+      .lunar-holiday {
+        background-color: rgba(76, 175, 80, 0.1) !important;
+        transition: background-color 0.3s ease;
+      }
+
+      .lunar-holiday .day-number {
+        color: #388e3c !important;
+        font-weight: 600;
+      }
+
+      .lunar-holiday.hidden-holiday {
+        background-color: transparent !important;
+      }
+
+      /* 補班日樣式 */
+      .makeup-workday {
+        position: relative;
+        transition: all 0.3s ease;
+      }
+
+      .makeup-workday::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border: 1px dashed #78909c;
+        border-radius: var(--radius-md);
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+
+      .makeup-workday.hidden-holiday::before {
+        opacity: 0;
+      }
+
+      /* 調整放假日樣式 */
+      .adjustment-holiday {
+        background-color: rgba(33, 150, 243, 0.1) !important;
+        transition: background-color 0.3s ease;
+      }
+
+      .adjustment-holiday .day-number {
+        color: #1976d2 !important;
+        font-weight: 600;
+      }
+
+      .adjustment-holiday.hidden-holiday {
+        background-color: transparent !important;
+      }
+
+      /* 假日指示器樣式 */
+      .holiday-indicator {
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin-top: 3px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+        text-align: center;
+        align-self: flex-start;
+      }
+
+      /* 隱藏元素 */
+      .hidden {
+        display: none !important;
+      }
+
+      /* 動畫 */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(15px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .animate-fade-in {
+        animation: fadeIn 0.4s var(--transition-normal) forwards;
+      }
+
+      /* 裝飾元素 */
+      .decoration-circle {
+        position: absolute;
+        border-radius: 50%;
+        background: var(--accent);
+        opacity: 0.6;
+        z-index: -1;
+      }
+
+      .decoration-circle-1 {
+        width: 200px;
+        height: 200px;
+        top: -100px;
+        right: -50px;
+      }
+
+      .decoration-circle-2 {
+        width: 150px;
+        height: 150px;
+        bottom: 100px;
+        left: -75px;
+        background: var(--highlight);
+        opacity: 0.4;
+      }
+
+      /* 響應式設計 */
+      @media (max-width: 380px) {
+        :root {
+          --spacing-lg: 1.2rem;
+          --spacing-md: 0.8rem;
+        }
+
+        .day-number {
+          font-size: 0.85rem;
+        }
+
+        .day-subtext {
+          font-size: 0.65rem;
+        }
+
+        .events-title {
+          font-size: 1.1rem;
+        }
+
+        .calendar-grid {
+          gap: 3px !important;
+        }
+
+        .calendar-day {
+          padding: 4px !important;
+          min-height: 70px !important;
+        }
+
+        .event-title {
+          font-size: 1rem;
+        }
+
+        .event-details {
+          font-size: 0.8rem;
+        }
+
+        .calendar-day .event-tag,
+        .multi-day-event {
+          font-size: 0.65rem;
+          padding: 1px 3px;
+        }
+      }
+
+      /* 打印樣式 */
+      @media print {
+        body {
+          background: white;
+        }
+
+        .app-container {
+          box-shadow: none;
+          margin: 0;
+          width: 100%;
+          max-width: none;
+        }
+
+        .header,
+        .tab-menu,
+        .floating-add-btn,
+        .ad-banner {
+          display: none !important;
+        }
+
+        .calendar-grid {
+          page-break-inside: avoid;
+        }
+
+        .event-card {
+          break-inside: avoid;
+          box-shadow: none;
+          border: 1px solid #ddd;
+        }
+
+        .multi-day-event {
+          box-shadow: none;
+          border: 1px solid #000;
+          color: #000 !important;
+          background-color: transparent !important;
+        }
+      }
+
+      /* 農曆日期樣式 */
+      .lunar-date {
+        font-size: 0.6rem;
+        color: var(--text-light);
+        margin-top: 2px;
+        line-height: 1;
+        align-self: flex-start;
+      }
+
+      /* 長按效果 */
+      .calendar-day.long-press {
+        background-color: var(--primary);
+        color: white;
+        transform: scale(0.95);
+        transition: all 0.2s ease;
+      }
+
+      /* 增強觸控反饋 */
+      @media (hover: none) and (pointer: coarse) {
+        .calendar-day:active {
+          transform: scale(0.95);
+          background-color: var(--primary-light);
+        }
+      }
+
+      /* 空白日期強調視覺差異 */
+      .calendar-day.empty-day .day-number,
+      .calendar-day.empty-day .day-subtext {
+        opacity: 0.6;
+      }
+
+      /* 優化日期指示器位置 */
+      .calendar-day .day-indicator-container {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+      }
+
+      .day-indicator-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background-color: var(--primary);
+      }
+
+      /* 特定事件類型的顏色 */
+      .event-tag.meeting {
+        background-color: rgba(92, 107, 192, 0.15);
+        color: #3949ab;
+      }
+
+      .event-tag.training {
+        background-color: rgba(156, 39, 176, 0.1);
+        color: #7b1fa2;
+      }
+
+      .event-tag.holiday {
+        background-color: rgba(236, 64, 122, 0.1);
+        color: #c2185b;
+      }
+
+      .event-tag.other {
+        background-color: rgba(120, 144, 156, 0.1);
+        color: #455a64;
+      }
+
+      /* 多日事件的特殊顏色 */
+      .multi-day-event.meeting {
+        background-color: rgba(92, 107, 192, 0.3);
+        border-color: #3949ab;
+        color: #3949ab;
+      }
+
+      .multi-day-event.training {
+        background-color: rgba(156, 39, 176, 0.15);
+        border-color: #7b1fa2;
+        color: #7b1fa2;
+      }
+
+      .multi-day-event.holiday {
+        background-color: rgba(236, 64, 122, 0.15);
+        border-color: #c2185b;
+        color: #c2185b;
+      }
+
+      .multi-day-event.other {
+        background-color: rgba(120, 144, 156, 0.15);
+        border-color: #455a64;
+        color: #455a64;
+      }
+
+      /* 行事曆標籤容器優化 */
+      .event-tags-container {
+        width: 100%;
+        position: relative;
+        z-index: 5;
+      }
+
+      /* 增加事件交互效果 */
+      .event-tag:hover,
+      .multi-day-event:hover {
+        filter: brightness(0.95);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 事件標籤溢出指示器 */
+      .event-overflow-indicator {
+        font-size: 0.65rem;
+        color: var(--text-secondary);
+        text-align: center;
+        margin-top: 2px;
+        font-weight: 500;
+      }
+
+      /* 確保最後一行的日曆單元格有足夠底部間距 */
+      .calendar-grid > .calendar-day:nth-last-child(-n + 7) {
+        margin-bottom: 10px;
+      }
+    </style>
+
+    <script>
+      window.onerror = function (message, source, lineno, colno, error) {
+        if (source && source.indexOf("js/app.js") > -1) {
+          console.warn("Ignored error in app.js: ", error);
+          return true;
+        }
+        return false;
+      };
+      // 覆寫 initCalendar（若存在）以避免 null 錯誤中斷
+      window.addEventListener("DOMContentLoaded", function () {
+        if (typeof initCalendar === "function") {
+          var originalInitCalendar = initCalendar;
+          initCalendar = function () {
+            try {
+              originalInitCalendar();
+            } catch (e) {
+              console.error("initCalendar error caught: ", e);
+            }
+          };
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- 裝飾元素 -->
+      <div class="decoration-circle decoration-circle-1"></div>
+      <div class="decoration-circle decoration-circle-2"></div>
+
+      <!-- 頂部導航 -->
+      <header class="header">
+        <div class="header-left">
+          <div class="header-avatar">
+            <img
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23304a7d'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='50' text-anchor='middle' dominant-baseline='central' fill='white'%3E📅%3C/text%3E%3C/svg%3E"
+              alt="Calendar Icon"
+            />
+          </div>
+          <div>
+            <h1 id="monthYearTitle" class="header-title">2025年7月</h1>
+            <p id="headerSubtitle" class="header-subtitle">阿璋行事曆Demo</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="holidaySettingsBtn" class="icon-button settings-button">
+            <i class="fa-solid fa-gear"></i>
+          </button>
+          <button class="icon-button">
+            <i class="fa-solid fa-star"></i>
+          </button>
+          <button class="icon-button">
+            <i class="fa-solid fa-list-ul"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- 假期設置面板 -->
+      <div id="holidaySettings" class="holiday-settings">
+        <div class="settings-header">
+          <h3>假期顯示設置</h3>
+          <button id="closeSettings" class="close-settings">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="settings-body">
+          <div class="settings-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="showNationalHolidays" checked />
+              <span class="toggle-checkbox"></span>
+              <span class="toggle-text">顯示國定假日</span>
+              <span class="color-dot" style="background-color: #d32f2f"></span>
+            </label>
+          </div>
+          <div class="settings-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="showLunarHolidays" checked />
+              <span class="toggle-checkbox"></span>
+              <span class="toggle-text">顯示農曆節日</span>
+              <span class="color-dot" style="background-color: #388e3c"></span>
+            </label>
+          </div>
+          <div class="settings-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="showMakeupWorkdays" checked />
+              <span class="toggle-checkbox"></span>
+              <span class="toggle-text">顯示補班日</span>
+              <span class="color-dot" style="background-color: #78909c"></span>
+            </label>
+          </div>
+          <div class="settings-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="showAdjustmentHolidays" checked />
+              <span class="toggle-checkbox"></span>
+              <span class="toggle-text">顯示調整放假</span>
+              <span class="color-dot" style="background-color: #1976d2"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 月份導航 -->
+      <div class="month-nav">
+        <button id="prevMonth" class="icon-button">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <div id="monthSelector" class="month-selector">
+          <span id="currentMonthYear" class="current-month-year"
+            >2025年7月</span
+          >
+          <i class="fa-solid fa-chevron-down"></i>
+        </div>
+        <button id="nextMonth" class="icon-button">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- 日曆區域 -->
+      <div class="calendar-wrap">
+        <!-- 星期頭部 -->
+        <div class="weekday-headers">
+          <div class="weekday sunday">週日</div>
+          <div class="weekday">週一</div>
+          <div class="weekday">週二</div>
+          <div class="weekday">週三</div>
+          <div class="weekday">週四</div>
+          <div class="weekday">週五</div>
+          <div class="weekday saturday">週六</div>
+        </div>
+
+        <!-- 日曆網格 -->
+        <div id="calendarGrid" class="calendar-grid">
+          <!-- 日期會動態插入這裡 -->
+        </div>
+      </div>
+
+      <!-- 事件部分 -->
+      <div class="events-section">
+        <div id="eventsContainer">
+          <!-- 事件卡片會動態插入這裡 -->
+        </div>
+      </div>
+
+      <!-- 添加事件按鈕 -->
+      <button id="addEventBtn" class="floating-add-btn">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+
+      <!-- 底部標籤菜單 -->
+      <div class="tab-menu">
+        <div class="tab-item active">
+          <i class="fa-solid fa-calendar-days"></i>
+          <span>行程</span>
+        </div>
+        <div class="tab-item">
+          <i class="fa-solid fa-image"></i>
+          <span>相簿</span>
+        </div>
+        <div class="tab-item">
+          <i class="fa-solid fa-circle-plus"></i>
+          <span>新增</span>
+        </div>
+        <div class="tab-item">
+          <i class="fa-solid fa-bell"></i>
+          <span>最新動態</span>
+        </div>
+        <div class="tab-item">
+          <i class="fa-solid fa-table-cells"></i>
+          <span>其他</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 事件表單模態框（初始隱藏） -->
+    <div id="eventModal" class="modal">
+      <div class="modal-content animate-fade-in">
+        <div class="modal-header">
+          <h3 class="modal-title">新增行程</h3>
+          <button id="closeModal" class="close-modal">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <form id="eventForm" class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="eventTitle">標題</label>
+            <input
+              class="form-input"
+              id="eventTitle"
+              name="eventTitle"
+              type="text"
+              placeholder="輸入行程標題"
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="eventDate">日期</label>
+              <input
+                class="form-input"
+                id="eventDate"
+                name="eventDate"
+                type="date"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="eventType">類型</label>
+              <select class="form-select" id="eventType" name="eventType">
+                <option value="meeting">會議</option>
+                <option value="training">培訓</option>
+                <option value="holiday">休假</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="eventLocation">地點</label>
+            <input
+              class="form-input"
+              id="eventLocation"
+              name="eventLocation"
+              type="text"
+              placeholder="行程地點"
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="eventStartTime">開始時間</label>
+              <input
+                class="form-input"
+                id="eventStartTime"
+                name="eventStartTime"
+                type="time"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="eventEndTime">結束時間</label>
+              <input
+                class="form-input"
+                id="eventEndTime"
+                name="eventEndTime"
+                type="time"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="eventNotes">備註</label>
+            <textarea
+              class="form-textarea"
+              id="eventNotes"
+              name="eventNotes"
+              rows="3"
+              placeholder="其他備註資訊"
+            ></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" id="cancelEventBtn" class="btn btn-secondary">
+              取消
+            </button>
+            <button type="submit" class="btn btn-primary">儲存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MLB遊戲廣告 -->
+    <!-- <div id="adContainer" class="ad-banner animate-fade-in">
+      <div class="ad-icon">
+        <img
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%231a237e'/%3E%3Cpath d='M30,35 L45,35 L45,65 L30,65 Z M55,35 L70,35 L70,65 L55,65 Z' fill='white'/%3E%3C/svg%3E"
+          alt="MLB"
+          width="40"
+          height="40"
+        />
+      </div> -->
+    <!-- <div class="ad-content">
+        <p class="ad-text">免費下載，體驗真實的MLB比賽。</p>
+      </div>
+      <button class="ad-install">立即安裝</button>
+      <button id="closeAd" class="ad-close">
+        <i class="fa-solid fa-xmark"></i>
+      </button> -->
+    <!-- </div> -->
+
+    <!-- JavaScript -->
+    <script src="js/taiwan-holidays.js"></script>
+    <script src="js/app.js"></script>
+    <!-- 新增的 JS 程式碼，不改原始結構，處理日曆點擊及跨日選項 -->
+    <script>
+      // 日曆格式化與互動增強功能
+      document.addEventListener("DOMContentLoaded", function () {
+        // 確保日曆網格顯示正確
+        ensureCalendarGridLayout();
+
+        // 強化日曆日期點擊與長按事件
+        setupCalendarInteractions();
+
+        // 增加跨日事件支持
+        enhanceMultiDayEvents();
+
+        // 優化日曆格子的響應式布局
+        handleCalendarResponsiveLayout();
+
+        // 增加農曆日期顯示功能
+        addLunarDateSupport();
+      });
+
+      // 確保日曆網格布局正確
+      function ensureCalendarGridLayout() {
+        const calendarGrid = document.getElementById("calendarGrid");
+        if (!calendarGrid) return;
+
+        // 強制設置網格布局
+        calendarGrid.style.display = "grid";
+        calendarGrid.style.gridTemplateColumns = "repeat(7, 1fr)";
+
+        // 計算最佳高度
+        adjustCalendarHeight();
+
+        // 窗口尺寸改變時重新調整
+        window.addEventListener("resize", adjustCalendarHeight);
+      }
+
+      // 動態調整日曆高度
+      function adjustCalendarHeight() {
+        const calendarGrid = document.getElementById("calendarGrid");
+        if (!calendarGrid) return;
+
+        const headerHeight =
+          document.querySelector(".header")?.offsetHeight || 0;
+        const monthNavHeight =
+          document.querySelector(".month-nav")?.offsetHeight || 0;
+        const weekdayHeadersHeight =
+          document.querySelector(".weekday-headers")?.offsetHeight || 0;
+        const tabMenuHeight =
+          document.querySelector(".tab-menu")?.offsetHeight || 0;
+
+        // 計算可用高度，只預留較少的間距
+        const availableHeight =
+          window.innerHeight -
+          headerHeight -
+          monthNavHeight -
+          weekdayHeadersHeight -
+          tabMenuHeight -
+          10;
+
+        // 設置固定的高度，不是最大高度
+        calendarGrid.style.height = `${availableHeight}px`;
+        calendarGrid.style.maxHeight = `${availableHeight}px`;
+      }
+
+      // 設置日曆互動功能
+      function setupCalendarInteractions() {
+        // 為所有日曆天添加點擊與長按事件
+        document.addEventListener("click", function (event) {
+          const day = event.target.closest(".calendar-day");
+          if (day && !day.classList.contains("empty-day")) {
+            // 更新選中樣式
+            document
+              .querySelectorAll(".calendar-day.selected-day")
+              .forEach((el) => {
+                el.classList.remove("selected-day");
+              });
+            day.classList.add("selected-day");
+
+            // 顯示事件區塊
+            const eventsSection = document.querySelector(".events-section");
+            if (eventsSection) {
+              eventsSection.style.display = "block";
+              eventsSection.classList.add("animate-fade-in");
+
+              // 滾動到事件區
+              setTimeout(() => {
+                eventsSection.scrollIntoView({ behavior: "smooth" });
+              }, 100);
+            }
+          }
+        });
+
+        // 處理長按事件
+        setupLongPressEvents();
+      }
+
+      // 長按事件設置
+      function setupLongPressEvents() {
+        let pressTimer;
+        const calendarDays = document.querySelectorAll(
+          ".calendar-day:not(.empty-day)"
+        );
+
+        calendarDays.forEach((day) => {
+          // 長按開始
+          day.addEventListener("touchstart", function (e) {
+            pressTimer = setTimeout(function () {
+              day.classList.add("long-press");
+              // 直接打開添加事件模態框
+              openEventModal(day.dataset.date);
+            }, 800);
+          });
+
+          // 觸摸移動取消長按
+          day.addEventListener("touchmove", function (e) {
+            clearTimeout(pressTimer);
+          });
+
+          // 觸摸結束取消長按狀態
+          day.addEventListener("touchend", function (e) {
+            clearTimeout(pressTimer);
+            day.classList.remove("long-press");
+          });
+        });
+      }
+
+      // 更新事件模態框功能包含選定日期
+      function openEventModal(dateString) {
+        const eventModal = document.getElementById("eventModal");
+        if (!eventModal) return;
+
+        eventModal.style.display = "flex";
+
+        // 將日期設置為選中的日期或當前日期
+        const eventDateInput = document.getElementById("eventDate");
+        if (eventDateInput) {
+          eventDateInput.value = dateString || dayjs().format("YYYY-MM-DD");
+        }
+
+        // 設置默認時間
+        const startTimeInput = document.getElementById("eventStartTime");
+        const endTimeInput = document.getElementById("eventEndTime");
+        if (startTimeInput) startTimeInput.value = "09:00";
+        if (endTimeInput) endTimeInput.value = "10:00";
+
+        // 聚焦標題輸入框
+        setTimeout(() => {
+          document.getElementById("eventTitle")?.focus();
+        }, 100);
+      }
+
+      // 增強跨日事件支持
+      function enhanceMultiDayEvents() {
+        // 找到行程表單並添加跨日選擇功能
+        const eventForm = document.getElementById("eventForm");
+        if (!eventForm) return;
+
+        // 檢查是否已有跨日元素
+        if (!document.getElementById("multiDayToggle")) {
+          const eventEndTimeGroup =
+            document.querySelector("#eventEndTime")?.parentElement;
+          if (!eventEndTimeGroup) return;
+
+          // 添加跨日切換控件
+          const multiDayDiv = document.createElement("div");
+          multiDayDiv.className = "form-group";
+          multiDayDiv.innerHTML = `
+      <label class="toggle-label">
+        <input type="checkbox" id="multiDayToggle" />
+        <span class="toggle-checkbox"></span>
+        <span class="toggle-text">跨日行程</span>
+      </label>
+    `;
+          eventEndTimeGroup.insertAdjacentElement("afterend", multiDayDiv);
+
+          // 添加結束日期選擇器
+          const eventEndDateGroup = document.createElement("div");
+          eventEndDateGroup.className = "form-group";
+          eventEndDateGroup.id = "eventEndDateGroup";
+          eventEndDateGroup.style.display = "none";
+          eventEndDateGroup.innerHTML = `
+      <label class="form-label" for="eventEndDate">結束日期</label>
+      <input class="form-input" id="eventEndDate" name="eventEndDate" type="date" />
+    `;
+          multiDayDiv.insertAdjacentElement("afterend", eventEndDateGroup);
+
+          // 切換跨日顯示
+          document
+            .getElementById("multiDayToggle")
+            .addEventListener("change", function () {
+              eventEndDateGroup.style.display = this.checked ? "block" : "none";
+            });
+        }
+      }
+
+      // 優化日曆響應式布局
+      function handleCalendarResponsiveLayout() {
+        function updateLayout() {
+          const calendarDays = document.querySelectorAll(".calendar-day");
+          const isMobile = window.innerWidth <= 480;
+
+          calendarDays.forEach((day) => {
+            // 動態調整日期單元格內容
+            if (isMobile) {
+              // 移動設備優化：簡化顯示
+              const indicator = day.querySelector(".holiday-indicator");
+              if (indicator) {
+                indicator.style.fontSize = "0.6rem";
+                // 截斷長假日名稱
+                if (indicator.textContent.length > 4) {
+                  indicator.title = indicator.textContent;
+                  indicator.textContent =
+                    indicator.textContent.substring(0, 4) + "..";
+                }
+              }
+            } else {
+              // 桌面設備：恢復正常顯示
+              const indicator = day.querySelector(".holiday-indicator");
+              if (indicator && indicator.title) {
+                indicator.textContent = indicator.title;
+              }
+            }
+          });
+        }
+
+        // 初始運行
+        updateLayout();
+
+        // 窗口大小變化時更新
+        window.addEventListener("resize", updateLayout);
+      }
+
+      // 添加農曆日期顯示支持
+      function addLunarDateSupport() {
+        // 如果存在農曆數據，則顯示農曆日期
+        if (typeof TaiwanHolidays !== "undefined") {
+          const calendarDays = document.querySelectorAll(
+            ".calendar-day:not(.empty-day)"
+          );
+
+          calendarDays.forEach((day) => {
+            const dateString = day.dataset.date;
+            if (!dateString) return;
+
+            // 獲取該日期的農曆信息
+            const holiday = TaiwanHolidays.getHolidayForDate(dateString);
+
+            // 如果是農曆假日，顯示農曆日期
+            if (holiday && holiday.type === "lunar") {
+              // 若無農曆日期顯示元素，則創建
+              if (!day.querySelector(".lunar-date")) {
+                const lunarDate = document.createElement("div");
+                lunarDate.className = "lunar-date";
+                lunarDate.textContent = holiday.name.replace(/節.*$/, "");
+
+                // 插入到數字後面
+                const dayNumber = day.querySelector(".day-number");
+                if (dayNumber) {
+                  dayNumber.insertAdjacentElement("afterend", lunarDate);
+                } else {
+                  day.appendChild(lunarDate);
+                }
+              }
+            }
+          });
+        }
+      }
+
+      // 事件監聽器安全添加機制
+      const existingListeners = new WeakMap();
+      function safeAddEventListener(element, type, listener) {
+        if (!element) return;
+
+        if (!existingListeners.has(element)) {
+          existingListeners.set(element, new Map());
+        }
+
+        const listenersMap = existingListeners.get(element);
+
+        if (!listenersMap.has(type)) {
+          listenersMap.set(type, new Set());
+        }
+
+        const listeners = listenersMap.get(type);
+
+        if (!listeners.has(listener)) {
+          element.addEventListener(type, listener);
+          listeners.add(listener);
+        }
+      }
+
+      // 為 closeAd 按鈕添加事件監聽器
+      document.addEventListener("DOMContentLoaded", function () {
+        const closeAdBtn = document.getElementById("closeAd");
+        const adContainer = document.getElementById("adContainer");
+
+        if (closeAdBtn && adContainer) {
+          safeAddEventListener(closeAdBtn, "click", function () {
+            adContainer.classList.add("hidden");
+          });
+        }
+      });
+
+      // 添加長按快速添加事件的支持
+      document.addEventListener("DOMContentLoaded", function () {
+        // 獲取添加事件按鈕
+        const addEventBtn = document.getElementById("addEventBtn");
+        if (addEventBtn) {
+          safeAddEventListener(addEventBtn, "click", function () {
+            const selectedDate = document.querySelector(
+              ".calendar-day.selected-day"
+            );
+            const dateString = selectedDate ? selectedDate.dataset.date : null;
+            openEventModal(dateString);
+          });
+        }
+
+        // 獲取關閉模態框的按鈕
+        const closeModalBtn = document.getElementById("closeModal");
+        const cancelEventBtn = document.getElementById("cancelEventBtn");
+
+        if (closeModalBtn) {
+          safeAddEventListener(closeModalBtn, "click", closeEventModal);
+        }
+
+        if (cancelEventBtn) {
+          safeAddEventListener(cancelEventBtn, "click", closeEventModal);
+        }
+      });
+
+      // 關閉事件模態框
+      function closeEventModal() {
+        const eventModal = document.getElementById("eventModal");
+        if (eventModal) {
+          eventModal.style.display = "none";
+
+          // 如果有表單，重置它
+          const eventForm = document.getElementById("eventForm");
+          if (eventForm) {
+            eventForm.reset();
+          }
+        }
+      }
+
+      // 支持農曆日期樣式
+      document.addEventListener("DOMContentLoaded", function () {
+        // 添加農曆日期樣式
+        const styleElement = document.createElement("style");
+        styleElement.textContent = `
+    .lunar-date {
+      font-size: 0.6rem;
+      color: var(--text-light);
+      margin-top: 2px;
+      line-height: 1;
+    }
+    
+    .calendar-day.long-press {
+      background-color: var(--primary);
+      color: white;
+      transform: scale(0.95);
+      transition: all 0.2s ease;
+    }
+    
+    .multi-day-event-indicator {
+      height: 4px;
+      background: linear-gradient(to right, var(--primary), var(--primary-light));
+      border-radius: 2px;
+      margin-top: 2px;
+      width: 90%;
+    }
+    
+    @media (hover: none) and (pointer: coarse) {
+      .calendar-day:active {
+        transform: scale(0.95);
+        background-color: var(--primary-light);
+      }
+    }
+  `;
+        document.head.appendChild(styleElement);
+      });
+    </script>
+  </body>
+</html>
