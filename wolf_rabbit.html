@@ -1,0 +1,2196 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>狼兔智鬥 - 策略對戰遊戲</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Nunito", "Microsoft JhengHei", "Helvetica", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+      }
+
+      :root {
+        /* 主題色調 - 明亮系 */
+        --wolf-primary: #6082b6; /* 明亮的藍色調 */
+        --wolf-secondary: #4b6cb7;
+        --wolf-accent: #8ab4f8;
+        --rabbit-primary: #ff9966; /* 明亮的橙色調 */
+        --rabbit-secondary: #ff7733;
+        --rabbit-accent: #ffbb88;
+
+        /* 地形與背景色調 - 鮮豔版 */
+        --forest-color: #7ac74f; /* 鮮綠色 */
+        --pond-color: #5dade2; /* 亮藍色 */
+        --mountain-color: #bb8fce; /* 明亮紫色 */
+        --board-color: #fff8e7; /* 米白色棋盤 */
+        --bg-primary: #fefefe; /* 純白背景 */
+        --bg-secondary: #f8f9fa;
+
+        /* UI元素色調 - 亮麗版 */
+        --neutral-light: #ffffff;
+        --neutral-medium: #f1f3f5;
+        --neutral-dark: #495057;
+        --success: #8bc34a;
+        --warning: #ffd54f;
+        --danger: #ff7675;
+
+        /* 佈局設定 */
+        --border-radius-sm: 10px;
+        --border-radius-md: 15px;
+        --border-radius-lg: 20px;
+        --border-radius-xl: 25px;
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.07);
+        --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.1);
+        --card-padding: 16px;
+        --container-max-width: 500px;
+      }
+
+      @import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap");
+
+      body {
+        background-color: var(--bg-primary);
+        background-image: radial-gradient(
+            circle at 90% 10%,
+            rgba(255, 153, 102, 0.1) 10%,
+            transparent 40%
+          ),
+          radial-gradient(
+            circle at 10% 90%,
+            rgba(96, 130, 182, 0.1) 10%,
+            transparent 40%
+          );
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+        color: var(--neutral-dark);
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      .game-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: var(--container-max-width);
+        margin: 0 auto;
+      }
+
+      .game-header {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 15px;
+        position: relative;
+      }
+
+      .game-title {
+        font-size: 2.2rem;
+        color: var(--neutral-dark);
+        margin: 15px 0;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        background: linear-gradient(
+          45deg,
+          var(--wolf-accent),
+          var(--rabbit-accent)
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        position: relative;
+        display: inline-block;
+      }
+
+      .game-title::after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 10%;
+        right: 10%;
+        height: 3px;
+        background: linear-gradient(
+          to right,
+          var(--wolf-accent),
+          var(--rabbit-accent)
+        );
+        border-radius: 2px;
+      }
+
+      .turn-indicator {
+        background-color: var(--neutral-light);
+        color: var(--neutral-dark);
+        padding: 15px;
+        border-radius: var(--border-radius-md);
+        text-align: center;
+        width: 100%;
+        font-size: 1.2rem;
+        margin-bottom: 15px;
+        box-shadow: var(--shadow-md);
+        font-weight: 700;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border: 2px solid transparent;
+      }
+
+      .turn-wolf {
+        background: linear-gradient(
+          120deg,
+          var(--wolf-primary),
+          var(--wolf-secondary)
+        );
+        color: white;
+        border-color: var(--wolf-accent);
+      }
+
+      .turn-rabbit {
+        background: linear-gradient(
+          120deg,
+          var(--rabbit-primary),
+          var(--rabbit-secondary)
+        );
+        color: white;
+        border-color: var(--rabbit-accent);
+      }
+
+      .status-panel {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        margin-bottom: 15px;
+        border-radius: var(--border-radius-md);
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        gap: 10px;
+      }
+
+      .player-status {
+        display: flex;
+        flex-direction: column;
+        width: 50%;
+        padding: 16px;
+        border-radius: var(--border-radius-md);
+        color: white;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .player-status::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 100 100"><circle cx="20" cy="20" r="5" fill="white" opacity="0.2"/><circle cx="60" cy="60" r="5" fill="white" opacity="0.2"/></svg>');
+        opacity: 0.2;
+        z-index: 0;
+      }
+
+      .wolf-status {
+        background: linear-gradient(
+          135deg,
+          var(--wolf-primary),
+          var(--wolf-secondary)
+        );
+        border-top-left-radius: var(--border-radius-md);
+        border-bottom-left-radius: var(--border-radius-md);
+      }
+
+      .rabbit-status {
+        background: linear-gradient(
+          135deg,
+          var(--rabbit-primary),
+          var(--rabbit-secondary)
+        );
+        border-top-right-radius: var(--border-radius-md);
+        border-bottom-right-radius: var(--border-radius-md);
+      }
+
+      .status-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 1.3rem;
+        font-weight: 700;
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      }
+
+      .animal-icon {
+        font-size: 1.5rem;
+        margin-right: 8px;
+        filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.2));
+      }
+
+      .status-item {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+        font-size: 0.95rem;
+        position: relative;
+        z-index: 1;
+        background-color: rgba(255, 255, 255, 0.2);
+        padding: 6px 10px;
+        border-radius: var(--border-radius-sm);
+        font-weight: 500;
+      }
+
+      .status-item span:last-child {
+        font-weight: 700;
+      }
+
+      .game-board-container {
+        width: 100%;
+        aspect-ratio: 1/1;
+        perspective: 1000px;
+        margin-bottom: 20px;
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+        position: relative;
+      }
+
+      .game-board-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        background: linear-gradient(
+          to bottom right,
+          rgba(255, 255, 255, 0.7),
+          rgba(230, 230, 240, 0.4)
+        );
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-md);
+      }
+
+      .game-board {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        grid-template-rows: repeat(8, 1fr);
+        width: 100%;
+        height: 100%;
+        background-color: var(--board-color);
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        position: relative;
+        will-change: transform;
+        transition: transform 0.3s ease;
+      }
+
+      .game-board::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to bottom right,
+          rgba(255, 255, 255, 0.5),
+          rgba(255, 255, 255, 0.1) 50%,
+          rgba(0, 0, 0, 0.03) 51%,
+          rgba(0, 0, 0, 0.05)
+        );
+        pointer-events: none;
+      }
+
+      .cell {
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 1.6rem;
+        overflow: hidden;
+      }
+
+      .cell::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        transition: background-color 0.2s ease;
+        pointer-events: none;
+      }
+
+      .cell:hover::before {
+        background-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .forest {
+        background-color: var(--forest-color);
+        position: relative;
+      }
+
+      .forest::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: radial-gradient(
+            circle at 30% 30%,
+            rgba(255, 255, 255, 0.2) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 70% 70%,
+            rgba(255, 255, 255, 0.2) 0%,
+            transparent 50%
+          );
+        opacity: 0.7;
+      }
+
+      .pond {
+        background-color: var(--pond-color);
+        overflow: hidden;
+      }
+
+      .pond::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+            circle at 30% 30%,
+            rgba(255, 255, 255, 0.3),
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 70% 70%,
+            rgba(255, 255, 255, 0.3),
+            transparent 50%
+          );
+        animation: water-ripple 5s ease-in-out infinite alternate;
+      }
+
+      @keyframes water-ripple {
+        0% {
+          transform: scale(1);
+          opacity: 0.5;
+        }
+        100% {
+          transform: scale(1.2);
+          opacity: 0.3;
+        }
+      }
+
+      .mountain {
+        background-color: var(--mountain-color);
+        position: relative;
+      }
+
+      .mountain::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.3),
+          rgba(0, 0, 0, 0.05) 30%,
+          rgba(0, 0, 0, 0.1)
+        );
+      }
+
+      .highlight {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 4px;
+        z-index: 5;
+        pointer-events: none;
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: inset 0 0 0 2px rgba(255, 204, 0, 0.8),
+            inset 0 0 10px rgba(255, 204, 0, 0.3);
+        }
+        50% {
+          box-shadow: inset 0 0 0 2px rgba(255, 204, 0, 0.8),
+            inset 0 0 20px rgba(255, 204, 0, 0.5);
+        }
+        100% {
+          box-shadow: inset 0 0 0 2px rgba(255, 204, 0, 0.8),
+            inset 0 0 10px rgba(255, 204, 0, 0.3);
+        }
+      }
+
+      .character {
+        width: 75%;
+        height: 75%;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.8rem;
+        position: absolute;
+        z-index: 10;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      }
+
+      .wolf {
+        background: radial-gradient(
+          circle at 30% 30%,
+          var(--wolf-accent),
+          var(--wolf-primary) 70%
+        );
+        border: 3px solid white;
+      }
+
+      .rabbit {
+        background: radial-gradient(circle at 30% 30%, white, #f8f8f8 70%);
+        border: 3px solid var(--rabbit-accent);
+      }
+
+      .resource,
+      .trap,
+      .burrow {
+        position: absolute;
+        font-size: 1.4rem;
+        z-index: 5;
+        filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.2));
+        animation: float 3s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-5px);
+        }
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        width: 100%;
+        margin-bottom: 15px;
+      }
+
+      .control-btn {
+        padding: 14px 10px;
+        font-size: 1rem;
+        border: none;
+        border-radius: var(--border-radius-md);
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .control-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.15),
+          rgba(255, 255, 255, 0)
+        );
+        pointer-events: none;
+      }
+
+      .control-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .control-btn:active:not(:disabled) {
+        transform: translateY(1px);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .control-btn.active {
+        box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.1),
+          0 0 0 2px rgba(255, 255, 255, 0.3);
+      }
+
+      .control-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .wolf-btn {
+        background: linear-gradient(
+          to bottom,
+          var(--wolf-primary),
+          var(--wolf-secondary)
+        );
+      }
+
+      .rabbit-btn {
+        background: linear-gradient(
+          to bottom,
+          var(--rabbit-primary),
+          var(--rabbit-secondary)
+        );
+      }
+
+      .action-btn {
+        width: 100%;
+        padding: 16px;
+        font-size: 1.1rem;
+        background: linear-gradient(to right, #38d2a9, #38a169);
+        color: white;
+        border: none;
+        border-radius: var(--border-radius-md);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-md);
+        font-weight: 700;
+        margin-top: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .action-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.15),
+          rgba(255, 255, 255, 0)
+        );
+        pointer-events: none;
+      }
+
+      .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .action-btn:active {
+        transform: translateY(1px);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .btn-icon {
+        font-size: 1.4rem;
+        margin-bottom: 5px;
+        filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.1));
+      }
+
+      .panel {
+        background-color: rgba(0, 0, 0, 0.6);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        padding: 20px;
+        backdrop-filter: blur(8px);
+      }
+
+      .tutorial {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .tutorial-content {
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        background-color: var(--neutral-light);
+        padding: 30px;
+        border-radius: var(--border-radius-lg);
+        color: var(--neutral-dark);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+      }
+
+      .tutorial h2 {
+        margin-bottom: 25px;
+        text-align: center;
+        font-size: 1.8rem;
+        color: var(--neutral-dark);
+        position: relative;
+        padding-bottom: 15px;
+        background: linear-gradient(
+          45deg,
+          var(--wolf-primary),
+          var(--rabbit-primary)
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .tutorial h2::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 10%;
+        right: 10%;
+        height: 3px;
+        background: linear-gradient(
+          to right,
+          var(--wolf-accent),
+          var(--rabbit-accent)
+        );
+        border-radius: 2px;
+      }
+
+      .rule-section {
+        margin-bottom: 22px;
+        background-color: rgba(0, 0, 0, 0.03);
+        padding: 15px;
+        border-radius: var(--border-radius-md);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+
+      .rule-section h3 {
+        color: var(--neutral-dark);
+        margin-bottom: 12px;
+        font-size: 1.3rem;
+        display: flex;
+        align-items: center;
+      }
+
+      .rule-section h3::before {
+        content: "";
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: linear-gradient(
+          to right,
+          var(--wolf-primary),
+          var(--rabbit-primary)
+        );
+        border-radius: 50%;
+        margin-right: 10px;
+      }
+
+      .tutorial p {
+        margin-bottom: 10px;
+        line-height: 1.6;
+      }
+
+      .tutorial-buttons {
+        display: flex;
+        justify-content: center;
+        margin-top: 25px;
+      }
+
+      .tutorial button {
+        padding: 14px 30px;
+        background: linear-gradient(
+          to right,
+          var(--wolf-accent),
+          var(--rabbit-accent)
+        );
+        color: white;
+        border: none;
+        border-radius: 30px;
+        cursor: pointer;
+        font-size: 1.1rem;
+        font-weight: 700;
+        box-shadow: var(--shadow-md);
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .tutorial button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.15),
+          rgba(255, 255, 255, 0)
+        );
+        pointer-events: none;
+      }
+
+      .tutorial button:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .tutorial button:active {
+        transform: translateY(1px);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .game-over {
+        display: none;
+      }
+
+      .game-over-content {
+        background-color: var(--neutral-light);
+        padding: 35px;
+        border-radius: var(--border-radius-lg);
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        max-width: 400px;
+        border: 5px solid rgba(255, 255, 255, 0.8);
+      }
+
+      .game-over h2 {
+        margin-bottom: 20px;
+        font-size: 2.2rem;
+        background: linear-gradient(
+          45deg,
+          var(--wolf-primary),
+          var(--rabbit-primary)
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .game-over p {
+        margin-bottom: 30px;
+        font-size: 1.2rem;
+        color: var(--neutral-dark);
+        background-color: rgba(0, 0, 0, 0.03);
+        padding: 15px;
+        border-radius: var(--border-radius-md);
+      }
+
+      .game-over button {
+        padding: 16px 35px;
+        background: linear-gradient(
+          to right,
+          var(--wolf-accent),
+          var(--rabbit-accent)
+        );
+        color: white;
+        border: none;
+        border-radius: 30px;
+        cursor: pointer;
+        font-size: 1.2rem;
+        font-weight: 700;
+        box-shadow: var(--shadow-md);
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .game-over button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.15),
+          rgba(255, 255, 255, 0)
+        );
+        pointer-events: none;
+      }
+
+      .game-over button:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .game-over button:active {
+        transform: translateY(1px);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .help-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: linear-gradient(
+          to bottom right,
+          var(--wolf-accent),
+          var(--rabbit-accent)
+        );
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.4rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: var(--shadow-md);
+        z-index: 50;
+        border: none;
+        transition: all 0.2s ease;
+      }
+
+      .help-button:hover {
+        transform: translateY(-2px) rotate(10deg);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .help-button:active {
+        transform: translateY(1px);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .alert-message {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-size: 1.1rem;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        pointer-events: none;
+        backdrop-filter: blur(4px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .alert-message.show {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      /* 移動裝置優化 */
+      @media (max-height: 700px) {
+        .game-title {
+          font-size: 1.7rem;
+          margin: 10px 0;
+        }
+
+        .turn-indicator {
+          padding: 10px;
+          font-size: 1rem;
+          margin-bottom: 10px;
+        }
+
+        .controls {
+          gap: 8px;
+        }
+
+        .control-btn {
+          padding: 10px 5px;
+          font-size: 0.9rem;
+        }
+
+        .btn-icon {
+          font-size: 1.2rem;
+          margin-bottom: 3px;
+        }
+
+        .action-btn {
+          padding: 12px;
+          font-size: 1rem;
+        }
+
+        .player-status {
+          padding: 12px;
+        }
+
+        .status-item {
+          padding: 4px 8px;
+          font-size: 0.9rem;
+        }
+      }
+
+      /* 點擊漣漪效果 */
+      @keyframes ripple {
+        0% {
+          box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3);
+        }
+        100% {
+          box-shadow: 0 0 0 20px rgba(255, 255, 255, 0);
+        }
+      }
+
+      .cell:active::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        animation: ripple 0.6s linear;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="game-container">
+      <div class="game-header">
+        <h1 class="game-title">🐺 狼兔智鬥 🐰</h1>
+        <div class="help-button" id="helpButton">?</div>
+      </div>
+
+      <div class="turn-indicator turn-wolf" id="turnIndicator">
+        <span class="animal-icon">🐺</span> 輪到狼狼行動
+      </div>
+
+      <div class="status-panel">
+        <div class="player-status wolf-status">
+          <div class="status-header">
+            <span class="animal-icon">🐺</span>狼狼
+          </div>
+          <div class="status-item">
+            <span>⚡ 能量:</span>
+            <span id="wolfEnergy">3</span>
+          </div>
+          <div class="status-item">
+            <span>🍖 肉:</span>
+            <span id="wolfMeat">0 / 5</span>
+          </div>
+          <div class="status-item">
+            <span>⚡ 陷阱:</span>
+            <span id="wolfTraps">2</span>
+          </div>
+          <div class="status-item">
+            <span>👁️ 視野:</span>
+            <span id="wolfSight">2</span>
+          </div>
+        </div>
+        <div class="player-status rabbit-status">
+          <div class="status-header">
+            <span class="animal-icon">🐰</span>兔兔
+          </div>
+          <div class="status-item">
+            <span>⚡ 能量:</span>
+            <span id="rabbitEnergy">3</span>
+          </div>
+          <div class="status-item">
+            <span>🥕 胡蘿蔔:</span>
+            <span id="rabbitCarrots">0 / 8</span>
+          </div>
+          <div class="status-item">
+            <span>🔍 隱形:</span>
+            <span id="rabbitInvisible">3</span>
+          </div>
+          <div class="status-item">
+            <span>🕳️ 洞穴:</span>
+            <span id="rabbitBurrows">1</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-board-container">
+        <div class="game-board" id="gameBoard"></div>
+      </div>
+
+      <div class="controls">
+        <button class="control-btn wolf-btn" id="wolfMove">
+          <span class="btn-icon">🏃</span>
+          <span>移動</span>
+        </button>
+        <button class="control-btn rabbit-btn" id="rabbitMove">
+          <span class="btn-icon">🏃</span>
+          <span>移動</span>
+        </button>
+        <button class="control-btn wolf-btn" id="wolfTrap">
+          <span class="btn-icon">⚡</span>
+          <span>設置陷阱</span>
+        </button>
+        <button class="control-btn rabbit-btn" id="rabbitBurrow">
+          <span class="btn-icon">🕳️</span>
+          <span>挖掘洞穴</span>
+        </button>
+        <button class="control-btn wolf-btn" id="wolfSense">
+          <span class="btn-icon">👁️</span>
+          <span>增強視野</span>
+        </button>
+        <button class="control-btn rabbit-btn" id="rabbitInvisible">
+          <span class="btn-icon">🔍</span>
+          <span>隱形</span>
+        </button>
+      </div>
+      <button class="action-btn" id="endTurn">結束回合</button>
+    </div>
+
+    <div class="alert-message" id="alertMessage"></div>
+
+    <div class="panel tutorial" id="tutorial">
+      <div class="tutorial-content">
+        <h2>🐺 狼兔智鬥 - 遊戲規則 🐰</h2>
+
+        <div class="rule-section">
+          <h3>🎯 遊戲目標</h3>
+          <p><strong>狼狼：</strong>捕捉兔兔或收集5塊肉</p>
+          <p><strong>兔兔：</strong>收集8個胡蘿蔔或在20回合內不被捕捉</p>
+        </div>
+
+        <div class="rule-section">
+          <h3>⏱️ 回合制</h3>
+          <p>• 每回合雙方各有一次行動機會</p>
+          <p>• 每次行動消耗1點能量</p>
+          <p>• 回合結束後，雙方各恢復1點能量</p>
+        </div>
+
+        <div class="rule-section">
+          <h3>🐺 狼狼能力</h3>
+          <p>• <strong>移動：</strong>向相鄰格子移動，不能穿過山脈和水</p>
+          <p>
+            •
+            <strong>設置陷阱：</strong
+            >在相鄰格子放置陷阱，兔兔踩中將被定身一回合
+          </p>
+          <p>• <strong>增強視野：</strong>能看到更遠處和森林中的兔兔</p>
+        </div>
+
+        <div class="rule-section">
+          <h3>🐰 兔兔能力</h3>
+          <p>
+            • <strong>移動：</strong>向相鄰格子移動，可以穿過水，不能穿過山脈
+          </p>
+          <p>
+            •
+            <strong>挖掘洞穴：</strong
+            >創建可以在下一回合跳躍的通道（最多3格距離）
+          </p>
+          <p>• <strong>隱形：</strong>在一回合內不被狼狼看到</p>
+        </div>
+
+        <div class="rule-section">
+          <h3>🌲 地形效果</h3>
+          <p>• <strong>森林：</strong>兔兔可以隱藏，狼狼需要增強視野才能看到</p>
+          <p>• <strong>山脈：</strong>無法通過的障礙物</p>
+          <p>• <strong>池塘：</strong>兔兔可以通過，狼狼不行</p>
+        </div>
+
+        <div class="rule-section">
+          <h3>🎮 操作方式</h3>
+          <p>1. 點選行動按鈕選擇你要執行的動作</p>
+          <p>2. 點選棋盤上的格子來移動或使用能力</p>
+          <p>3. 完成行動後點選「結束回合」</p>
+        </div>
+
+        <div class="tutorial-buttons">
+          <button id="startGame">開始遊戲</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel game-over" id="gameOver">
+      <div class="game-over-content">
+        <h2 id="winnerText">遊戲結束</h2>
+        <p id="resultText">結果詳情</p>
+        <button id="restartGame">再玩一次</button>
+      </div>
+    </div>
+
+    <script>
+      // 遊戲狀態
+      const gameState = {
+        turn: "wolf", // 'wolf' 或 'rabbit'
+        round: 1,
+        maxRounds: 20,
+        activeAction: null,
+        wolfPosition: { x: 0, y: 0 },
+        rabbitPosition: { x: 7, y: 7 },
+        wolfEnergy: 3,
+        rabbitEnergy: 3,
+        wolfMeat: 0,
+        rabbitCarrots: 0,
+        wolfTraps: 2,
+        rabbitBurrows: 1,
+        wolfSight: 2,
+        rabbitInvisible: 3,
+        isRabbitInvisible: false,
+        traps: [],
+        burrows: [],
+        resources: [],
+        terrain: [],
+        rabbitTrapped: false,
+        wolfHasEnhancedVision: false,
+        validMoves: [],
+        isGameOver: false,
+      };
+
+      // 遊戲元素
+      const gameBoard = document.getElementById("gameBoard");
+      const turnIndicator = document.getElementById("turnIndicator");
+      const alertMessage = document.getElementById("alertMessage");
+
+      // 遊戲控制按鈕
+      const wolfMoveBtn = document.getElementById("wolfMove");
+      const rabbitMoveBtn = document.getElementById("rabbitMove");
+      const wolfTrapBtn = document.getElementById("wolfTrap");
+      const rabbitBurrowBtn = document.getElementById("rabbitBurrow");
+      const wolfSenseBtn = document.getElementById("wolfSense");
+      const rabbitInvisibleBtn = document.getElementById("rabbitInvisible");
+      const endTurnBtn = document.getElementById("endTurn");
+      const helpButton = document.getElementById("helpButton");
+
+      // 教學和遊戲結束元素
+      const tutorial = document.getElementById("tutorial");
+      const startGameBtn = document.getElementById("startGame");
+      const gameOver = document.getElementById("gameOver");
+      const winnerText = document.getElementById("winnerText");
+      const resultText = document.getElementById("resultText");
+      const restartGameBtn = document.getElementById("restartGame");
+
+      // 資源顯示元素
+      const wolfEnergyText = document.getElementById("wolfEnergy");
+      const rabbitEnergyText = document.getElementById("rabbitEnergy");
+      const wolfMeatText = document.getElementById("wolfMeat");
+      const rabbitCarrotsText = document.getElementById("rabbitCarrots");
+      const wolfTrapsText = document.getElementById("wolfTraps");
+      const rabbitBurrowsText = document.getElementById("rabbitBurrows");
+      const wolfSightText = document.getElementById("wolfSight");
+      const rabbitInvisibleText = document.getElementById("rabbitInvisible");
+
+      // 初始化遊戲板
+      function initializeGameBoard() {
+        gameBoard.innerHTML = "";
+
+        // 生成地形
+        gameState.terrain = generateTerrain();
+
+        // 生成資源
+        gameState.resources = generateResources();
+
+        // 創建遊戲格子
+        for (let y = 0; y < 8; y++) {
+          for (let x = 0; x < 8; x++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+
+            // 設置地形
+            const terrainType = gameState.terrain.find(
+              (t) => t.x === x && t.y === y
+            );
+            if (terrainType) {
+              cell.classList.add(terrainType.type);
+
+              if (terrainType.type === "mountain") {
+                cell.innerHTML = "⛰️";
+              } else if (terrainType.type === "forest") {
+                cell.innerHTML = "🌲";
+              } else if (terrainType.type === "pond") {
+                cell.innerHTML = "💧";
+              }
+            }
+
+            // 設置資源
+            const resource = gameState.resources.find(
+              (r) => r.x === x && r.y === y
+            );
+            if (resource) {
+              const resourceSpan = document.createElement("span");
+              resourceSpan.className = "resource";
+              if (resource.type === "carrot") {
+                resourceSpan.textContent = "🥕";
+              } else {
+                resourceSpan.textContent = "🍖";
+              }
+              cell.appendChild(resourceSpan);
+            }
+
+            cell.addEventListener("click", handleCellClick);
+            gameBoard.appendChild(cell);
+          }
+        }
+
+        // 放置角色
+        placeCharacters();
+        updateVisibility();
+      }
+
+      // 生成地形
+      function generateTerrain() {
+        const terrain = [];
+
+        // 生成一些障礙物
+        // 山脈 - 無法通過
+        terrain.push({ x: 3, y: 3, type: "mountain" });
+        terrain.push({ x: 3, y: 4, type: "mountain" });
+        terrain.push({ x: 4, y: 3, type: "mountain" });
+        terrain.push({ x: 6, y: 1, type: "mountain" });
+        terrain.push({ x: 1, y: 6, type: "mountain" });
+
+        // 森林 - 兔子可以隱藏
+        terrain.push({ x: 1, y: 1, type: "forest" });
+        terrain.push({ x: 1, y: 2, type: "forest" });
+        terrain.push({ x: 2, y: 1, type: "forest" });
+        terrain.push({ x: 2, y: 2, type: "forest" });
+        terrain.push({ x: 5, y: 5, type: "forest" });
+        terrain.push({ x: 5, y: 6, type: "forest" });
+        terrain.push({ x: 6, y: 5, type: "forest" });
+
+        // 池塘 - 兔子可以通過，狼不行
+        terrain.push({ x: 2, y: 5, type: "pond" });
+        terrain.push({ x: 3, y: 5, type: "pond" });
+        terrain.push({ x: 5, y: 2, type: "pond" });
+        terrain.push({ x: 5, y: 2, type: "pond" });
+
+        return terrain;
+      }
+
+      // 生成資源
+      function generateResources() {
+        const resources = [];
+
+        // 胡蘿蔔 - 兔子收集
+        resources.push({ x: 2, y: 3, type: "carrot" });
+        resources.push({ x: 4, y: 1, type: "carrot" });
+        resources.push({ x: 5, y: 4, type: "carrot" });
+        resources.push({ x: 6, y: 6, type: "carrot" });
+        resources.push({ x: 1, y: 4, type: "carrot" });
+        resources.push({ x: 3, y: 6, type: "carrot" });
+        resources.push({ x: 4, y: 5, type: "carrot" });
+        resources.push({ x: 7, y: 2, type: "carrot" });
+
+        // 肉 - 狼收集
+        resources.push({ x: 4, y: 2, type: "meat" });
+        resources.push({ x: 6, y: 3, type: "meat" });
+        resources.push({ x: 1, y: 5, type: "meat" });
+        resources.push({ x: 3, y: 1, type: "meat" });
+        resources.push({ x: 5, y: 3, type: "meat" });
+
+        return resources;
+      }
+
+      // 放置角色
+      function placeCharacters() {
+        // 清除之前的角色
+        const oldCharacters = document.querySelectorAll(".character");
+        oldCharacters.forEach((char) => char.remove());
+
+        // 放置狼
+        const wolfCell = document.querySelector(
+          `.cell[data-x="${gameState.wolfPosition.x}"][data-y="${gameState.wolfPosition.y}"]`
+        );
+        if (wolfCell) {
+          const wolf = document.createElement("div");
+          wolf.className = "character wolf";
+          wolf.textContent = "🐺";
+          wolfCell.appendChild(wolf);
+        }
+
+        // 放置兔子
+        const rabbitCell = document.querySelector(
+          `.cell[data-x="${gameState.rabbitPosition.x}"][data-y="${gameState.rabbitPosition.y}"]`
+        );
+        if (rabbitCell) {
+          const rabbit = document.createElement("div");
+          rabbit.className = "character rabbit";
+          rabbit.textContent = "🐰";
+          rabbitCell.appendChild(rabbit);
+        }
+      }
+
+      // 顯示提示訊息
+      function showAlert(message, duration = 2000) {
+        alertMessage.textContent = message;
+        alertMessage.classList.add("show");
+
+        setTimeout(() => {
+          alertMessage.classList.remove("show");
+        }, duration);
+      }
+
+      // 處理格子點擊
+      function handleCellClick(e) {
+        if (gameState.isGameOver) return;
+
+        const x = parseInt(e.currentTarget.dataset.x);
+        const y = parseInt(e.currentTarget.dataset.y);
+
+        // 如果沒有選擇動作，顯示提示
+        if (!gameState.activeAction) {
+          showAlert("請先選擇一個動作！");
+          return;
+        }
+
+        // 檢查是否是有效的移動
+        if (
+          gameState.validMoves.length > 0 &&
+          !gameState.validMoves.some((move) => move.x === x && move.y === y)
+        ) {
+          showAlert("不合法的移動！");
+          return;
+        }
+
+        if (gameState.activeAction === "wolfMove") {
+          moveWolf(x, y);
+        } else if (gameState.activeAction === "rabbitMove") {
+          moveRabbit(x, y);
+        } else if (gameState.activeAction === "wolfTrap") {
+          placeWolfTrap(x, y);
+        } else if (gameState.activeAction === "rabbitBurrow") {
+          placeRabbitBurrow(x, y);
+        }
+      }
+
+      // 清除所有高亮顯示
+      function clearHighlights() {
+        const highlights = document.querySelectorAll(".highlight");
+        highlights.forEach((highlight) => highlight.remove());
+      }
+
+      // 高亮顯示可移動的格子
+      function highlightValidMoves(moves) {
+        clearHighlights();
+        gameState.validMoves = moves;
+
+        moves.forEach((move) => {
+          const cell = document.querySelector(
+            `.cell[data-x="${move.x}"][data-y="${move.y}"]`
+          );
+          if (cell) {
+            const highlight = document.createElement("div");
+            highlight.className = "highlight";
+            cell.appendChild(highlight);
+          }
+        });
+      }
+
+      // 計算狼的有效移動位置
+      function calculateWolfValidMoves() {
+        const moves = [];
+        const { x, y } = gameState.wolfPosition;
+
+        // 檢查八個方向
+        const directions = [
+          { dx: -1, dy: -1 },
+          { dx: 0, dy: -1 },
+          { dx: 1, dy: -1 },
+          { dx: -1, dy: 0 },
+          { dx: 1, dy: 0 },
+          { dx: -1, dy: 1 },
+          { dx: 0, dy: 1 },
+          { dx: 1, dy: 1 },
+        ];
+
+        directions.forEach((dir) => {
+          const newX = x + dir.dx;
+          const newY = y + dir.dy;
+
+          if (isValidWolfMove(newX, newY)) {
+            moves.push({ x: newX, y: newY });
+          }
+        });
+
+        return moves;
+      }
+
+      // 計算兔子的有效移動位置
+      function calculateRabbitValidMoves() {
+        if (gameState.rabbitTrapped) {
+          return [];
+        }
+
+        const moves = [];
+        const { x, y } = gameState.rabbitPosition;
+
+        // 檢查是否在洞穴上（可以跳躍）
+        const isOnBurrow = gameState.burrows.some(
+          (b) => b.x === x && b.y === y
+        );
+
+        if (isOnBurrow) {
+          // 跳躍移動（3格範圍內）
+          for (
+            let newY = Math.max(0, y - 3);
+            newY <= Math.min(7, y + 3);
+            newY++
+          ) {
+            for (
+              let newX = Math.max(0, x - 3);
+              newX <= Math.min(7, x + 3);
+              newX++
+            ) {
+              if (isValidRabbitMove(newX, newY)) {
+                moves.push({ x: newX, y: newY });
+              }
+            }
+          }
+        } else {
+          // 普通移動（1格範圍）
+          const directions = [
+            { dx: -1, dy: -1 },
+            { dx: 0, dy: -1 },
+            { dx: 1, dy: -1 },
+            { dx: -1, dy: 0 },
+            { dx: 1, dy: 0 },
+            { dx: -1, dy: 1 },
+            { dx: 0, dy: 1 },
+            { dx: 1, dy: 1 },
+          ];
+
+          directions.forEach((dir) => {
+            const newX = x + dir.dx;
+            const newY = y + dir.dy;
+
+            if (isValidRabbitMove(newX, newY)) {
+              moves.push({ x: newX, y: newY });
+            }
+          });
+        }
+
+        return moves;
+      }
+
+      // 狼移動
+      function moveWolf(x, y) {
+        // 移除原先位置的狼
+        const oldWolfCell = document.querySelector(
+          `.cell[data-x="${gameState.wolfPosition.x}"][data-y="${gameState.wolfPosition.y}"]`
+        );
+        const wolf = oldWolfCell?.querySelector(".wolf");
+        if (wolf) {
+          oldWolfCell.removeChild(wolf);
+        }
+
+        // 更新狼的位置
+        gameState.wolfPosition = { x, y };
+
+        // 在新位置放置狼
+        const newWolfCell = document.querySelector(
+          `.cell[data-x="${x}"][data-y="${y}"]`
+        );
+        const newWolf = document.createElement("div");
+        newWolf.className = "character wolf";
+        newWolf.textContent = "🐺";
+        newWolfCell.appendChild(newWolf);
+
+        // 清除高亮
+        clearHighlights();
+
+        // 檢查是否捕捉到兔子
+        if (
+          x === gameState.rabbitPosition.x &&
+          y === gameState.rabbitPosition.y &&
+          !gameState.isRabbitInvisible
+        ) {
+          endGame("wolf", "狼狼成功捕捉到了兔兔！");
+          return;
+        }
+
+        // 檢查是否有資源
+        const resourceIndex = gameState.resources.findIndex(
+          (r) => r.x === x && r.y === y && r.type === "meat"
+        );
+        if (resourceIndex !== -1) {
+          gameState.wolfMeat++;
+          wolfMeatText.textContent = `${gameState.wolfMeat} / 5`;
+          gameState.resources.splice(resourceIndex, 1);
+
+          // 移除資源元素
+          const meatElement = newWolfCell.querySelector(".resource");
+          if (meatElement) {
+            newWolfCell.removeChild(meatElement);
+          }
+
+          showAlert("狼狼收集了一塊肉！", 1500);
+
+          // 檢查勝利條件
+          if (gameState.wolfMeat >= 5) {
+            endGame("wolf", "狼狼收集了足夠的肉！");
+            return;
+          }
+        }
+
+        // 重置動作
+        gameState.activeAction = null;
+        resetActionButtons();
+
+        // 更新能量
+        gameState.wolfEnergy--;
+        wolfEnergyText.textContent = gameState.wolfEnergy;
+
+        // 更新視野
+        updateVisibility();
+
+        // 檢查回合結束
+        checkTurnEnd();
+      }
+
+      // 兔子移動
+      function moveRabbit(x, y) {
+        // 移除原先位置的兔子
+        const oldRabbitCell = document.querySelector(
+          `.cell[data-x="${gameState.rabbitPosition.x}"][data-y="${gameState.rabbitPosition.y}"]`
+        );
+        const rabbit = oldRabbitCell?.querySelector(".rabbit");
+        if (rabbit) {
+          oldRabbitCell.removeChild(rabbit);
+        }
+
+        // 更新兔子的位置
+        gameState.rabbitPosition = { x, y };
+
+        // 在新位置放置兔子
+        const newRabbitCell = document.querySelector(
+          `.cell[data-x="${x}"][data-y="${y}"]`
+        );
+        const newRabbit = document.createElement("div");
+        newRabbit.className = "character rabbit";
+        newRabbit.textContent = "🐰";
+        newRabbitCell.appendChild(newRabbit);
+
+        // 清除高亮
+        clearHighlights();
+
+        // 檢查是否踩到陷阱
+        const trapIndex = gameState.traps.findIndex(
+          (t) => t.x === x && t.y === y
+        );
+        if (trapIndex !== -1) {
+          gameState.rabbitTrapped = true;
+          gameState.traps.splice(trapIndex, 1);
+          showAlert("兔兔踩到了陷阱，下一回合無法移動！", 2500);
+
+          // 移除陷阱元素
+          const trapElement = newRabbitCell.querySelector(".trap");
+          if (trapElement) {
+            newRabbitCell.removeChild(trapElement);
+          }
+        }
+
+        // 檢查是否有資源
+        const resourceIndex = gameState.resources.findIndex(
+          (r) => r.x === x && r.y === y && r.type === "carrot"
+        );
+        if (resourceIndex !== -1) {
+          gameState.rabbitCarrots++;
+          rabbitCarrotsText.textContent = `${gameState.rabbitCarrots} / 8`;
+          gameState.resources.splice(resourceIndex, 1);
+
+          // 移除資源元素
+          const carrotElement = newRabbitCell.querySelector(".resource");
+          if (carrotElement) {
+            newRabbitCell.removeChild(carrotElement);
+          }
+
+          showAlert("兔兔收集了一個胡蘿蔔！", 1500);
+
+          // 檢查勝利條件
+          if (gameState.rabbitCarrots >= 8) {
+            endGame("rabbit", "兔兔收集了足夠的胡蘿蔔！");
+            return;
+          }
+        }
+
+        // 檢查狼是否在同一位置
+        if (
+          x === gameState.wolfPosition.x &&
+          y === gameState.wolfPosition.y &&
+          !gameState.isRabbitInvisible
+        ) {
+          endGame("wolf", "狼狼捕捉到了兔兔！");
+          return;
+        }
+
+        // 重置動作
+        gameState.activeAction = null;
+        resetActionButtons();
+
+        // 更新能量
+        gameState.rabbitEnergy--;
+        rabbitEnergyText.textContent = gameState.rabbitEnergy;
+
+        // 更新視野
+        updateVisibility();
+
+        // 檢查回合結束
+        checkTurnEnd();
+      }
+
+      // 放置狼的陷阱
+      function placeWolfTrap(x, y) {
+        // 檢查是否有足夠的陷阱
+        if (gameState.wolfTraps <= 0) {
+          showAlert("沒有更多陷阱可用！");
+          return;
+        }
+
+        // 檢查位置是否合法
+        if (
+          !isAdjacentToWolf(x, y) ||
+          isTerrain(x, y, "mountain") ||
+          isTerrain(x, y, "pond")
+        ) {
+          showAlert("不能在這個位置放置陷阱！");
+          return;
+        }
+
+        // 檢查是否已經有陷阱
+        if (gameState.traps.some((t) => t.x === x && t.y === y)) {
+          showAlert("這個位置已經有陷阱！");
+          return;
+        }
+
+        // 放置陷阱
+        gameState.traps.push({ x, y });
+        gameState.wolfTraps--;
+        wolfTrapsText.textContent = gameState.wolfTraps;
+
+        // 顯示陷阱（只對狼可見）
+        const cell = document.querySelector(
+          `.cell[data-x="${x}"][data-y="${y}"]`
+        );
+        const trapElement = document.createElement("span");
+        trapElement.className = "trap";
+        trapElement.textContent = "⚡";
+        cell.appendChild(trapElement);
+
+        // 清除高亮
+        clearHighlights();
+
+        // 顯示提示
+        showAlert("狼狼設置了一個陷阱！");
+
+        // 重置動作
+        gameState.activeAction = null;
+        resetActionButtons();
+
+        // 更新能量
+        gameState.wolfEnergy--;
+        wolfEnergyText.textContent = gameState.wolfEnergy;
+
+        // 檢查回合結束
+        checkTurnEnd();
+      }
+
+      // 放置兔子的洞穴
+      function placeRabbitBurrow(x, y) {
+        // 檢查是否有足夠的洞穴
+        if (gameState.rabbitBurrows <= 0) {
+          showAlert("沒有更多洞穴可用！");
+          return;
+        }
+
+        // 檢查位置是否合法
+        if (!isAdjacentToRabbit(x, y) || isTerrain(x, y, "mountain")) {
+          showAlert("不能在這個位置挖洞穴！");
+          return;
+        }
+
+        // 檢查是否已經有洞穴
+        if (gameState.burrows.some((b) => b.x === x && b.y === y)) {
+          showAlert("這個位置已經有洞穴！");
+          return;
+        }
+
+        // 放置洞穴
+        gameState.burrows.push({ x, y });
+        gameState.rabbitBurrows--;
+        rabbitBurrowsText.textContent = gameState.rabbitBurrows;
+
+        // 顯示洞穴
+        const cell = document.querySelector(
+          `.cell[data-x="${x}"][data-y="${y}"]`
+        );
+        const burrowElement = document.createElement("span");
+        burrowElement.className = "burrow";
+        burrowElement.textContent = "🕳️";
+        cell.appendChild(burrowElement);
+
+        // 清除高亮
+        clearHighlights();
+
+        // 顯示提示
+        showAlert("兔兔挖了一個洞穴！");
+
+        // 重置動作
+        gameState.activeAction = null;
+        resetActionButtons();
+
+        // 更新能量
+        gameState.rabbitEnergy--;
+        rabbitEnergyText.textContent = gameState.rabbitEnergy;
+
+        // 檢查回合結束
+        checkTurnEnd();
+      }
+
+      // 兔子使用隱形能力
+      function useRabbitInvisible() {
+        // 檢查是否有足夠的隱形能力
+        if (gameState.rabbitInvisible <= 0) {
+          showAlert("沒有更多隱形能力可用！");
+          return;
+        }
+
+        // 啟用隱形
+        gameState.isRabbitInvisible = true;
+        gameState.rabbitInvisible--;
+        rabbitInvisibleText.textContent = gameState.rabbitInvisible;
+
+        // 更新兔子的外觀
+        const rabbitElement = document.querySelector(".rabbit");
+        if (rabbitElement) {
+          rabbitElement.style.opacity = "0.5";
+        }
+
+        // 顯示提示
+        showAlert("兔兔使用了隱形能力，狼狼在下一回合看不到兔兔！", 2500);
+
+        // 重置動作
+        gameState.activeAction = null;
+        resetActionButtons();
+
+        // 更新能量
+        gameState.rabbitEnergy--;
+        rabbitEnergyText.textContent = gameState.rabbitEnergy;
+
+        // 更新視野
+        updateVisibility();
+
+        // 檢查回合結束
+        checkTurnEnd();
+      }
+
+      // 狼使用增強視野能力
+      function useWolfSense() {
+        // 檢查是否有足夠的增強視野能力
+        if (gameState.wolfSight <= 0) {
+          showAlert("沒有更多增強視野能力可用！");
+          return;
+        }
+
+        // 啟用增強視野
+        gameState.wolfHasEnhancedVision = true;
+        gameState.wolfSight--;
+        wolfSightText.textContent = gameState.wolfSight;
+
+        // 更新視野，讓狼能看到更遠的兔子
+        updateVisibility();
+
+        // 顯示提示
+        showAlert("狼狼使用了增強視野能力，可以看到更遠的兔兔！", 2500);
+
+        // 重置動作
+        gameState.activeAction = null;
+        resetActionButtons();
+
+        // 更新能量
+        gameState.wolfEnergy--;
+        wolfEnergyText.textContent = gameState.wolfEnergy;
+
+        // 檢查回合結束
+        checkTurnEnd();
+      }
+
+      // 更新視野
+      function updateVisibility() {
+        // 更新兔子的可見性
+        const rabbitElement = document.querySelector(".rabbit");
+        if (!rabbitElement) return;
+
+        const isInForest = isTerrain(
+          gameState.rabbitPosition.x,
+          gameState.rabbitPosition.y,
+          "forest"
+        );
+        const distance = calculateDistance(
+          gameState.wolfPosition,
+          gameState.rabbitPosition
+        );
+
+        // 根據狼的視野範圍和兔子的隱形狀態決定可見性
+        if (gameState.isRabbitInvisible) {
+          rabbitElement.style.opacity = "0"; // 完全不可見
+        } else if (isInForest && !gameState.wolfHasEnhancedVision) {
+          rabbitElement.style.opacity = "0"; // 在森林中且狼沒有增強視野
+        } else if (distance > 3 && !gameState.wolfHasEnhancedVision) {
+          rabbitElement.style.opacity = "0"; // 超出普通視野範圍
+        } else {
+          rabbitElement.style.opacity = "1"; // 可見
+        }
+
+        // 更新陷阱的可見性 - 只對狼可見
+        const traps = document.querySelectorAll(".trap");
+        traps.forEach((trap) => {
+          trap.style.opacity = gameState.turn === "wolf" ? "1" : "0";
+        });
+      }
+
+      // 計算兩點之間的距離
+      function calculateDistance(pos1, pos2) {
+        return Math.max(Math.abs(pos1.x - pos2.x), Math.abs(pos1.y - pos2.y));
+      }
+
+      // 檢查位置是否是特定地形
+      function isTerrain(x, y, type) {
+        return gameState.terrain.some(
+          (t) => t.x === x && t.y === y && t.type === type
+        );
+      }
+
+      // 檢查位置是否在狼附近
+      function isAdjacentToWolf(x, y) {
+        return calculateDistance(gameState.wolfPosition, { x, y }) <= 1;
+      }
+
+      // 檢查位置是否在兔子附近
+      function isAdjacentToRabbit(x, y) {
+        return calculateDistance(gameState.rabbitPosition, { x, y }) <= 1;
+      }
+
+      // 檢查狼的移動是否合法
+      function isValidWolfMove(x, y) {
+        // 檢查是否超出邊界
+        if (x < 0 || x > 7 || y < 0 || y > 7) {
+          return false;
+        }
+
+        // 檢查是否是障礙物
+        if (isTerrain(x, y, "mountain") || isTerrain(x, y, "pond")) {
+          return false;
+        }
+
+        // 檢查移動距離
+        const distance = calculateDistance(gameState.wolfPosition, { x, y });
+        return distance <= 1;
+      }
+
+      // 檢查兔子的移動是否合法
+      function isValidRabbitMove(x, y) {
+        // 檢查是否超出邊界
+        if (x < 0 || x > 7 || y < 0 || y > 7) {
+          return false;
+        }
+
+        // 檢查是否是障礙物
+        if (isTerrain(x, y, "mountain")) {
+          return false;
+        }
+
+        // 檢查是否是狼的位置（除非使用洞穴）
+        if (x === gameState.wolfPosition.x && y === gameState.wolfPosition.y) {
+          return false;
+        }
+
+        // 檢查是否是兔子洞穴（可以跳躍）
+        const isUsingBurrow = gameState.burrows.some(
+          (b) =>
+            b.x === gameState.rabbitPosition.x &&
+            b.y === gameState.rabbitPosition.y
+        );
+
+        // 如果使用洞穴，允許較長距離移動
+        if (isUsingBurrow) {
+          return calculateDistance(gameState.rabbitPosition, { x, y }) <= 3;
+        }
+
+        // 一般移動距離
+        const distance = calculateDistance(gameState.rabbitPosition, { x, y });
+        return distance <= 1;
+      }
+
+      // 結束回合
+      function endTurn() {
+        // 清除高亮
+        clearHighlights();
+
+        if (gameState.turn === "wolf") {
+          gameState.turn = "rabbit";
+          turnIndicator.textContent = "🐰 輪到兔兔行動";
+          turnIndicator.classList.remove("turn-wolf");
+          turnIndicator.classList.add("turn-rabbit");
+        } else {
+          gameState.turn = "wolf";
+          turnIndicator.textContent = "🐺 輪到狼狼行動";
+          turnIndicator.classList.remove("turn-rabbit");
+          turnIndicator.classList.add("turn-wolf");
+
+          // 回合結束後，重設兔子的隱形狀態
+          gameState.isRabbitInvisible = false;
+
+          // 重設狼的增強視野狀態
+          gameState.wolfHasEnhancedVision = false;
+
+          // 重設兔子的陷阱狀態
+          gameState.rabbitTrapped = false;
+
+          // 回合數增加
+          gameState.round++;
+
+          // 檢查回合數限制
+          if (gameState.round > gameState.maxRounds) {
+            endGame("rabbit", "兔兔成功存活了20回合！");
+            return;
+          }
+
+          // 更新角色能量
+          gameState.wolfEnergy = Math.min(gameState.wolfEnergy + 1, 5);
+          gameState.rabbitEnergy = Math.min(gameState.rabbitEnergy + 1, 5);
+          wolfEnergyText.textContent = gameState.wolfEnergy;
+          rabbitEnergyText.textContent = gameState.rabbitEnergy;
+        }
+
+        // 重置動作
+        gameState.activeAction = null;
+        resetActionButtons();
+
+        // 更新視野
+        updateVisibility();
+
+        // 更新操作按鈕
+        updateActionButtons();
+      }
+
+      // 檢查回合是否結束
+      function checkTurnEnd() {
+        if (gameState.turn === "wolf" && gameState.wolfEnergy <= 0) {
+          setTimeout(() => {
+            showAlert("狼狼的能量用完了，回合結束！");
+            endTurn();
+          }, 1000);
+        } else if (gameState.turn === "rabbit" && gameState.rabbitEnergy <= 0) {
+          setTimeout(() => {
+            showAlert("兔兔的能量用完了，回合結束！");
+            endTurn();
+          }, 1000);
+        } else {
+          updateActionButtons();
+        }
+      }
+
+      // 更新操作按鈕
+      function updateActionButtons() {
+        // 重置所有按鈕
+        resetActionButtons();
+
+        // 根據當前回合啟用/禁用對應的按鈕
+        if (gameState.turn === "wolf") {
+          wolfMoveBtn.disabled = gameState.wolfEnergy <= 0;
+          wolfTrapBtn.disabled =
+            gameState.wolfTraps <= 0 || gameState.wolfEnergy <= 0;
+          wolfSenseBtn.disabled =
+            gameState.wolfSight <= 0 || gameState.wolfEnergy <= 0;
+
+          rabbitMoveBtn.disabled = true;
+          rabbitBurrowBtn.disabled = true;
+          rabbitInvisibleBtn.disabled = true;
+        } else {
+          rabbitMoveBtn.disabled =
+            gameState.rabbitTrapped || gameState.rabbitEnergy <= 0;
+          rabbitBurrowBtn.disabled =
+            gameState.rabbitBurrows <= 0 || gameState.rabbitEnergy <= 0;
+          rabbitInvisibleBtn.disabled =
+            gameState.rabbitInvisible <= 0 || gameState.rabbitEnergy <= 0;
+
+          wolfMoveBtn.disabled = true;
+          wolfTrapBtn.disabled = true;
+          wolfSenseBtn.disabled = true;
+        }
+      }
+
+      // 重置操作按鈕
+      function resetActionButtons() {
+        wolfMoveBtn.classList.remove("active");
+        rabbitMoveBtn.classList.remove("active");
+        wolfTrapBtn.classList.remove("active");
+        rabbitBurrowBtn.classList.remove("active");
+        wolfSenseBtn.classList.remove("active");
+        rabbitInvisibleBtn.classList.remove("active");
+      }
+
+      // 遊戲結束
+      function endGame(winner, message) {
+        gameState.isGameOver = true;
+        gameOver.style.display = "flex";
+
+        if (winner === "wolf") {
+          winnerText.textContent = "🐺 狼狼勝利！";
+        } else {
+          winnerText.textContent = "🐰 兔兔勝利！";
+        }
+
+        resultText.textContent = message;
+      }
+
+      // 重新開始遊戲
+      function restartGame() {
+        // 重設遊戲狀態
+        gameState.turn = "wolf";
+        gameState.round = 1;
+        gameState.activeAction = null;
+        gameState.wolfPosition = { x: 0, y: 0 };
+        gameState.rabbitPosition = { x: 7, y: 7 };
+        gameState.wolfEnergy = 3;
+        gameState.rabbitEnergy = 3;
+        gameState.wolfMeat = 0;
+        gameState.rabbitCarrots = 0;
+        gameState.wolfTraps = 2;
+        gameState.rabbitBurrows = 1;
+        gameState.wolfSight = 2;
+        gameState.rabbitInvisible = 3;
+        gameState.isRabbitInvisible = false;
+        gameState.traps = [];
+        gameState.burrows = [];
+        gameState.resources = [];
+        gameState.terrain = [];
+        gameState.rabbitTrapped = false;
+        gameState.wolfHasEnhancedVision = false;
+        gameState.validMoves = [];
+        gameState.isGameOver = false;
+
+        // 更新顯示
+        wolfEnergyText.textContent = gameState.wolfEnergy;
+        rabbitEnergyText.textContent = gameState.rabbitEnergy;
+        wolfMeatText.textContent = `${gameState.wolfMeat} / 5`;
+        rabbitCarrotsText.textContent = `${gameState.rabbitCarrots} / 8`;
+        wolfTrapsText.textContent = gameState.wolfTraps;
+        rabbitBurrowsText.textContent = gameState.rabbitBurrows;
+        wolfSightText.textContent = gameState.wolfSight;
+        rabbitInvisibleText.textContent = gameState.rabbitInvisible;
+
+        // 重置回合指示器
+        turnIndicator.textContent = "🐺 輪到狼狼行動";
+        turnIndicator.classList.remove("turn-rabbit");
+        turnIndicator.classList.add("turn-wolf");
+
+        // 重新初始化遊戲板
+        initializeGameBoard();
+
+        // 隱藏遊戲結束畫面
+        gameOver.style.display = "none";
+
+        // 更新按鈕狀態
+        updateActionButtons();
+      }
+
+      // 設置事件監聽器
+      wolfMoveBtn.addEventListener("click", () => {
+        if (gameState.wolfEnergy <= 0) return;
+
+        gameState.activeAction = "wolfMove";
+        resetActionButtons();
+        wolfMoveBtn.classList.add("active");
+
+        // 高亮顯示可移動的位置
+        highlightValidMoves(calculateWolfValidMoves());
+      });
+
+      rabbitMoveBtn.addEventListener("click", () => {
+        if (gameState.rabbitEnergy <= 0 || gameState.rabbitTrapped) return;
+
+        gameState.activeAction = "rabbitMove";
+        resetActionButtons();
+        rabbitMoveBtn.classList.add("active");
+
+        // 高亮顯示可移動的位置
+        highlightValidMoves(calculateRabbitValidMoves());
+      });
+
+      wolfTrapBtn.addEventListener("click", () => {
+        if (gameState.wolfTraps <= 0 || gameState.wolfEnergy <= 0) return;
+
+        gameState.activeAction = "wolfTrap";
+        resetActionButtons();
+        wolfTrapBtn.classList.add("active");
+
+        // 高亮顯示可放置陷阱的位置
+        const trapPositions = [];
+        const { x, y } = gameState.wolfPosition;
+
+        for (let ny = Math.max(0, y - 1); ny <= Math.min(7, y + 1); ny++) {
+          for (let nx = Math.max(0, x - 1); nx <= Math.min(7, x + 1); nx++) {
+            if (
+              !(nx === x && ny === y) &&
+              !isTerrain(nx, ny, "mountain") &&
+              !isTerrain(nx, ny, "pond") &&
+              !gameState.traps.some((t) => t.x === nx && t.y === ny)
+            ) {
+              trapPositions.push({ x: nx, y: ny });
+            }
+          }
+        }
+
+        highlightValidMoves(trapPositions);
+      });
+
+      rabbitBurrowBtn.addEventListener("click", () => {
+        if (gameState.rabbitBurrows <= 0 || gameState.rabbitEnergy <= 0) return;
+
+        gameState.activeAction = "rabbitBurrow";
+        resetActionButtons();
+        rabbitBurrowBtn.classList.add("active");
+
+        // 高亮顯示可挖掘洞穴的位置
+        const burrowPositions = [];
+        const { x, y } = gameState.rabbitPosition;
+
+        for (let ny = Math.max(0, y - 1); ny <= Math.min(7, y + 1); ny++) {
+          for (let nx = Math.max(0, x - 1); nx <= Math.min(7, x + 1); nx++) {
+            if (
+              !(nx === x && ny === y) &&
+              !isTerrain(nx, ny, "mountain") &&
+              !gameState.burrows.some((b) => b.x === nx && b.y === ny)
+            ) {
+              burrowPositions.push({ x: nx, y: ny });
+            }
+          }
+        }
+
+        highlightValidMoves(burrowPositions);
+      });
+
+      wolfSenseBtn.addEventListener("click", useWolfSense);
+
+      rabbitInvisibleBtn.addEventListener("click", useRabbitInvisible);
+
+      endTurnBtn.addEventListener("click", endTurn);
+
+      startGameBtn.addEventListener("click", () => {
+        tutorial.style.display = "none";
+        initializeGameBoard();
+        updateActionButtons();
+      });
+
+      helpButton.addEventListener("click", () => {
+        tutorial.style.display = "flex";
+      });
+
+      restartGameBtn.addEventListener("click", restartGame);
+
+      // 初始化遊戲
+      initializeGameBoard();
+      updateActionButtons();
+    </script>
+  </body>
+</html>
