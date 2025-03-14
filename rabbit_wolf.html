@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>狼與兔子益智遊戲</title>
+    <style>
+        :root {
+            --primary-color: #8B5A2B;
+            --secondary-color: #4E7942;
+            --accent-color: #F5DEB3;
+            --dark-accent: #553111;
+            --light-accent: #F8F0E3;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, var(--light-accent), var(--accent-color));
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .container {
+            width: 95%;
+            max-width: 900px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .game-title {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .game-subtitle {
+            text-align: center;
+            color: var(--secondary-color);
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        
+        .board-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 70%;
+            margin: 0 auto;
+            max-width: 600px;
+            max-height: 600px;
+        }
+        
+        .game-board {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px;
+            padding: 15px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%238B5A2B" opacity="0.2"/><path d="M0,0 L100,100 M100,0 L0,100" stroke="%234E7942" stroke-width="2" opacity="0.1"/></svg>');
+            border-radius: 10px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .cell {
+            background-color: var(--light-accent);
+            border-radius: 8px;
+            border: 3px solid var(--primary-color);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .cell:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        .cell.wolf {
+            background-color: #7c6855;
+        }
+        
+        .cell.rabbit {
+            background-color: #f0f0f0;
+        }
+        
+        .cell.selected {
+            border-color: #ff9900;
+            box-shadow: 0 0 15px #ff9900;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .cell.highlight {
+            border-color: #00cc66;
+            box-shadow: 0 0 15px rgba(0, 204, 102, 0.5);
+            animation: highlightPulse 1.5s infinite;
+        }
+        
+        .animal {
+            width: 80%;
+            height: 80%;
+            position: relative;
+            transition: all 0.5s ease;
+        }
+        
+        .wolf-icon, .rabbit-icon {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .wolf-icon {
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.5));
+        }
+        
+        .rabbit-icon {
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3));
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background: var(--primary-color);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+        }
+        
+        .btn-secondary {
+            background: var(--secondary-color);
+        }
+        
+        #level-display {
+            font-size: 1.2em;
+            color: var(--dark-accent);
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background-color: rgba(139, 90, 43, 0.1);
+            border-radius: 10px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-icon {
+            width: 30px;
+            height: 30px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        .wolf-count, .rabbit-count, .moves-count {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--dark-accent);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .modal-content {
+            background-color: var(--light-accent);
+            margin: auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            animation: slideDown 0.4s ease-in-out;
+            border: 5px solid var(--primary-color);
+        }
+        
+        .modal-title {
+            font-size: 2em;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .modal-message {
+            font-size: 1.2em;
+            color: var(--dark-accent);
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .modal-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            color: white;
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .modal-btn-primary {
+            background: var(--primary-color);
+        }
+        
+        .modal-btn-secondary {
+            background: var(--secondary-color);
+        }
+        
+        .rules-container {
+            margin-top: 20px;
+            background-color: rgba(245, 222, 179, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        
+        .rules-container.active {
+            max-height: 500px;
+        }
+        
+        .rules-title {
+            color: var(--primary-color);
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .rules-list {
+            list-style-type: none;
+            padding-left: 15px;
+        }
+        
+        .rules-list li {
+            margin-bottom: 8px;
+            position: relative;
+            padding-left: 20px;
+            color: var(--dark-accent);
+        }
+        
+        .rules-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--secondary-color);
+            font-size: 1.5em;
+            line-height: 0.8;
+        }
+        
+        /* Animations */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 5px rgba(255, 153, 0, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(255, 153, 0, 0.8); }
+            100% { box-shadow: 0 0 5px rgba(255, 153, 0, 0.5); }
+        }
+        
+        @keyframes highlightPulse {
+            0% { box-shadow: 0 0 5px rgba(0, 204, 102, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(0, 204, 102, 0.6); }
+            100% { box-shadow: 0 0 5px rgba(0, 204, 102, 0.3); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .decorated-corners::before,
+        .decorated-corners::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+        }
+        
+        .decorated-corners::before {
+            top: 0;
+            left: 0;
+            border-top: 5px solid var(--primary-color);
+            border-left: 5px solid var(--primary-color);
+            border-top-left-radius: 15px;
+        }
+        
+        .decorated-corners::after {
+            bottom: 0;
+            right: 0;
+            border-bottom: 5px solid var(--primary-color);
+            border-right: 5px solid var(--primary-color);
+            border-bottom-right-radius: 15px;
+        }
+        
+        .forest-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M30,70 L35,40 L40,70 Z" fill="%234E7942" opacity="0.2"/><path d="M60,80 L70,30 L80,80 Z" fill="%234E7942" opacity="0.2"/><path d="M10,75 L20,35 L30,75 Z" fill="%234E7942" opacity="0.2"/><path d="M80,65 L90,25 L100,65 Z" fill="%234E7942" opacity="0.2"/></svg>');
+            opacity: 0.1;
+            z-index: -1;
+        }
+        
+        .wolf-paw {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12,4c1.1,0,2-0.9,2-2s-0.9-2-2-2s-2,0.9-2,2S10.9,4,12,4z M18,2c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S19.1,2,18,2z M6,2C4.9,2,4,2.9,4,4s0.9,2,2,2s2-0.9,2-2S7.1,2,6,2z M12,10c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S13.1,10,12,10z M6,8c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S7.1,8,6,8z M18,8c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S19.1,8,18,8z M12,16c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S13.1,16,12,16z" fill="%237c6855" opacity="0.3"/></svg>');
+            opacity: 0;
+            z-index: -1;
+        }
+        
+        .rabbit-footprint {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="8" cy="4" r="4" fill="%23f0f0f0" opacity="0.3"/><circle cx="16" cy="4" r="4" fill="%23f0f0f0" opacity="0.3"/><circle cx="12" cy="16" r="8" fill="%23f0f0f0" opacity="0.3"/></svg>');
+            opacity: 0;
+            z-index: -1;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--primary-color);
+            opacity: 0;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                width: 98%;
+            }
+            
+            .game-title {
+                font-size: 1.8em;
+                margin-bottom: 10px;
+            }
+            
+            .game-subtitle {
+                font-size: 1em;
+                margin-bottom: 15px;
+            }
+            
+            .board-container {
+                padding-bottom: 90%;
+            }
+            
+            .game-board {
+                gap: 5px;
+                padding: 10px;
+            }
+            
+            .cell {
+                border-width: 2px;
+                border-radius: 5px;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+            
+            .status-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+            
+            .modal-title {
+                font-size: 1.5em;
+            }
+            
+            .modal-message {
+                font-size: 1em;
+            }
+            
+            .modal-btn {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="forest-background"></div>
+    
+    <div class="container decorated-corners">
+        <h1 class="game-title">狼與兔子</h1>
+        <h2 class="game-subtitle">智慧的捕獵遊戲</h2>
+        
+        <div class="status-container">
+            <div class="status-item">
+                <div class="status-icon" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M12,2c-5.5,0-10,4.5-10,10s4.5,10,10,10s10-4.5,10-10S17.5,2,12,2z M12,20c-4.4,0-8-3.6-8-8s3.6-8,8-8s8,3.6,8,8S16.4,20,12,20z M13,7h-2v6h5v-2h-3V7z\" fill=\"%237c6855\"/></svg>');"></div>
+                <span>步數: </span>
+                <span class="moves-count">0</span>
+            </div>
+            <div class="status-item">
+                <div class="status-icon" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M12,15c1.7,0,3-1.3,3-3s-1.3-3-3-3s-3,1.3-3,3S10.3,15,12,15z M12,10c1.1,0,2,0.9,2,2s-0.9,2-2,2s-2-0.9-2-2S10.9,10,12,10z M17,3c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S18.1,3,17,3z M12,1c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S13.1,1,12,1z M7,3c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S8.1,3,7,3z M18,8H6c-2.2,0-4,1.8-4,4v8c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2v-8C22,9.8,20.2,8,18,8z\" fill=\"%237c6855\"/></svg>');"></div>
+                <span>狼: </span>
+                <span class="wolf-count">0</span>
+            </div>
+            <div class="status-item">
+                <div class="status-icon" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M17,11c0.3,0,0.7,0,1,0.1V4H6v7.1c0.3-0.1,0.7-0.1,1-0.1c1.1,0,2.2,0.3,3,0.9c0.8-0.6,1.9-0.9,3-0.9S15.2,11.3,16,11.9C16.2,11.3,16.5,11,17,11z M20,13h-5v1h5V13z M20,16h-5v1h5V16z M20,19h-5v1h5V19z M10,15v8h4v-8h-1v5h-2v-5H10z M6,19v1h2.3c-0.2-0.3-0.3-0.6-0.3-1H6z M8,13H3v1h4.2c0.1-0.3,0.4-0.7,0.8-1z M6,16v1h1.5c0-0.3,0.1-0.7,0.3-1H6z\" fill=\"%23f0f0f0\"/></svg>');"></div>
+                <span>兔: </span>
+                <span class="rabbit-count">0</span>
+            </div>
+        </div>
+        
+        <div id="level-display">關卡 1</div>
+        
+        <div class="board-container">
+            <div class="game-board" id="game-board">
+                <!-- Board cells will be generated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" id="reset-btn">重置關卡</button>
+            <button class="btn btn-secondary" id="rules-btn">遊戲規則</button>
+            <button class="btn btn-primary" id="next-level-btn">下一關</button>
+        </div>
+        
+        <div class="rules-container" id="rules-container">
+            <h3 class="rules-title">遊戲規則</h3>
+            <ul class="rules-list">
+                <li>狼可以向四個方向移動（上下左右）。</li>
+                <li>兔子可以向八個方向移動（包括對角線）。</li>
+                <li>狼的目標是捕捉所有的兔子。</li>
+                <li>當狼移動到與兔子相同格子時，兔子被捕獲。</li>
+                <li>在每一關中，你需要使用最少步數來捕獲所有兔子。</li>
+                <li>每關的初始布局不同，難度逐漸提高。</li>
+                <li>點擊狼選擇它，然後點擊目標格子移動。</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div id="level-complete-modal" class="modal">
+        <div class="modal-content decorated-corners">
+            <h2 class="modal-title">關卡完成!</h2>
+            <p class="modal-message">恭喜！你用了 <span id="level-moves"></span> 步完成了這一關。</p>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-secondary" id="restart-level-btn">重玩此關</button>
+                <button class="modal-btn modal-btn-primary" id="next-level-modal-btn">下一關</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="game-complete-modal" class="modal">
+        <div class="modal-content decorated-corners">
+            <h2 class="modal-title">遊戲通關!</h2>
+            <p class="modal-message">太棒了！你完成了所有關卡！<br>總共用了 <span id="total-moves"></span> 步。</p>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" id="restart-game-btn">重新開始遊戲</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Game elements
+            const gameBoard = document.getElementById('game-board');
+            const resetBtn = document.getElementById('reset-btn');
+            const nextLevelBtn = document.getElementById('next-level-btn');
+            const rulesBtn = document.getElementById('rules-btn');
+            const rulesContainer = document.getElementById('rules-container');
+            const levelDisplay = document.getElementById('level-display');
+            const movesCountDisplay = document.querySelector('.moves-count');
+            const wolfCountDisplay = document.querySelector('.wolf-count');
+            const rabbitCountDisplay = document.querySelector('.rabbit-count');
+            
+            // Modal elements
+            const levelCompleteModal = document.getElementById('level-complete-modal');
+            const gameCompleteModal = document.getElementById('game-complete-modal');
+            const levelMovesDisplay = document.getElementById('level-moves');
+            const totalMovesDisplay = document.getElementById('total-moves');
+            const restartLevelBtn = document.getElementById('restart-level-btn');
+            const nextLevelModalBtn = document.getElementById('next-level-modal-btn');
+            const restartGameBtn = document.getElementById('restart-game-btn');
+            
+            // Game state
+            let currentLevel = 1;
+            let selectedCell = null;
+            let movesCount = 0;
+            let totalMoves = 0;
+            let wolves = [];
+            let rabbits = [];
+            let gameLevels = [
+                // Level 1
+                {
+                    wolves: [{row: 0, col: 0}],
+                    rabbits: [{row: 4, col: 4}]
+                },
+                // Level 2
+                {
+                    wolves: [{row: 0, col: 0}],
+                    rabbits: [{row: 4, col: 4}, {row: 4, col: 0}]
+                },
+                // Level 3
+                {
+                    wolves: [{row: 0, col: 0}, {row: 0, col: 4}],
+                    rabbits: [{row: 4, col: 2}, {row: 2, col: 4}]
+                },
+                // Level 4
+                {
+                    wolves: [{row: 2, col: 2}],
+                    rabbits: [{row: 0, col: 0}, {row: 0, col: 4}, {row: 4, col: 0}, {row: 4, col: 4}]
+                },
+                // Level 5
+                {
+                    wolves: [{row: 0, col: 0}, {row: 0, col: 4}],
+                    rabbits: [{row: 4, col: 0}, {row: 4, col: 4}, {row: 2, col: 2}]
+                }
+            ];
+            
+            // SVG icons for wolf and rabbit
+            const wolfSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="wolf-icon"><path d="M12,2c-5.5,0-10,4.5-10,10s4.5,10,10,10s10-4.5,10-10S17.5,2,12,2z M17.5,13.5l-1.8,0.8l1.5,3c0.1,0.3,0,0.6-0.2,0.8c-0.2,0.2-0.5,0.2-0.8,0.1l-3.5-1.5c-0.4-0.2-0.9-0.1-1.2,0.3l-1.8,2.2c-0.2,0.2-0.5,0.3-0.7c-0.2-0.2-0.3-0.5-0.2-0.8l0.6-2.4c0.1-0.3,0-0.7-0.3-0.9l-2.3-1.5c-0.3-0.2-0.4-0.5-0.3-0.8c0.1-0.3,0.4-0.5,0.7-0.5l2.5,0c0.3,0,0.6-0.2,0.7-0.5l0.7-2.4c0.1-0.3,0.4-0.5,0.7-0.5c0.3,0,0.6,0.2,0.7,0.5l0.7,2.4c0.1,0.3,0.4,0.5,0.7,0.5l2.5,0c0.3,0,0.6,0.2,0.7,0.5c0.1,0.3,0,0.6-0.3,0.8l-2.3,1.5c-0.3,0.2-0.4,0.5-0.3,0.9l0.9,2.2C18.1,13,17.9,13.3,17.5,13.5z" fill="white"/><circle cx="9" cy="9" r="1" fill="#333"/><circle cx="15" cy="9" r="1" fill="#333"/><path d="M9,13c0,1.7,1.3,3,3,3s3-1.3,3-3H9z" fill="#333"/></svg>`;
+            
+            const rabbitSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="rabbit-icon"><path d="M12,3c-4.2,0-7.9,2.1-10,5.4l3.6,3.6h1.8v1.8l3.6,3.6C14.9,14.9,17,11.2,17,7h-3.6V3.6L12,3z M15,7c0,1.7-1.3,3-3,3S9,8.7,9,7s1.3-3,3-3S15,5.3,15,7z M7,17c0,1.1,0.9,2,2,2s2-0.9,2-2v-2H7V17z M4,10c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S5.1,10,4,10z" fill="white"/><circle cx="12" cy="7" r="1" fill="#333"/><circle cx="10" cy="6" r="0.5" fill="#FFCCCC"/><path d="M11,9c0,0.6,0.4,1,1,1s1-0.4,1-1H11z" fill="#333"/></svg>`;
+            
+            // Initialize the game
+            function initGame() {
+                currentLevel = 1;
+                totalMoves = 0;
+                loadLevel(currentLevel);
+                updateUI();
+            }
+            
+            // Load a specific level
+            function loadLevel(level) {
+                // Reset game state
+                selectedCell = null;
+                movesCount = 0;
+                wolves = [];
+                rabbits = [];
+                
+                // Clear the board
+                gameBoard.innerHTML = '';
+                
+                // Create the grid cells
+                for (let row = 0; row < 5; row++) {
+                    for (let col = 0; col < 5; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        
+                        // Add click event listener
+                        cell.addEventListener('click', () => handleCellClick(cell, row, col));
+                        
+                        gameBoard.appendChild(cell);
+                    }
+                }
+                
+                // Place wolves and rabbits based on level configuration
+                const levelConfig = gameLevels[level - 1];
+                
+                // Place wolves
+                levelConfig.wolves.forEach(wolf => {
+                    const wolfObj = {
+                        row: wolf.row,
+                        col: wolf.col
+                    };
+                    wolves.push(wolfObj);
+                    
+                    const cell = getCellAt(wolf.row, wolf.col);
+                    cell.classList.add('wolf');
+                    const animalDiv = document.createElement('div');
+                    animalDiv.className = 'animal';
+                    animalDiv.innerHTML = wolfSVG;
+                    cell.appendChild(animalDiv);
+                });
+                
+                // Place rabbits
+                levelConfig.rabbits.forEach(rabbit => {
+                    const rabbitObj = {
+                        row: rabbit.row,
+                        col: rabbit.col
+                    };
+                    rabbits.push(rabbitObj);
+                    
+                    const cell = getCellAt(rabbit.row, rabbit.col);
+                    cell.classList.add('rabbit');
+                    const animalDiv = document.createElement('div');
+                    animalDiv.className = 'animal';
+                    animalDiv.innerHTML = rabbitSVG;
+                    cell.appendChild(animalDiv);
+                });
+                
+                // Update UI
+                updateUI();
+            }
+            
+            // Get cell element at specific row and column
+            function getCellAt(row, col) {
+                return document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            }
+            
+            // Handle cell click
+            function handleCellClick(cell, row, col) {
+                // Check if clicked on a wolf
+                const isWolf = isWolfAt(row, col);
+                const isValidMove = selectedCell && isValidMoveFor(selectedCell, row, col);
+                
+                // Clear previous selection and highlights
+                clearSelectionAndHighlights();
+                
+                if (isWolf) {
+                    // Select the wolf
+                    selectedCell = {
+                        element: cell,
+                        row: row,
+                        col: col,
+                        type: 'wolf'
+                    };
+                    cell.classList.add('selected');
+                    
+                    // Highlight valid moves
+                    highlightValidMoves(row, col, 'wolf');
+                } else if (isValidMove) {
+                    // Move wolf to the new position
+                    moveAnimal(selectedCell, row, col);
+                    selectedCell = null;
+                    
+                    // Update moves count
+                    movesCount++;
+                    totalMoves++;
+                    updateUI();
+                    
+                    // Check if level is complete
+                    if (rabbits.length === 0) {
+                        // Show level complete modal
+                        setTimeout(() => {
+                            showLevelComplete();
+                        }, 500);
+                    }
+                }
+            }
+            
+            // Check if there is a wolf at the specified position
+            function isWolfAt(row, col) {
+                return wolves.some(wolf => wolf.row === row && wolf.col === col);
+            }
+            
+            // Check if there is a rabbit at the specified position
+            function isRabbitAt(row, col) {
+                return rabbits.some(rabbit => rabbit.row === row && rabbit.col === col);
+            }
+            
+            // Check if the move is valid for the selected animal
+            function isValidMoveFor(selected, targetRow, targetCol) {
+                if (selected.type === 'wolf') {
+                    // Wolves can move horizontally or vertically
+                    const rowDiff = Math.abs(targetRow - selected.row);
+                    const colDiff = Math.abs(targetCol - selected.col);
+                    
+                    // Cannot move to a position where there is already a wolf
+                    if (isWolfAt(targetRow, targetCol)) {
+                        return false;
+                    }
+                    
+                    // Can move 1 step horizontally or vertically (not diagonally)
+                    return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+                }
+                
+                return false;
+            }
+            
+            // Highlight valid moves for the selected animal
+            function highlightValidMoves(row, col, type) {
+                if (type === 'wolf') {
+                    // Highlight cells where the wolf can move
+                    const directions = [
+                        { row: -1, col: 0 }, // Up
+                        { row: 1, col: 0 },  // Down
+                        { row: 0, col: -1 }, // Left
+                        { row: 0, col: 1 }   // Right
+                    ];
+                    
+                    directions.forEach(dir => {
+                        const newRow = row + dir.row;
+                        const newCol = col + dir.col;
+                        
+                        // Check if the new position is within the board and not occupied by another wolf
+                        if (isValidPosition(newRow, newCol) && !isWolfAt(newRow, newCol)) {
+                            const cell = getCellAt(newRow, newCol);
+                            cell.classList.add('highlight');
+                        }
+                    });
+                }
+            }
+            
+            // Check if a position is valid (within the board)
+            function isValidPosition(row, col) {
+                return row >= 0 && row < 5 && col >= 0 && col < 5;
+            }
+            
+            // Clear selection and highlights
+            function clearSelectionAndHighlights() {
+                // Clear selected cell
+                const selectedElements = document.querySelectorAll('.cell.selected');
+                selectedElements.forEach(element => {
+                    element.classList.remove('selected');
+                });
+                
+                // Clear highlighted cells
+                const highlightedElements = document.querySelectorAll('.cell.highlight');
+                highlightedElements.forEach(element => {
+                    element.classList.remove('highlight');
+                });
+            }
+            
+            // Move animal from one position to another
+            function moveAnimal(selected, targetRow, targetCol) {
+                if (selected.type === 'wolf') {
+                    // Find the wolf in the array
+                    const wolfIndex = wolves.findIndex(wolf => wolf.row === selected.row && wolf.col === selected.col);
+                    if (wolfIndex !== -1) {
+                        // Update wolf position
+                        wolves[wolfIndex].row = targetRow;
+                        wolves[wolfIndex].col = targetCol;
+                        
+                        // Check if there is a rabbit at the target position
+                        const rabbitIndex = rabbits.findIndex(rabbit => rabbit.row === targetRow && rabbit.col === targetCol);
+                        if (rabbitIndex !== -1) {
+                            // Remove the rabbit
+                            rabbits.splice(rabbitIndex, 1);
+                            
+                            // Create capture animation
+                            createCaptureEffect(targetRow, targetCol);
+                        }
+                        
+                        // Animate the move
+                        animateMove(selected.row, selected.col, targetRow, targetCol);
+                    }
+                }
+            }
+            
+            // Animate moving from one cell to another
+            function animateMove(fromRow, fromCol, toRow, toCol) {
+                const fromCell = getCellAt(fromRow, fromCol);
+                const toCell = getCellAt(toRow, toCol);
+                
+                // Get the animal element from the source cell
+                const animalElement = fromCell.querySelector('.animal');
+                if (!animalElement) return;
+                
+                // Create a clone of the animal element for animation
+                const animalClone = animalElement.cloneNode(true);
+                document.body.appendChild(animalClone);
+                
+                // Get positions for animation
+                const fromRect = fromCell.getBoundingClientRect();
+                const toRect = toCell.getBoundingClientRect();
+                
+                // Position the clone at the starting position
+                animalClone.style.position = 'fixed';
+                animalClone.style.top = fromRect.top + 'px';
+                animalClone.style.left = fromRect.left + 'px';
+                animalClone.style.width = fromRect.width + 'px';
+                animalClone.style.height = fromRect.height + 'px';
+                animalClone.style.zIndex = '100';
+                animalClone.style.transition = 'all 0.3s ease-in-out';
+                
+                // Leave a footprint at the starting position
+                createFootprint(fromRow, fromCol, fromCell.classList.contains('wolf') ? 'wolf' : 'rabbit');
+                
+                // Start the animation after a small delay
+                setTimeout(() => {
+                    animalClone.style.top = toRect.top + 'px';
+                    animalClone.style.left = toRect.left + 'px';
+                    
+                    // Remove the animal from the source cell
+                    fromCell.innerHTML = '';
+                    fromCell.classList.remove('wolf', 'rabbit');
+                    
+                    // Update the target cell after animation completes
+                    setTimeout(() => {
+                        // Remove the clone
+                        animalClone.remove();
+                        
+                        // Update the target cell
+                        toCell.innerHTML = '';
+                        toCell.classList.add('wolf');
+                        const newAnimalDiv = document.createElement('div');
+                        newAnimalDiv.className = 'animal';
+                        newAnimalDiv.innerHTML = wolfSVG;
+                        toCell.appendChild(newAnimalDiv);
+                        
+                        // Create footprint at the target position
+                        createFootprint(toRow, toCol, 'wolf');
+                    }, 300);
+                }, 50);
+            }
+            
+            // Create footprint effect
+            function createFootprint(row, col, type) {
+                const cell = getCellAt(row, col);
+                const cellRect = cell.getBoundingClientRect();
+                
+                // Create multiple footprints
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        const footprint = document.createElement('div');
+                        footprint.className = type === 'wolf' ? 'wolf-paw' : 'rabbit-footprint';
+                        footprint.style.top = (cellRect.top + Math.random() * cellRect.height) + 'px';
+                        footprint.style.left = (cellRect.left + Math.random() * cellRect.width) + 'px';
+                        document.body.appendChild(footprint);
+                        
+                        // Animate the footprint
+                        setTimeout(() => {
+                            footprint.style.opacity = '0.7';
+                            
+                            // Remove after fading
+                            setTimeout(() => {
+                                footprint.style.opacity = '0';
+                                setTimeout(() => {
+                                    footprint.remove();
+                                }, 500);
+                            }, 500);
+                        }, 50);
+                    }, i * 200);
+                }
+            }
+            
+            // Create capture effect when a wolf catches a rabbit
+            function createCaptureEffect(row, col) {
+                const cell = getCellAt(row, col);
+                const cellRect = cell.getBoundingClientRect();
+                
+                // Create confetti effect
+                for (let i = 0; i < 30; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    
+                    // Random position within the cell
+                    confetti.style.top = (cellRect.top + Math.random() * cellRect.height) + 'px';
+                    confetti.style.left = (cellRect.left + Math.random() * cellRect.width) + 'px';
+                    
+                    // Random color
+                    const colors = ['#F5DEB3', '#8B5A2B', '#4E7942', '#FFD700', '#FFA500'];
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // Random rotation
+                    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    
+                    // Add to body
+                    document.body.appendChild(confetti);
+                    
+                    // Animate
+                    setTimeout(() => {
+                        confetti.style.opacity = '1';
+                        confetti.style.transform = `translate(${-50 + Math.random() * 100}px, ${-100 - Math.random() * 100}px) rotate(${Math.random() * 360}deg)`;
+                        confetti.style.transition = 'all 1s ease-out';
+                        
+                        // Remove after animation
+                        setTimeout(() => {
+                            confetti.remove();
+                        }, 1000);
+                    }, 10);
+                }
+            }
+            
+            // Update UI elements
+            function updateUI() {
+                levelDisplay.textContent = `關卡 ${currentLevel}`;
+                movesCountDisplay.textContent = movesCount;
+                wolfCountDisplay.textContent = wolves.length;
+                rabbitCountDisplay.textContent = rabbits.length;
+                
+                // Enable/disable next level button
+                nextLevelBtn.disabled = currentLevel >= gameLevels.length;
+            }
+            
+            // Show level complete modal
+            function showLevelComplete() {
+                levelMovesDisplay.textContent = movesCount;
+                levelCompleteModal.style.display = 'flex';
+                
+                // Check if this is the last level
+                if (currentLevel >= gameLevels.length) {
+                    nextLevelModalBtn.style.display = 'none';
+                } else {
+                    nextLevelModalBtn.style.display = 'inline-block';
+                }
+            }
+            
+            // Show game complete modal
+            function showGameComplete() {
+                totalMovesDisplay.textContent = totalMoves;
+                gameCompleteModal.style.display = 'flex';
+            }
+            
+            // Hide modal
+            function hideModals() {
+                levelCompleteModal.style.display = 'none';
+                gameCompleteModal.style.display = 'none';
+            }
+            
+            // Event Listeners
+            resetBtn.addEventListener('click', () => {
+                loadLevel(currentLevel);
+            });
+            
+            nextLevelBtn.addEventListener('click', () => {
+                if (currentLevel < gameLevels.length) {
+                    currentLevel++;
+                    loadLevel(currentLevel);
+                }
+            });
+            
+            rulesBtn.addEventListener('click', () => {
+                rulesContainer.classList.toggle('active');
+            });
+            
+            restartLevelBtn.addEventListener('click', () => {
+                hideModals();
+                loadLevel(currentLevel);
+            });
+            
+            nextLevelModalBtn.addEventListener('click', () => {
+                hideModals();
+                if (currentLevel < gameLevels.length) {
+                    currentLevel++;
+                    loadLevel(currentLevel);
+                } else {
+                    showGameComplete();
+                }
+            });
+            
+            restartGameBtn.addEventListener('click', () => {
+                hideModals();
+                initGame();
+            });
+            
+            // Initialize the game
+            initGame();
+            
+            // Create background animations
+            function createBackgroundAnimations() {
+                const container = document.querySelector('.container');
+                const containerRect = container.getBoundingClientRect();
+                
+                // Create some decorative elements
+                for (let i = 0; i < 10; i++) {
+                    setTimeout(() => {
+                        const wolfPaw = document.createElement('div');
+                        wolfPaw.className = 'wolf-paw';
+                        wolfPaw.style.top = (Math.random() * window.innerHeight) + 'px';
+                        wolfPaw.style.left = (Math.random() * window.innerWidth) + 'px';
+                        document.body.appendChild(wolfPaw);
+                        
+                        // Animate the paw print
+                        setTimeout(() => {
+                            wolfPaw.style.opacity = '0.3';
+                            wolfPaw.style.transform = 'scale(1.5)';
+                            wolfPaw.style.transition = 'all 2s ease-in-out';
+                            
+                            // Fade out
+                            setTimeout(() => {
+                                wolfPaw.style.opacity = '0';
+                                setTimeout(() => {
+                                    wolfPaw.remove();
+                                }, 2000);
+                            }, 3000);
+                        }, 100);
+                    }, i * 5000);
+                }
+                
+                // Create rabbit footprints as well
+                for (let i = 0; i < 10; i++) {
+                    setTimeout(() => {
+                        const rabbitFootprint = document.createElement('div');
+                        rabbitFootprint.className = 'rabbit-footprint';
+                        rabbitFootprint.style.top = (Math.random() * window.innerHeight) + 'px';
+                        rabbitFootprint.style.left = (Math.random() * window.innerWidth) + 'px';
+                        document.body.appendChild(rabbitFootprint);
+                        
+                        // Animate the footprint
+                        setTimeout(() => {
+                            rabbitFootprint.style.opacity = '0.3';
+                            rabbitFootprint.style.transform = 'scale(1.5)';
+                            rabbitFootprint.style.transition = 'all 2s ease-in-out';
+                            
+                            // Fade out
+                            setTimeout(() => {
+                                rabbitFootprint.style.opacity = '0';
+                                setTimeout(() => {
+                                    rabbitFootprint.remove();
+                                }, 2000);
+                            }, 3000);
+                        }, 100);
+                    }, i * 7000);
+                }
+            }
+            
+            // Start background animations
+            createBackgroundAnimations();
+        });
+    </script>
+</body>
+</html>
