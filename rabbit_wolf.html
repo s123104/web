@@ -3,1127 +3,999 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>狼與兔子益智遊戲</title>
+    <title>狼兔智鬥 - 策略對戰遊戲</title>
     <style>
-        :root {
-            --primary-color: #8B5A2B;
-            --secondary-color: #4E7942;
-            --accent-color: #F5DEB3;
-            --dark-accent: #553111;
-            --light-accent: #F8F0E3;
-        }
-        
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            font-family: 'Microsoft JhengHei', sans-serif;
         }
         
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, var(--light-accent), var(--accent-color));
-            min-height: 100vh;
+            background-color: #f0f0f0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-        
-        .container {
-            width: 95%;
-            max-width: 900px;
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            padding: 30px;
-            position: relative;
-            overflow: hidden;
-            z-index: 1;
+            height: 100vh;
+            touch-action: manipulation;
         }
         
         .game-title {
+            margin: 10px 0;
+            color: #333;
             text-align: center;
-            color: var(--primary-color);
-            margin-bottom: 20px;
-            font-size: 2.5em;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
         }
         
-        .game-subtitle {
-            text-align: center;
-            color: var(--secondary-color);
-            margin-bottom: 30px;
-            font-size: 1.2em;
-        }
-        
-        .board-container {
-            position: relative;
+        .game-container {
             width: 100%;
-            padding-bottom: 70%;
-            margin: 0 auto;
-            max-width: 600px;
-            max-height: 600px;
+            max-width: 500px;
+            height: 60vh;
+            display: flex;
+            flex-direction: column;
+            perspective: 1000px;
+            position: relative;
         }
         
         .game-board {
-            position: absolute;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
             width: 100%;
             height: 100%;
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            grid-template-rows: repeat(5, 1fr);
-            gap: 8px;
-            padding: 15px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%238B5A2B" opacity="0.2"/><path d="M0,0 L100,100 M100,0 L0,100" stroke="%234E7942" stroke-width="2" opacity="0.1"/></svg>');
-            border-radius: 10px;
-            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        .cell {
-            background-color: var(--light-accent);
-            border-radius: 8px;
-            border: 3px solid var(--primary-color);
-            position: relative;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        
-        .cell:hover {
-            transform: translateY(-5px);
+            background-color: #d3c091;
+            border: 3px solid #8b4513;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
         }
         
-        .cell.wolf {
-            background-color: #7c6855;
+        .cell {
+            border: 1px solid #8b4513;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            position: relative;
         }
         
-        .cell.rabbit {
-            background-color: #f0f0f0;
+        .forest {
+            background-color: #2f5233;
         }
         
-        .cell.selected {
-            border-color: #ff9900;
-            box-shadow: 0 0 15px #ff9900;
-            animation: pulse 1.5s infinite;
+        .pond {
+            background-color: #3498db;
         }
         
-        .cell.highlight {
-            border-color: #00cc66;
-            box-shadow: 0 0 15px rgba(0, 204, 102, 0.5);
-            animation: highlightPulse 1.5s infinite;
+        .mountain {
+            background-color: #7f8c8d;
         }
         
-        .animal {
+        .carrot {
+            color: #e67e22;
+            font-size: 20px;
+        }
+        
+        .meat {
+            color: #c0392b;
+            font-size: 20px;
+        }
+        
+        .trap {
+            color: #9b59b6;
+            font-size: 18px;
+        }
+        
+        .wolf {
+            position: absolute;
             width: 80%;
             height: 80%;
-            position: relative;
-            transition: all 0.5s ease;
+            background-color: #333;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
         }
         
-        .wolf-icon, .rabbit-icon {
-            width: 100%;
-            height: 100%;
+        .rabbit {
             position: absolute;
-            top: 0;
-            left: 0;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.5));
+            width: 80%;
+            height: 80%;
+            background-color: #f5f5f5;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: black;
+            z-index: 10;
         }
         
-        .rabbit-icon {
-            filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3));
+        .status-panel {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 500px;
+            padding: 10px;
+            background-color: #e8e8e8;
+            border: 3px solid #8b4513;
+            margin-bottom: 10px;
+        }
+        
+        .player-status {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 48%;
+        }
+        
+        .wolf-status {
+            background-color: #d5d5d5;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        
+        .rabbit-status {
+            background-color: #d5d5d5;
+            padding: 5px;
+            border-radius: 5px;
         }
         
         .controls {
             display: flex;
-            justify-content: space-around;
-            margin-top: 30px;
-            flex-wrap: wrap;
-        }
-        
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.1em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 5px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            background: var(--primary-color);
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
+            flex-direction: column;
             width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: 0.5s;
-        }
-        
-        .btn:hover::before {
-            left: 100%;
-        }
-        
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .btn-primary {
-            background: var(--primary-color);
-        }
-        
-        .btn-secondary {
-            background: var(--secondary-color);
-        }
-        
-        #level-display {
-            font-size: 1.2em;
-            color: var(--dark-accent);
+            max-width: 500px;
             margin-top: 10px;
-            text-align: center;
-            font-weight: bold;
         }
         
-        .status-container {
+        .control-row {
             display: flex;
             justify-content: space-between;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            padding: 10px 20px;
-            background-color: rgba(139, 90, 43, 0.1);
-            border-radius: 10px;
         }
         
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .status-icon {
-            width: 30px;
-            height: 30px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-        }
-        
-        .wolf-count, .rabbit-count, .moves-count {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: var(--dark-accent);
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        
-        .modal-content {
-            background-color: var(--light-accent);
-            margin: auto;
-            padding: 30px;
-            border-radius: 15px;
-            width: 80%;
-            max-width: 500px;
-            text-align: center;
-            position: relative;
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-            animation: slideDown 0.4s ease-in-out;
-            border: 5px solid var(--primary-color);
-        }
-        
-        .modal-title {
-            font-size: 2em;
-            color: var(--primary-color);
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-        
-        .modal-message {
-            font-size: 1.2em;
-            color: var(--dark-accent);
-            margin-bottom: 25px;
-            line-height: 1.6;
-        }
-        
-        .modal-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
-        
-        .modal-btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.1em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        .control-btn {
+            width: 48%;
+            padding: 10px 0;
+            font-size: 16px;
+            margin: 5px 0;
+            background-color: #3498db;
             color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
         
-        .modal-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        .wolf-btn {
+            background-color: #333;
         }
         
-        .modal-btn-primary {
-            background: var(--primary-color);
+        .rabbit-btn {
+            background-color: #f39c12;
         }
         
-        .modal-btn-secondary {
-            background: var(--secondary-color);
+        .action-btn {
+            padding: 10px 0;
+            font-size: 16px;
+            margin: 5px 0;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
         
-        .rules-container {
-            margin-top: 20px;
-            background-color: rgba(245, 222, 179, 0.3);
-            padding: 15px;
-            border-radius: 10px;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease-in-out;
-        }
-        
-        .rules-container.active {
-            max-height: 500px;
-        }
-        
-        .rules-title {
-            color: var(--primary-color);
-            font-size: 1.3em;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        
-        .rules-list {
-            list-style-type: none;
-            padding-left: 15px;
-        }
-        
-        .rules-list li {
-            margin-bottom: 8px;
-            position: relative;
-            padding-left: 20px;
-            color: var(--dark-accent);
-        }
-        
-        .rules-list li::before {
-            content: '•';
-            position: absolute;
-            left: 0;
-            color: var(--secondary-color);
-            font-size: 1.5em;
-            line-height: 0.8;
-        }
-        
-        /* Animations */
-        @keyframes pulse {
-            0% { box-shadow: 0 0 5px rgba(255, 153, 0, 0.5); }
-            50% { box-shadow: 0 0 20px rgba(255, 153, 0, 0.8); }
-            100% { box-shadow: 0 0 5px rgba(255, 153, 0, 0.5); }
-        }
-        
-        @keyframes highlightPulse {
-            0% { box-shadow: 0 0 5px rgba(0, 204, 102, 0.3); }
-            50% { box-shadow: 0 0 20px rgba(0, 204, 102, 0.6); }
-            100% { box-shadow: 0 0 5px rgba(0, 204, 102, 0.3); }
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes slideDown {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .decorated-corners::before,
-        .decorated-corners::after {
-            content: '';
-            position: absolute;
-            width: 40px;
-            height: 40px;
-        }
-        
-        .decorated-corners::before {
-            top: 0;
-            left: 0;
-            border-top: 5px solid var(--primary-color);
-            border-left: 5px solid var(--primary-color);
-            border-top-left-radius: 15px;
-        }
-        
-        .decorated-corners::after {
-            bottom: 0;
-            right: 0;
-            border-bottom: 5px solid var(--primary-color);
-            border-right: 5px solid var(--primary-color);
-            border-bottom-right-radius: 15px;
-        }
-        
-        .forest-background {
+        .tutorial {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M30,70 L35,40 L40,70 Z" fill="%234E7942" opacity="0.2"/><path d="M60,80 L70,30 L80,80 Z" fill="%234E7942" opacity="0.2"/><path d="M10,75 L20,35 L30,75 Z" fill="%234E7942" opacity="0.2"/><path d="M80,65 L90,25 L100,65 Z" fill="%234E7942" opacity="0.2"/></svg>');
-            opacity: 0.1;
-            z-index: -1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+            overflow-y: auto;
         }
         
-        .wolf-paw {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12,4c1.1,0,2-0.9,2-2s-0.9-2-2-2s-2,0.9-2,2S10.9,4,12,4z M18,2c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S19.1,2,18,2z M6,2C4.9,2,4,2.9,4,4s0.9,2,2,2s2-0.9,2-2S7.1,2,6,2z M12,10c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S13.1,10,12,10z M6,8c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S7.1,8,6,8z M18,8c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S19.1,8,18,8z M12,16c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S13.1,16,12,16z" fill="%237c6855" opacity="0.3"/></svg>');
-            opacity: 0;
-            z-index: -1;
+        .tutorial h2 {
+            margin-bottom: 20px;
         }
         
-        .rabbit-footprint {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="8" cy="4" r="4" fill="%23f0f0f0" opacity="0.3"/><circle cx="16" cy="4" r="4" fill="%23f0f0f0" opacity="0.3"/><circle cx="12" cy="16" r="8" fill="%23f0f0f0" opacity="0.3"/></svg>');
-            opacity: 0;
-            z-index: -1;
+        .tutorial p {
+            margin-bottom: 10px;
+            line-height: 1.5;
         }
         
-        .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: var(--primary-color);
-            opacity: 0;
+        .tutorial button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
         
-        /* Responsive design */
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-                width: 98%;
-            }
-            
-            .game-title {
-                font-size: 1.8em;
-                margin-bottom: 10px;
-            }
-            
-            .game-subtitle {
-                font-size: 1em;
-                margin-bottom: 15px;
-            }
-            
-            .board-container {
-                padding-bottom: 90%;
-            }
-            
-            .game-board {
-                gap: 5px;
-                padding: 10px;
-            }
-            
-            .cell {
-                border-width: 2px;
-                border-radius: 5px;
-            }
-            
-            .btn {
-                padding: 10px 20px;
-                font-size: 1em;
-            }
-            
-            .status-container {
-                flex-direction: column;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            .modal-content {
-                width: 95%;
-                padding: 20px;
-            }
-            
-            .modal-title {
-                font-size: 1.5em;
-            }
-            
-            .modal-message {
-                font-size: 1em;
-            }
-            
-            .modal-btn {
-                padding: 10px 20px;
-                font-size: 1em;
+        .game-over {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+        
+        .game-over h2 {
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .game-over p {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .game-over button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .turn-indicator {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .resource-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+        
+        .ability-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+        
+        @media (max-height: 700px) {
+            .game-container {
+                height: 50vh;
             }
         }
     </style>
 </head>
 <body>
-    <div class="forest-background"></div>
+    <h1 class="game-title">狼兔智鬥</h1>
     
-    <div class="container decorated-corners">
-        <h1 class="game-title">狼與兔子</h1>
-        <h2 class="game-subtitle">智慧的捕獵遊戲</h2>
-        
-        <div class="status-container">
-            <div class="status-item">
-                <div class="status-icon" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M12,2c-5.5,0-10,4.5-10,10s4.5,10,10,10s10-4.5,10-10S17.5,2,12,2z M12,20c-4.4,0-8-3.6-8-8s3.6-8,8-8s8,3.6,8,8S16.4,20,12,20z M13,7h-2v6h5v-2h-3V7z\" fill=\"%237c6855\"/></svg>');"></div>
-                <span>步數: </span>
-                <span class="moves-count">0</span>
-            </div>
-            <div class="status-item">
-                <div class="status-icon" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M12,15c1.7,0,3-1.3,3-3s-1.3-3-3-3s-3,1.3-3,3S10.3,15,12,15z M12,10c1.1,0,2,0.9,2,2s-0.9,2-2,2s-2-0.9-2-2S10.9,10,12,10z M17,3c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S18.1,3,17,3z M12,1c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S13.1,1,12,1z M7,3c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S8.1,3,7,3z M18,8H6c-2.2,0-4,1.8-4,4v8c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2v-8C22,9.8,20.2,8,18,8z\" fill=\"%237c6855\"/></svg>');"></div>
-                <span>狼: </span>
-                <span class="wolf-count">0</span>
-            </div>
-            <div class="status-item">
-                <div class="status-icon" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M17,11c0.3,0,0.7,0,1,0.1V4H6v7.1c0.3-0.1,0.7-0.1,1-0.1c1.1,0,2.2,0.3,3,0.9c0.8-0.6,1.9-0.9,3-0.9S15.2,11.3,16,11.9C16.2,11.3,16.5,11,17,11z M20,13h-5v1h5V13z M20,16h-5v1h5V16z M20,19h-5v1h5V19z M10,15v8h4v-8h-1v5h-2v-5H10z M6,19v1h2.3c-0.2-0.3-0.3-0.6-0.3-1H6z M8,13H3v1h4.2c0.1-0.3,0.4-0.7,0.8-1z M6,16v1h1.5c0-0.3,0.1-0.7,0.3-1H6z\" fill=\"%23f0f0f0\"/></svg>');"></div>
-                <span>兔: </span>
-                <span class="rabbit-count">0</span>
-            </div>
-        </div>
-        
-        <div id="level-display">關卡 1</div>
-        
-        <div class="board-container">
-            <div class="game-board" id="game-board">
-                <!-- Board cells will be generated by JavaScript -->
-            </div>
-        </div>
-        
-        <div class="controls">
-            <button class="btn btn-primary" id="reset-btn">重置關卡</button>
-            <button class="btn btn-secondary" id="rules-btn">遊戲規則</button>
-            <button class="btn btn-primary" id="next-level-btn">下一關</button>
-        </div>
-        
-        <div class="rules-container" id="rules-container">
-            <h3 class="rules-title">遊戲規則</h3>
-            <ul class="rules-list">
-                <li>狼可以向四個方向移動（上下左右）。</li>
-                <li>兔子可以向八個方向移動（包括對角線）。</li>
-                <li>狼的目標是捕捉所有的兔子。</li>
-                <li>當狼移動到與兔子相同格子時，兔子被捕獲。</li>
-                <li>在每一關中，你需要使用最少步數來捕獲所有兔子。</li>
-                <li>每關的初始布局不同，難度逐漸提高。</li>
-                <li>點擊狼選擇它，然後點擊目標格子移動。</li>
-            </ul>
-        </div>
-    </div>
+    <div class="turn-indicator" id="turnIndicator">輪到 狼狼 行動</div>
     
-    <div id="level-complete-modal" class="modal">
-        <div class="modal-content decorated-corners">
-            <h2 class="modal-title">關卡完成!</h2>
-            <p class="modal-message">恭喜！你用了 <span id="level-moves"></span> 步完成了這一關。</p>
-            <div class="modal-buttons">
-                <button class="modal-btn modal-btn-secondary" id="restart-level-btn">重玩此關</button>
-                <button class="modal-btn modal-btn-primary" id="next-level-modal-btn">下一關</button>
+    <div class="status-panel">
+        <div class="player-status wolf-status">
+            <h3>狼狼</h3>
+            <div class="resource-info">
+                <span>能量: </span>
+                <span id="wolfEnergy">3</span>
+            </div>
+            <div class="resource-info">
+                <span>肉: </span>
+                <span id="wolfMeat">0</span>
+            </div>
+            <div class="ability-info">
+                <span>陷阱: </span>
+                <span id="wolfTraps">2</span>
+            </div>
+            <div class="ability-info">
+                <span>視野: </span>
+                <span id="wolfSight">2</span>
+            </div>
+        </div>
+        <div class="player-status rabbit-status">
+            <h3>兔兔</h3>
+            <div class="resource-info">
+                <span>能量: </span>
+                <span id="rabbitEnergy">3</span>
+            </div>
+            <div class="resource-info">
+                <span>胡蘿蔔: </span>
+                <span id="rabbitCarrots">0</span>
+            </div>
+            <div class="ability-info">
+                <span>隱形: </span>
+                <span id="rabbitInvisible">3</span>
+            </div>
+            <div class="ability-info">
+                <span>洞穴: </span>
+                <span id="rabbitBurrows">1</span>
             </div>
         </div>
     </div>
     
-    <div id="game-complete-modal" class="modal">
-        <div class="modal-content decorated-corners">
-            <h2 class="modal-title">遊戲通關!</h2>
-            <p class="modal-message">太棒了！你完成了所有關卡！<br>總共用了 <span id="total-moves"></span> 步。</p>
-            <div class="modal-buttons">
-                <button class="modal-btn modal-btn-primary" id="restart-game-btn">重新開始遊戲</button>
-            </div>
+    <div class="game-container">
+        <div class="game-board" id="gameBoard"></div>
+    </div>
+    
+    <div class="controls">
+        <div class="control-row">
+            <button class="control-btn wolf-btn" id="wolfMove">狼狼移動</button>
+            <button class="control-btn rabbit-btn" id="rabbitMove">兔兔移動</button>
         </div>
+        <div class="control-row">
+            <button class="control-btn wolf-btn" id="wolfTrap">設置陷阱</button>
+            <button class="control-btn rabbit-btn" id="rabbitBurrow">挖掘洞穴</button>
+        </div>
+        <div class="control-row">
+            <button class="control-btn wolf-btn" id="wolfSense">增強視野</button>
+            <button class="control-btn rabbit-btn" id="rabbitInvisible">隱形</button>
+        </div>
+        <button class="action-btn" id="endTurn">結束回合</button>
+    </div>
+    
+    <div class="tutorial" id="tutorial">
+        <h2>遊戲規則</h2>
+        <p><strong>遊戲目標:</strong></p>
+        <p>- 狼狼: 捕捉兔兔或收集5塊肉</p>
+        <p>- 兔兔: 收集8個胡蘿蔔或在20回合內不被捕捉</p>
+        
+        <p><strong>回合制:</strong></p>
+        <p>- 每回合雙方各有一次行動機會</p>
+        <p>- 行動包括移動或使用特殊能力</p>
+        
+        <p><strong>狼狼能力:</strong></p>
+        <p>- 設置陷阱: 在相鄰格子放置陷阱，兔兔踩中將被定身一回合</p>
+        <p>- 增強視野: 暫時看到更遠的距離，可在黑暗區域顯示兔兔</p>
+        
+        <p><strong>兔兔能力:</strong></p>
+        <p>- 挖掘洞穴: 創建可以在下一回合跳躍的通道</p>
+        <p>- 隱形: 在一回合內不被狼狼看到</p>
+        
+        <p><strong>地形:</strong></p>
+        <p>- 森林: 兔兔可以隱藏，狼狼需要增強視野才能看到</p>
+        <p>- 山脈: 無法通過的障礙物</p>
+        <p>- 池塘: 兔兔可以通過，狼狼不行</p>
+        
+        <p><strong>資源:</strong></p>
+        <p>- 肉: 狼狼收集，每個提供1能量</p>
+        <p>- 胡蘿蔔: 兔兔收集，每個提供1能量</p>
+        
+        <p><strong>視野:</strong></p>
+        <p>- 狼狼只能看到附近的兔兔，除非使用增強視野</p>
+        <p>- 兔兔能看到全圖，但無法看到隱藏的陷阱</p>
+        
+        <button id="startGame">開始遊戲</button>
+    </div>
+    
+    <div class="game-over" id="gameOver">
+        <h2 id="winnerText">遊戲結束</h2>
+        <p id="resultText">結果詳情</p>
+        <button id="restartGame">重新開始</button>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Game elements
-            const gameBoard = document.getElementById('game-board');
-            const resetBtn = document.getElementById('reset-btn');
-            const nextLevelBtn = document.getElementById('next-level-btn');
-            const rulesBtn = document.getElementById('rules-btn');
-            const rulesContainer = document.getElementById('rules-container');
-            const levelDisplay = document.getElementById('level-display');
-            const movesCountDisplay = document.querySelector('.moves-count');
-            const wolfCountDisplay = document.querySelector('.wolf-count');
-            const rabbitCountDisplay = document.querySelector('.rabbit-count');
+        // 遊戲狀態
+        const gameState = {
+            turn: 'wolf', // 'wolf' 或 'rabbit'
+            round: 1,
+            maxRounds: 20,
+            activeAction: null,
+            wolfPosition: { x: 0, y: 0 },
+            rabbitPosition: { x: 7, y: 7 },
+            wolfEnergy: 3,
+            rabbitEnergy: 3,
+            wolfMeat: 0,
+            rabbitCarrots: 0,
+            wolfTraps: 2,
+            rabbitBurrows: 1,
+            wolfSight: 2,
+            rabbitInvisible: 3,
+            isRabbitInvisible: false,
+            traps: [],
+            burrows: [],
+            resources: [],
+            terrain: [],
+            rabbitTrapped: false,
+            wolfHasEnhancedVision: false
+        };
+        
+        // 遊戲板元素
+        const gameBoard = document.getElementById('gameBoard');
+        
+        // 遊戲控制按鈕
+        const wolfMoveBtn = document.getElementById('wolfMove');
+        const rabbitMoveBtn = document.getElementById('rabbitMove');
+        const wolfTrapBtn = document.getElementById('wolfTrap');
+        const rabbitBurrowBtn = document.getElementById('rabbitBurrow');
+        const wolfSenseBtn = document.getElementById('wolfSense');
+        const rabbitInvisibleBtn = document.getElementById('rabbitInvisible');
+        const endTurnBtn = document.getElementById('endTurn');
+        
+        // 教學和遊戲結束元素
+        const tutorial = document.getElementById('tutorial');
+        const startGameBtn = document.getElementById('startGame');
+        const gameOver = document.getElementById('gameOver');
+        const winnerText = document.getElementById('winnerText');
+        const resultText = document.getElementById('resultText');
+        const restartGameBtn = document.getElementById('restartGame');
+        const turnIndicator = document.getElementById('turnIndicator');
+        
+        // 資源顯示元素
+        const wolfEnergyText = document.getElementById('wolfEnergy');
+        const rabbitEnergyText = document.getElementById('rabbitEnergy');
+        const wolfMeatText = document.getElementById('wolfMeat');
+        const rabbitCarrotsText = document.getElementById('rabbitCarrots');
+        const wolfTrapsText = document.getElementById('wolfTraps');
+        const rabbitBurrowsText = document.getElementById('rabbitBurrows');
+        const wolfSightText = document.getElementById('wolfSight');
+        const rabbitInvisibleText = document.getElementById('rabbitInvisible');
+        
+        // 初始化遊戲板
+        function initializeGameBoard() {
+            gameBoard.innerHTML = '';
             
-            // Modal elements
-            const levelCompleteModal = document.getElementById('level-complete-modal');
-            const gameCompleteModal = document.getElementById('game-complete-modal');
-            const levelMovesDisplay = document.getElementById('level-moves');
-            const totalMovesDisplay = document.getElementById('total-moves');
-            const restartLevelBtn = document.getElementById('restart-level-btn');
-            const nextLevelModalBtn = document.getElementById('next-level-modal-btn');
-            const restartGameBtn = document.getElementById('restart-game-btn');
+            // 生成地形
+            gameState.terrain = generateTerrain();
             
-            // Game state
-            let currentLevel = 1;
-            let selectedCell = null;
-            let movesCount = 0;
-            let totalMoves = 0;
-            let wolves = [];
-            let rabbits = [];
-            let gameLevels = [
-                // Level 1
-                {
-                    wolves: [{row: 0, col: 0}],
-                    rabbits: [{row: 4, col: 4}]
-                },
-                // Level 2
-                {
-                    wolves: [{row: 0, col: 0}],
-                    rabbits: [{row: 4, col: 4}, {row: 4, col: 0}]
-                },
-                // Level 3
-                {
-                    wolves: [{row: 0, col: 0}, {row: 0, col: 4}],
-                    rabbits: [{row: 4, col: 2}, {row: 2, col: 4}]
-                },
-                // Level 4
-                {
-                    wolves: [{row: 2, col: 2}],
-                    rabbits: [{row: 0, col: 0}, {row: 0, col: 4}, {row: 4, col: 0}, {row: 4, col: 4}]
-                },
-                // Level 5
-                {
-                    wolves: [{row: 0, col: 0}, {row: 0, col: 4}],
-                    rabbits: [{row: 4, col: 0}, {row: 4, col: 4}, {row: 2, col: 2}]
-                }
-            ];
+            // 生成資源
+            gameState.resources = generateResources();
             
-            // SVG icons for wolf and rabbit
-            const wolfSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="wolf-icon"><path d="M12,2c-5.5,0-10,4.5-10,10s4.5,10,10,10s10-4.5,10-10S17.5,2,12,2z M17.5,13.5l-1.8,0.8l1.5,3c0.1,0.3,0,0.6-0.2,0.8c-0.2,0.2-0.5,0.2-0.8,0.1l-3.5-1.5c-0.4-0.2-0.9-0.1-1.2,0.3l-1.8,2.2c-0.2,0.2-0.5,0.3-0.7,0.3c-0.2,0-0.5-0.1-0.6-0.3c-0.2-0.2-0.3-0.5-0.2-0.8l0.6-2.4c0.1-0.3,0-0.7-0.3-0.9l-2.3-1.5c-0.3-0.2-0.4-0.5-0.3-0.8c0.1-0.3,0.4-0.5,0.7-0.5l2.5,0c0.3,0,0.6-0.2,0.7-0.5l0.7-2.4c0.1-0.3,0.4-0.5,0.7-0.5c0.3,0,0.6,0.2,0.7,0.5l0.7,2.4c0.1,0.3,0.4,0.5,0.7,0.5l2.5,0c0.3,0,0.6,0.2,0.7,0.5c0.1,0.3,0,0.6-0.3,0.8l-2.3,1.5c-0.3,0.2-0.4,0.5-0.3,0.9l0.9,2.2C18.1,13,17.9,13.3,17.5,13.5z" fill="white"/><circle cx="9" cy="9" r="1" fill="#333"/><circle cx="15" cy="9" r="1" fill="#333"/><path d="M9,13c0,1.7,1.3,3,3,3s3-1.3,3-3H9z" fill="#333"/></svg>`;
-            const rabbitSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="rabbit-icon"><path d="M12,3c-4.2,0-7.9,2.1-10,5.4l3.6,3.6h1.8v1.8l3.6,3.6C14.9,14.9,17,11.2,17,7h-3.6V3.6L12,3z M15,7c0,1.7-1.3,3-3,3S9,8.7,9,7s1.3-3,3-3S15,5.3,15,7z M7,17c0,1.1,0.9,2,2,2s2-0.9,2-2v-2H7V17z M4,10c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S5.1,10,4,10z" fill="white"/><circle cx="12" cy="7" r="1" fill="#333"/><circle cx="10" cy="6" r="0.5" fill="#FFCCCC"/><path d="M11,9c0,0.6,0.4,1,1,1s1-0.4,1-1H11z" fill="#333"/></svg>`;
-            
-            // Initialize the game
-            function initGame() {
-                currentLevel = 1;
-                totalMoves = 0;
-                loadLevel(currentLevel);
-                updateUI();
-            }
-            
-            // Load a specific level
-            function loadLevel(level) {
-                // Reset game state
-                selectedCell = null;
-                movesCount = 0;
-                wolves = [];
-                rabbits = [];
-                
-                // Clear the board
-                gameBoard.innerHTML = '';
-                
-                // Create the grid cells
-                for (let row = 0; row < 5; row++) {
-                    for (let col = 0; col < 5; col++) {
-                        const cell = document.createElement('div');
-                        cell.className = 'cell';
-                        cell.dataset.row = row;
-                        cell.dataset.col = col;
+            // 創建遊戲格子
+            for (let y = 0; y < 8; y++) {
+                for (let x = 0; x < 8; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    
+                    // 設置地形
+                    const terrainType = gameState.terrain.find(t => t.x === x && t.y === y);
+                    if (terrainType) {
+                        cell.classList.add(terrainType.type);
                         
-                        // Add click event listener
-                        cell.addEventListener('click', () => handleCellClick(cell, row, col));
-                        
-                        gameBoard.appendChild(cell);
-                    }
-                }
-                
-                // Place wolves and rabbits based on level configuration
-                const levelConfig = gameLevels[level - 1];
-                
-                // Place wolves
-                levelConfig.wolves.forEach(wolf => {
-                    const wolfObj = {
-                        row: wolf.row,
-                        col: wolf.col
-                    };
-                    wolves.push(wolfObj);
-                    
-                    const cell = getCellAt(wolf.row, wolf.col);
-                    cell.classList.add('wolf');
-                    const animalDiv = document.createElement('div');
-                    animalDiv.className = 'animal';
-                    animalDiv.innerHTML = wolfSVG;
-                    cell.appendChild(animalDiv);
-                });
-                
-                // Place rabbits
-                levelConfig.rabbits.forEach(rabbit => {
-                    const rabbitObj = {
-                        row: rabbit.row,
-                        col: rabbit.col
-                    };
-                    rabbits.push(rabbitObj);
-                    
-                    const cell = getCellAt(rabbit.row, rabbit.col);
-                    cell.classList.add('rabbit');
-                    const animalDiv = document.createElement('div');
-                    animalDiv.className = 'animal';
-                    animalDiv.innerHTML = rabbitSVG;
-                    cell.appendChild(animalDiv);
-                });
-                
-                // Update UI
-                updateUI();
-            }
-            
-            // Get cell element at specific row and column
-            function getCellAt(row, col) {
-                return document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-            }
-            
-            // Handle cell click
-            function handleCellClick(cell, row, col) {
-                // Check if clicked on a wolf
-                const isWolf = isWolfAt(row, col);
-                const isValidMove = selectedCell && isValidMoveFor(selectedCell, row, col);
-                
-                // Clear previous selection and highlights
-                clearSelectionAndHighlights();
-                
-                if (isWolf) {
-                    // Select the wolf
-                    selectedCell = {
-                        element: cell,
-                        row: row,
-                        col: col,
-                        type: 'wolf'
-                    };
-                    cell.classList.add('selected');
-                    
-                    // Highlight valid moves
-                    highlightValidMoves(row, col, 'wolf');
-                } else if (isValidMove) {
-                    // Move wolf to the new position
-                    moveAnimal(selectedCell, row, col);
-                    selectedCell = null;
-                    
-                    // Update moves count
-                    movesCount++;
-                    totalMoves++;
-                    updateUI();
-                    
-                    // Check if level is complete
-                    if (rabbits.length === 0) {
-                        // Show level complete modal
-                        setTimeout(() => {
-                            showLevelComplete();
-                        }, 500);
-                    }
-                }
-            }
-            
-            // Check if there is a wolf at the specified position
-            function isWolfAt(row, col) {
-                return wolves.some(wolf => wolf.row === row && wolf.col === col);
-            }
-            
-            // Check if there is a rabbit at the specified position
-            function isRabbitAt(row, col) {
-                return rabbits.some(rabbit => rabbit.row === row && rabbit.col === col);
-            }
-            
-            // Check if the move is valid for the selected animal
-            function isValidMoveFor(selected, targetRow, targetCol) {
-                if (selected.type === 'wolf') {
-                    // Wolves can move horizontally or vertically
-                    const rowDiff = Math.abs(targetRow - selected.row);
-                    const colDiff = Math.abs(targetCol - selected.col);
-                    
-                    // Cannot move to a position where there is already a wolf
-                    if (isWolfAt(targetRow, targetCol)) {
-                        return false;
-                    }
-                    
-                    // Can move 1 step horizontally or vertically (not diagonally)
-                    return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
-                }
-                
-                return false;
-            }
-            
-            // Highlight valid moves for the selected animal
-            function highlightValidMoves(row, col, type) {
-                if (type === 'wolf') {
-                    // Highlight cells where the wolf can move
-                    const directions = [
-                        { row: -1, col: 0 }, // Up
-                        { row: 1, col: 0 },  // Down
-                        { row: 0, col: -1 }, // Left
-                        { row: 0, col: 1 }   // Right
-                    ];
-                    
-                    directions.forEach(dir => {
-                        const newRow = row + dir.row;
-                        const newCol = col + dir.col;
-                        
-                        // Check if the new position is within the board and not occupied by another wolf
-                        if (isValidPosition(newRow, newCol) && !isWolfAt(newRow, newCol)) {
-                            const cell = getCellAt(newRow, newCol);
-                            cell.classList.add('highlight');
+                        if (terrainType.type === 'mountain') {
+                            cell.innerHTML = '⛰️';
+                        } else if (terrainType.type === 'forest') {
+                            cell.innerHTML = '🌲';
+                        } else if (terrainType.type === 'pond') {
+                            cell.innerHTML = '💧';
                         }
-                    });
-                }
-            }
-            
-            // Check if a position is valid (within the board)
-            function isValidPosition(row, col) {
-                return row >= 0 && row < 5 && col >= 0 && col < 5;
-            }
-            
-            // Clear selection and highlights
-            function clearSelectionAndHighlights() {
-                // Clear selected cell
-                const selectedElements = document.querySelectorAll('.cell.selected');
-                selectedElements.forEach(element => {
-                    element.classList.remove('selected');
-                });
-                
-                // Clear highlighted cells
-                const highlightedElements = document.querySelectorAll('.cell.highlight');
-                highlightedElements.forEach(element => {
-                    element.classList.remove('highlight');
-                });
-            }
-            
-            // Move animal from one position to another
-            function moveAnimal(selected, targetRow, targetCol) {
-                if (selected.type === 'wolf') {
-                    // Find the wolf in the array
-                    const wolfIndex = wolves.findIndex(wolf => wolf.row === selected.row && wolf.col === selected.col);
-                    if (wolfIndex !== -1) {
-                        // Update wolf position
-                        wolves[wolfIndex].row = targetRow;
-                        wolves[wolfIndex].col = targetCol;
-                        
-                        // Check if there is a rabbit at the target position
-                        const rabbitIndex = rabbits.findIndex(rabbit => rabbit.row === targetRow && rabbit.col === targetCol);
-                        if (rabbitIndex !== -1) {
-                            // Remove the rabbit
-                            rabbits.splice(rabbitIndex, 1);
-                            
-                            // Create capture animation
-                            createCaptureEffect(targetRow, targetCol);
-                        }
-                        
-                        // Animate the move
-                        animateMove(selected.row, selected.col, targetRow, targetCol);
                     }
-                }
-            }
-            
-            // Animate moving from one cell to another
-            function animateMove(fromRow, fromCol, toRow, toCol) {
-                const fromCell = getCellAt(fromRow, fromCol);
-                const toCell = getCellAt(toRow, toCol);
-                
-                // Get the animal element from the source cell
-                const animalElement = fromCell.querySelector('.animal');
-                if (!animalElement) return;
-                
-                // Create a clone of the animal element for animation
-                const animalClone = animalElement.cloneNode(true);
-                document.body.appendChild(animalClone);
-                
-                // Get positions for animation
-                const fromRect = fromCell.getBoundingClientRect();
-                const toRect = toCell.getBoundingClientRect();
-                
-                // Position the clone at the starting position
-                animalClone.style.position = 'fixed';
-                animalClone.style.top = fromRect.top + 'px';
-                animalClone.style.left = fromRect.left + 'px';
-                animalClone.style.width = fromRect.width + 'px';
-                animalClone.style.height = fromRect.height + 'px';
-                animalClone.style.zIndex = '100';
-                animalClone.style.transition = 'all 0.3s ease-in-out';
-                
-                // Leave a footprint at the starting position
-                createFootprint(fromRow, fromCol, fromCell.classList.contains('wolf') ? 'wolf' : 'rabbit');
-                
-                // Start the animation after a small delay
-                setTimeout(() => {
-                    animalClone.style.top = toRect.top + 'px';
-                    animalClone.style.left = toRect.left + 'px';
                     
-                    // Remove the animal from the source cell
-                    fromCell.innerHTML = '';
-                    fromCell.classList.remove('wolf', 'rabbit');
+                    // 設置資源
+                    const resource = gameState.resources.find(r => r.x === x && r.y === y);
+                    if (resource) {
+                        const resourceSpan = document.createElement('span');
+                        if (resource.type === 'carrot') {
+                            resourceSpan.className = 'carrot';
+                            resourceSpan.textContent = '🥕';
+                        } else {
+                            resourceSpan.className = 'meat';
+                            resourceSpan.textContent = '🍖';
+                        }
+                        cell.appendChild(resourceSpan);
+                    }
                     
-                    // Update the target cell after animation completes
-                    setTimeout(() => {
-                        // Remove the clone
-                        animalClone.remove();
-                        
-                        // Update the target cell
-                        toCell.innerHTML = '';
-                        toCell.classList.add('wolf');
-                        const newAnimalDiv = document.createElement('div');
-                        newAnimalDiv.className = 'animal';
-                        newAnimalDiv.innerHTML = wolfSVG;
-                        toCell.appendChild(newAnimalDiv);
-                        
-                        // Create footprint at the target position
-                        createFootprint(toRow, toCol, 'wolf');
-                    }, 300);
-                }, 50);
-            }
-            
-            // Create footprint effect
-            function createFootprint(row, col, type) {
-                const cell = getCellAt(row, col);
-                const cellRect = cell.getBoundingClientRect();
-                
-                // Create multiple footprints
-                for (let i = 0; i < 3; i++) {
-                    setTimeout(() => {
-                        const footprint = document.createElement('div');
-                        footprint.className = type === 'wolf' ? 'wolf-paw' : 'rabbit-footprint';
-                        footprint.style.top = (cellRect.top + Math.random() * cellRect.height) + 'px';
-                        footprint.style.left = (cellRect.left + Math.random() * cellRect.width) + 'px';
-                        document.body.appendChild(footprint);
-                        
-                        // Animate the footprint
-                        setTimeout(() => {
-                            footprint.style.opacity = '0.7';
-                            
-                            // Remove after fading
-                            setTimeout(() => {
-                                footprint.style.opacity = '0';
-                                setTimeout(() => {
-                                    footprint.remove();
-                                }, 500);
-                            }, 500);
-                        }, 50);
-                    }, i * 200);
+                    cell.addEventListener('click', handleCellClick);
+                    gameBoard.appendChild(cell);
                 }
             }
             
-            // Create capture effect when a wolf catches a rabbit
-            function createCaptureEffect(row, col) {
-                const cell = getCellAt(row, col);
-                const cellRect = cell.getBoundingClientRect();
+            // 放置角色
+            placeCharacters();
+        }
+        
+        // 生成地形
+        function generateTerrain() {
+            const terrain = [];
+            
+            // 山脈 - 無法通過
+            terrain.push({ x: 3, y: 3, type: 'mountain' });
+            terrain.push({ x: 3, y: 4, type: 'mountain' });
+            terrain.push({ x: 4, y: 3, type: 'mountain' });
+            terrain.push({ x: 6, y: 1, type: 'mountain' });
+            terrain.push({ x: 1, y: 6, type: 'mountain' });
+            
+            // 森林 - 兔子可隱藏
+            terrain.push({ x: 1, y: 1, type: 'forest' });
+            terrain.push({ x: 1, y: 2, type: 'forest' });
+            terrain.push({ x: 2, y: 1, type: 'forest' });
+            terrain.push({ x: 2, y: 2, type: 'forest' });
+            terrain.push({ x: 5, y: 5, type: 'forest' });
+            terrain.push({ x: 5, y: 6, type: 'forest' });
+            terrain.push({ x: 6, y: 5, type: 'forest' });
+            
+            // 池塘 - 兔子可通過，狼不行
+            terrain.push({ x: 2, y: 5, type: 'pond' });
+            terrain.push({ x: 3, y: 5, type: 'pond' });
+            terrain.push({ x: 5, y: 2, type: 'pond' });
+            
+            return terrain;
+        }
+        
+        // 生成資源
+        function generateResources() {
+            const resources = [];
+            
+            // 胡蘿蔔 - 兔子收集
+            resources.push({ x: 2, y: 3, type: 'carrot' });
+            resources.push({ x: 4, y: 1, type: 'carrot' });
+            resources.push({ x: 5, y: 4, type: 'carrot' });
+            resources.push({ x: 6, y: 6, type: 'carrot' });
+            resources.push({ x: 1, y: 4, type: 'carrot' });
+            resources.push({ x: 3, y: 6, type: 'carrot' });
+            resources.push({ x: 4, y: 5, type: 'carrot' });
+            resources.push({ x: 7, y: 2, type: 'carrot' });
+            
+            // 肉 - 狼收集
+            resources.push({ x: 4, y: 2, type: 'meat' });
+            resources.push({ x: 6, y: 3, type: 'meat' });
+            resources.push({ x: 1, y: 5, type: 'meat' });
+            resources.push({ x: 3, y: 1, type: 'meat' });
+            resources.push({ x: 5, y: 3, type: 'meat' });
+            
+            return resources;
+        }
+        
+        // 放置角色
+        function placeCharacters() {
+            const wolfCell = document.querySelector(`.cell[data-x="${gameState.wolfPosition.x}"][data-y="${gameState.wolfPosition.y}"]`);
+            const wolf = document.createElement('div');
+            wolf.className = 'wolf';
+            wolf.textContent = '🐺';
+            wolfCell.appendChild(wolf);
+            
+            const rabbitCell = document.querySelector(`.cell[data-x="${gameState.rabbitPosition.x}"][data-y="${gameState.rabbitPosition.y}"]`);
+            const rabbit = document.createElement('div');
+            rabbit.className = 'rabbit';
+            rabbit.textContent = '🐰';
+            rabbitCell.appendChild(rabbit);
+        }
+        
+        // 處理格子點擊
+        function handleCellClick(e) {
+            const x = parseInt(e.currentTarget.dataset.x);
+            const y = parseInt(e.currentTarget.dataset.y);
+            
+            if (gameState.activeAction === 'wolfMove') {
+                moveWolf(x, y);
+            } else if (gameState.activeAction === 'rabbitMove') {
+                moveRabbit(x, y);
+            } else if (gameState.activeAction === 'wolfTrap') {
+                placeWolfTrap(x, y);
+            } else if (gameState.activeAction === 'rabbitBurrow') {
+                placeRabbitBurrow(x, y);
+            }
+        }
+        
+        // 狼移動
+        function moveWolf(x, y) {
+            if (!isValidWolfMove(x, y)) {
+                alert('不合法的移動！');
+                return;
+            }
+            
+            // 移除原先位置的狼
+            const oldWolfCell = document.querySelector(`.cell[data-x="${gameState.wolfPosition.x}"][data-y="${gameState.wolfPosition.y}"]`);
+            const wolf = oldWolfCell.querySelector('.wolf');
+            if (wolf) {
+                oldWolfCell.removeChild(wolf);
+            }
+            
+            // 更新狼的位置
+            gameState.wolfPosition = { x, y };
+            
+            // 在新位置放置狼
+            const newWolfCell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+            const newWolf = document.createElement('div');
+            newWolf.className = 'wolf';
+            newWolf.textContent = '🐺';
+            newWolfCell.appendChild(newWolf);
+            
+            // 檢查是否捕捉到兔子
+            if (x === gameState.rabbitPosition.x && y === gameState.rabbitPosition.y && !gameState.isRabbitInvisible) {
+                endGame('wolf', '狼狼捕捉到了兔兔！');
+                return;
+            }
+            
+            // 檢查是否有肉
+            const resourceIndex = gameState.resources.findIndex(r => r.x === x && r.y === y && r.type === 'meat');
+            if (resourceIndex !== -1) {
+                gameState.wolfMeat++;
+                wolfMeatText.textContent = gameState.wolfMeat;
+                gameState.resources.splice(resourceIndex, 1);
                 
-                // Create confetti effect
-                for (let i = 0; i < 30; i++) {
-                    const confetti = document.createElement('div');
-                    confetti.className = 'confetti';
-                    
-                    // Random position within the cell
-                    confetti.style.top = (cellRect.top + Math.random() * cellRect.height) + 'px';
-                    confetti.style.left = (cellRect.left + Math.random() * cellRect.width) + 'px';
-                    
-                    // Random color
-                    const colors = ['#F5DEB3', '#8B5A2B', '#4E7942', '#FFD700', '#FFA500'];
-                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                    
-                    // Random rotation
-                    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
-                    
-                    // Add to body
-                    document.body.appendChild(confetti);
-                    
-                    // Animate
-                    setTimeout(() => {
-                        confetti.style.opacity = '1';
-                        confetti.style.transform = `translate(${-50 + Math.random() * 100}px, ${-100 - Math.random() * 100}px) rotate(${Math.random() * 360}deg)`;
-                        confetti.style.transition = 'all 1s ease-out';
-                        
-                        // Remove after animation
-                        setTimeout(() => {
-                            confetti.remove();
-                        }, 1000);
-                    }, 10);
-                }
-            }
-            
-            // Update UI elements
-            function updateUI() {
-                levelDisplay.textContent = `關卡 ${currentLevel}`;
-                movesCountDisplay.textContent = movesCount;
-                wolfCountDisplay.textContent = wolves.length;
-                rabbitCountDisplay.textContent = rabbits.length;
-                
-                // Enable/disable next level button
-                nextLevelBtn.disabled = currentLevel >= gameLevels.length;
-            }
-            
-            // Show level complete modal
-            function showLevelComplete() {
-                levelMovesDisplay.textContent = movesCount;
-                levelCompleteModal.style.display = 'flex';
-                
-                // Check if this is the last level
-                if (currentLevel >= gameLevels.length) {
-                    nextLevelModalBtn.style.display = 'none';
-                } else {
-                    nextLevelModalBtn.style.display = 'inline-block';
-                }
-            }
-            
-            // Show game complete modal
-            function showGameComplete() {
-                totalMovesDisplay.textContent = totalMoves;
-                gameCompleteModal.style.display = 'flex';
-            }
-            
-            // Hide modal
-            function hideModals() {
-                levelCompleteModal.style.display = 'none';
-                gameCompleteModal.style.display = 'none';
-            }
-            
-            // Event Listeners
-            resetBtn.addEventListener('click', () => {
-                loadLevel(currentLevel);
-            });
-            
-            nextLevelBtn.addEventListener('click', () => {
-                if (currentLevel < gameLevels.length) {
-                    currentLevel++;
-                    loadLevel(currentLevel);
-                }
-            });
-            
-            rulesBtn.addEventListener('click', () => {
-                rulesContainer.classList.toggle('active');
-            });
-            
-            restartLevelBtn.addEventListener('click', () => {
-                hideModals();
-                loadLevel(currentLevel);
-            });
-            
-            nextLevelModalBtn.addEventListener('click', () => {
-                hideModals();
-                if (currentLevel < gameLevels.length) {
-                    currentLevel++;
-                    loadLevel(currentLevel);
-                } else {
-                    showGameComplete();
-                }
-            });
-            
-            restartGameBtn.addEventListener('click', () => {
-                hideModals();
-                initGame();
-            });
-            
-            // Initialize the game
-            initGame();
-            
-            // Create background animations
-            function createBackgroundAnimations() {
-                const container = document.querySelector('.container');
-                const containerRect = container.getBoundingClientRect();
-                
-                // Create some decorative elements
-                for (let i = 0; i < 10; i++) {
-                    setTimeout(() => {
-                        const wolfPaw = document.createElement('div');
-                        wolfPaw.className = 'wolf-paw';
-                        wolfPaw.style.top = (Math.random() * window.innerHeight) + 'px';
-                        wolfPaw.style.left = (Math.random() * window.innerWidth) + 'px';
-                        document.body.appendChild(wolfPaw);
-                        
-                        // Animate the paw print
-                        setTimeout(() => {
-                            wolfPaw.style.opacity = '0.3';
-                            wolfPaw.style.transform = 'scale(1.5)';
-                            wolfPaw.style.transition = 'all 2s ease-in-out';
-                            
-                            // Fade out
-                            setTimeout(() => {
-                                wolfPaw.style.opacity = '0';
-                                setTimeout(() => {
-                                    wolfPaw.remove();
-                                }, 2000);
-                            }, 3000);
-                        }, 100);
-                    }, i * 5000);
+                // 移除肉元素
+                const meatElement = newWolfCell.querySelector('.meat');
+                if (meatElement) {
+                    newWolfCell.removeChild(meatElement);
                 }
                 
-                // Create rabbit footprints as well
-                for (let i = 0; i < 10; i++) {
-                    setTimeout(() => {
-                        const rabbitFootprint = document.createElement('div');
-                        rabbitFootprint.className = 'rabbit-footprint';
-                        rabbitFootprint.style.top = (Math.random() * window.innerHeight) + 'px';
-                        rabbitFootprint.style.left = (Math.random() * window.innerWidth) + 'px';
-                        document.body.appendChild(rabbitFootprint);
-                        
-                        // Animate the footprint
-                        setTimeout(() => {
-                            rabbitFootprint.style.opacity = '0.3';
-                            rabbitFootprint.style.transform = 'scale(1.5)';
-                            rabbitFootprint.style.transition = 'all 2s ease-in-out';
-                            
-                            // Fade out
-                            setTimeout(() => {
-                                rabbitFootprint.style.opacity = '0';
-                                setTimeout(() => {
-                                    rabbitFootprint.remove();
-                                }, 2000);
-                            }, 3000);
-                        }, 100);
-                    }, i * 7000);
+                // 狼狼勝利判斷
+                if (gameState.wolfMeat >= 5) {
+                    endGame('wolf', '狼狼收集了足夠的肉！');
+                    return;
                 }
             }
             
-            // Start background animations
-            createBackgroundAnimations();
+            gameState.activeAction = null;
+            resetActionButtons();
+            
+            // 更新能量
+            gameState.wolfEnergy--;
+            wolfEnergyText.textContent = gameState.wolfEnergy;
+            
+            checkTurnEnd();
+        }
+        
+        // 兔子移動
+        function moveRabbit(x, y) {
+            if (gameState.rabbitTrapped) {
+                alert('兔兔被陷阱困住，暫時無法移動！');
+                return;
+            }
+            
+            if (!isValidRabbitMove(x, y)) {
+                alert('不合法的移動！');
+                return;
+            }
+            
+            // 移除原先位置的兔子
+            const oldRabbitCell = document.querySelector(`.cell[data-x="${gameState.rabbitPosition.x}"][data-y="${gameState.rabbitPosition.y}"]`);
+            const rabbit = oldRabbitCell.querySelector('.rabbit');
+            if (rabbit) {
+                oldRabbitCell.removeChild(rabbit);
+            }
+            
+            // 更新兔子的位置
+            gameState.rabbitPosition = { x, y };
+            
+            // 在新位置放置兔子
+            const newRabbitCell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+            const newRabbit = document.createElement('div');
+            newRabbit.className = 'rabbit';
+            newRabbit.textContent = '🐰';
+            newRabbitCell.appendChild(newRabbit);
+            
+            // 踩到陷阱？
+            const trapIndex = gameState.traps.findIndex(t => t.x === x && t.y === y);
+            if (trapIndex !== -1) {
+                gameState.rabbitTrapped = true;
+                gameState.traps.splice(trapIndex, 1);
+                alert('兔兔踩到了陷阱，將無法行動一回合！');
+                
+                // 移除陷阱
+                const trapElement = newRabbitCell.querySelector('.trap');
+                if (trapElement) {
+                    newRabbitCell.removeChild(trapElement);
+                }
+            }
+            
+            // 拿到胡蘿蔔？
+            const resourceIndex = gameState.resources.findIndex(r => r.x === x && r.y === y && r.type === 'carrot');
+            if (resourceIndex !== -1) {
+                gameState.rabbitCarrots++;
+                rabbitCarrotsText.textContent = gameState.rabbitCarrots;
+                gameState.resources.splice(resourceIndex, 1);
+                
+                // 移除胡蘿蔔
+                const carrotElement = newRabbitCell.querySelector('.carrot');
+                if (carrotElement) {
+                    newRabbitCell.removeChild(carrotElement);
+                }
+                
+                // 兔兔勝利判斷
+                if (gameState.rabbitCarrots >= 8) {
+                    endGame('rabbit', '兔兔收集了足夠的胡蘿蔔！');
+                    return;
+                }
+            }
+            
+            // 同格遇到狼
+            if (x === gameState.wolfPosition.x && y === gameState.wolfPosition.y && !gameState.isRabbitInvisible) {
+                endGame('wolf', '狼狼捕捉到了兔兔！');
+                return;
+            }
+            
+            gameState.activeAction = null;
+            resetActionButtons();
+            
+            // 更新能量
+            gameState.rabbitEnergy--;
+            rabbitEnergyText.textContent = gameState.rabbitEnergy;
+            
+            checkTurnEnd();
+        }
+        
+        // 狼設置陷阱
+        function placeWolfTrap(x, y) {
+            if (gameState.wolfTraps <= 0) {
+                alert('沒有陷阱可用啦！');
+                return;
+            }
+            
+            // 必須是鄰近格
+            if (!isAdjacentToWolf(x, y) || isTerrain(x, y, 'mountain') || isTerrain(x, y, 'pond')) {
+                alert('無法在這裡設置陷阱！');
+                return;
+            }
+            
+            if (gameState.traps.some(t => t.x === x && t.y === y)) {
+                alert('這裡已經有陷阱了！');
+                return;
+            }
+            
+            // 放陷阱
+            gameState.traps.push({ x, y });
+            gameState.wolfTraps--;
+            wolfTrapsText.textContent = gameState.wolfTraps;
+            
+            // 顯示陷阱（對狼可見）
+            const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+            const trapSpan = document.createElement('span');
+            trapSpan.className = 'trap';
+            trapSpan.textContent = '🔒';
+            cell.appendChild(trapSpan);
+            
+            gameState.activeAction = null;
+            resetActionButtons();
+            
+            // 消耗能量
+            gameState.wolfEnergy--;
+            wolfEnergyText.textContent = gameState.wolfEnergy;
+            
+            checkTurnEnd();
+        }
+        
+        // 兔兔挖洞
+        function placeRabbitBurrow(x, y) {
+            if (gameState.rabbitBurrows <= 0) {
+                alert('沒有洞穴可挖了！');
+                return;
+            }
+            
+            // 必須相鄰
+            if (!isAdjacentToRabbit(x, y) || isTerrain(x, y, 'mountain') || isTerrain(x, y, 'pond')) {
+                alert('無法在這裡挖洞！');
+                return;
+            }
+            
+            if (gameState.burrows.some(b => b.x === x && b.y === y)) {
+                alert('這裡已經有洞穴了！');
+                return;
+            }
+            
+            gameState.burrows.push({ x, y });
+            gameState.rabbitBurrows--;
+            rabbitBurrowsText.textContent = gameState.rabbitBurrows;
+            
+            const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+            const burrowSpan = document.createElement('span');
+            burrowSpan.className = 'trap'; // 用trap的class只是為了偷懶顯示，實際可改成burrow
+            burrowSpan.textContent = '🐇';
+            cell.appendChild(burrowSpan);
+            
+            gameState.activeAction = null;
+            resetActionButtons();
+            
+            // 消耗能量
+            gameState.rabbitEnergy--;
+            rabbitEnergyText.textContent = gameState.rabbitEnergy;
+            
+            checkTurnEnd();
+        }
+        
+        // 狼增強視野
+        wolfSenseBtn.addEventListener('click', () => {
+            if (gameState.turn !== 'wolf') return;
+            if (gameState.wolfEnergy <= 0) {
+                alert('能量不足，無法增強視野！');
+                return;
+            }
+            gameState.wolfHasEnhancedVision = true;
+            gameState.wolfSight = 4;
+            wolfSightText.textContent = gameState.wolfSight;
+            
+            // 狼用了增強視野後，消耗能量
+            gameState.wolfEnergy--;
+            wolfEnergyText.textContent = gameState.wolfEnergy;
+            
+            // 這回合就算用完行動
+            checkTurnEnd();
         });
+        
+        // 兔兔隱形
+        rabbitInvisibleBtn.addEventListener('click', () => {
+            if (gameState.turn !== 'rabbit') return;
+            if (gameState.rabbitInvisible <= 0) {
+                alert('隱形次數不足！');
+                return;
+            }
+            if (gameState.rabbitEnergy <= 0) {
+                alert('能量不足，無法隱形！');
+                return;
+            }
+            
+            gameState.isRabbitInvisible = true;
+            gameState.rabbitInvisible--;
+            rabbitInvisibleText.textContent = gameState.rabbitInvisible;
+            
+            // 消耗能量
+            gameState.rabbitEnergy--;
+            rabbitEnergyText.textContent = gameState.rabbitEnergy;
+            
+            checkTurnEnd();
+        });
+        
+        // 結束回合
+        endTurnBtn.addEventListener('click', () => {
+            if (gameState.turn === 'wolf') {
+                gameState.turn = 'rabbit';
+                turnIndicator.textContent = '輪到 兔兔 行動';
+            } else {
+                gameState.turn = 'wolf';
+                turnIndicator.textContent = '輪到 狼狼 行動';
+                gameState.round++;
+            }
+            
+            // 如果兔兔隱形，只持續一回合
+            if (gameState.turn === 'wolf' && gameState.isRabbitInvisible) {
+                gameState.isRabbitInvisible = false;
+            }
+            
+            // 如果兔兔被陷阱困住，只困一回合
+            if (gameState.turn === 'wolf' && gameState.rabbitTrapped) {
+                gameState.rabbitTrapped = false;
+            }
+            
+            // 狼增強視野只持續一個對手回合
+            if (gameState.turn === 'rabbit' && gameState.wolfHasEnhancedVision) {
+                gameState.wolfHasEnhancedVision = false;
+                gameState.wolfSight = 2;
+                wolfSightText.textContent = 2;
+            }
+            
+            checkRoundLimit();
+            resetActionButtons();
+        });
+        
+        // 開始遊戲
+        startGameBtn.addEventListener('click', () => {
+            tutorial.style.display = 'none';
+            initializeGameBoard();
+        });
+        
+        // 重新開始
+        restartGameBtn.addEventListener('click', () => {
+            location.reload();
+        });
+        
+        // 狼移動按鈕
+        wolfMoveBtn.addEventListener('click', () => {
+            if (gameState.turn === 'wolf' && gameState.wolfEnergy > 0) {
+                gameState.activeAction = 'wolfMove';
+            }
+        });
+        
+        // 兔子移動按鈕
+        rabbitMoveBtn.addEventListener('click', () => {
+            if (gameState.turn === 'rabbit' && gameState.rabbitEnergy > 0) {
+                gameState.activeAction = 'rabbitMove';
+            }
+        });
+        
+        // 狼設陷阱按鈕
+        wolfTrapBtn.addEventListener('click', () => {
+            if (gameState.turn === 'wolf' && gameState.wolfEnergy > 0) {
+                gameState.activeAction = 'wolfTrap';
+            }
+        });
+        
+        // 兔子挖洞按鈕
+        rabbitBurrowBtn.addEventListener('click', () => {
+            if (gameState.turn === 'rabbit' && gameState.rabbitEnergy > 0) {
+                gameState.activeAction = 'rabbitBurrow';
+            }
+        });
+        
+        // 驗證狼的移動(一步距離+不能走池塘或山)
+        function isValidWolfMove(x, y) {
+            const dx = Math.abs(x - gameState.wolfPosition.x);
+            const dy = Math.abs(y - gameState.wolfPosition.y);
+            if (dx + dy !== 1) return false; 
+            if (isTerrain(x, y, 'mountain') || isTerrain(x, y, 'pond')) return false;
+            return true;
+        }
+        
+        // 驗證兔子的移動(一步距離+能過池塘但不能過山)
+        function isValidRabbitMove(x, y) {
+            const dx = Math.abs(x - gameState.rabbitPosition.x);
+            const dy = Math.abs(y - gameState.rabbitPosition.y);
+            if (dx + dy !== 1) return false; 
+            if (isTerrain(x, y, 'mountain')) return false;
+            return true;
+        }
+        
+        // 是否為特定地形
+        function isTerrain(x, y, type) {
+            return gameState.terrain.some(t => t.x === x && t.y === y && t.type === type);
+        }
+        
+        // 是否相鄰狼
+        function isAdjacentToWolf(x, y) {
+            const dx = Math.abs(x - gameState.wolfPosition.x);
+            const dy = Math.abs(y - gameState.wolfPosition.y);
+            return (dx + dy === 1);
+        }
+        
+        // 是否相鄰兔子
+        function isAdjacentToRabbit(x, y) {
+            const dx = Math.abs(x - gameState.rabbitPosition.x);
+            const dy = Math.abs(y - gameState.rabbitPosition.y);
+            return (dx + dy === 1);
+        }
+        
+        // 重置動作按鈕狀態
+        function resetActionButtons() {
+            wolfMoveBtn.disabled = (gameState.turn !== 'wolf' || gameState.wolfEnergy <= 0);
+            wolfTrapBtn.disabled = (gameState.turn !== 'wolf' || gameState.wolfEnergy <= 0);
+            wolfSenseBtn.disabled = (gameState.turn !== 'wolf' || gameState.wolfEnergy <= 0);
+            
+            rabbitMoveBtn.disabled = (gameState.turn !== 'rabbit' || gameState.rabbitEnergy <= 0);
+            rabbitBurrowBtn.disabled = (gameState.turn !== 'rabbit' || gameState.rabbitEnergy <= 0);
+            rabbitInvisibleBtn.disabled = (gameState.turn !== 'rabbit' || gameState.rabbitEnergy <= 0 || gameState.rabbitInvisible <= 0);
+        }
+        
+        // 檢查是否要切換回合
+        function checkTurnEnd() {
+            // 如果能量用完，直接結束回合
+            if (gameState.turn === 'wolf' && gameState.wolfEnergy <= 0) {
+                endTurnBtn.click();
+            } else if (gameState.turn === 'rabbit' && gameState.rabbitEnergy <= 0) {
+                endTurnBtn.click();
+            }
+        }
+        
+        // 檢查回合限制
+        function checkRoundLimit() {
+            if (gameState.round > gameState.maxRounds) {
+                endGame('rabbit', '已達到20回合，兔兔成功撐過了！');
+            }
+        }
+        
+        // 遊戲結束
+        function endGame(winner, reason) {
+            gameOver.style.display = 'flex';
+            if (winner === 'wolf') {
+                winnerText.textContent = '狼狼獲勝！';
+            } else {
+                winnerText.textContent = '兔兔獲勝！';
+            }
+            resultText.textContent = reason;
+        }
+        
+        // 預設先顯示教學
+        tutorial.style.display = 'flex';
     </script>
 </body>
 </html>
