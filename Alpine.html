@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智慧 Prompt 生成器</title>
+    <link rel="icon" href="img/ai.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Dancing+Script:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/default.min.css"
+    />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <style>
+      :root {
+        --primary: #4f46e5;
+        --primary-dark: #4338ca;
+        --danger: #ef4444;
+        --danger-dark: #dc2626;
+        --success: #22c55e;
+        --success-dark: #16a34a;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-400: #9ca3af;
+        --gray-500: #6b7280;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-800: #1f2937;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        transition: all 0.2s ease;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        padding: 2rem;
+        background: var(--gray-100);
+        color: var(--gray-800);
+      }
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: var(--shadow-md);
+      }
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+      }
+      .modal-backdrop.show {
+        opacity: 1;
+        visibility: visible;
+      }
+      .modal-content {
+        background: #fff;
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        max-width: 90%;
+        width: 500px;
+      }
+      .modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--gray-800);
+        font-family: "Playfair Display", serif;
+      }
+      .modal-body {
+        margin-bottom: 1.5rem;
+        color: var(--gray-600);
+      }
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+      }
+      .modal-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        font-size: 0.9rem;
+      }
+      .modal-btn-primary {
+        background: var(--primary);
+        color: #fff;
+      }
+      .modal-btn-primary:hover {
+        background: var(--primary-dark);
+      }
+      .modal-btn-secondary {
+        background: var(--gray-200);
+        color: var(--gray-800);
+      }
+      .modal-btn-secondary:hover {
+        background: var(--gray-300);
+      }
+      @keyframes slideIn {
+        0% {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+        100% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+      }
+      .logo {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 1rem;
+        animation: float 6s ease-in-out infinite;
+      }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+      .title-ch {
+        font-family: "Playfair Display", "Dancing Script", serif;
+        font-weight: 700;
+        font-size: 2.25rem;
+        background: linear-gradient(
+          135deg,
+          var(--primary),
+          #818cf8 50%,
+          #6366f1
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+      }
+      .title-en {
+        font-family: "Dancing Script", cursive;
+        font-size: 1.75rem;
+        color: var(--gray-500);
+        transform: rotate(-2deg);
+        display: block;
+      }
+      p {
+        color: var(--gray-600);
+        margin-top: 1rem;
+      }
+      @media (max-width: 768px) {
+        body {
+          padding: 1rem;
+        }
+        .container {
+          padding: 1rem;
+        }
+        .logo {
+          width: 48px;
+          height: 48px;
+        }
+        .title-ch {
+          font-size: 1.5rem;
+        }
+        .title-en {
+          font-size: 1rem;
+        }
+        .modal-content {
+          width: 90%;
+        }
+      }
+      .upload-section {
+        margin-bottom: 2rem;
+        padding: 2rem;
+        border: 2px dashed var(--gray-300);
+        border-radius: 0.75rem;
+        text-align: center;
+        background: var(--gray-50);
+      }
+      .upload-section:hover,
+      .upload-section.drag-over {
+        border-color: var(--primary);
+        background: #f5f7ff;
+      }
+      .upload-icon {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 1rem;
+        color: var(--gray-400);
+      }
+      .upload-section:hover .upload-icon {
+        color: var(--primary);
+        transform: scale(1.1);
+      }
+      .file-input {
+        display: none;
+      }
+      .upload-button {
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .upload-button:hover {
+        background: var(--primary-dark);
+      }
+      .upload-button svg {
+        width: 20px;
+        height: 20px;
+      }
+      .file-list {
+        margin: 2rem 0;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .file-list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      .file-list-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--gray-800);
+      }
+      .download-all-button {
+        background: var(--success);
+        color: #fff;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .download-all-button:hover {
+        background: var(--success-dark);
+      }
+      .download-all-button svg {
+        width: 20px;
+        height: 20px;
+      }
+      .clear-all-button {
+        background: var(--danger);
+        color: #fff;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      .clear-all-button:hover {
+        background: var(--danger-dark);
+      }
+      .file-item {
+        background: var(--gray-50);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid var(--gray-200);
+        animation: slideIn 0.3s ease;
+      }
+      .file-item:hover {
+        background: #fff;
+        border-color: var(--primary);
+        box-shadow: var(--shadow-sm);
+      }
+      .file-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .file-icon {
+        width: 24px;
+        height: 24px;
+        color: var(--primary);
+      }
+      .file-path {
+        color: var(--gray-700);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-size: 0.875rem;
+      }
+      .file-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .action-btn {
+        background: none;
+        color: var(--gray-400);
+        border: none;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+        cursor: pointer;
+      }
+      .action-btn:hover {
+        background: var(--gray-100);
+      }
+      .action-btn.download:hover {
+        color: var(--success);
+      }
+      .action-btn.preview:hover,
+      .action-btn.rename:hover {
+        color: var(--primary);
+      }
+      .action-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+      .version-control {
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--gray-200);
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+      .version-input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--gray-300);
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+      }
+      .version-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+      }
+      .save-btn {
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+      }
+      .save-btn:hover {
+        background: var(--primary-dark);
+      }
+      .save-btn svg {
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+      .saved-versions {
+        margin-top: 1.5rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .version-item {
+        background: var(--gray-50);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid var(--gray-200);
+      }
+      .version-item:hover {
+        background: #fff;
+        border-color: var(--primary);
+        box-shadow: var(--shadow-sm);
+      }
+      .version-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .version-name {
+        font-weight: 500;
+        color: var(--gray-800);
+      }
+      .version-time {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+      }
+      .version-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .delete-version-btn {
+        padding: 0.5rem;
+        border: none;
+        background: none;
+        color: var(--danger);
+        border-radius: 0.375rem;
+        cursor: pointer;
+      }
+      .delete-version-btn:hover {
+        background: var(--gray-100);
+        color: var(--danger-dark);
+      }
+      .delete-version-btn svg {
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+      .output-container {
+        position: relative;
+        margin-top: 1.5rem;
+        display: none;
+      }
+      .output-container.show {
+        display: block;
+      }
+      .copy-btn-container {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+      }
+      .copy-btn {
+        display: flex;
+        gap: 0.25rem;
+        align-items: center;
+        padding: 0.25rem 1rem;
+        background: var(--gray-50);
+        border: none;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--gray-600);
+      }
+      .copy-btn:hover {
+        background: var(--gray-100);
+      }
+      .copy-btn svg {
+        width: 1rem;
+        height: 1rem;
+      }
+      .output {
+        background: var(--gray-800);
+        color: var(--gray-100);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        white-space: pre-wrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-size: 0.875rem;
+        line-height: 1.7;
+        overflow-x: auto;
+      }
+      #pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      #pagination button {
+        background: var(--primary);
+        border: none;
+        color: #fff;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+      }
+      #pagination button:hover {
+        background: var(--primary-dark);
+      }
+      #pagination button.active {
+        background: var(--success);
+      }
+      #toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 5px;
+        display: none;
+        z-index: 2100;
+        opacity: 0;
+        transition: opacity 0.5s;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <svg
+          class="logo"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12 2L2 7L12 12L22 7L12 2Z"
+            stroke="var(--primary)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M2 17L12 22L22 17"
+            stroke="var(--primary)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M2 12L12 17L22 12"
+            stroke="var(--primary)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <circle cx="12" cy="12" r="2" fill="var(--primary)" />
+        </svg>
+        <h1>
+          <span class="title-ch">智慧 Prompt 生成器</span
+          ><span class="title-en">Smart Prompt Generator</span>
+        </h1>
+        <p>快速整理並生成結構化的AI提示文件</p>
+      </div>
+      <div class="upload-section" id="dropZone">
+        <svg
+          class="upload-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        <input type="file" id="fileInput" class="file-input" multiple />
+        <p>拖放檔案或資料夾至此，或</p>
+        <button
+          class="upload-button"
+          onclick="document.getElementById('fileInput').click()"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" /></svg
+          >選擇檔案或資料夾
+        </button>
+      </div>
+      <div style="margin-bottom: 1rem; text-align: right">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="搜尋檔案名稱..."
+          style="
+            padding: 0.5rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 0.5rem;
+          "
+        />
+      </div>
+      <div class="file-list" id="fileList"></div>
+      <div id="pagination"></div>
+      <div class="version-control">
+        <input
+          type="text"
+          class="version-input"
+          id="versionName"
+          placeholder="輸入版本名稱"
+        />
+        <button class="save-btn" onclick="saveVersion()">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+            />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" /></svg
+          >儲存版本
+        </button>
+      </div>
+      <div class="saved-versions" id="savedVersions"></div>
+      <div class="output-container">
+        <div class="copy-btn-container">
+          <button class="copy-btn" onclick="copyOutput()" id="copyButton">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z"
+                fill="currentColor"
+              /></svg
+            >複製
+          </button>
+        </div>
+        <pre class="output" id="output"></pre>
+      </div>
+    </div>
+    <div id="modal" class="modal-backdrop">
+      <div class="modal-content">
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-actions" id="modalActions"></div>
+      </div>
+    </div>
+    <div id="toast"></div>
+    <script>
+      let files = [],
+        savedVersions = [],
+        draggedItem = null,
+        currentPage = 1,
+        itemsPerPage = 10;
+      const textExts = [
+        "js",
+        "py",
+        "java",
+        "cpp",
+        "html",
+        "css",
+        "jsx",
+        "ts",
+        "tsx",
+        "php",
+        "blade.php",
+        "json",
+        "md",
+        "txt",
+        "csv",
+        "xml",
+        "yml",
+        "yaml",
+        "sql",
+      ];
+      const binExts = [
+        "jpg",
+        "jpeg",
+        "png",
+        "gif",
+        "bmp",
+        "svg",
+        "ico",
+        "pdf",
+        "zip",
+        "rar",
+        "7z",
+        "exe",
+        "dll",
+        "bin",
+      ];
+
+      document.addEventListener("DOMContentLoaded", () => {
+        hljs.initHighlightingOnLoad();
+        setupDragAndDrop();
+        setupFileInput();
+        loadSavedVersions();
+        document.getElementById("searchInput").addEventListener("input", () => {
+          currentPage = 1;
+          updateUI();
+        });
+      });
+
+      function loadSavedVersions() {
+        try {
+          const data = localStorage.getItem("promptVersions");
+          if (data) savedVersions = JSON.parse(data);
+          updateVersionsList();
+        } catch (e) {
+          showToast("載入版本失敗");
+        }
+      }
+
+      function saveVersionsToStorage() {
+        try {
+          localStorage.setItem("promptVersions", JSON.stringify(savedVersions));
+        } catch (e) {
+          showToast("儲存版本失敗");
+        }
+      }
+
+      function setupDragAndDrop() {
+        const dropZone = document.getElementById("dropZone");
+        dropZone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          dropZone.classList.add("drag-over");
+        });
+        dropZone.addEventListener("dragleave", () =>
+          dropZone.classList.remove("drag-over")
+        );
+        dropZone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dropZone.classList.remove("drag-over");
+          handleFiles(e.dataTransfer.files);
+        });
+      }
+
+      function setupFileInput() {
+        document
+          .getElementById("fileInput")
+          .addEventListener("change", (e) => handleFiles(e.target.files));
+      }
+
+      async function handleFiles(fileList) {
+        const failed = [];
+        for (const file of fileList) {
+          try {
+            const { content, type } = await readFileContent(file);
+            files.push({
+              id: Math.random().toString(36).substr(2, 9),
+              name: file.name,
+              path: file.webkitRelativePath || file.name,
+              content,
+              type,
+            });
+          } catch (e) {
+            failed.push(file.name);
+          }
+        }
+        if (failed.length)
+          showModal(
+            "讀取失敗",
+            `無法讀取以下檔案：<br>${failed.join("<br>")}`,
+            [{ text: "確認", onClick: "hideModal()", primary: true }]
+          );
+        updateUI();
+      }
+
+      function readFileContent(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader(),
+            ext = file.name.split(".").pop().toLowerCase();
+          const isBin = binExts.includes(ext);
+          reader.onload = (e) =>
+            resolve({
+              content: e.target.result,
+              type: isBin ? "binary" : "text",
+            });
+          reader.onerror = reject;
+          isBin ? reader.readAsArrayBuffer(file) : reader.readAsText(file);
+        });
+      }
+
+      function updateUI() {
+        updateFileList();
+        updateOutput();
+        updateVersionsList();
+      }
+
+      function updateFileList() {
+        const fileList = document.getElementById("fileList");
+        const search = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const filtered = files.filter((f) =>
+          f.name.toLowerCase().includes(search)
+        );
+        const total = filtered.length,
+          totalPages = Math.ceil(total / itemsPerPage);
+        if (currentPage > totalPages) currentPage = totalPages || 1;
+        const start = (currentPage - 1) * itemsPerPage,
+          pageFiles = filtered.slice(start, start + itemsPerPage);
+        fileList.innerHTML = total
+          ? `
+                <div class="file-list-header">
+                    <h2>檔案列表 (${total})</h2>
+                    <div style="display:flex;gap:.5rem">
+                        <button class="download-all-button" onclick="downloadAllFiles()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/><path d="M16 11l-4 4-4-4"/>
+                            </svg>下載全部
+                        </button>
+                        <button class="clear-all-button" onclick="confirmClearAll()">清除全部</button>
+                    </div>
+                </div>`
+          : "";
+        pageFiles.forEach((file) => {
+          const item = document.createElement("div");
+          item.classList.add("file-item");
+          if (!search) item.setAttribute("draggable", "true");
+          item.dataset.index = files.indexOf(file);
+          const ext = file.name.split(".").pop().toLowerCase();
+          const isSql = ext === "sql";
+          const icon =
+            file.type === "text"
+              ? isSql
+                ? `<svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4V4z"/><polyline points="4 10 12 14 20 10"/></svg>`
+                : `<svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>`
+              : `<svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+          item.innerHTML = `
+                    <div class="file-info">${icon}<span class="file-path">${
+            file.path
+          }${
+            file.type === "text" ? (isSql ? " (SQL檔案)" : "") : " (二進位檔案)"
+          }</span></div>
+                    <div class="file-actions">
+                        <button class="action-btn download" onclick="downloadFile('${
+                          file.id
+                        }')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/><path d="M12 15l-4-4"/></svg></button>
+                        <button class="action-btn" onclick="deleteFile('${
+                          file.id
+                        }')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                        <button class="action-btn preview" onclick="previewFile('${
+                          file.id
+                        }')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                        <button class="action-btn rename" onclick="renameFile('${
+                          file.id
+                        }')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+                    </div>`;
+          if (!search) {
+            item.addEventListener("dragstart", handleDragStart, {
+              once: false,
+            });
+            item.addEventListener("dragend", handleDragEnd, { once: false });
+            item.addEventListener("dragover", handleDragOver, { once: false });
+            item.addEventListener("drop", handleDrop, { once: false });
+          }
+          fileList.appendChild(item);
+        });
+        updatePagination(total);
+      }
+
+      function updatePagination(total) {
+        const pagination = document.getElementById("pagination");
+        const totalPages = Math.ceil(total / itemsPerPage);
+        let html = "";
+        if (totalPages > 1) {
+          if (currentPage > 1)
+            html += `<button onclick="gotoPage(${
+              currentPage - 1
+            })">上一頁</button>`;
+          for (let i = 1; i <= totalPages; i++)
+            html += `<button onclick="gotoPage(${i})" class="${
+              i === currentPage ? "active" : ""
+            }">${i}</button>`;
+          if (currentPage < totalPages)
+            html += `<button onclick="gotoPage(${
+              currentPage + 1
+            })">下一頁</button>`;
+        }
+        pagination.innerHTML = html;
+      }
+
+      function gotoPage(page) {
+        currentPage = page;
+        updateUI();
+      }
+
+      function deleteFile(id) {
+        files = files.filter((f) => f.id !== id);
+        updateUI();
+      }
+
+      function downloadFile(id) {
+        const file = files.find((f) => f.id === id);
+        if (!file)
+          return showModal("下載失敗", "找不到檔案", [
+            { text: "確認", onClick: "hideModal()", primary: true },
+          ]);
+        const blob =
+          file.type === "text"
+            ? new Blob([file.content], { type: "text/plain" })
+            : new Blob([file.content]);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`已下載：${file.name}`);
+      }
+
+      async function downloadAllFiles() {
+        if (!files.length) return showToast("無檔案可下載");
+        const zip = new JSZip();
+        files.forEach((f) =>
+          f.type === "text"
+            ? zip.file(f.path, f.content)
+            : zip.file(f.path, f.content, { binary: true })
+        );
+        try {
+          const blob = await zip.generateAsync({ type: "blob" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "all_files.zip";
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast("已下載全部檔案");
+        } catch (e) {
+          showModal("下載失敗", "請稍後再試", [
+            { text: "確認", onClick: "hideModal()", primary: true },
+          ]);
+        }
+      }
+
+      function updateOutput() {
+        const container = document.querySelector(".output-container");
+        if (!files.length) return container.classList.remove("show");
+        let output = "";
+        const paths = [
+          ...new Set(
+            files.map((f) => f.path.split("/").slice(0, -1).join("/"))
+          ),
+        ].filter((p) => p);
+        paths.forEach((p) => {
+          output += `\n## ${p}\n\n`;
+          files
+            .filter((f) => f.path.startsWith(p + "/"))
+            .forEach((f) => {
+              output +=
+                f.type === "text"
+                  ? `### ${f.name}\n\`\`\`${
+                      f.name.endsWith(".sql") ? "sql" : "text"
+                    }\n${f.content}\n\`\`\`\n\n`
+                  : `### ${f.name}\n（二進位檔案）\n\n`;
+            });
+        });
+        files
+          .filter((f) => !f.path.includes("/"))
+          .forEach((f) => {
+            output +=
+              f.type === "text"
+                ? `### ${f.name}\n\`\`\`${
+                    f.name.endsWith(".sql") ? "sql" : "text"
+                  }\n${f.content}\n\`\`\`\n\n`
+                : `### ${f.name}\n（二進位檔案）\n\n`;
+          });
+        document.getElementById("output").textContent = output;
+        container.classList.add("show");
+      }
+
+      async function copyOutput() {
+        const text = document.getElementById("output").textContent;
+        const btn = document.getElementById("copyButton");
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M18.0633 5.67387C18.5196 5.98499 18.6374 6.60712 18.3262 7.06343L10.8262 18.0634C10.6585 18.3095 10.3898 18.4679 10.0934 18.4957C9.79688 18.5235 9.50345 18.4178 9.29289 18.2072L4.79289 13.7072C4.40237 13.3167 4.40237 12.6835 4.79289 12.293C5.18342 11.9025 5.81658 11.9025 6.20711 12.293L9.85368 15.9396L16.6738 5.93676C16.9849 5.48045 17.607 5.36275 18.0633 5.67387Z" fill="currentColor"/></svg>已複製`;
+          setTimeout(
+            () =>
+              (btn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"/></svg>複製`),
+            2000
+          );
+        } catch (e) {
+          showModal("複製失敗", "請手動複製", [
+            { text: "確認", onClick: "hideModal()", primary: true },
+          ]);
+        }
+      }
+
+      function previewFile(id) {
+        const file = files.find((f) => f.id === id);
+        if (!file) return showToast("找不到檔案");
+        if (file.type === "text") {
+          const ext = file.name.split(".").pop().toLowerCase();
+          const lang =
+            {
+              js: "javascript",
+              py: "python",
+              html: "html",
+              css: "css",
+              java: "java",
+              cpp: "cpp",
+              php: "php",
+              json: "json",
+              md: "markdown",
+            }[ext] || "text";
+          const escapedContent = file.content
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+          const content = `<div id="codeContainer" style="max-height:500px;overflow:auto"><pre><code id="codePreview" class="language-${lang}">${escapedContent}</code></pre></div><div style="margin-top:1rem;text-align:right"><button id="editBtn" class="modal-btn modal-btn-primary" style="margin-right:.5rem">編輯</button></div>`;
+          showModal(`預覽：${file.name}`, content, [
+            { text: "關閉", onClick: "hideModal()", primary: true },
+          ]);
+          document.querySelector(".modal-content").style.cssText +=
+            "width:80%;max-width:900px";
+          hljs.highlightElement(document.getElementById("codePreview"));
+          document
+            .getElementById("editBtn")
+            .addEventListener("click", function () {
+              const container = document.getElementById("codeContainer");
+              if (container.querySelector("textarea")) {
+                file.content = container.querySelector("textarea").value;
+                container.innerHTML = `<pre><code id="codePreview" class="language-${lang}">${file.content
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")}</code></pre>`;
+                hljs.highlightElement(document.getElementById("codePreview"));
+                this.textContent = "編輯";
+              } else {
+                container.innerHTML = `<textarea style="width:100%;height:400px">${file.content}</textarea>`;
+                this.textContent = "儲存修改";
+              }
+            });
+        } else {
+          const ext = file.name.split(".").pop().toLowerCase();
+          if (
+            ["jpg", "jpeg", "png", "gif", "bmp", "svg", "ico"].includes(ext)
+          ) {
+            const url = URL.createObjectURL(new Blob([file.content]));
+            showModal(
+              `預覽：${file.name}`,
+              `<img src="${url}" style="max-width:100%;max-height:500px">`,
+              [{ text: "關閉", onClick: "hideModal()", primary: true }]
+            );
+          } else {
+            showModal(`預覽：${file.name}`, "二進位檔案無法預覽", [
+              { text: "關閉", onClick: "hideModal()", primary: true },
+            ]);
+          }
+        }
+      }
+
+      function renameFile(id) {
+        const file = files.find((f) => f.id === id);
+        if (!file) return showToast("找不到檔案");
+        const newName = prompt("輸入新名稱：", file.name);
+        if (newName && newName.trim()) {
+          file.name = newName.trim();
+          file.path = file.path
+            .split("/")
+            .slice(0, -1)
+            .concat(file.name)
+            .join("/");
+          updateUI();
+          showToast(`已重新命名為：${file.name}`);
+        }
+      }
+
+      function confirmClearAll() {
+        showModal("確認清除", "確定清除所有檔案？無法復原", [
+          { text: "取消", onClick: "hideModal()", primary: false },
+          { text: "確定", onClick: "clearAllFiles()", primary: true },
+        ]);
+      }
+
+      function clearAllFiles() {
+        files = [];
+        updateUI();
+        hideModal();
+        showToast("已清除所有檔案");
+      }
+
+      function handleDragStart(e) {
+        draggedItem = e.currentTarget;
+        e.currentTarget.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      }
+
+      function handleDragEnd(e) {
+        e.currentTarget.classList.remove("dragging");
+        draggedItem = null;
+      }
+
+      function handleDragOver(e) {
+        e.preventDefault();
+        const target = e.currentTarget;
+        if (target !== draggedItem) {
+          const rect = target.getBoundingClientRect();
+          const offset = e.clientY - rect.top;
+          target.style[
+            offset > rect.height / 2 ? "border-bottom" : "border-top"
+          ] = "2px solid var(--primary)";
+          target.style[
+            offset > rect.height / 2 ? "border-top" : "border-bottom"
+          ] = "";
+        }
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        const target = e.currentTarget;
+        if (target !== draggedItem) {
+          const rect = target.getBoundingClientRect();
+          const offset = e.clientY - rect.top;
+          const dropIdx = parseInt(target.dataset.index);
+          const dragIdx = parseInt(draggedItem.dataset.index);
+          files.splice(
+            offset > rect.height / 2 ? dropIdx + 1 : dropIdx,
+            0,
+            files.splice(dragIdx, 1)[0]
+          );
+          updateUI();
+        }
+        document.querySelectorAll(".file-item").forEach((i) => {
+          i.style.borderTop = "";
+          i.style.borderBottom = "";
+        });
+      }
+
+      function showModal(title, body, actions) {
+        const modal = document.getElementById("modal");
+        document.getElementById("modalTitle").textContent = title;
+        document.getElementById("modalBody").innerHTML = body;
+        document.getElementById("modalActions").innerHTML = actions
+          .map(
+            (a) =>
+              `<button class="modal-btn ${
+                a.primary ? "modal-btn-primary" : "modal-btn-secondary"
+              }" onclick="${a.onClick}">${a.text}</button>`
+          )
+          .join("");
+        modal.classList.add("show");
+      }
+
+      function hideModal() {
+        document.getElementById("modal").classList.remove("show");
+      }
+
+      function updateVersionsList() {
+        document.getElementById("savedVersions").innerHTML = savedVersions
+          .map(
+            (v) => `
+                <div class="version-item">
+                    <div class="version-info">
+                        <span class="version-name">${v.name}</span>
+                        <span class="version-time">建立：${formatDate(
+                          v.created
+                        )}<br>更新：${formatDate(v.updated)}</span>
+                    </div>
+                    <div class="version-actions">
+                        <button class="save-btn" onclick="loadVersion('${
+                          v.id
+                        }')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.25rem;height:1.25rem"><path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>載入</button>
+                        <button class="delete-version-btn" onclick="deleteVersion('${
+                          v.id
+                        }')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                    </div>
+                </div>`
+          )
+          .join("");
+      }
+
+      function formatDate(date) {
+        const d = new Date(date);
+        return `${d.getFullYear()}/${(d.getMonth() + 1)
+          .toString()
+          .padStart(2, "0")}/${d.getDate().toString().padStart(2, "0")} ${d
+          .getHours()
+          .toString()
+          .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+      }
+
+      function loadVersion(id) {
+        const version = savedVersions.find((v) => v.id === id);
+        if (version) {
+          files = [...version.files];
+          version.updated = new Date().toISOString();
+          saveVersionsToStorage();
+          updateUI();
+          showToast("版本已載入");
+        }
+      }
+
+      function deleteVersion(id) {
+        showModal("確認刪除", "確定刪除此版本？無法復原", [
+          { text: "取消", onClick: "hideModal()", primary: false },
+          {
+            text: "確定",
+            onClick: `confirmDeleteVersion('${id}')`,
+            primary: true,
+          },
+        ]);
+      }
+
+      function confirmDeleteVersion(id) {
+        savedVersions = savedVersions.filter((v) => v.id !== id);
+        saveVersionsToStorage();
+        updateVersionsList();
+        hideModal();
+      }
+
+      function saveVersion() {
+        const name = document.getElementById("versionName").value.trim();
+        if (!name) return showToast("請輸入版本名稱");
+        savedVersions.push({
+          id: Math.random().toString(36).substr(2, 9),
+          name,
+          files: [...files],
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        });
+        saveVersionsToStorage();
+        updateVersionsList();
+        document.getElementById("versionName").value = "";
+        showToast("版本已儲存");
+      }
+
+      function showToast(msg, duration = 3000) {
+        const toast = document.getElementById("toast");
+        toast.textContent = msg;
+        toast.style.display = "block";
+        toast.style.opacity = "1";
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => (toast.style.display = "none"), 500);
+        }, duration);
+      }
+    </script>
+  </body>
+</html>
