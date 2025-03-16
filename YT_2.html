@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube 超級留言玻璃卡片展示牆</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-bg: linear-gradient(135deg, #f5f7fa 0%, #e8f4f8 50%, #e0f7f1 100%);
+            --glass-bg: rgba(255, 255, 255, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --mint-green: rgba(152, 255, 200, 0.8);
+            --light-blue: rgba(173, 216, 255, 0.8);
+            --light-pink: rgba(255, 202, 212, 0.8);
+            --text-primary: #444454;
+            --text-secondary: #5c5c7c;
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', 'Poppins', sans-serif;
+            background: var(--primary-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 10%),
+                radial-gradient(circle at 70% 60%, rgba(173, 216, 255, 0.2) 0%, transparent 15%),
+                radial-gradient(circle at 40% 80%, rgba(152, 255, 200, 0.3) 0%, transparent 12%);
+            z-index: -1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+        }
+
+        /* Glass effect base */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* YouTuber Info Section */
+        .youtuber-info {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            gap: 1.5rem;
+            width: 100%;
+        }
+
+        .youtuber-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            position: relative;
+            border: 3px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 20px rgba(173, 216, 255, 0.5);
+        }
+
+        .youtuber-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .youtuber-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .youtuber-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .youtuber-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Superchat Cards Section */
+        .superchat-container {
+            position: relative;
+            width: 100%;
+            min-height: 320px;
+            overflow: hidden;
+        }
+
+        .superchat-slides {
+            display: flex;
+            gap: 1.5rem;
+            width: 100%;
+            transition: opacity 0.8s ease;
+        }
+
+        .superchat-cards {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .superchat-cards.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .superchat-card {
+            flex: 1;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 260px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .superchat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 12px 30px 0 rgba(31, 38, 135, 0.2);
+        }
+
+        .superchat-card::before {
+            content: "";
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            opacity: 0.15;
+            filter: blur(15px);
+            z-index: -1;
+            transition: all 0.6s ease;
+        }
+
+        .superchat-card:hover::before {
+            transform: scale(1.5);
+            opacity: 0.2;
+        }
+
+        /* Card levels based on amount */
+        .card-level-1::before {
+            background: var(--light-blue);
+            box-shadow: 0 0 30px var(--light-blue);
+        }
+
+        .card-level-2::before {
+            background: var(--mint-green);
+            box-shadow: 0 0 30px var(--mint-green);
+        }
+
+        .card-level-3::before {
+            background: var(--light-pink);
+            box-shadow: 0 0 40px var(--light-pink);
+        }
+
+        .fan-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .fan-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+        }
+
+        .fan-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .fan-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .superchat-message {
+            flex: 1;
+            font-size: 1rem;
+            line-height: 1.5;
+            overflow-wrap: break-word;
+            overflow-y: auto;
+            max-height: 120px;
+            padding-right: 0.5rem;
+        }
+
+        .superchat-message::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .superchat-message::-webkit-scrollbar-thumb {
+            background: rgba(173, 216, 255, 0.5);
+            border-radius: 10px;
+        }
+
+        .superchat-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: auto;
+        }
+
+        .superchat-amount {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .original-amount {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .original-amount.level-1 {
+            color: #4285f4;
+        }
+
+        .original-amount.level-2 {
+            color: #34a853;
+        }
+
+        .original-amount.level-3 {
+            color: #ea4335;
+        }
+
+        .converted-amount {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .superchat-time {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Chart Section */
+        .chart-container {
+            width: 100%;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .chart-container canvas {
+            max-height: 250px;
+            width: 100%;
+        }
+
+        /* Loading Animation */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .loading.active {
+            opacity: 1;
+        }
+
+        .loading-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--light-blue);
+            animation: loadingBounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dot:nth-child(1) {
+            animation-delay: -0.32s;
+            background: var(--light-pink);
+        }
+
+        .loading-dot:nth-child(2) {
+            animation-delay: -0.16s;
+            background: var(--mint-green);
+        }
+
+        @keyframes loadingBounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 992px) {
+            .superchat-cards {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .superchat-container {
+                min-height: 800px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .youtuber-info {
+                flex-direction: column;
+                text-align: center;
+                padding: 1rem;
+            }
+            
+            .superchat-container {
+                min-height: 700px;
+            }
+            
+            .chart-container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- YouTuber Info Section -->
+        <div class="youtuber-info glass-card">
+            <div class="youtuber-avatar">
+                <img src="/api/placeholder/80/80" alt="YouTuber Avatar">
+            </div>
+            <div class="youtuber-text">
+                <h1 class="youtuber-name">愛心頻道</h1>
+                <p class="youtuber-subtitle">謝謝你們的支持！</p>
+            </div>
+        </div>
+
+        <!-- Superchat Cards Section -->
+        <div class="superchat-container glass-card">
+            <div class="loading">
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+            </div>
+            <!-- Cards will be dynamically inserted here -->
+        </div>
+
+        <!-- Chart Section -->
+        <div class="chart-container glass-card">
+            <canvas id="donationChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Sample data for superchats (grouped by slides)
+        const superchatsData = [
+            // Group 1
+            [
+                {
+                    name: "小星星",
+                    avatar: "/api/placeholder/40/40",
+                    message: "主播太厲害了！希望你能繼續加油 💪 我會一直支持你的直播！",
+                    originalAmount: "USD $50",
+                    convertedAmount: "NT$ 1,575",
+                    time: "2 分鐘前",
+                    level: 3
+                },
+                {
+                    name: "藍天白雲",
+                    avatar: "/api/placeholder/40/40",
+                    message: "今天的遊戲好精彩，謝謝你的分享 😊",
+                    originalAmount: "USD $10",
+                    convertedAmount: "NT$ 315",
+                    time: "5 分鐘前",
+                    level: 1
+                },
+                {
+                    name: "綠色森林",
+                    avatar: "/api/placeholder/40/40",
+                    message: "你的笑聲真的太治癒了，每次看你的直播心情都變好 🌈",
+                    originalAmount: "USD $20",
+                    convertedAmount: "NT$ 630",
+                    time: "8 分鐘前",
+                    level: 2
+                }
+            ],
+            // Group 2
+            [
+                {
+                    name: "夢想家",
+                    avatar: "/api/placeholder/40/40",
+                    message: "主播加油！期待下次的內容 ✨",
+                    originalAmount: "USD $15",
+                    convertedAmount: "NT$ 473",
+                    time: "12 分鐘前",
+                    level: 1
+                },
+                {
+                    name: "開心果",
+                    avatar: "/api/placeholder/40/40",
+                    message: "謝謝你的推薦，我買了那個遊戲真的超好玩！\n希望能多聽到你的推薦 🎮",
+                    originalAmount: "USD $30",
+                    convertedAmount: "NT$ 945",
+                    time: "15 分鐘前",
+                    level: 2
+                },
+                {
+                    name: "彩虹",
+                    avatar: "/api/placeholder/40/40",
+                    message: "啊啊啊啊我是你的粉絲好久了終於存夠錢可以送SC啦！！！\n愛你愛你愛你 ❤️❤️❤️",
+                    originalAmount: "USD $40",
+                    convertedAmount: "NT$ 1,260",
+                    time: "18 分鐘前",
+                    level: 3
+                }
+            ],
+            // Group 3
+            [
+                {
+                    name: "微風",
+                    avatar: "/api/placeholder/40/40",
+                    message: "主播的聲音好好聽，希望可以出ASMR 🎧",
+                    originalAmount: "USD $25",
+                    convertedAmount: "NT$ 788",
+                    time: "22 分鐘前",
+                    level: 2
+                },
+                {
+                    name: "夏日陽光",
+                    avatar: "/api/placeholder/40/40",
+                    message: "我從你第一個影片就開始追了！一路看你成長真的很感動 😭",
+                    originalAmount: "USD $60",
+                    convertedAmount: "NT$ 1,890",
+                    time: "25 分鐘前",
+                    level: 3
+                },
+                {
+                    name: "月光",
+                    avatar: "/api/placeholder/40/40",
+                    message: "你的攻略幫了我好大忙！謝謝分享 👍",
+                    originalAmount: "USD $5",
+                    convertedAmount: "NT$ 158",
+                    time: "28 分鐘前",
+                    level: 1
+                }
+            ]
+        ];
+
+        // Chart data for donations over time
+        const chartData = {
+            labels: ['30分鐘前', '25分鐘前', '22分鐘前', '18分鐘前', '15分鐘前', '12分鐘前', '8分鐘前', '5分鐘前', '2分鐘前'],
+            values: [158, 1890, 788, 1260, 945, 473, 630, 315, 1575]
+        };
+
+        // Initialize the superchat slides
+        const superchatContainer = document.querySelector('.superchat-container');
+        const loading = document.querySelector('.loading');
+        let currentSlide = 0;
+
+        // Function to create superchat cards
+        function createSuperchats() {
+            loading.classList.add('active');
+            
+            // Remove any existing slide groups
+            while (superchatContainer.querySelector('.superchat-cards')) {
+                superchatContainer.removeChild(superchatContainer.querySelector('.superchat-cards'));
+            }
+            
+            // Create slide groups for each set of superchats
+            superchatsData.forEach((group, groupIndex) => {
+                const slideDiv = document.createElement('div');
+                slideDiv.className = `superchat-cards ${groupIndex === 0 ? 'active' : ''}`;
+                
+                group.forEach(chat => {
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = `superchat-card glass-card card-level-${chat.level}`;
+                    
+                    cardDiv.innerHTML = `
+                        <div class="fan-profile">
+                            <div class="fan-avatar">
+                                <img src="${chat.avatar}" alt="${chat.name}">
+                            </div>
+                            <div class="fan-name">${chat.name}</div>
+                        </div>
+                        <div class="superchat-message">${chat.message.replace(/\n/g, '<br>')}</div>
+                        <div class="superchat-details">
+                            <div class="superchat-amount">
+                                <div class="original-amount level-${chat.level}">${chat.originalAmount}</div>
+                                <div class="converted-amount">${chat.convertedAmount}</div>
+                            </div>
+                            <div class="superchat-time">${chat.time}</div>
+                        </div>
+                    `;
+                    
+                    slideDiv.appendChild(cardDiv);
+                });
+                
+                superchatContainer.appendChild(slideDiv);
+            });
+            
+            setTimeout(() => {
+                loading.classList.remove('active');
+            }, 800);
+        }
+
+        // Function to rotate slides
+        function rotateSlides() {
+            const slides = document.querySelectorAll('.superchat-cards');
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }
+
+        // Initialize the chart using Chart.js
+        function initChart() {
+            const ctx = document.getElementById('donationChart').getContext('2d');
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, 'rgba(152, 255, 200, 0.5)');
+            gradient.addColorStop(1, 'rgba(152, 255, 200, 0.1)');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: '打賞金額 (NT$)',
+                        data: chartData.values,
+                        borderColor: 'rgba(152, 255, 200, 1)',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: 'white',
+                        pointBorderColor: 'rgba(152, 255, 200, 1)',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                            titleColor: '#444454',
+                            bodyColor: '#444454',
+                            titleFont: {
+                                family: 'Poppins',
+                                size: 14
+                            },
+                            bodyFont: {
+                                family: 'Poppins',
+                                size: 13
+                            },
+                            padding: 12,
+                            borderColor: 'rgba(152, 255, 200, 0.5)',
+                            borderWidth: 1,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `NT$ ${context.raw.toLocaleString()}`;
+                                }
+                            }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Noto Sans TC',
+                                    size: 12
+                                },
+                                color: '#5c5c7c'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(173, 216, 255, 0.1)'
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Poppins',
+                                    size: 12
+                                },
+                                color: '#5c5c7c',
+                                callback: function(value) {
+                                    return 'NT$ ' + value;
+                                }
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize everything on DOM load
+        document.addEventListener('DOMContentLoaded', () => {
+            createSuperchats();
+            initChart();
+            setInterval(rotateSlides, 3000);
+        });
+    </script>
+</body>
+</html>
