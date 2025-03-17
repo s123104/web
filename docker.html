@@ -1,0 +1,2489 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Docker 常用指令大全</title>
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <!-- Google Fonts -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #0f172a;
+        color: #f8fafc;
+        line-height: 1.5;
+      }
+
+      /* 滾動條樣式 */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #3b82f6;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #60a5fa;
+      }
+
+      .app-container {
+        max-width: 1440px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      @media (min-width: 768px) {
+        .app-container {
+          flex-direction: row;
+        }
+      }
+
+      .sidebar {
+        background-color: #1e293b;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        width: 100%;
+      }
+
+      @media (min-width: 768px) {
+        .sidebar {
+          width: 280px;
+          min-width: 280px;
+        }
+      }
+
+      .sidebar-sticky {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        padding: 1rem;
+      }
+
+      .category-item {
+        transition: all 0.3s ease;
+        width: 100%;
+        text-align: left;
+        padding: 0.6rem 0.75rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        background-color: transparent;
+        border: none;
+        color: #f8fafc;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 4px;
+        border-left: 3px solid transparent;
+      }
+
+      .category-item:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+        transform: translateX(4px);
+      }
+
+      .category-item.active {
+        background-color: rgba(59, 130, 246, 0.2);
+        border-left: 3px solid #3b82f6;
+        font-weight: 500;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .category-item::before {
+        content: "";
+        position: absolute;
+        left: -20px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: currentColor;
+        opacity: 0;
+        transition: all 0.3s ease;
+      }
+
+      .category-item:hover::before {
+        opacity: 0;
+      }
+
+      .category-item.active::before {
+        opacity: 0;
+      }
+
+      .category-item i {
+        margin-right: 0.5rem;
+      }
+
+      .command-card {
+        background-color: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+      }
+
+      .command-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .card-header {
+        position: relative;
+        padding: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .card-body {
+        padding: 18px;
+      }
+
+      .command-container {
+        position: relative;
+        background-color: rgba(0, 0, 0, 0.3);
+        border-radius: 6px;
+        margin: 16px 0;
+      }
+
+      pre.command {
+        padding: 16px;
+        margin: 0;
+        color: #f8fafc;
+        font-family: "Fira Code", "Consolas", monospace;
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+
+      .copy-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .copy-btn:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        transform: translateY(-1px);
+      }
+
+      .copy-btn:active {
+        transform: translateY(1px);
+      }
+
+      .copy-btn.copied {
+        background-color: #10b981;
+        color: white;
+      }
+
+      .category-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+      }
+
+      .category-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      .category-badge i {
+        margin-right: 5px;
+        font-size: 0.9rem;
+      }
+
+      .badge-basic {
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.2) 0%,
+          rgba(16, 185, 129, 0.4) 100%
+        );
+        color: #10b981;
+        border-left: 3px solid #10b981;
+      }
+
+      .badge-inspect {
+        background: linear-gradient(
+          135deg,
+          rgba(245, 158, 11, 0.2) 0%,
+          rgba(245, 158, 11, 0.4) 100%
+        );
+        color: #f59e0b;
+        border-left: 3px solid #f59e0b;
+      }
+
+      .badge-cleanup {
+        background: linear-gradient(
+          135deg,
+          rgba(59, 130, 246, 0.2) 0%,
+          rgba(59, 130, 246, 0.4) 100%
+        );
+        color: #3b82f6;
+        border-left: 3px solid #3b82f6;
+      }
+
+      .badge-debug {
+        background: linear-gradient(
+          135deg,
+          rgba(139, 92, 246, 0.2) 0%,
+          rgba(139, 92, 246, 0.4) 100%
+        );
+        color: #8b5cf6;
+        border-left: 3px solid #8b5cf6;
+      }
+
+      .badge-advanced {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.2) 0%,
+          rgba(239, 68, 68, 0.4) 100%
+        );
+        color: #ef4444;
+        border-left: 3px solid #ef4444;
+      }
+
+      .badge-mcp {
+        background: linear-gradient(
+          135deg,
+          rgba(236, 72, 153, 0.2) 0%,
+          rgba(236, 72, 153, 0.4) 100%
+        );
+        color: #ec4899;
+        border-left: 3px solid #ec4899;
+      }
+
+      .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 8px;
+        margin-bottom: 8px;
+      }
+
+      .card-description {
+        color: #cbd5e1;
+        font-size: 0.875rem;
+        margin-bottom: 16px;
+      }
+
+      .tip-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+        padding: 8px;
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        color: #94a3b8;
+      }
+
+      .tip-icon {
+        color: #3b82f6;
+      }
+
+      .search-container {
+        position: relative;
+        margin-bottom: 24px;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 12px 16px;
+        padding-left: 40px;
+        background-color: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #f8fafc;
+        transition: all 0.2s ease;
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+      }
+
+      .docker-logo {
+        animation: float 6s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+
+      main {
+        flex: 1;
+        padding: 1rem;
+      }
+
+      @media (min-width: 768px) {
+        main {
+          padding: 2rem;
+        }
+      }
+
+      .mobile-menu-btn {
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background-color: #3b82f6;
+        color: white;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        z-index: 40;
+        border: none;
+        cursor: pointer;
+      }
+
+      .overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 40;
+      }
+
+      .overlay.active {
+        display: block;
+      }
+
+      @media (max-width: 767px) {
+        .sidebar {
+          position: fixed;
+          left: -100%;
+          top: 0;
+          width: 80%;
+          height: 100%;
+          z-index: 50;
+          transition: left 0.3s ease;
+        }
+
+        .sidebar.open {
+          left: 0;
+        }
+
+        .mobile-menu-btn {
+          display: flex;
+        }
+      }
+
+      .grid {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      @media (min-width: 768px) {
+        .grid {
+          grid-template-columns: repeat(1, 1fr);
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (min-width: 1280px) {
+        .grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      /* 設置模態框樣式 */
+      .setup-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.75);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .setup-modal.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .modal-content {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-radius: 12px;
+        max-width: 500px;
+        width: 90%;
+        padding: 24px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transform: translateY(-20px);
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .setup-modal.active .modal-content {
+        transform: translateY(0);
+      }
+
+      .modal-header {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #f8fafc;
+        margin-bottom: 8px;
+      }
+
+      .modal-subtitle {
+        color: #cbd5e1;
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      .form-group {
+        margin-bottom: 24px;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #cbd5e1;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: 12px 15px;
+        background-color: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        color: #f8fafc;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+      }
+
+      .form-input::placeholder {
+        color: #64748b;
+      }
+
+      .switch-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 24px;
+      }
+
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+        margin-right: 12px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #475569;
+        transition: 0.4s;
+        border-radius: 24px;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+
+      input:checked + .slider {
+        background-color: #3b82f6;
+      }
+
+      input:focus + .slider {
+        box-shadow: 0 0 1px #3b82f6;
+      }
+
+      input:checked + .slider:before {
+        transform: translateX(26px);
+      }
+
+      .switch-label {
+        color: #cbd5e1;
+        font-size: 0.95rem;
+      }
+
+      .btn-primary {
+        display: block;
+        width: 100%;
+        padding: 12px 24px;
+        background: linear-gradient(to right, #3b82f6, #2563eb);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-bottom: 20px;
+      }
+
+      .btn-primary:hover {
+        background: linear-gradient(to right, #2563eb, #1d4ed8);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      .help-section {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .help-title {
+        color: #e2e8f0;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .help-title i {
+        margin-right: 6px;
+        color: #3b82f6;
+      }
+
+      .help-text {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        margin-bottom: 8px;
+      }
+
+      .help-list {
+        margin-left: 15px;
+        margin-top: 10px;
+      }
+
+      .help-list li {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        margin-bottom: 6px;
+        position: relative;
+        padding-left: 5px;
+      }
+
+      .help-list li::before {
+        content: "•";
+        position: absolute;
+        left: -12px;
+        color: #3b82f6;
+      }
+
+      .help-link {
+        color: #60a5fa;
+        text-decoration: none;
+        transition: all 0.2s ease;
+      }
+
+      .help-link:hover {
+        text-decoration: underline;
+        color: #93c5fd;
+      }
+
+      .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .close-btn:hover {
+        color: white;
+        transform: rotate(90deg);
+      }
+
+      .flex {
+        display: flex;
+      }
+
+      .items-center {
+        align-items: center;
+      }
+
+      .space-x-3 > * + * {
+        margin-left: 0.75rem;
+      }
+
+      .space-x-2 > * + * {
+        margin-left: 0.5rem;
+      }
+
+      .mb-8 {
+        margin-bottom: 2rem;
+      }
+
+      .mb-2 {
+        margin-bottom: 0.5rem;
+      }
+
+      .mb-4 {
+        margin-bottom: 1rem;
+      }
+
+      .mt-4 {
+        margin-top: 1rem;
+      }
+
+      .mt-auto {
+        margin-top: auto;
+      }
+
+      .pt-4 {
+        padding-top: 1rem;
+      }
+
+      .text-3xl {
+        font-size: 1.875rem;
+      }
+
+      .text-xl {
+        font-size: 1.25rem;
+      }
+
+      .text-xs {
+        font-size: 0.75rem;
+      }
+
+      .font-bold {
+        font-weight: 700;
+      }
+
+      .uppercase {
+        text-transform: uppercase;
+      }
+
+      .tracking-wider {
+        letter-spacing: 0.05em;
+      }
+
+      .text-blue-500 {
+        color: #3b82f6;
+      }
+
+      .text-gray-400 {
+        color: #94a3b8;
+      }
+
+      .text-gray-500 {
+        color: #64748b;
+      }
+
+      .text-green-500 {
+        color: #10b981;
+      }
+
+      .text-yellow-500 {
+        color: #f59e0b;
+      }
+
+      .text-purple-500 {
+        color: #8b5cf6;
+      }
+
+      .text-red-500 {
+        color: #ef4444;
+      }
+
+      .text-pink-500 {
+        color: #ec4899;
+      }
+
+      .hover\:text-white:hover {
+        color: white;
+      }
+
+      .border-t {
+        border-top-width: 1px;
+      }
+
+      .border-gray-700 {
+        border-color: #334155;
+      }
+
+      ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .rounded-lg {
+        border-radius: 0.5rem;
+      }
+
+      /* 優化設置模態窗路徑區塊 */
+      .recommended-paths {
+        margin-top: 16px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .path-header {
+        display: flex;
+        align-items: center;
+        padding: 10px 12px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .path-header span {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #e2e8f0;
+      }
+
+      .path-header .text-yellow-500 {
+        margin-right: 8px;
+      }
+
+      .path-list {
+        padding: 12px;
+        background-color: rgba(0, 0, 0, 0.2);
+      }
+
+      .path-item {
+        margin-bottom: 16px;
+      }
+
+      .path-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .os-icon {
+        display: flex;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+
+      .os-icon i {
+        margin-right: 8px;
+      }
+
+      .os-icon span {
+        font-weight: 500;
+      }
+
+      .path-code {
+        background-color: rgba(0, 0, 0, 0.3);
+        padding: 8px 12px;
+        border-radius: 6px;
+        margin-bottom: 4px;
+        font-family: "Fira Code", "Consolas", monospace;
+        font-size: 0.85rem;
+      }
+
+      .path-note {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin-top: 4px;
+        margin-left: 4px;
+      }
+
+      .integration-example {
+        margin-top: 20px;
+        background-color: rgba(59, 130, 246, 0.1);
+        border-radius: 8px;
+        border-left: 3px solid #3b82f6;
+        padding: 16px;
+      }
+
+      .example-title {
+        display: flex;
+        align-items: center;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #60a5fa;
+        margin-bottom: 12px;
+      }
+
+      .example-title i {
+        margin-right: 8px;
+      }
+
+      .example-description {
+        font-size: 0.9rem;
+        color: #e2e8f0;
+        margin-bottom: 12px;
+      }
+
+      .example-code {
+        background-color: rgba(0, 0, 0, 0.3);
+        padding: 12px;
+        border-radius: 6px;
+        font-family: "Fira Code", "Consolas", monospace;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        margin-bottom: 12px;
+        color: #e2e8f0;
+      }
+
+      .example-code .command {
+        color: #10b981;
+        font-weight: 500;
+      }
+
+      .example-note {
+        font-size: 0.8rem;
+        color: #94a3b8;
+      }
+
+      /* 優化 VSCode 設置指南 */
+      .vscode-guide {
+        margin-top: 16px;
+        padding: 14px;
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .vscode-guide-title {
+        font-size: 0.9rem;
+        color: #cbd5e1;
+        margin-bottom: 10px;
+        font-weight: 500;
+      }
+
+      .vscode-steps {
+        list-style-type: decimal;
+        margin-left: 24px;
+        margin-top: 8px;
+      }
+
+      .vscode-steps li {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+        position: relative;
+      }
+
+      .vscode-steps li::marker {
+        color: #60a5fa;
+        font-weight: 600;
+      }
+
+      /* 調整已複製訊息樣式 */
+      #message {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background-color: #10b981;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        z-index: 100;
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        pointer-events: none;
+      }
+
+      #message.show {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      #message::before {
+        content: "\f00c";
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+        margin-right: 8px;
+      }
+
+      /* 為 JS 代碼中的提示消息添加顯示類 */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .show {
+        animation: fadeInUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)
+          forwards;
+      }
+
+      /* 側邊欄設置按鈕樣式 */
+      .settings-btn {
+        display: flex;
+        align-items: center;
+        padding: 0.6rem 0.75rem;
+        margin-top: 16px;
+        background-color: rgba(59, 130, 246, 0.15);
+        color: #60a5fa;
+        border-radius: 8px;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        width: 100%;
+        justify-content: center;
+        font-size: 0.9rem;
+      }
+
+      .settings-btn:hover {
+        background-color: rgba(59, 130, 246, 0.25);
+        transform: translateY(-2px);
+      }
+
+      .settings-btn i {
+        margin-right: 8px;
+      }
+
+      /* 調整 About 區域與設置按鈕的間距 */
+      .about-section {
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* 移除舊的設置按鈕樣式 */
+      #editSettingsBtn {
+        display: none !important;
+      }
+
+      /* 修改模態框內容樣式優化 */
+      .modal-content .text-yellow-500 {
+        color: #f59e0b;
+        font-weight: bold;
+      }
+
+      .modal-content .space-y-3 > * + * {
+        margin-top: 0.75rem;
+      }
+
+      .modal-content .bg-gray-700 {
+        background-color: rgba(55, 65, 81, 0.7);
+        border-radius: 4px;
+        padding: 0.5rem 0.75rem;
+      }
+
+      .modal-content .bg-blue-900 {
+        background-color: rgba(30, 58, 138, 0.3);
+        border-radius: 8px;
+        border-left: 2px solid #3b82f6;
+        padding: 0.75rem;
+        margin-top: 1rem;
+      }
+
+      .modal-content .text-blue-400 {
+        color: #60a5fa;
+      }
+
+      .modal-content .text-green-400 {
+        color: #34d399;
+      }
+
+      .modal-content .bg-gray-900 {
+        background-color: rgba(17, 24, 39, 0.8);
+        border-radius: 6px;
+        padding: 0.5rem;
+        line-height: 1.6;
+        margin: 0.5rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Docker 設置指引 Modal -->
+      <div id="setupModal" class="setup-modal active">
+        <div class="modal-content">
+          <button id="closeModalBtn" class="close-btn">
+            <i class="fas fa-times"></i>
+          </button>
+
+          <div class="modal-header">
+            <h2 class="modal-title">Docker 環境設置</h2>
+            <p class="modal-subtitle">
+              為了更好地使用這些 Docker 指令，請輸入你的 Docker 專案路徑
+            </p>
+          </div>
+
+          <!-- 優化後的 Docker 專案路徑設置區塊 HTML 結構 -->
+          <div class="form-group">
+            <label class="form-label" for="dockerPath">Docker 專案路徑</label>
+            <input
+              type="text"
+              id="dockerPath"
+              placeholder="例如: /home/user/docker-projects"
+              class="form-input"
+            />
+
+            <!-- 優化後的推薦路徑結構區塊 -->
+            <div class="recommended-paths">
+              <div class="path-header">
+                <span class="text-yellow-500">●</span>
+                <span>官方推薦路徑結構</span>
+              </div>
+
+              <div class="path-list">
+                <div class="path-item">
+                  <div class="os-icon">
+                    <i class="fab fa-windows text-blue-400"></i>
+                    <span class="text-gray-300">Windows:</span>
+                  </div>
+                  <div class="path-code">
+                    C:\Users\使用者名稱\docker-projects
+                  </div>
+                </div>
+
+                <div class="path-item">
+                  <div class="os-icon">
+                    <i class="fab fa-apple text-gray-300"></i>
+                    <span class="text-gray-300">macOS:</span>
+                  </div>
+                  <div class="path-code">~/docker-projects</div>
+                  <div class="path-note">
+                    等同於 /Users/使用者名稱/docker-projects
+                  </div>
+                </div>
+
+                <div class="path-item">
+                  <div class="os-icon">
+                    <i class="fab fa-linux text-yellow-500"></i>
+                    <span class="text-gray-300">Linux:</span>
+                  </div>
+                  <div class="path-code">~/docker-projects</div>
+                  <div class="path-note">
+                    等同於 /home/使用者名稱/docker-projects
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 優化後的自動整合範例區塊 -->
+            <div class="integration-example">
+              <div class="example-title">
+                <i class="fas fa-info-circle"></i>
+                <span>自動整合範例</span>
+              </div>
+              <p class="example-description">
+                輸入上方路徑後，以下指令會自動套用：
+              </p>
+              <div class="example-code">
+                1. 開啟 VS Code<br />
+                2. 終端機中輸入: <span class="command">cd 你的Docker路徑</span
+                ><br />
+                3. 建立資料夾: <span class="command">mkdir -p data</span><br />
+                4. 啟動服務: <span class="command">docker-compose up -d</span>
+              </div>
+              <p class="example-note">
+                所有 volume 掛載路徑將自動從
+                <code class="bg-gray-700 px-1 rounded">./data</code>
+                調整為您設定的路徑
+              </p>
+            </div>
+          </div>
+
+          <div class="switch-container">
+            <label class="switch">
+              <input type="checkbox" id="savePathCheckbox" />
+              <span class="slider"></span>
+            </label>
+            <span class="switch-label">記住我的設置</span>
+          </div>
+
+          <button id="savePathBtn" class="btn-primary">儲存設置</button>
+
+          <div class="help-section">
+            <div class="help-title">
+              <i class="fas fa-info-circle"></i>
+              <span>沒有 Docker 環境？</span>
+            </div>
+            <p class="help-text">建議透過 VSCode 安裝，快速上手：</p>
+            <ul class="help-list">
+              <li>
+                安裝
+                <a
+                  href="https://code.visualstudio.com/"
+                  class="help-link"
+                  target="_blank"
+                  >VSCode 編輯器</a
+                >
+              </li>
+              <li>
+                安裝
+                <a
+                  href="https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker"
+                  class="help-link"
+                  target="_blank"
+                  >Docker 擴充套件</a
+                >
+              </li>
+              <li>重啟 VSCode 後，在左側活動欄中查看 Docker 圖示</li>
+              <li>點擊圖示開始使用，可視化管理所有容器</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Menu Overlay -->
+      <div class="overlay" id="overlay"></div>
+
+      <!-- Mobile Menu Button -->
+      <button class="mobile-menu-btn" id="mobileMenuBtn">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-sticky">
+          <!-- Logo and Title -->
+          <div class="flex items-center space-x-3 mb-8">
+            <div class="docker-logo">
+              <i class="fab fa-docker text-3xl text-blue-500"></i>
+            </div>
+            <div>
+              <h1 class="text-xl font-bold">Docker 指令集</h1>
+              <p class="text-xs text-gray-400">精選常用命令大全</p>
+            </div>
+          </div>
+
+          <!-- Search -->
+          <div class="search-container">
+            <input
+              type="text"
+              id="searchInput"
+              class="search-input"
+              placeholder="搜尋指令..."
+            />
+            <i class="fas fa-search search-icon"></i>
+          </div>
+
+          <!-- Categories -->
+          <div class="mb-4">
+            <h2
+              class="text-xs uppercase tracking-wider text-gray-400 mb-3 pl-2"
+            >
+              <i class="fas fa-th-list mr-2"></i> 指令分類
+            </h2>
+            <ul>
+              <li>
+                <button
+                  class="category-item active rounded-lg flex items-center"
+                  data-category="all"
+                >
+                  <i class="fas fa-layer-group text-gray-400 mr-3"></i>
+                  <span>全部指令</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  class="category-item rounded-lg flex items-center"
+                  data-category="basic"
+                >
+                  <i class="fas fa-play text-green-500 mr-3"></i>
+                  <span>啟動與結束</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  class="category-item rounded-lg flex items-center"
+                  data-category="inspect"
+                >
+                  <i class="fas fa-search text-yellow-500 mr-3"></i>
+                  <span>檢查與監控</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  class="category-item rounded-lg flex items-center"
+                  data-category="cleanup"
+                >
+                  <i class="fas fa-broom text-blue-500 mr-3"></i>
+                  <span>清理與資源</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  class="category-item rounded-lg flex items-center"
+                  data-category="debug"
+                >
+                  <i class="fas fa-terminal text-purple-500 mr-3"></i>
+                  <span>進入與除錯</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  class="category-item rounded-lg flex items-center"
+                  data-category="advanced"
+                >
+                  <i class="fas fa-cogs text-red-500 mr-3"></i>
+                  <span>進階操作</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  class="category-item rounded-lg flex items-center"
+                  data-category="mcp"
+                >
+                  <i class="fas fa-brain text-pink-500 mr-3"></i>
+                  <span>Claude MCP</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <!-- About -->
+          <div class="mt-auto pt-4 border-t border-gray-700">
+            <p class="text-xs text-gray-400 mb-2">關於</p>
+            <p class="text-xs text-gray-500">
+              這個 Docker 指令集合了各種常用命令，方便快速查閱與使用。特別針對
+              Claude MCP 服務進行了優化。
+            </p>
+            <div class="mt-4 flex space-x-2">
+              <a href="#" class="text-gray-400 hover:text-white">
+                <i class="fab fa-github"></i>
+              </a>
+              <a href="#" class="text-gray-400 hover:text-white">
+                <i class="fab fa-docker"></i>
+              </a>
+              <a href="#" class="text-gray-400 hover:text-white">
+                <i class="fas fa-heart"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main>
+        <header class="mb-8">
+          <h1 class="text-3xl font-bold mb-2">Docker 常用指令大全</h1>
+          <p class="text-gray-400">
+            一站式收錄各種實用 Docker 指令，讓容器管理變得簡單易懂 🐳
+          </p>
+        </header>
+
+        <!-- Commands Grid -->
+        <div class="grid">
+          <!-- 啟動與結束 -->
+          <div class="command-card command-item" data-category="basic">
+            <div class="card-header">
+              <span class="category-badge badge-basic">
+                <i class="fas fa-play mr-1"></i> 啟動與結束
+              </span>
+              <h3 class="card-title">啟動服務（背景執行）</h3>
+              <p class="card-description">
+                在背景模式下啟動容器，執行後可繼續使用終端機。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose up -d</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >-d 代表 detached
+                  mode，讓容器在背景執行，最常用來開始專案。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="basic">
+            <div class="card-header">
+              <span class="category-badge badge-basic">
+                <i class="fas fa-stop mr-1"></i> 啟動與結束
+              </span>
+              <h3 class="card-title">關閉所有服務</h3>
+              <p class="card-description">
+                停止並移除由 docker-compose 啟動的所有容器。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose down</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span>停止並移除容器，但保留資料卷(volume)，資料會保存。</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="basic">
+            <div class="card-header">
+              <span class="category-badge badge-basic">
+                <i class="fas fa-trash-alt mr-1"></i> 啟動與結束
+              </span>
+              <h3 class="card-title">關閉並刪除資料</h3>
+              <p class="card-description">
+                停止容器並清除所有相關資源，包括資料卷和網路。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose down -v</pre>
+              </div>
+              <div class="tip-container">
+                <i
+                  class="fas fa-exclamation-triangle tip-icon"
+                  style="color: #ef4444"
+                ></i>
+                <span>會清除所有資料，請謹慎使用。適合完全重置環境。</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="basic">
+            <div class="card-header">
+              <span class="category-badge badge-basic">
+                <i class="fas fa-redo mr-1"></i> 啟動與結束
+              </span>
+              <h3 class="card-title">重新啟動服務</h3>
+              <p class="card-description">
+                重新啟動所有或特定的容器，通常用於套用配置變更。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose restart</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >也可以指定特定服務：docker-compose restart
+                  服務名稱，不會重建容器。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="basic">
+            <div class="card-header">
+              <span class="category-badge badge-basic">
+                <i class="fas fa-hammer mr-1"></i> 啟動與結束
+              </span>
+              <h3 class="card-title">重新建置後啟動</h3>
+              <p class="card-description">
+                強制重新建置映像檔後啟動容器，適用於修改 Dockerfile 後。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose up --build -d</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >當修改 Dockerfile 或依賴變更時使用，能夠更新程式碼。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- 檢查與監控 -->
+          <div class="command-card command-item" data-category="inspect">
+            <div class="card-header">
+              <span class="category-badge badge-inspect">
+                <i class="fas fa-list mr-1"></i> 檢查與監控
+              </span>
+              <h3 class="card-title">查看執行中容器</h3>
+              <p class="card-description">
+                列出當前正在運行的所有 Docker 容器。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker ps</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span>顯示容器 ID、名稱、狀態等資訊，方便查看運行狀態。</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="inspect">
+            <div class="card-header">
+              <span class="category-badge badge-inspect">
+                <i class="fas fa-eye mr-1"></i> 檢查與監控
+              </span>
+              <h3 class="card-title">查看所有容器</h3>
+              <p class="card-description">
+                顯示所有容器，包括已停止的，可清楚了解系統狀態。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker ps -a</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >-a 參數顯示所有容器，包括已停止的，提供完整容器列表。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="inspect">
+            <div class="card-header">
+              <span class="category-badge badge-inspect">
+                <i class="fas fa-file-alt mr-1"></i> 檢查與監控
+              </span>
+              <h3 class="card-title">查看即時日誌</h3>
+              <p class="card-description">
+                持續監控所有服務的日誌輸出，適合即時偵錯。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose logs -f</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >-f 參數實時追蹤日誌更新，可按 Ctrl+C
+                  中斷，方便即時觀察輸出。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="inspect">
+            <div class="card-header">
+              <span class="category-badge badge-inspect">
+                <i class="fas fa-search mr-1"></i> 檢查與監控
+              </span>
+              <h3 class="card-title">查看特定服務日誌</h3>
+              <p class="card-description">
+                只監控特定服務的日誌，減少干擾雜訊，專注除錯。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose logs service-name</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >將 service-name 替換為您要查看的具體服務名稱，例如 logs
+                  memory。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="inspect">
+            <div class="card-header">
+              <span class="category-badge badge-inspect">
+                <i class="fas fa-network-wired mr-1"></i> 檢查與監控
+              </span>
+              <h3 class="card-title">查看端口映射</h3>
+              <p class="card-description">
+                顯示所有服務的容器及其端口映射關係。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose ps</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >列出所有服務及本機端口到容器端口的映射，方便確認端口綁定。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- 清理與資源管理 -->
+          <div class="command-card command-item" data-category="cleanup">
+            <div class="card-header">
+              <span class="category-badge badge-cleanup">
+                <i class="fas fa-hand-paper mr-1"></i> 清理與資源
+              </span>
+              <h3 class="card-title">停止特定容器</h3>
+              <p class="card-description">
+                停止指定的容器，保留容器但停止其執行。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker stop container_id</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span>使用 docker ps 獲取容器 ID，暫停運行但不刪除容器。</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="cleanup">
+            <div class="card-header">
+              <span class="category-badge badge-cleanup">
+                <i class="fas fa-trash mr-1"></i> 清理與資源
+              </span>
+              <h3 class="card-title">移除容器</h3>
+              <p class="card-description">永久刪除指定的容器，釋放系統資源。</p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker rm container_id</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >容器必須先停止才能刪除，除非使用 -f
+                  強制刪除，不會刪除映像檔。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="cleanup">
+            <div class="card-header">
+              <span class="category-badge badge-cleanup">
+                <i class="fas fa-eraser mr-1"></i> 清理與資源
+              </span>
+              <h3 class="card-title">刪除映像檔</h3>
+              <p class="card-description">
+                刪除指定的 Docker 映像檔，適合釋放磁碟空間。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker rmi image_id</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >使用 docker images 獲取映像檔 ID，可以節省硬碟空間。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="cleanup">
+            <div class="card-header">
+              <span class="category-badge badge-cleanup">
+                <i class="fas fa-broom mr-1"></i> 清理與資源
+              </span>
+              <h3 class="card-title">清理未使用資源</h3>
+              <p class="card-description">
+                移除所有未使用的容器、網路、映像檔和快取。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker system prune</pre>
+              </div>
+              <div class="tip-container">
+                <i
+                  class="fas fa-exclamation-triangle tip-icon"
+                  style="color: #f59e0b"
+                ></i>
+                <span
+                  >會移除所有停止的容器和未使用的網路，建議定期執行維護。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="cleanup">
+            <div class="card-header">
+              <span class="category-badge badge-cleanup">
+                <i class="fas fa-radiation mr-1"></i> 清理與資源
+              </span>
+              <h3 class="card-title">全系統重置</h3>
+              <p class="card-description">
+                徹底清理 Docker 環境，包括所有容器、映像檔和資料卷。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker system prune -a --volumes</pre>
+              </div>
+              <div class="tip-container">
+                <i
+                  class="fas fa-exclamation-triangle tip-icon"
+                  style="color: #ef4444"
+                ></i>
+                <span
+                  >危險操作！將刪除所有 Docker
+                  資源，包括資料卷，僅緊急時使用。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- 進入容器與 Debug -->
+          <div class="command-card command-item" data-category="debug">
+            <div class="card-header">
+              <span class="category-badge badge-debug">
+                <i class="fas fa-terminal mr-1"></i> 進入與除錯
+              </span>
+              <h3 class="card-title">進入容器 Shell</h3>
+              <p class="card-description">
+                連接到容器的 Shell 環境，可直接在容器內執行命令。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker exec -it container_id /bin/sh</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >多數 Linux 容器使用 /bin/sh，使用 docker ps 獲取容器
+                  ID。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="debug">
+            <div class="card-header">
+              <span class="category-badge badge-debug">
+                <i class="fas fa-terminal mr-1"></i> 進入與除錯
+              </span>
+              <h3 class="card-title">進入 Bash Shell</h3>
+              <p class="card-description">
+                連接到容器的 Bash Shell（如果支援），提供更豐富的功能。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker exec -it container_id bash</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >部分容器可能沒有 bash，這時可以用 /bin/sh，功能更完整。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="debug">
+            <div class="card-header">
+              <span class="category-badge badge-debug">
+                <i class="fas fa-info-circle mr-1"></i> 進入與除錯
+              </span>
+              <h3 class="card-title">檢查容器資訊</h3>
+              <p class="card-description">
+                獲取容器的詳細信息，包括網絡配置、IP 地址等。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker inspect container_id</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >返回完整的 JSON 格式容器配置與狀態，適合排除網路問題。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="debug">
+            <div class="card-header">
+              <span class="category-badge badge-debug">
+                <i class="fas fa-hdd mr-1"></i> 進入與除錯
+              </span>
+              <h3 class="card-title">檢查容器掛載點</h3>
+              <p class="card-description">
+                查看容器的 volume 掛載情況，解決資料持久化問題。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">
+docker inspect -f '{{ .Mounts }}' container_id</pre
+                >
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span>使用格式化輸出只顯示掛載點資訊，資料問題必查。</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 進階 compose 操作 -->
+          <div class="command-card command-item" data-category="advanced">
+            <div class="card-header">
+              <span class="category-badge badge-advanced">
+                <i class="fas fa-hammer mr-1"></i> 進階操作
+              </span>
+              <h3 class="card-title">重建特定服務</h3>
+              <p class="card-description">
+                重新建置並啟動特定服務，節省時間，只更新需要的部分。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">
+docker-compose up service-name --build -d</pre
+                >
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >替換 service-name 為要重建的服務名稱，適合單服務更新。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="advanced">
+            <div class="card-header">
+              <span class="category-badge badge-advanced">
+                <i class="fas fa-play-circle mr-1"></i> 進階操作
+              </span>
+              <h3 class="card-title">啟動指定服務</h3>
+              <p class="card-description">
+                只啟動配置文件中的特定服務，而非全部啟動。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">
+docker-compose up memory brave-search -d</pre
+                >
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span>可同時指定多個服務，以空格分隔，按需啟動。</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="advanced">
+            <div class="card-header">
+              <span class="category-badge badge-advanced">
+                <i class="fas fa-file-code mr-1"></i> 進階操作
+              </span>
+              <h3 class="card-title">檢查配置</h3>
+              <p class="card-description">
+                顯示當前環境的完整 docker-compose 配置，查找錯誤。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose config</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span>可查看環境變數替換後的最終配置，適合配置檢查。</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- MCP 相關 -->
+          <div class="command-card command-item" data-category="mcp">
+            <div class="card-header">
+              <span class="category-badge badge-mcp">
+                <i class="fas fa-memory mr-1"></i> Claude MCP
+              </span>
+              <h3 class="card-title">啟動記憶服務</h3>
+              <p class="card-description">
+                啟動 Claude MCP 記憶模組，讓 AI 記住對話內容與文件。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose up memory -d</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >對應 @modelcontextprotocol/server-memory
+                  套件，長期記憶必備。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="mcp">
+            <div class="card-header">
+              <span class="category-badge badge-mcp">
+                <i class="fas fa-search mr-1"></i> Claude MCP
+              </span>
+              <h3 class="card-title">啟動搜尋功能</h3>
+              <p class="card-description">
+                啟動 Brave Search 服務，讓 Claude 能夠搜尋網路資訊。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose up brave-search -d</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >對應 @modelcontextprotocol/server-brave-search
+                  套件，能連網查資料。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="mcp">
+            <div class="card-header">
+              <span class="category-badge badge-mcp">
+                <i class="fas fa-folder-open mr-1"></i> Claude MCP
+              </span>
+              <h3 class="card-title">啟動檔案系統服務</h3>
+              <p class="card-description">
+                啟動專用檔案系統服務，讓 Claude 能針對特定資料夾進行讀寫操作。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose up filesystem -d</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >對應 @modelcontextprotocol/server-filesystem 套件，比
+                  everything 更專注於檔案操作。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="mcp">
+            <div class="card-header">
+              <span class="category-badge badge-mcp">
+                <i class="fas fa-folder-open mr-1"></i> Claude MCP
+              </span>
+              <h3 class="card-title">啟動通用檔案存取</h3>
+              <p class="card-description">
+                啟動檔案系統存取，讓 Claude 能讀寫本地檔案，並提供更多功能。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose up everything -d</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >對應 @modelcontextprotocol/server-everything
+                  套件，提供更全面的功能。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="command-card command-item" data-category="mcp">
+            <div class="card-header">
+              <span class="category-badge badge-mcp">
+                <i class="fas fa-code-branch mr-1"></i> Claude MCP
+              </span>
+              <h3 class="card-title">啟動 Git 功能</h3>
+              <p class="card-description">
+                啟動 Git 操作服務，讓 Claude 能夠進行版本控制操作。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">docker-compose up git -d</pre>
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >對應 @modelcontextprotocol/server-git
+                  套件，實現版本控制整合。</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- 資料保存術 -->
+          <div class="command-card command-item" data-category="advanced">
+            <div class="card-header">
+              <span class="category-badge badge-advanced">
+                <i class="fas fa-database mr-1"></i> 進階操作
+              </span>
+              <h3 class="card-title">資料保存術</h3>
+              <p class="card-description">
+                設定本地資料夾映射，實現 Claude 讀寫本地檔案的能力。
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="command-container">
+                <button class="copy-btn" onclick="copyToClipboard(this)">
+                  <i class="far fa-copy"></i> 複製
+                </button>
+                <pre class="command">
+volumes:
+  - ./data:/app/data</pre
+                >
+              </div>
+              <div class="tip-container">
+                <i class="fas fa-lightbulb tip-icon"></i>
+                <span
+                  >加入此設定到 docker-compose.yml
+                  的服務配置中，實現資料永久保存。</span
+                >
+              </div>
+              <!-- 優化後的 VS Code 設置指南區塊 -->
+              <div class="vscode-guide">
+                <p class="vscode-guide-title">在 VS Code 中設置：</p>
+                <ol class="vscode-steps">
+                  <li>開啟 VS Code</li>
+                  <li>點擊左側 Docker 圖示</li>
+                  <li>右鍵點擊容器，選擇「查看容器」</li>
+                  <li>選擇 Volume 標籤頁即可查看或編輯配置</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- 優化後的訊息提示 -->
+    <div id="message" class="fixed bottom-5 right-5">已複製到剪貼簿！</div>
+
+    <script>
+      // 處理 Docker 設置
+      document.addEventListener("DOMContentLoaded", function () {
+        const setupModal = document.getElementById("setupModal");
+        const savePathBtn = document.getElementById("savePathBtn");
+        const closeModalBtn = document.getElementById("closeModalBtn");
+        const dockerPathInput = document.getElementById("dockerPath");
+        const savePathCheckbox = document.getElementById("savePathCheckbox");
+
+        // 檢查是否已有保存的路徑
+        const savedPath = localStorage.getItem("dockerPath");
+        if (savedPath) {
+          dockerPathInput.value = savedPath;
+          savePathCheckbox.checked = true;
+        }
+
+        // 關閉按鈕事件
+        closeModalBtn.addEventListener("click", () => {
+          setupModal.classList.remove("active");
+        });
+
+        // 儲存設置按鈕事件
+        savePathBtn.addEventListener("click", () => {
+          const path = dockerPathInput.value.trim();
+
+          if (path) {
+            if (savePathCheckbox.checked) {
+              localStorage.setItem("dockerPath", path);
+            } else {
+              localStorage.removeItem("dockerPath");
+            }
+
+            // 更新所有指令中的路徑佔位符
+            updateCommandPaths(path);
+
+            // 隱藏 Modal
+            setupModal.classList.remove("active");
+          } else {
+            alert("請輸入有效的 Docker 專案路徑");
+          }
+        });
+
+        // 如果已有保存的路徑，自動套用
+        if (savedPath) {
+          updateCommandPaths(savedPath);
+          // 不要自動關閉 Modal，讓使用者確認
+        }
+
+        // 點擊 Modal 背景區域關閉
+        setupModal.addEventListener("click", (e) => {
+          if (e.target === setupModal) {
+            setupModal.classList.remove("active");
+          }
+        });
+
+        // 將設置按鈕添加至側邊欄
+        // 獲取側邊欄中的 About 區域
+        const aboutSection = document.querySelector(".sidebar-sticky .mt-auto");
+
+        // 創建設置按鈕
+        const settingsBtn = document.createElement("button");
+        settingsBtn.className = "settings-btn";
+        settingsBtn.innerHTML = '<i class="fas fa-cog"></i> 修改 Docker 設置';
+
+        // 在 About 區域前插入設置按鈕
+        if (aboutSection) {
+          // 添加類別使其更好識別
+          aboutSection.classList.add("about-section");
+
+          // 在 About 區域前插入設置按鈕
+          aboutSection.parentNode.insertBefore(settingsBtn, aboutSection);
+
+          // 為設置按鈕添加點擊事件
+          settingsBtn.addEventListener("click", function () {
+            if (setupModal) {
+              setupModal.classList.add("active");
+            }
+          });
+        }
+
+        // 處理訊息提示元素
+        let messageElement = document.getElementById("message");
+        if (!messageElement) {
+          messageElement = document.createElement("div");
+          messageElement.id = "message";
+          messageElement.textContent = "已複製到剪貼簿！";
+          document.body.appendChild(messageElement);
+        }
+
+        // 移除舊的 editSettingsBtn 創建和事件綁定代碼
+        const oldEditBtn = document.getElementById("editSettingsBtn");
+        if (oldEditBtn) {
+          oldEditBtn.remove();
+        }
+      });
+
+      // 更新所有指令中的路徑
+      function updateCommandPaths(path) {
+        const commands = document.querySelectorAll("pre.command");
+        commands.forEach((cmd) => {
+          // 替換特定指令中的路徑佔位符
+          if (cmd.textContent.includes("./data:")) {
+            const newText = cmd.textContent.replace("./data:", `${path}/data:`);
+            cmd.textContent = newText;
+          }
+        });
+      }
+
+      // 複製到剪貼簿功能優化
+      function copyToClipboard(button) {
+        const commandContainer = button.closest(".command-container");
+        const commandText =
+          commandContainer.querySelector("pre.command").textContent;
+
+        navigator.clipboard
+          .writeText(commandText)
+          .then(() => {
+            // 更新按鈕狀態
+            button.innerHTML = '<i class="fas fa-check"></i> 已複製';
+            button.classList.add("copied");
+
+            // 顯示訊息
+            const message = document.getElementById("message");
+            message.classList.add("show");
+
+            // 恢復按鈕原始狀態
+            setTimeout(() => {
+              button.innerHTML = '<i class="far fa-copy"></i> 複製';
+              button.classList.remove("copied");
+
+              // 隱藏訊息
+              message.classList.remove("show");
+            }, 2000);
+          })
+          .catch((err) => {
+            console.error("複製失敗: ", err);
+          });
+      }
+
+      // 類別篩選功能
+      document.addEventListener("DOMContentLoaded", function () {
+        const categoryItems = document.querySelectorAll(".category-item");
+        const commandItems = document.querySelectorAll(".command-item");
+        const searchInput = document.getElementById("searchInput");
+        const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("overlay");
+
+        // 點擊類別過濾
+        categoryItems.forEach((item) => {
+          item.addEventListener("click", () => {
+            // 移除所有 active 類別
+            categoryItems.forEach((i) => i.classList.remove("active"));
+
+            // 添加 active 類別到當前點擊的項目
+            item.classList.add("active");
+
+            const category = item.getAttribute("data-category");
+
+            // 顯示/隱藏命令卡片
+            commandItems.forEach((card) => {
+              if (
+                category === "all" ||
+                card.getAttribute("data-category") === category
+              ) {
+                card.style.display = "block";
+              } else {
+                card.style.display = "none";
+              }
+            });
+
+            // 在移動端點擊後關閉側邊欄
+            if (window.innerWidth < 768) {
+              sidebar.classList.remove("open");
+              overlay.classList.remove("active");
+            }
+          });
+        });
+
+        // 搜尋功能
+        searchInput.addEventListener("input", () => {
+          const searchTerm = searchInput.value.toLowerCase();
+
+          commandItems.forEach((card) => {
+            const title = card
+              .querySelector(".card-title")
+              .textContent.toLowerCase();
+            const description = card
+              .querySelector(".card-description")
+              .textContent.toLowerCase();
+            const command = card
+              .querySelector("pre.command")
+              .textContent.toLowerCase();
+
+            if (
+              title.includes(searchTerm) ||
+              description.includes(searchTerm) ||
+              command.includes(searchTerm)
+            ) {
+              card.style.display = "block";
+            } else {
+              card.style.display = "none";
+            }
+          });
+
+          // 重置類別選擇
+          if (searchTerm.length > 0) {
+            categoryItems.forEach((item) => item.classList.remove("active"));
+            document
+              .querySelector('[data-category="all"]')
+              .classList.add("active");
+          }
+        });
+
+        // 移動端選單切換
+        mobileMenuBtn &&
+          mobileMenuBtn.addEventListener("click", () => {
+            sidebar.classList.toggle("open");
+            overlay.classList.toggle("active");
+          });
+
+        // 點擊遮罩關閉側邊欄
+        overlay &&
+          overlay.addEventListener("click", () => {
+            sidebar.classList.remove("open");
+            overlay.classList.remove("active");
+          });
+
+        // 響應式調整
+        window.addEventListener("resize", () => {
+          if (window.innerWidth >= 768) {
+            sidebar.classList.remove("open");
+            overlay.classList.remove("active");
+          }
+        });
+      });
+
+      // 修復重複創建元素問題的解決方案
+      // 這個函數確保我們只有一個 DOMContentLoaded 處理程序
+      (function () {
+        const originalAddEventListener = document.addEventListener;
+        const addedHandlers = new Set();
+
+        document.addEventListener = function (type, listener, options) {
+          if (type === "DOMContentLoaded") {
+            // 檢查是否已經添加了相同的處理程序
+            if (addedHandlers.has(listener.toString())) {
+              console.log("防止重複添加 DOMContentLoaded 處理程序");
+              return;
+            }
+
+            // 記錄已添加的處理程序
+            addedHandlers.add(listener.toString());
+          }
+
+          // 使用原始的 addEventListener
+          return originalAddEventListener.call(this, type, listener, options);
+        };
+      })();
+
+      // 確保 DOM 加載完成後執行初始化
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initializePage);
+      } else {
+        // 如果 DOM 已經加載完成，則立即執行
+        initializePage();
+      }
+
+      // 頁面初始化函數，整合所有初始化代碼
+      function initializePage() {
+        // 1. 確保訊息元素存在
+        ensureMessageElement();
+
+        // 2. 添加設置按鈕到側邊欄
+        addSettingsButtonToSidebar();
+
+        // 3. 處理其他初始化邏輯
+        setupModalHandlers();
+      }
+
+      // 確保訊息元素存在
+      function ensureMessageElement() {
+        if (!document.getElementById("message")) {
+          const messageEl = document.createElement("div");
+          messageEl.id = "message";
+          messageEl.textContent = "已複製到剪貼簿！";
+          document.body.appendChild(messageEl);
+        }
+      }
+
+      // 添加設置按鈕到側邊欄
+      function addSettingsButtonToSidebar() {
+        const aboutSection = document.querySelector(".sidebar-sticky .mt-auto");
+        if (!aboutSection) return;
+
+        // 避免重複添加按鈕
+        if (document.querySelector(".settings-btn")) return;
+
+        // 添加 about-section 類別
+        aboutSection.classList.add("about-section");
+
+        // 創建設置按鈕
+        const settingsBtn = document.createElement("button");
+        settingsBtn.className = "settings-btn";
+        settingsBtn.innerHTML = '<i class="fas fa-cog"></i> 修改 Docker 設置';
+
+        // 添加點擊事件
+        settingsBtn.addEventListener("click", function () {
+          const setupModal = document.getElementById("setupModal");
+          if (setupModal) {
+            setupModal.classList.add("active");
+          }
+        });
+
+        // 插入到 about 區域前面
+        aboutSection.parentNode.insertBefore(settingsBtn, aboutSection);
+      }
+
+      // 設置模態窗處理程序
+      function setupModalHandlers() {
+        const setupModal = document.getElementById("setupModal");
+        if (!setupModal) return;
+
+        const closeModalBtn = document.getElementById("closeModalBtn");
+        if (closeModalBtn) {
+          closeModalBtn.addEventListener("click", function () {
+            setupModal.classList.remove("active");
+          });
+        }
+
+        // 點擊模態窗背景關閉
+        setupModal.addEventListener("click", function (e) {
+          if (e.target === setupModal) {
+            setupModal.classList.remove("active");
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
