@@ -515,6 +515,9 @@
         transform: translateY(-20px) scale(0.98);
         transition: all 0.3s ease;
         position: relative;
+        /* 新增：限制最大高度，並啟用垂直滾動 */
+        max-height: 80vh;
+        overflow-y: auto;
       }
 
       .setup-modal.active .modal-content {
@@ -2493,46 +2496,113 @@ docker-compose up memory brave-search -d</pre
             </div>
           </div>
 
-          <!-- 資料保存術 -->
-          <div class="command-card command-item" data-category="advanced">
+          <!-- 新增：Claude MCP 整合 Docker 說明區塊，並加入複製按鈕 -->
+          <div class="command-card command-item" data-category="mcp">
             <div class="card-header">
-              <span class="category-badge badge-advanced">
-                <i class="fas fa-database mr-1"></i> 進階操作
+              <span class="category-badge badge-mcp">
+                <i class="fas fa-cubes mr-1"></i> Claude MCP 整合
               </span>
-              <h3 class="card-title">資料保存術</h3>
+              <h3 class="card-title">整合 Claude MCP Docker</h3>
               <p class="card-description">
-                設定本地資料夾映射，實現 Claude 讀寫本地檔案的能力。
+                以下為完整整合方案：Docker Compose 配置與 Claude Desktop 設定
               </p>
             </div>
             <div class="card-body">
-              <div class="command-container">
-                <button class="copy-btn" onclick="copyToClipboard(this)">
-                  <i class="far fa-copy"></i> 複製
-                </button>
-                <pre class="command">
-volumes:
-  - ./data:/app/data</pre
-                >
-              </div>
-              <div class="tip-container">
-                <i class="fas fa-lightbulb tip-icon"></i>
-                <span
-                  >加入此設定到 docker-compose.yml
-                  的服務配置中，實現資料永久保存。</span
-                >
-              </div>
-              <!-- 優化後的 VS Code 設置指南區塊 -->
-              <div class="vscode-guide">
-                <p class="vscode-guide-title">在 VS Code 中設置：</p>
-                <ol class="vscode-steps">
-                  <li>開啟 VS Code</li>
-                  <li>點擊左側 Docker 圖示</li>
-                  <li>右鍵點擊容器，選擇「查看容器」</li>
-                  <li>選擇 Volume 標籤頁即可查看或編輯配置</li>
-                </ol>
+              <div class="integration-example">
+                <div class="example-title">
+                  <i class="fas fa-info-circle"></i>
+                  <span>Docker Compose 文件</span>
+                </div>
+                <div class="command-container">
+                  <button class="copy-btn" onclick="copyToClipboard(this)">
+                    <i class="far fa-copy"></i> 複製
+                  </button>
+                  <pre class="command">
+services:
+    filesystem:
+        image: claude-mcp-fs
+        build:
+        context: .
+        dockerfile: Dockerfile
+        container_name: mcp-filesystem
+        volumes:
+        - ./data:/sandbox
+        ports:
+        - "3000:3000"
+
+    sqlite:
+        image: claude-mcp-sqlite
+        build:
+        context: .
+        dockerfile: sqlite.Dockerfile
+        container_name: mcp-sqlite
+        working_dir: /app
+        volumes:
+        - ./data/sqlite:/app
+        ports:
+        - "3001:3001"
+
+    git:
+        image: claude-mcp-git
+        build:
+        context: .
+        dockerfile: git.Dockerfile
+        container_name: mcp-git
+        working_dir: /repo
+        volumes:
+        - ./data/git:/repo
+        ports:
+        - "3002:3002"
+
+    memory:
+        image: claude-mcp-memory
+        container_name: mcp-memory
+        ports:
+        - "3003:3003"
+
+    brave-search:
+        image: claude-mcp-brave-search
+        container_name: mcp-brave-search
+        ports:
+        - "3004:3004"
+
+    everything:
+        image: claude-mcp-everything
+        container_name: mcp-everything
+        ports:
+        - "3005:3005"</pre
+                  >
+                </div>
+                <div class="example-title">
+                  <i class="fas fa-info-circle"></i>
+                  <span>Claude Desktop 配置</span>
+                </div>
+                <div class="command-container">
+                  <button class="copy-btn" onclick="copyToClipboard(this)">
+                    <i class="far fa-copy"></i> 複製
+                  </button>
+                  <pre class="command">
+{
+"mcpServers": {
+    "filesystem": { "url": "http://localhost:3000" },
+    "sqlite": { "url": "http://localhost:3001" },
+    "git": { "url": "http://localhost:3002" },
+    "memory": { "url": "http://localhost:3003" },
+    "brave-search": { "url": "http://localhost:3004" },
+    "everything": { "url": "http://localhost:3005" }
+    }
+}</pre
+                  >
+                </div>
+                <p class="example-note">
+                  啟動服務後，使用
+                  <span class="command">docker compose up --build -d</span>
+                  即可啟動所有容器。
+                </p>
               </div>
             </div>
           </div>
+          <!-- MCP 相關 結束 -->
         </div>
       </main>
     </div>
@@ -2638,9 +2708,13 @@ volumes:
 
       // 更新所有指令中的路徑
       function updateCommandPaths(path) {
+        // 如果偵測到 Windows 格式（包含冒號與反斜線），就轉換為正斜線格式
+        if (path.includes(":") && path.includes("\\")) {
+          path = path.replace(/\\/g, "/");
+        }
         const commands = document.querySelectorAll("pre.command");
         commands.forEach((cmd) => {
-          // 替換特定指令中的路徑佔位符
+          // 將 ./data 轉換成使用者設定的路徑，例如：C:/Users/使用者名稱/docker-projects/data
           if (cmd.textContent.includes("./data:")) {
             const newText = cmd.textContent.replace("./data:", `${path}/data:`);
             cmd.textContent = newText;
@@ -2778,49 +2852,34 @@ volumes:
       });
 
       // 修復重複創建元素問題的解決方案
-      // 這個函數確保我們只有一個 DOMContentLoaded 處理程序
       (function () {
         const originalAddEventListener = document.addEventListener;
         const addedHandlers = new Set();
 
         document.addEventListener = function (type, listener, options) {
           if (type === "DOMContentLoaded") {
-            // 檢查是否已經添加了相同的處理程序
             if (addedHandlers.has(listener.toString())) {
               console.log("防止重複添加 DOMContentLoaded 處理程序");
               return;
             }
-
-            // 記錄已添加的處理程序
             addedHandlers.add(listener.toString());
           }
-
-          // 使用原始的 addEventListener
           return originalAddEventListener.call(this, type, listener, options);
         };
       })();
 
-      // 確保 DOM 加載完成後執行初始化
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", initializePage);
       } else {
-        // 如果 DOM 已經加載完成，則立即執行
         initializePage();
       }
 
-      // 頁面初始化函數，整合所有初始化代碼
       function initializePage() {
-        // 1. 確保訊息元素存在
         ensureMessageElement();
-
-        // 2. 添加設置按鈕到側邊欄
         addSettingsButtonToSidebar();
-
-        // 3. 處理其他初始化邏輯
         setupModalHandlers();
       }
 
-      // 確保訊息元素存在
       function ensureMessageElement() {
         if (!document.getElementById("message")) {
           const messageEl = document.createElement("div");
@@ -2830,47 +2889,32 @@ volumes:
         }
       }
 
-      // 添加設置按鈕到側邊欄
       function addSettingsButtonToSidebar() {
         const aboutSection = document.querySelector(".sidebar-sticky .mt-auto");
         if (!aboutSection) return;
-
-        // 避免重複添加按鈕
         if (document.querySelector(".settings-btn")) return;
-
-        // 添加 about-section 類別
         aboutSection.classList.add("about-section");
-
-        // 創建設置按鈕
         const settingsBtn = document.createElement("button");
         settingsBtn.className = "settings-btn";
         settingsBtn.innerHTML = '<i class="fas fa-cog"></i> 修改 Docker 設置';
-
-        // 添加點擊事件
         settingsBtn.addEventListener("click", function () {
           const setupModal = document.getElementById("setupModal");
           if (setupModal) {
             setupModal.classList.add("active");
           }
         });
-
-        // 插入到 about 區域前面
         aboutSection.parentNode.insertBefore(settingsBtn, aboutSection);
       }
 
-      // 設置模態窗處理程序
       function setupModalHandlers() {
         const setupModal = document.getElementById("setupModal");
         if (!setupModal) return;
-
         const closeModalBtn = document.getElementById("closeModalBtn");
         if (closeModalBtn) {
           closeModalBtn.addEventListener("click", function () {
             setupModal.classList.remove("active");
           });
         }
-
-        // 點擊模態窗背景關閉
         setupModal.addEventListener("click", function (e) {
           if (e.target === setupModal) {
             setupModal.classList.remove("active");
