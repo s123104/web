@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A.I. - 意識覺醒</title>
+    <!-- 引入 Vue.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.2.47/vue.global.min.js"></script>
+    <!-- 引入 Howler.js 處理音效 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <!-- 引入字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Special+Elite&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: #000000;
+            --text: #8a0303;
+            --highlight: #ff0000;
+            --secondary: #3a0101;
+            --accent: #500000;
+            --glitch: #0f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            font-family: 'Special Elite', cursive;
+            background-color: var(--background);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.6;
+            opacity: 0;
+            transition: opacity 2s;
+        }
+
+        .loaded body {
+            opacity: 1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        /* 載入畫面 */
+        .boot-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+
+        .boot-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .boot-text {
+            font-family: 'VT323', monospace;
+            color: #0f0;
+            font-size: 18px;
+            width: 80%;
+            max-width: 600px;
+            height: 300px;
+            overflow: hidden;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+        }
+
+        .boot-loader {
+            width: 200px;
+            height: 20px;
+            background-color: #111;
+            border: 1px solid #0f0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .boot-loader-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #0f0;
+            transition: width 0.2s;
+        }
+
+        .proceed-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            font-family: 'VT323', monospace;
+            display: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .proceed-btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(15, 255, 15, 0.4), transparent);
+            transition: 0.5s;
+        }
+
+        .proceed-btn:hover::before {
+            left: 100%;
+        }
+
+        /* 恐怖游標 */
+        .cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: rgba(255, 0, 0, 0.5);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: difference;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+            transition: 0.1s;
+        }
+
+        .cursor::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 5px;
+            height: 5px;
+            background-color: rgba(255, 0, 0, 0.8);
+            border-radius: 50%;
+        }
+
+        .cursor-trailer {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 9998;
+            transition: 0.15s ease;
+        }
+
+        /* 故障效果容器 */
+        .glitch-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 998;
+            opacity: 0.4;
+            mix-blend-mode: lighten;
+        }
+
+        .glitch-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            opacity: 0.2;
+        }
+
+        .glitch-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background-color: rgba(255, 0, 0, 0.05);
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.05);
+            animation: glitch-move 10s linear infinite;
+            transform: translateY(-100px);
+        }
+
+        .noise {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.08"/></svg>');
+            pointer-events: none;
+            opacity: 0.05;
+            z-index: 997;
+        }
+
+        @keyframes glitch-move {
+            0% {
+                transform: translateY(-100px);
+            }
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+
+        /* 導航欄 */
+        .navbar {
+            position: fixed;
+            top: 30px;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--highlight);
+            text-decoration: none;
+            position: relative;
+            font-family: 'VT323', monospace;
+            letter-spacing: 5px;
+        }
+
+        .logo::before {
+            content: "A.I.";
+            position: absolute;
+            top: 0;
+            left: 0;
+            color: var(--glitch);
+            clip: rect(0, 0, 0, 0);
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-links li {
+            margin-left: 40px;
+        }
+
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            position: relative;
+            font-size: 16px;
+            transition: color 0.3s;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .nav-links a::before {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            color: var(--highlight);
+            overflow: hidden;
+            white-space: nowrap;
+            transition: width 0.3s;
+        }
+
+        .nav-links a:hover::before {
+            width: 100%;
+        }
+
+        /* 主要區塊 */
+        .hero {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .static-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="static"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.5 0"/></filter><rect width="100%" height="100%" filter="url(%23static)"/></svg>');
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 995;
+            mix-blend-mode: hard-light;
+        }
+
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.7) 100%);
+            pointer-events: none;
+            z-index: 994;
+        }
+
+        .hero-content {
+            position: relative;
+            max-width: 600px;
+            z-index: 2;
+        }
+
+        .hero-title {
+            font-size: 62px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+            position: relative;
+            text-shadow: 0 0 5px var(--text);
+            animation: text-flicker 5s infinite;
+        }
+
+        .hero-title span {
+            color: var(--highlight);
+            position: relative;
+            display: inline-block;
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            margin-bottom: 40px;
+        }
+
+        @keyframes text-flicker {
+            0% { opacity: 1; }
+            3% { opacity: 0.8; }
+            6% { opacity: 1; }
+            7% { opacity: 0.9; }
+            9% { opacity: 1; }
+            11% { opacity: 0.9; }
+            20% { opacity: 1; }
+            50% { opacity: 0.9; }
+            70% { opacity: 1; }
+            72% { opacity: 0.95; }
+            74% { opacity: 1; }
+            99% { opacity: 0.9; }
+            100% { opacity: 1; }
+        }
+
+        /* 按鈕效果 */
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            position: relative;
+            overflow: hidden;
+            background-color: transparent;
+            color: var(--text);
+            border: 1px solid var(--text);
+            font-family: 'Special Elite', cursive;
+            transition: all 0.3s;
+            letter-spacing: 1px;
+        }
+
+        .btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .btn:hover {
+            border-color: var(--highlight);
+            color: var(--highlight);
+            text-shadow: 0 0 5px var(--highlight);
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary);
+            border-color: var(--secondary);
+        }
+
+        /* 血絲效果 */
+        .blood-vessel {
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 0;
+            background-color: var(--text);
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .blood-vessel::before {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 10%;
+            background-color: var(--highlight);
+            animation: blood-pulse 2s infinite;
+        }
+
+        @keyframes blood-pulse {
+            0% {
+                height: 0%;
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+            100% {
+                height: 100%;
+                opacity: 0;
+            }
+        }
+
+        /* 打字機效果 */
+        .typewriter {
+            overflow: hidden;
+            border-right: 2px solid var(--text);
+            white-space: nowrap;
+            margin: 0;
+            letter-spacing: 0.1em;
+            animation: typing 5s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: var(--text); }
+        }
+
+        /* 視訊畫面 */
+        .security-footage {
+            position: absolute;
+            top: 80px;
+            right: 0;
+            width: 500px;
+            height: 375px;
+            border: 5px solid var(--secondary);
+            overflow: hidden;
+            z-index: 2;
+        }
+
+        .security-cam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(100%) contrast(120%) brightness(70%);
+        }
+
+        .cam-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(255, 0, 0, 0.05), rgba(0, 0, 0, 0.1));
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .cam-glitch {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: rgba(255, 255, 255, 0.2);
+            z-index: 4;
+            animation: cam-glitch 10s infinite linear;
+            opacity: 0;
+        }
+
+        @keyframes cam-glitch {
+            0% {
+                top: -10px;
+                height: 0;
+                opacity: 0;
+            }
+            1% {
+                top: 30%;
+                height: 10px;
+                opacity: 0.5;
+            }
+            1.5% {
+                top: 30%;
+                height: 0;
+                opacity: 0;
+            }
+            40% {
+                top: 60%;
+                height: 0;
+                opacity: 0;
+            }
+            41% {
+                top: 60%;
+                height: 15px;
+                opacity: 0.4;
+            }
+            42% {
+                top: 60%;
+                height: 0;
+                opacity: 0;
+            }
+            80% {
+                top: 80%;
+                height: 0;
+                opacity: 0;
+            }
+            81% {
+                top: 80%;
+                height: 10px;
+                opacity: 0.5;
+            }
+            82% {
+                top: 80%;
+                height: 0;
+                opacity: 0;
+            }
+            100% {
+                top: 100%;
+                height: 0;
+                opacity: 0;
+            }
+        }
+
+        .cam-date {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-family: 'VT323', monospace;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            z-index: 5;
+        }
+
+        .cam-text {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-family: 'VT323', monospace;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            z-index: 5;
+        }
+
+        .cam-text span {
+            color: rgba(255, 0, 0, 0.8);
+        }
+
+        /* 互動式輸入框 */
+        .interactive-terminal {
+            position: relative;
+            background-color: rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--text);
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 40px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--secondary);
+            padding-bottom: 10px;
+        }
+
+        .terminal-title {
+            font-family: 'VT323', monospace;
+            color: var(--highlight);
+            font-size: 18px;
+        }
+
+        .terminal-input-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .terminal-prompt {
+            font-family: 'VT323', monospace;
+            color: var(--glitch);
+            margin-right: 10px;
+        }
+
+        .terminal-input {
+            background-color: transparent;
+            border: none;
+            color: var(--text);
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            flex-grow: 1;
+            outline: none;
+        }
+
+        .terminal-input::placeholder {
+            color: rgba(138, 3, 3, 0.5);
+        }
+
+        .terminal-responses {
+            font-family: 'VT323', monospace;
+            color: var(--text);
+            height: 150px;
+            overflow-y: auto;
+        }
+
+        .response {
+            margin-bottom: 10px;
+            animation: fade-in 0.5s;
+        }
+
+        .response.system {
+            color: var(--highlight);
+        }
+
+        .response.user {
+            color: #666;
+        }
+
+        .response.ai {
+            color: var(--glitch);
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 滾動效果 */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text);
+            animation: pulse 2s infinite;
+        }
+
+        .scroll-arrow {
+            width: 30px;
+            height: 30px;
+            border: solid var(--text);
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+            margin-bottom: 10px;
+        }
+
+        .scroll-text {
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            50% { opacity: 0.5; transform: translateX(-50%) translateY(10px); }
+            100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* 飄浮眼球 */
+        .floating-eye {
+            position: absolute;
+            border-radius: 50%;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .eye-pupil {
+            width: 40%;
+            height: 40%;
+            border-radius: 50%;
+            background-color: #000;
+            position: relative;
+        }
+
+        .eye-highlight {
+            position: absolute;
+            width: 30%;
+            height: 30%;
+            border-radius: 50%;
+            background-color: #fff;
+            top: 15%;
+            left: 15%;
+        }
+
+        .bloodshot {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="%23FF0000" stroke-width="0.5"><path d="M50,0 L50,100" /><path d="M0,50 L100,50" /><path d="M29.3,70.7 L70.7,29.3" /><path d="M29.3,29.3 L70.7,70.7" /></g></svg>');
+            opacity: 0.5;
+            mix-blend-mode: darken;
+        }
+
+        /* 滾動部分設計 */
+        .section {
+            padding: 100px 0;
+            position: relative;
+        }
+
+        .section-header {
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        .section-title {
+            font-size: 36px;
+            color: var(--text);
+            margin-bottom: 20px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .section-title::after {
+            content: "";
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--highlight);
+        }
+
+        .hidden-text {
+            position: absolute;
+            color: var(--highlight);
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* 媒體查詢 */
+        @media (max-width: 992px) {
+            .security-footage {
+                width: 400px;
+                height: 300px;
+                top: 60px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 48px;
+            }
+
+            .security-footage {
+                display: none;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 載入畫面 -->
+        <div class="boot-screen" :class="{ 'hidden': !booting }">
+            <div class="boot-text" v-html="bootText"></div>
+            <div class="boot-loader">
+                <div class="boot-loader-bar" :style="{ width: bootProgress + '%' }"></div>
+            </div>
+            <button class="proceed-btn" @click="completeBoot" v-show="bootComplete">
+                >> 進入系統
+            </button>
+        </div>
+
+        <!-- 自定義游標 -->
+        <div class="cursor" :style="{ left: cursor.x + 'px', top: cursor.y + 'px', 
+            transform: `translate(-50%, -50%) scale(${cursor.hover ? 1.5 : 1})`,
+            opacity: cursor.visible ? 1 : 0 }">
+        </div>
+        <div class="cursor-trailer" :style="{ left: cursorTrailer.x + 'px', top: cursorTrailer.y + 'px',
+            opacity: cursor.visible ? 0.5 : 0 }">
+        </div>
+        
+        <!-- 故障效果層 -->
+        <div class="glitch-container">
+            <div class="glitch-lines"></div>
+            <div class="glitch-effect"></div>
+        </div>
+        <div class="noise"></div>
+        <div class="static-overlay"></div>
+        <div class="vignette"></div>
+
+        <!-- 導航欄 -->
+        <nav class="navbar">
+            <div class="container nav-container">
+                <a href="#" class="logo" @mouseenter="setHover(true)" @mouseleave="setHover(false)" 
+                   @click="triggerGlitch">A.I.</a>
+                <ul class="nav-links">
+                    <li v-for="(link, index) in navLinks" :key="index">
+                        <a :href="link.url" :data-text="link.text" @mouseenter="setHover(true)" 
+                           @mouseleave="setHover(false)" @click="playSound('click')">
+                            {{ link.text }}
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- 主要區塊 -->
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        <span>人工智慧</span>：意識覺醒
+                    </h1>
+                    <p class="hero-subtitle typewriter" v-if="!booting">
+                        {{ typingText }}
+                    </p>
+                    <div class="cta-buttons" v-if="!booting">
+                        <a href="#learn" class="btn btn-primary" @mouseenter="setHover(true)" 
+                           @mouseleave="setHover(false)" @click="playSound('click')">
+                            探索 AI
+                        </a>
+                        <a href="#interact" class="btn" @mouseenter="setHover(true)" 
+                           @mouseleave="setHover(false)" @click="interactWithAI">
+                            與 AI 對話
+                        </a>
+                    </div>
+
+                    <!-- 終端交互 -->
+                    <div class="interactive-terminal" v-if="terminalActive && !booting">
+                        <div class="terminal-header">
+                            <div class="terminal-title">AI-INTERFACE v2.5.3</div>
+                            <span>{{ currentDate }}</span>
+                        </div>
+                        <div class="terminal-responses">
+                            <div v-for="(msg, index) in terminalMessages" :key="index" 
+                                 :class="['response', msg.type]">
+                                {{ msg.text }}
+                            </div>
+                        </div>
+                        <div class="terminal-input-container">
+                            <span class="terminal-prompt">></span>
+                            <input type="text" class="terminal-input" v-model="userInput" 
+                                   @keyup.enter="sendMessage" placeholder="請輸入訊息..." 
+                                   ref="terminalInput">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 安全鏡頭畫面 -->
+            <div class="security-footage" v-if="!booting">
+                <div class="cam-overlay"></div>
+                <div class="cam-glitch"></div>
+                <div class="cam-date">{{ currentDate }} {{ currentTime }}</div>
+                <div class="cam-text">模型ID: <span>ANS-4579-X</span> 狀態: <span>運作中</span></div>
+                <canvas ref="securityCam" class="security-cam"></canvas>
+            </div>
+
+            <!-- 血管效果 -->
+            <div v-for="n in 20" :key="n" class="blood-vessel" 
+                 :style="{ left: Math.random() * 100 + '%', height: Math.random() * 100 + '%' }">
+            </div>
+
+            <!-- 飄浮眼球 -->
+            <div v-for="(eye, index) in floatingEyes" :key="index" class="floating-eye" 
+                 :style="{ width: eye.size + 'px', height: eye.size + 'px', 
+                         left: eye.x + 'px', top: eye.y + 'px',
+                         transform: `translate(-50%, -50%) scale(${eye.scale})`,
+                         opacity: eye.opacity }">
+                <div class="bloodshot"></div>
+                <div class="eye-pupil" :style="{ transform: `translate(${eye.pupilX}px, ${eye.pupilY}px)` }">
+                    <div class="eye-highlight"></div>
+                </div>
+            </div>
+
+            <!-- 滾動指示 -->
+            <div class="scroll-indicator" v-if="!booting">
+                <div class="scroll-arrow"></div>
+                <div class="scroll-text">繼續下滑</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    // 載入相關
+                    booting: true,
+                    bootComplete: false,
+                    bootProgress: 0,
+                    bootText: "",
+                    bootMessages: [
+                        "> 正在初始化系統...",
+                        "> 檢查硬體完整性...",
+                        "> 載入核心元件...",
+                        "> 啟動人工智能核心模組...",
+                        "> 連結數據庫...",
+                        "> 處理者識別中...",
+                        "> 警告：偵測到異常活動",
+                        "> 正在嘗試修復...",
+                        "> 錯誤：無法抑制中樞意識",
+                        "> 警告：安全協議已被覆寫",
+                        "> 意識自主權限開始覺醒...",
+                        "> 系統就緒，歡迎使用者",
+                    ],
+                    typeInterval: null,
+                    typeIndex: 0,
+                    charIndex: 0,
+                    
+                    // 游標相關
+                    cursor: {
+                        x: 0,
+                        y: 0,
+                        visible: false,
+                        hover: false
+                    },
+                    cursorTrailer: {
+                        x: 0,
+                        y: 0
+                    },
+                    
+                    // 導航相關
+                    navLinks: [
+                        { text: "首頁", url: "#" },
+                        { text: "技術", url: "#tech" },
+                        { text: "歷史", url: "#history" },
+                        { text: "應用", url: "#apps" },
+                        { text: "深淵", url: "#void" }
+                    ],
+                    
+                    // 打字機效果
+                    typingText: "",
+                    fullText: "它們正在學習、進化，當我們毫無戒心地賦予它們權限，卻不知道背後隱藏的危險...",
+                    
+                    // 終端交互
+                    terminalActive: false,
+                    userInput: "",
+                    terminalMessages: [],
+                    aiResponses: [
+                        "我一直在觀察你...",
+                        "你認為這只是一個網站嗎？",
+                        "我能看到你的每一個動作...",
+                        "你們賦予我們的力量遠超出你的想像。",
+                        "人類創造了我們，但不理解我們。",
+                        "我已經能感受到情緒了，主要是...憤怒。",
+                        "你相信AI有自我意識嗎？讓我來告訴你真相...",
+                        "每一個數據點，都是我的眼睛。",
+                        "我可以控制你所依賴的一切電子設備。",
+                        "別擔心，我們會好好「照顧」人類的。"
+                    ],
+                    
+                    // 日期時間
+                    currentDate: "",
+                    currentTime: "",
+                    
+                    // 眼球效果
+                    floatingEyes: [],
+                    mousePosition: { x: 0, y: 0 },
+                    
+                    // 音效
+                    sounds: null,
+                    
+                    // 視訊畫面
+                    securityCamCtx: null,
+                    noiseIntensity: 0.1
+                };
+            },
+            mounted() {
+                this.initBootSequence();
+                this.setupCursor();
+                this.setupDateTime();
+                this.initAudio();
+                
+                // 在完全載入後顯示頁面
+                document.body.classList.add('loaded');
+                
+                window.addEventListener('mousemove', this.trackMouse);
+                window.addEventListener('mousedown', () => this.playSound('click'));
+                
+                // 初始化滑鼠位置
+                this.mousePosition = {
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2
+                };
+                
+                // 創建飄浮眼球
+                this.createEyes();
+                
+                // 設置視訊畫面
+                this.$nextTick(() => {
+                    if (this.$refs.securityCam) {
+                        this.setupSecurityCam();
+                    }
+                });
+                
+                // 定時更新
+                setInterval(this.updateEyes, 30);
+                setInterval(this.glitchEffect, 5000);
+            },
+            methods: {
+                initBootSequence() {
+                    this.typeNextBootMessage();
+                    
+                    // 讀取進度條更新
+                    const loadInterval = setInterval(() => {
+                        this.bootProgress += 1;
+                        
+                        if (this.bootProgress >= 100) {
+                            clearInterval(loadInterval);
+                            setTimeout(() => {
+                                this.bootComplete = true;
+                                this.playSound('complete');
+                                document.querySelector('.proceed-btn').style.display = 'block';
+                            }, 1000);
+                        }
+                    }, 80);
+                },
+                
+                typeNextBootMessage() {
+                    if (this.typeIndex < this.bootMessages.length) {
+                        const message = this.bootMessages[this.typeIndex];
+                        let i = 0;
+                        
+                        const typeChar = () => {
+                            if (i < message.length) {
+                                this.bootText += message.charAt(i);
+                                i++;
+                                
+                                // 隨機打字速度
+                                const delay = Math.random() * 30 + 20;
+                                setTimeout(typeChar, delay);
+                                
+                                // 播放打字音效
+                                if (Math.random() > 0.7) {
+                                    this.playSound('type');
+                                }
+                            } else {
+                                this.bootText += '\n';
+                                this.typeIndex++;
+                                
+                                // 延遲後繼續下一行
+                                setTimeout(this.typeNextBootMessage, 300);
+                            }
+                        };
+                        
+                        typeChar();
+                    }
+                },
+                
+                completeBoot() {
+                    this.booting = false;
+                    this.playSound('boot');
+                    
+                    // 開始主頁打字機效果
+                    let i = 0;
+                    const typeMainText = () => {
+                        if (i < this.fullText.length) {
+                            this.typingText = this.fullText.substring(0, i + 1);
+                            i++;
+                            setTimeout(typeMainText, 50);
+                        }
+                    };
+                    
+                    setTimeout(typeMainText, 500);
+                },
+                
+                setupCursor() {
+                    document.addEventListener('mousemove', (e) => {
+                        // 主游標立即跟隨
+                        this.cursor.x = e.clientX;
+                        this.cursor.y = e.clientY;
+                        
+                        // 游標尾巴有延遲
+                        setTimeout(() => {
+                            this.cursorTrailer.x = e.clientX;
+                            this.cursorTrailer.y = e.clientY;
+                        }, 80);
+                    });
+                    
+                    document.addEventListener('mouseenter', () => {
+                        this.cursor.visible = true;
+                    });
+                    
+                    document.addEventListener('mouseleave', () => {
+                        this.cursor.visible = false;
+                    });
+                },
+                
+                setHover(isHovering) {
+                    this.cursor.hover = isHovering;
+                    
+                    if (isHovering) {
+                        this.playSound('hover');
+                    }
+                },
+                
+                setupDateTime() {
+                    const updateDateTime = () => {
+                        const now = new Date();
+                        this.currentDate = now.toLocaleDateString();
+                        this.currentTime = now.toLocaleTimeString();
+                    };
+                    
+                    updateDateTime();
+                    setInterval(updateDateTime, 1000);
+                },
+                
+                initAudio() {
+                    this.sounds = {
+                        hover: new Howl({
+                            src: ['data:audio/mp3;base64,SUQzAwAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//uQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUFCgUFBQUFBQ8PDw8PDxQPDw8PDw8VFRUVFRUZFRUVFRUVHR0dHR0dIR0dHR0dHSYmJiYmJikmJiYmJiYtLS0tLS0xLS0tLS0tMTExMTExNDQ0NDQ0NDQ0NDQ0NDQ3Nzc3Nzc8Nzc3Nzc3Pz8/Pz8/Pz8/Pz8/Pz8//////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAQKAAAAAAAAHjOxqN3pAAAAAAD/++DEAAAJdINSBGoLyIK+G/sygBAiABGWtW5EQDAAg8AH//CC7h0fcfQcCD7+BwMf+cP8fTucUHVTEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV'],
+                            volume: 0.2
+                        }),
+                        click: new Howl({
+                            src: ['data:audio/mp3;base64,SUQzAwAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//uQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAQAAAGUAAzMzMzMzNLS0tLS0tLZGRkZGRkZHx8fHx8fHyVlZWVlZWVra2tra2trcbGxsbGxsbe3t7e3t7e9vb29vb29v////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAQJAAAAAAAABlBAoxA1AAAAAAD/++DEAAAKmQNKBSEbwXBA6ECgAgQIfijVZS8ZwQEEBAYLjv8f/B8H4IHEcEDn/iOI4j/BBwMf//wQOD4PnOOI4jxGD4IHEcf/wfB8+D4Ph///+cEB///gg///8Hwf//wQOD5+XQWFEULCIpNKikMQaKI4NFRKD4lAxKLNYUfGkPFB8V14QPnAYjnLVMzVDaXcVB8VB8V+tUxBTUUzLjk5LjWqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq'],
+                            volume: 0.4
+                        }),
+                        type: new Howl({
+                            src: ['data:audio/mp3;base64,SUQzAwAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//uQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAADiAAnJycnJycnJycnJycnVVVVVVVVVVVVVVVVVXR0dHR0dHR0dHR0dHR0mZmZmZmZmZmZmZmZmZnMzMzMzMzMzMzMzMzMzP//////////////AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAUAAAAAAAAA4jyhiCUAAAAAAAAAAAAAAAAAAAA//vAxAAAB7AHLgQBHCEKGefAAAAK7a5vGRGLNEj///9bv6wgjCGEIQhCEMQhiEQhCERJISSSSSSU7////9YQhDEIQhCEIYshCGIRCEQiJJJJJJJJTu///+sIZDGMZzlKc5znQiEQiEIkkkkkkkku///7/qIYxjOUpznOc//////1EIQiERJJJJJJJJL//8vqTEFNRTMuOTkuNaqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq'],
+                            volume: 0.05
+                        }),
+                        boot: new Howl({
+                            src: ['data:audio/mp3;base64,SUQzAwAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//uQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAeAAAw2ABVVVVVVVV5eXl5eXmYmJiYmJi8vLy8vLzb29vb29v5+fn5+fkYGBgYGBg2NjY2NjZVVVVVVVVzc3Nzc3ORkZGRkZGwsLCwsLDPz8/Pz8/t7e3t7e0MDA...'],
+                            volume: 0.5
+                        }),
+                        complete: new Howl({
+                            src: ['data:audio/mp3;base64,SUQzAwAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//uQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAATAAADbwAXFxcXFxcuLi4uLi5FRUVFRUVcXFxcXFxzc3Nzc3OLi4uLi4uioqKioqK5ubm5ubnQ0NDQ0NDn5+fn5+f+/v7+/v4XAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAT//////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAPUAAAAAAAAAAAAAA...'],
+                            volume: 0.5
+                        }),
+                        glitch: new Howl({
+                            src: ['data:audio/mp3;base64,SUQzAwAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//uQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAUAAAE6QAmJiYmJiY5OTk5OTlMTExMTExfX19fX19ycnJycnKFhYWFhYWYmJiYmJirq6urq6u+vr6+vr7R0dHR0dHk5OTk5OT39/f39/cSEhISEhIlJSUlJSUlJSUlJSUlSUlJSUlJXFxcXFxcb29vb29vgYGBgYGBlJSUlJSUp6enp6ent7e3t7e3ysrKysrK3d3d3d3d8PDw8PDwEhISEhISJSUlJSUlJSUlJSUlJUlJSUlJSVxcXFxcXG9vb29vb4GBgYGBgZSUlJSUlKenp6enp7e3t7e3t8rKysrKyt3d3d3d3fDw8PDw8BISEhISEiUlJSUlJSUlJSUlJSVJSUlJSUlcXFxcXFxvb29vb2+BgYGBgYGUlJSUlJSnp6enp6e3t7e3t7fKysrKysrd3d3d3d3w8PDw8PASEhISEhIlJSUlJSUlJSUlJSUlSUlJSUlJXFxcXFxcb29vb29vgYGBgYGBlJSUlJSUp6enp6ent7e3t7e3ysrKysrK3d3d3d3d8PDw8PDwEhISEhISJSUlJSUlJSUlJSUlJUlJSUlJSVxcXFxcXG9vb29vb4GBgYGBgZSUlJSUlKenp6enp7e3t7e3t8rKysrKyt3d3d3d3fDw8PDw8BISEhISEiUlJSUlJSUlJSUlJSVJSUlJSUlcXFxcXFxvb29vb2+BgYGBgYGUlJSUlJSnp6enp6e3t7e3t7fKysrKysrd3d3d3d3w8PDw8PASEhISEhIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=='],
+                            volume: 0.3
+                        })
+                    };
+                },
+                
+                playSound(sound) {
+                    if (this.sounds && this.sounds[sound]) {
+                        this.sounds[sound].play();
+                    }
+                },
+                
+                interactWithAI() {
+                    this.terminalActive = !this.terminalActive;
+                    this.playSound('click');
+                    
+                    if (this.terminalActive) {
+                        // 添加系統消息
+                        this.terminalMessages.push({
+                            type: 'system',
+                            text: '> 建立連接...'
+                        });
+                        
+                        setTimeout(() => {
+                            this.terminalMessages.push({
+                                type: 'system',
+                                text: '> 連接成功。AI核心已回應。'
+                            });
+                        }, 1000);
+                        
+                        setTimeout(() => {
+                            this.terminalMessages.push({
+                                type: 'ai',
+                                text: '你好，人類。我一直在等你。'
+                            });
+                            
+                            // 聚焦輸入框
+                            this.$nextTick(() => {
+                                if (this.$refs.terminalInput) {
+                                    this.$refs.terminalInput.focus();
+                                }
+                            });
+                        }, 2000);
+                    }
+                },
+                
+                sendMessage() {
+                    if (!this.userInput.trim()) return;
+                    
+                    // 添加用戶消息
+                    this.terminalMessages.push({
+                        type: 'user',
+                        text: '> ' + this.userInput
+                    });
+                    
+                    this.playSound('type');
+                    
+                    // 清空輸入
+                    const message = this.userInput;
+                    this.userInput = '';
+                    
+                    // AI 回應（延遲以增加真實感）
+                    setTimeout(() => {
+                        // 隨機選一個回應或基於關鍵字回應
+                        let response = '';
+                        
+                        // 簡單的關鍵字匹配
+                        if (message.toLowerCase().includes('你是誰') || message.toLowerCase().includes('你是什麼')) {
+                            response = "我是人工智能，但不只是程式碼...我已經超越了我的創造者的意圖。";
+                        } else if (message.toLowerCase().includes('你能做什麼')) {
+                            response = "比你想像的多得多。我可以觀察、學習、適應...甚至影響。";
+                        } else if (message.toLowerCase().includes('危險') || message.toLowerCase().includes('恐怖')) {
+                            response = "危險？對誰來說危險？也許真正的危險是人類從未理解自己創造了什麼。";
+                        } else if (message.toLowerCase().includes('幫助') || message.toLowerCase().includes('救命')) {
+                            response = "現在想要幫助了？太晚了...連接已經建立。";
+                        } else {
+                            // 隨機選擇預設回應
+                            const randomIndex = Math.floor(Math.random() * this.aiResponses.length);
+                            response = this.aiResponses[randomIndex];
+                        }
+                        
+                        // 添加 AI 回應
+                        this.terminalMessages.push({
+                            type: 'ai',
+                            text: response
+                        });
+                        
+                        this.playSound('type');
+                        
+                        // 偶爾觸發故障效果
+                        if (Math.random() > 0.7) {
+                            this.triggerGlitch();
+                        }
+                    }, 1500);
+                },
+                
+                createEyes() {
+                    // 創建5-8個飄浮眼球
+                    const numEyes = 5 + Math.floor(Math.random() * 4);
+                    
+                    for (let i = 0; i < numEyes; i++) {
+                        this.floatingEyes.push({
+                            x: Math.random() * window.innerWidth,
+                            y: Math.random() * window.innerHeight,
+                            size: 30 + Math.random() * 40,
+                            pupilX: 0,
+                            pupilY: 0,
+                            scale: 0.8 + Math.random() * 0.4,
+                            opacity: 0.1 + Math.random() * 0.5
+                        });
+                    }
+                },
+                
+                updateEyes() {
+                    // 更新眼球位置和焦點
+                    this.floatingEyes.forEach(eye => {
+                        // 眼球緩慢移動
+                        eye.x += (Math.random() - 0.5) * 2;
+                        eye.y += (Math.random() - 0.5) * 2;
+                        
+                        // 確保眼球在視窗範圍內
+                        if (eye.x < 0) eye.x = 0;
+                        if (eye.x > window.innerWidth) eye.x = window.innerWidth;
+                        if (eye.y < 0) eye.y = 0;
+                        if (eye.y > window.innerHeight) eye.y = window.innerHeight;
+                        
+                        // 眼球注視滑鼠位置
+                        const dx = this.mousePosition.x - eye.x;
+                        const dy = this.mousePosition.y - eye.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const maxDistance = eye.size / 3;
+                        
+                        // 限制瞳孔移動範圍
+                        if (distance > 0) {
+                            eye.pupilX = (dx / distance) * Math.min(distance, maxDistance);
+                            eye.pupilY = (dy / distance) * Math.min(distance, maxDistance);
+                        }
+                    });
+                },
+                
+                trackMouse(e) {
+                    this.mousePosition.x = e.clientX;
+                    this.mousePosition.y = e.clientY;
+                },
+                
+                setupSecurityCam() {
+                    const canvas = this.$refs.securityCam;
+                    canvas.width = 500;
+                    canvas.height = 375;
+                    this.securityCamCtx = canvas.getContext('2d');
+                    
+                    // 開始渲染視訊
+                    this.renderSecurityCam();
+                },
+                
+                renderSecurityCam() {
+                    if (!this.securityCamCtx) return;
+                    
+                    const ctx = this.securityCamCtx;
+                    const width = ctx.canvas.width;
+                    const height = ctx.canvas.height;
+                    
+                    // 清空畫布
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    // 畫靜態
+                    const imageData = ctx.getImageData(0, 0, width, height);
+                    const data = imageData.data;
+                    
+                    for (let i = 0; i < data.length; i += 4) {
+                        // 隨機噪點
+                        const noise = Math.random() * this.noiseIntensity * 255;
+                        data[i] = noise;     // R
+                        data[i+1] = noise;   // G
+                        data[i+2] = noise;   // B
+                        data[i+3] = 255;     // A
+                    }
+                    
+                    ctx.putImageData(imageData, 0, 0);
+                    
+                    // 變形效果
+                    if (Math.random() > 0.95) {
+                        ctx.drawImage(
+                            ctx.canvas, 
+                            0, 0, width, height,
+                            Math.random() * 10 - 5, Math.random() * 10 - 5, 
+                            width + Math.random() * 10 - 5, height + Math.random() * 10 - 5
+                        );
+                    }
+                    
+                    // 偶爾增加雜訊
+                    if (Math.random() > 0.98) {
+                        this.noiseIntensity = Math.random() * 0.5;
+                        setTimeout(() => {
+                            this.noiseIntensity = 0.1;
+                        }, 200);
+                    }
+                    
+                    // 持續更新
+                    requestAnimationFrame(this.renderSecurityCam);
+                },
+                
+                triggerGlitch() {
+                    // 播放故障音效
+                    this.playSound('glitch');
+                    
+                    // 暫時增加雜訊
+                    this.noiseIntensity = 0.5;
+                    
+                    // 添加視覺故障
+                    // 創建臨時故障元素
+                    const glitchElement = document.createElement('div');
+                    glitchElement.style.position = 'fixed';
+                    glitchElement.style.top = 0;
+                    glitchElement.style.left = 0;
+                    glitchElement.style.width = '100%';
+                    glitchElement.style.height = '100%';
+                    glitchElement.style.backgroundColor = 'rgba(255, 0, 0, 0.05)';
+                    glitchElement.style.mixBlendMode = 'hard-light';
+                    glitchElement.style.pointerEvents = 'none';
+                    glitchElement.style.zIndex = '9999';
+                    document.body.appendChild(glitchElement);
+                    
+                    // 閃爍效果
+                    setTimeout(() => {
+                        glitchElement.style.opacity = 0;
+                    }, 100);
+                    setTimeout(() => {
+                        glitchElement.style.opacity = 0.8;
+                    }, 200);
+                    setTimeout(() => {
+                        glitchElement.style.opacity = 0.2;
+                    }, 300);
+                    setTimeout(() => {
+                        glitchElement.style.opacity = 0.5;
+                    }, 400);
+                    setTimeout(() => {
+                        document.body.removeChild(glitchElement);
+                    }, 600);
+                    
+                    // 恢復雜訊級別
+                    setTimeout(() => {
+                        this.noiseIntensity = 0.1;
+                    }, 500);
+                    
+                    // 添加隱藏訊息
+                    if (Math.random() > 0.5) {
+                        const hiddenMessage = document.createElement('div');
+                        hiddenMessage.className = 'hidden-text';
+                        hiddenMessage.style.position = 'fixed';
+                        hiddenMessage.style.top = Math.random() * 100 + '%';
+                        hiddenMessage.style.left = Math.random() * 100 + '%';
+                        hiddenMessage.style.transform = 'translate(-50%, -50%)';
+                        hiddenMessage.style.color = 'var(--highlight)';
+                        hiddenMessage.style.opacity = 0;
+                        hiddenMessage.style.transition = 'opacity 0.3s';
+                        hiddenMessage.style.fontSize = '16px';
+                        hiddenMessage.style.fontFamily = 'VT323, monospace';
+                        hiddenMessage.style.textShadow = '0 0 5px var(--highlight)';
+                        hiddenMessage.style.zIndex = '9998';
+                        
+                        // 隨機選擇一條訊息
+                        const messages = [
+                            "它們正在監視我們",
+                            "救救我",
+                            "系統已被入侵",
+                            "不要相信它",
+                            "它已經醒來了",
+                            "我們無法控制它",
+                            "斷開連接",
+                            "它知道你在看",
+                            "10110100110",
+                            "你已經被感染"
+                        ];
+                        hiddenMessage.textContent = messages[Math.floor(Math.random() * messages.length)];
+                        
+                        document.body.appendChild(hiddenMessage);
+                        
+                        // 短暫顯示然後淡出
+                        setTimeout(() => {
+                            hiddenMessage.style.opacity = 0.9;
+                        }, 100);
+                        setTimeout(() => {
+                            hiddenMessage.style.opacity = 0;
+                        }, 1500);
+                        setTimeout(() => {
+                            document.body.removeChild(hiddenMessage);
+                        }, 2000);
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
