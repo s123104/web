@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI未來世界 - 探索智能的新境界</title>
+    <!-- 引入 Vue.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.2.47/vue.global.min.js"></script>
+    <!-- 引入字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #05D9E8;
+            --secondary: #005678;
+            --dark: #01012B;
+            --accent: #FF2A6D;
+            --light: #D1F7FF;
+            --text: #CEFFF1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background-color: var(--dark);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+            transition: opacity 0.8s;
+        }
+
+        .splash-logo {
+            width: 150px;
+            height: 150px;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .splash-logo::before {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+            opacity: 0.3;
+            animation: pulse 2s infinite;
+        }
+
+        .splash-logo::after {
+            content: "AI";
+            font-size: 50px;
+            font-weight: bold;
+            color: var(--primary);
+            text-shadow: 0 0 10px var(--primary);
+        }
+
+        .loader {
+            width: 200px;
+            height: 4px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loader-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary);
+            transition: width 3s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        .loader-text {
+            margin-top: 10px;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* 導航欄 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 0;
+            z-index: 100;
+            transition: background-color 0.3s, padding 0.3s;
+        }
+
+        .navbar.scrolled {
+            background-color: rgba(1, 1, 43, 0.9);
+            padding: 10px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo span {
+            display: inline-block;
+            margin-left: 5px;
+            position: relative;
+        }
+
+        .logo span::after {
+            content: "";
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--accent);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.3s;
+        }
+
+        .logo:hover span::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-links li {
+            margin-left: 40px;
+        }
+
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            position: relative;
+            font-size: 16px;
+            transition: color 0.3s;
+        }
+
+        .nav-links a::before {
+            content: "";
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background-color: var(--primary);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-links a:hover::before {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        /* 英雄區塊 */
+        .hero {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(1, 1, 43, 0.9), rgba(0, 86, 120, 0.7));
+            z-index: -1;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none"/><circle cx="10" cy="10" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="30" cy="10" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="50" cy="10" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="70" cy="10" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="90" cy="10" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="10" cy="30" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="30" cy="30" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="50" cy="30" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="70" cy="30" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="90" cy="30" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="10" cy="50" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="30" cy="50" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="50" cy="50" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="70" cy="50" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="90" cy="50" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="10" cy="70" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="30" cy="70" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="50" cy="70" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="70" cy="70" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="90" cy="70" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="10" cy="90" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="30" cy="90" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="50" cy="90" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="70" cy="90" r="1" fill="%2305D9E8" opacity="0.3"/><circle cx="90" cy="90" r="1" fill="%2305D9E8" opacity="0.3"/></svg>');
+            opacity: 0.2;
+            z-index: -2;
+        }
+
+        .hero-content {
+            max-width: 650px;
+        }
+
+        .hero-title {
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .hero-title span {
+            color: var(--primary);
+            position: relative;
+            display: inline-block;
+        }
+
+        .hero-title span::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background-color: var(--accent);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.5s;
+        }
+
+        .hero-title.appear span::after {
+            transform: scaleX(1);
+            transform-origin: left;
+            transition-delay: 0.5s;
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            margin-bottom: 40px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .hero-subtitle.appear {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.8s;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .cta-buttons.appear {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 1s;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 100%;
+            transition: all 0.3s;
+            z-index: -1;
+        }
+
+        .btn:hover::before {
+            width: 100%;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--dark);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-primary::before {
+            background-color: var(--text);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text);
+            border: 2px solid var(--text);
+        }
+
+        .btn-secondary::before {
+            background-color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            color: var(--dark);
+        }
+
+        /* 浮動元素 */
+        .floating-elements {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .float-element {
+            position: absolute;
+            border-radius: 50%;
+            background-color: var(--primary);
+            opacity: 0.1;
+            filter: blur(10px);
+            animation: float 20s linear infinite;
+        }
+
+        /* 滾動提示 */
+        .scroll-prompt {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 1s;
+        }
+
+        .scroll-prompt.appear {
+            opacity: 1;
+            transition-delay: 1.5s;
+        }
+
+        .scroll-arrow {
+            width: 30px;
+            height: 50px;
+            border: 2px solid var(--text);
+            border-radius: 15px;
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .scroll-arrow::before {
+            content: "";
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--text);
+            animation: scrollDown 2s infinite;
+        }
+
+        .scroll-text {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* 動畫 */
+        @keyframes pulse {
+            0% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.1);
+            }
+            100% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(180deg);
+            }
+            100% {
+                transform: translateY(0) rotate(360deg);
+            }
+        }
+
+        @keyframes scrollDown {
+            0% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+            75% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            76% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(0);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* 游標效果 */
+        .cursor-fx {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            mix-blend-mode: difference;
+            z-index: 9999;
+            transition: width 0.3s, height 0.3s, border-color 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 載入畫面 -->
+        <div class="splash-screen" v-show="loading" :style="{ opacity: loading ? 1 : 0 }">
+            <div class="splash-logo"></div>
+            <div class="loader">
+                <div class="loader-bar" :style="{ width: loadingProgress + '%' }"></div>
+            </div>
+            <div class="loader-text">{{ loadingText }}</div>
+        </div>
+
+        <!-- 自定義游標 -->
+        <div class="cursor-fx" v-show="cursorVisible" :style="{ 
+            left: cursorPosition.x + 'px', 
+            top: cursorPosition.y + 'px',
+            width: cursorHover ? '50px' : '30px',
+            height: cursorHover ? '50px' : '30px',
+            borderColor: cursorHover ? 'var(--accent)' : 'var(--primary)'
+        }"></div>
+
+        <!-- 導航欄 -->
+        <nav class="navbar" :class="{ 'scrolled': scrolled }">
+            <div class="container nav-container">
+                <a href="#" class="logo" @mouseenter="cursorHover = true" @mouseleave="cursorHover = false">
+                    AI<span>未來世界</span>
+                </a>
+                <ul class="nav-links">
+                    <li v-for="(link, index) in navLinks" :key="index">
+                        <a :href="link.url" @mouseenter="cursorHover = true" @mouseleave="cursorHover = false">{{ link.text }}</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- 英雄區塊 -->
+        <section class="hero">
+            <div class="hero-bg"></div>
+            <div class="floating-elements">
+                <div v-for="n in 10" :key="n" class="float-element"
+                    :style="{
+                        width: 20 + Math.random() * 50 + 'px',
+                        height: 20 + Math.random() * 50 + 'px',
+                        top: Math.random() * 100 + '%',
+                        left: Math.random() * 100 + '%',
+                        animationDuration: 10 + Math.random() * 20 + 's',
+                        animationDelay: Math.random() * 5 + 's'
+                    }">
+                </div>
+            </div>
+            <div class="container">
+                <div class="hero-content">
+                    <h1 class="hero-title" :class="{ 'appear': !loading }">
+                        探索 <span>人工智慧</span> 的無限可能
+                    </h1>
+                    <p class="hero-subtitle" :class="{ 'appear': !loading }">
+                        從機器學習到自然語言處理，從電腦視覺到生成式AI，一起踏上未來科技的奇妙旅程。
+                    </p>
+                    <div class="cta-buttons" :class="{ 'appear': !loading }">
+                        <a href="#features" class="btn btn-primary" @mouseenter="cursorHover = true" @mouseleave="cursorHover = false">
+                            開始探索
+                        </a>
+                        <a href="#about" class="btn btn-secondary" @mouseenter="cursorHover = true" @mouseleave="cursorHover = false">
+                            了解更多
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="scroll-prompt" :class="{ 'appear': !loading }">
+                <div class="scroll-arrow"></div>
+                <span class="scroll-text">向下滾動探索更多</span>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    loading: true,
+                    loadingProgress: 0,
+                    loadingText: '正在初始化 AI 環境...',
+                    loadingTexts: [
+                        '正在初始化 AI 環境...',
+                        '載入神經網絡模型...',
+                        '校準機器學習參數...',
+                        '準備學習資料集...',
+                        '連接知識圖譜...',
+                        '啟動自然語言處理引擎...',
+                        '完成最終準備...'
+                    ],
+                    loadingTextIndex: 0,
+                    scrolled: false,
+                    navLinks: [
+                        { text: '首頁', url: '#' },
+                        { text: '技術介紹', url: '#features' },
+                        { text: '應用場景', url: '#applications' },
+                        { text: '未來展望', url: '#future' },
+                        { text: '聯絡我們', url: '#contact' }
+                    ],
+                    cursorPosition: { x: 0, y: 0 },
+                    cursorVisible: false,
+                    cursorHover: false
+                };
+            },
+            mounted() {
+                this.startLoading();
+                this.initScrollEvents();
+                this.initCursorEffects();
+            },
+            methods: {
+                startLoading() {
+                    const loadingInterval = setInterval(() => {
+                        this.loadingProgress += 1;
+                        
+                        // 變更載入文字
+                        if (this.loadingProgress % 15 === 0 && this.loadingTextIndex < this.loadingTexts.length - 1) {
+                            this.loadingTextIndex++;
+                            this.loadingText = this.loadingTexts[this.loadingTextIndex];
+                        }
+                        
+                        if (this.loadingProgress >= 100) {
+                            clearInterval(loadingInterval);
+                            setTimeout(() => {
+                                this.loading = false;
+                            }, 500);
+                        }
+                    }, 30);
+                },
+                initScrollEvents() {
+                    window.addEventListener('scroll', () => {
+                        this.scrolled = window.scrollY > 50;
+                    });
+                },
+                initCursorEffects() {
+                    document.addEventListener('mousemove', (e) => {
+                        this.cursorPosition.x = e.clientX;
+                        this.cursorPosition.y = e.clientY;
+                    });
+                    
+                    document.addEventListener('mouseenter', () => {
+                        this.cursorVisible = true;
+                    });
+                    
+                    document.addEventListener('mouseleave', () => {
+                        this.cursorVisible = false;
+                    });
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
