@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>雅 (Miyabi) - 3D物理抽選機 (側視 - 修正載入)</title>
+    <title>雅 (Miyabi) - 3D物理抽選機 (側視 - 修正CDN)</title>
     <!-- 引入字體 -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
     <!-- 引入 FontAwesome -->
@@ -11,15 +11,17 @@
 
     <!-- === 核心渲染與物理庫 === -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon-es/0.20.0/cannon-es.min.js"></script>
+    <!-- *** 使用 jsDelivr 作為 Cannon-es 的 CDN 來源 *** -->
+    <script src="https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.min.js"></script>
+    <!-- *** 舊的 cdnjs 連結 (備用): <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon-es/0.20.0/cannon-es.min.js"></script> *** -->
+
 
     <!-- === 動畫、交互與音效庫 === -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
 
-    <!-- === 可選：調試工具 === -->
-    <!-- Importmap (如果需要 OrbitControls) -->
+    <!-- === 可選：調試工具 Importmap (如果需要 OrbitControls) === -->
     <!--
     <script type="importmap">
         {
@@ -30,7 +32,7 @@
         }
     </script>
     -->
-    <!-- Module Script (如果需要 OrbitControls) -->
+    <!-- === 可選：調試工具 Module Script (如果需要 OrbitControls) === -->
     <!--
     <script type="module">
          import * as THREE from 'three';
@@ -39,7 +41,7 @@
          window.THREE = THREE; // Ensure THREE is global if needed
      </script>
      -->
-     <!-- Cannon Debugger -->
+     <!-- === 可選：調試工具 Cannon Debugger === -->
      <!-- <script src="https://unpkg.com/cannon-es-debugger@1.0.0/dist/cannon-es-debugger.js"></script> -->
 
 
@@ -119,12 +121,13 @@
         }
         body.light-mode #canvas-container { box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
         body.light-mode { /* Optional further light mode styles */ }
+
     </style>
 </head>
 <body>
     <!-- === HTML 結構 (保持不變) === -->
     <div class="title-area">
-        <h1>雅 - 3D物理抽選機 (側視 - 修正載入)</h1>
+        <h1>雅 - 3D物理抽選機 (側視 - 修正CDN)</h1>
         <p>真實碰撞，幸運降臨</p>
     </div>
     <div id="canvas-container"></div>
@@ -150,8 +153,8 @@
     </div>
 
     <!-- === JavaScript === -->
-    <script> // Changed from type="module" to standard script
-        // Ensure libraries are accessible globally
+    <script> // Use standard script tag
+        // Make libraries globally accessible for simplicity in this context
         const THREE = window.THREE;
         const CANNON = window.CANNON;
         const gsap = window.gsap;
@@ -193,45 +196,44 @@
             let isSpinning = false, soundEnabled = true, isLightMode = false;
             let balls = [];
             let spinTargetSpeed = 0, currentSpinSpeed = 0, spinDeceleration = 0.985;
-            let animationFrameId = null; // To potentially cancel animation loop
+            let animationFrameId = null;
 
             // --- Three.js Variables ---
             let scene, camera, renderer, ambientLight, directionalLight;
             let machineGroup, drumMesh, baseMesh, chuteMesh;
-            let orbitControls; // For debugging
+            let orbitControls;
 
             // --- Cannon-es Variables ---
             let world, physicsMaterial, ballMaterial, wallMaterial;
             let drumBody;
-            let cannonDebugger; // For debugging
+            let cannonDebugger;
 
             // --- Audio ---
             // !! REPLACE BASE64 WITH YOUR ACTUAL SOUNDS !!
-            let sounds = {}; // Initialize empty, load in init
+            let sounds = {};
             function setupAudio() {
                 try {
                     sounds = {
-                        spin: new Howl({ src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQwAAAAAAACAAA=='], volume: 0.4, loop: true, rate: 1.0 }), // Placeholder Spin
-                        win: new Howl({ src: ['data:audio/wav;base64,UklGRiIAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=='], volume: 0.7 }), // Placeholder Win
-                        click: new Howl({ src: ['data:audio/wav;base64,UklGRigAAAAXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=='], volume: 0.6 }), // Placeholder Click
-                        bounce: new Howl({ src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQwAAAAAAACAAA=='], volume: 0.15, pool: 10}) // Placeholder Bounce
+                        spin: new Howl({ src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQwAAAAAAACAAA=='], volume: 0.4, loop: true, rate: 1.0 }),
+                        win: new Howl({ src: ['data:audio/wav;base64,UklGRiIAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=='], volume: 0.7 }),
+                        click: new Howl({ src: ['data:audio/wav;base64,UklGRigAAAAXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=='], volume: 0.6 }),
+                        bounce: new Howl({ src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQwAAAAAAACAAA=='], volume: 0.15, pool: 10})
                     };
                     Howler.autoUnlock = true;
                     console.log("Audio setup complete.");
                 } catch (error) {
                     console.error("Error setting up audio:", error);
-                    soundEnabled = false; // Disable sound if setup fails
-                    soundStatus.textContent = "音效錯誤";
+                    soundEnabled = false;
+                    if (soundStatus) soundStatus.textContent = "音效錯誤";
                     if(soundToggle) soundToggle.style.pointerEvents = 'none';
                 }
             }
 
-
             // --- Initialization ---
             function init() {
-                // **Explicit Library Check**
                 const missingLibs = [];
                 if (typeof window.THREE === 'undefined') missingLibs.push('Three.js');
+                // ** Crucial Check: Ensure CANNON is defined **
                 if (typeof window.CANNON === 'undefined') missingLibs.push('Cannon-es');
                 if (typeof window.gsap === 'undefined') missingLibs.push('GSAP');
                 if (typeof window.Draggable === 'undefined') missingLibs.push('GSAP Draggable');
@@ -240,52 +242,48 @@
                 if (missingLibs.length > 0) {
                     console.error("Required libraries failed to load:", missingLibs.join(', '));
                     resultDisplay.textContent = `錯誤：無法載入函式庫 (${missingLibs.join(', ')})`;
-                    // Optionally hide or disable UI elements
                     if(startButton) startButton.disabled = true;
                     if(resetButton) resetButton.disabled = true;
                     if(handleDragTrigger) handleDragTrigger.style.display = 'none';
-                    return; // Stop initialization
+                    return;
                 }
 
-                // Proceed with initialization
                 isLightMode = window.innerWidth <= 767;
                 if(isLightMode) document.body.classList.add('light-mode');
 
-                setupAudio(); // Setup audio after checking Howler
+                setupAudio();
                 setupThree();
                 setupCannon();
-                // setupDebuggers(); // Keep commented unless debugging
+                // setupDebuggers();
                 createMachineModel();
-                if (!world || !scene) return; // Stop if core setup failed
+                if (!world || !scene) return;
                 resetLottery();
                 setupEventListeners();
-                if (animationFrameId) cancelAnimationFrame(animationFrameId); // Cancel previous loop if any
-                animate(); // Start animation loop
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                animate();
                 console.log("3D抽選機 初始化完成！");
             }
 
             // --- Three.js Setup ---
             function setupThree() {
-                try {
+                 try {
                     scene = new THREE.Scene();
                     const bgColor = getComputedStyle(document.body).getPropertyValue('--background').trim();
                     scene.background = new THREE.Color(bgColor || 0xFDF6E3);
                     scene.fog = new THREE.Fog(scene.background, 6, 18);
 
-                    const aspect = canvasContainer.clientWidth / canvasContainer.clientHeight;
-                    // Ensure aspect is valid, prevent division by zero
-                    if (aspect <= 0) {
-                        console.warn("Invalid canvas aspect ratio initially, defaulting.");
-                        camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 100); // Default aspect
-                    } else {
-                        camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 100);
-                    }
+                    const containerWidth = canvasContainer.clientWidth;
+                    const containerHeight = canvasContainer.clientHeight;
+                    const aspect = (containerWidth && containerHeight) ? containerWidth / containerHeight : 16/9;
+
+                    camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 100);
                     camera.position.set(config.machineRadius * 5.0, config.machineHeight * 0.7, 0);
                     camera.lookAt(0, 0, 0);
                     scene.add(camera);
 
                     renderer = new THREE.WebGLRenderer({ antialias: !isLightMode, alpha: true });
-                    renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+                    // Ensure renderer size is set correctly even if container size is 0 initially
+                    renderer.setSize(Math.max(1, containerWidth), Math.max(1, containerHeight));
                     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                     renderer.shadowMap.enabled = !isLightMode;
                     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -313,10 +311,11 @@
                     scene.add(hemiLight);
 
                     console.log("Three.js setup complete.");
-                } catch (error) {
+
+                 } catch (error) {
                      console.error("Error during Three.js setup:", error);
-                     resultDisplay.textContent = "錯誤：無法初始化 3D 場景";
-                     scene = null; // Indicate setup failure
+                     if(resultDisplay) resultDisplay.textContent = "錯誤：無法初始化 3D 場景";
+                     scene = null;
                  }
             }
 
@@ -335,26 +334,17 @@
                     world.addContactMaterial(new CANNON.ContactMaterial(ballMaterial, ballMaterial, { friction: 0.2, restitution: 0.6 }));
                     world.addContactMaterial(new CANNON.ContactMaterial(wallMaterial, wallMaterial, { friction: 0.0, restitution: 0.1 }));
 
-                     // Bounce sound handling moved to animate loop for simplicity
-
                     console.log("Cannon-es setup complete.");
                  } catch (error) {
                      console.error("Error during Cannon-es setup:", error);
-                     resultDisplay.textContent = "錯誤：無法初始化物理引擎";
-                     world = null; // Indicate setup failure
+                     if(resultDisplay) resultDisplay.textContent = "錯誤：無法初始化物理引擎";
+                     world = null;
                  }
             }
 
-            // --- Setup Debuggers (Optional, keep commented) ---
-            /*
-            function setupDebuggers() {
-                 // ... debugger setup code ...
-            }
-            */
-
             // --- Create 3D Models & Physics Bodies ---
             function createMachineModel() {
-                 if (!scene || !world) return; // Don't proceed if setup failed
+                 if (!scene || !world) return;
                  try {
                     machineGroup = new THREE.Group();
                     scene.add(machineGroup);
@@ -393,7 +383,7 @@
                     console.log("Machine model created.");
                  } catch (error) {
                      console.error("Error creating machine model:", error);
-                     resultDisplay.textContent = "錯誤：無法創建抽選機模型";
+                     if(resultDisplay) resultDisplay.textContent = "錯誤：無法創建抽選機模型";
                  }
             }
             // --- Wood Texture Helper ---
@@ -402,7 +392,7 @@
                  const context = canvas.getContext('2d'); context.fillStyle = '#A0522D'; context.fillRect(0, 0, 64, 128);
                  for (let i = 0; i < 100; i++) { context.fillStyle = `rgba(139, 69, 19, ${Math.random() * 0.3 + 0.1})`; context.fillRect(Math.random() * 64, Math.random() * 128, Math.random() * 2 + 0.5, Math.random() * 30 + 20); }
                  const texture = new THREE.CanvasTexture(canvas); texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(4, 2); return texture;
-             }
+            }
 
             // --- Create Balls ---
             function createBalls(count) {
@@ -410,7 +400,6 @@
                  try {
                     balls.forEach(ball => { if(ball.mesh) scene.remove(ball.mesh); if(ball.body) world.removeBody(ball.body); });
                     balls = [];
-
                     let weightedPrizes = [];
                     config.prizes.forEach(prize => { for (let i = 0; i < prize.weight; i++) weightedPrizes.push(prize); });
 
@@ -422,45 +411,39 @@
                         const prizeData = weightedPrizes[Math.floor(Math.random() * weightedPrizes.length)];
                         textCtx.fillStyle = prizeData.color; textCtx.fillRect(0, 0, 64, 32); textCtx.fillStyle = 'white'; textCtx.font = 'bold 14px Noto Sans TC'; textCtx.textAlign = 'center'; textCtx.textBaseline = 'middle'; textCtx.fillText(prizeData.label, 32, 16);
                         const ballTexture = new THREE.CanvasTexture(textCanvas); ballTexture.needsUpdate = true;
-
                         const ballMaterialInstance = new THREE.MeshStandardMaterial({ map: ballTexture, roughness: 0.4, metalness: 0.1 });
                         const ballMesh = new THREE.Mesh(ballGeometry, ballMaterialInstance);
                         ballMesh.castShadow = true; ballMesh.receiveShadow = true; ballMesh.userData.prize = prizeData;
-
                         const ballBody = new CANNON.Body({
                             mass: 0.1, shape: ballShape, material: ballMaterial,
-                            position: new CANNON.Vec3( (Math.random() - 0.5) * config.machineRadius * 0.7, (Math.random() - 0.5) * (config.machineHeight * 0.8), (Math.random() - 0.5) * config.machineRadius * 0.7 ),
+                            position: new CANNON.Vec3( (Math.random()-0.5)*config.machineRadius*0.7, (Math.random()-0.5)*(config.machineHeight*0.8), (Math.random()-0.5)*config.machineRadius*0.7 ),
                             angularVelocity: new CANNON.Vec3((Math.random()-0.5)*8, (Math.random()-0.5)*8, (Math.random()-0.5)*8),
                             linearDamping: 0.1, angularDamping: 0.1, allowSleep: true, sleepSpeedLimit: 0.2, sleepTimeLimit: 0.5
                         });
-                        ballBody.userData = { mesh: ballMesh, lastCollisionTime: 0 }; // Add collision timestamp
-
-                        world.addBody(ballBody);
-                        scene.add(ballMesh);
+                        ballBody.userData = { mesh: ballMesh, lastCollisionTime: 0 };
+                        world.addBody(ballBody); scene.add(ballMesh);
                         balls.push({ mesh: ballMesh, body: ballBody, prize: prizeData });
                     }
                     console.log(`創建了 ${balls.length} 個 3D 球`);
                  } catch (error) {
                      console.error("Error creating balls:", error);
-                     resultDisplay.textContent = "錯誤：無法創建球體";
+                     if(resultDisplay) resultDisplay.textContent = "錯誤：無法創建球體";
                  }
             }
 
             // --- Animation Loop ---
             const clock = new THREE.Clock();
             function animate() {
-                animationFrameId = requestAnimationFrame(animate); // Store ID to cancel if needed
+                animationFrameId = requestAnimationFrame(animate);
                 const deltaTime = clock.getDelta();
-                const dt = config.physicsTimeStep; // Fixed step
+                const dt = config.physicsTimeStep;
 
-                if (!scene || !world || !camera || !renderer) { // Check if core components are missing
+                if (!scene || !world || !camera || !renderer) {
                     console.error("Core component missing, stopping animation loop.");
-                    if(animationFrameId) cancelAnimationFrame(animationFrameId);
-                    return;
+                    if(animationFrameId) cancelAnimationFrame(animationFrameId); return;
                 }
-
                 try {
-                    // Spin Control Logic
+                    // Spin Control
                     if (isSpinning) {
                         currentSpinSpeed = THREE.MathUtils.lerp(currentSpinSpeed, spinTargetSpeed, 0.05);
                         if (spinTargetSpeed === 0 && Math.abs(currentSpinSpeed) > 0.05) { currentSpinSpeed *= spinDeceleration; }
@@ -469,62 +452,32 @@
                         currentSpinSpeed = THREE.MathUtils.lerp(currentSpinSpeed, 0, 0.1);
                         if (Math.abs(currentSpinSpeed) < 0.01) currentSpinSpeed = 0;
                     }
-
-                    // Update Kinematic Drum Body Rotation
+                    // Update Drum Rotation
                     if (drumBody && Math.abs(currentSpinSpeed) > 0) {
                         const currentQuat = drumBody.quaternion.clone();
                         const deltaQuat = new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(0, 1, 0), currentSpinSpeed * deltaTime);
-                        const newQuat = deltaQuat.mult(currentQuat);
-                        drumBody.quaternion.copy(newQuat);
+                        const newQuat = deltaQuat.mult(currentQuat); drumBody.quaternion.copy(newQuat);
                     }
-
-                    // Step Physics World
+                    // Step Physics
                     world.step(dt);
-
-                    // Update Visual Meshes & Handle Bounce Sound
-                    const collisionCooldown = 100; // milliseconds
-                    const now = Date.now();
-                    for (const ball of balls) {
-                        if (ball.body && ball.mesh) {
-                            ball.mesh.position.copy(ball.body.position);
-                            ball.mesh.quaternion.copy(ball.body.quaternion);
-
-                             // Simple Bounce Sound Check (based on velocity change - less accurate than collision event)
-                             // This is a basic placeholder as direct collision events need more setup
-                             // Check if velocity is significant and if enough time passed since last sound
-                             /*
-                             if (soundEnabled && sounds.bounce && isSpinning && ball.body.velocity.lengthSquared() > 0.5 && (now - (ball.body.userData.lastCollisionTime || 0) > collisionCooldown) ) {
-                                 const speed = ball.body.velocity.length();
-                                 if(speed > 1.0) { // Threshold for sound
-                                     sounds.bounce.volume(Math.min(0.5, speed * 0.05));
-                                     sounds.bounce.rate(1.0 + Math.random() * 0.2);
-                                     sounds.bounce.play();
-                                     ball.body.userData.lastCollisionTime = now; // Update timestamp
-                                 }
-                             }
-                             */
-                        }
-                    }
+                    // Update Visuals
+                    for (const ball of balls) { if (ball.body && ball.mesh) { ball.mesh.position.copy(ball.body.position); ball.mesh.quaternion.copy(ball.body.quaternion); } }
                     if (drumMesh && drumBody) { drumMesh.quaternion.copy(drumBody.quaternion); }
-
                     // Update Debuggers/Controls
-                    if (orbitControls) orbitControls.update();
-                    if (cannonDebugger) cannonDebugger.update();
-
-                    // Render Scene
+                    if (orbitControls) orbitControls.update(); if (cannonDebugger) cannonDebugger.update();
+                    // Render
                     renderer.render(scene, camera);
-
                 } catch (error) {
                     console.error("Error during animation loop:", error);
-                    if(animationFrameId) cancelAnimationFrame(animationFrameId); // Stop loop on error
-                    resultDisplay.textContent = "錯誤：動畫循環失敗";
+                    if(animationFrameId) cancelAnimationFrame(animationFrameId);
+                    if(resultDisplay) resultDisplay.textContent = "錯誤：動畫循環失敗";
                 }
             }
 
             // --- Event Listeners & Interaction ---
             function setupEventListeners() {
-                 if (!handleDragTrigger) {
-                     console.error("Handle drag trigger element not found.");
+                 if (!handleDragTrigger || !startButton || !resetButton || !soundToggle || !closeWinner) {
+                     console.error("One or more UI elements not found for event listeners.");
                      return;
                  }
                  try {
@@ -532,131 +485,59 @@
                     resetButton.addEventListener('click', handleResetClick);
                     soundToggle.addEventListener('click', toggleSound);
                     closeWinner.addEventListener('click', hideWinnerDisplay);
-
-                     // Ensure Draggable is loaded before creating
-                     if (typeof Draggable !== 'undefined') {
+                    if (typeof Draggable !== 'undefined') {
                         Draggable.create(handleDragTrigger, {
-                            type: "y", trigger: handleDragTrigger, inertia: true,
-                            throwResistance: 4000, cursor: 'grab', activeCursor: 'grabbing',
+                            type: "y", trigger: handleDragTrigger, inertia: true, throwResistance: 4000, cursor: 'grab', activeCursor: 'grabbing',
                             onDragStart: function() { if (isSpinning) return; if (soundEnabled && sounds.click) sounds.click.play(); gsap.to(handleDragTrigger, { scale: 1.1, duration: 0.1 }); },
                             onDragEnd: function() {
-                                gsap.to(handleDragTrigger, { scale: 1, duration: 0.3 });
-                                gsap.to(this.target, { y: 0, duration: 0.5, ease: "power2.out" });
-                                const finalVelocityY = this.getVelocity("y");
-                                const angularVelFromDrag = -finalVelocityY * 0.015 * config.handleSensitivity;
+                                gsap.to(handleDragTrigger, { scale: 1, duration: 0.3 }); gsap.to(this.target, { y: 0, duration: 0.5, ease: "power2.out" });
+                                const finalVelocityY = this.getVelocity("y"); const angularVelFromDrag = -finalVelocityY * 0.015 * config.handleSensitivity;
                                 if (Math.abs(angularVelFromDrag) > config.minSpinVelocity && !isSpinning) { startSpin(angularVelFromDrag, config.baseSpinDuration); }
-                            }
-                        });
-                    } else {
-                        console.error("GSAP Draggable not found!");
-                        handleDragTrigger.style.display = 'none'; // Hide trigger if Draggable failed
-                    }
-
+                            } });
+                    } else { console.error("GSAP Draggable not found!"); if(handleDragTrigger) handleDragTrigger.style.display = 'none'; }
                     window.addEventListener('resize', onWindowResize, false);
                     console.log("Event listeners set up.");
-                 } catch (error) {
-                     console.error("Error setting up event listeners:", error);
-                     resultDisplay.textContent = "錯誤：無法設定互動功能";
-                 }
+                 } catch (error) { console.error("Error setting up event listeners:", error); if(resultDisplay) resultDisplay.textContent = "錯誤：無法設定互動功能"; }
             }
             function onWindowResize() {
                  if (!camera || !renderer || !canvasContainer) return;
                  try {
-                    const w = canvasContainer.clientWidth;
-                    const h = canvasContainer.clientHeight;
-                    if(w > 0 && h > 0) {
-                       camera.aspect = w / h;
-                       camera.updateProjectionMatrix();
-                       renderer.setSize(w, h);
-                    }
+                    const w = canvasContainer.clientWidth; const h = canvasContainer.clientHeight;
+                    if(w > 0 && h > 0) { camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); }
                  } catch(error) { console.error("Error on window resize:", error); }
             }
 
             // --- Spin Logic ---
             function startSpin(initialVelocityRad = 0, duration) {
-                 if (isSpinning || !world || !sounds.spin) return; // Add checks
-                 isSpinning = true; setControlsDisabled(true);
-                 resultDisplay.textContent = '幸運轉動中...'; resultDisplay.classList.remove('winning');
-                 if (soundEnabled) sounds.spin.play();
-                 balls.forEach(b => b.body?.wakeUp());
-
-                 const speedFactor = parseFloat(spinSpeedSelect.value);
-                 spinTargetSpeed = THREE.MathUtils.clamp( Math.abs(initialVelocityRad) + (config.maxSpinSpeedRad * 0.6 * speedFactor), config.minSpinVelocity * speedFactor, config.maxSpinSpeedRad * speedFactor ) * Math.sign(initialVelocityRad || -1);
-                 currentSpinSpeed = initialVelocityRad;
-
-                 const spinTime = (duration + Math.random() * config.spinRandomness) * 1000;
-                 // Use gsap delayed call for reliability
-                 gsap.delayedCall(spinTime / 1000, () => { if (isSpinning) spinTargetSpeed = 0; });
-
+                 if (isSpinning || !world || !sounds.spin) return;
+                 isSpinning = true; setControlsDisabled(true); resultDisplay.textContent = '幸運轉動中...'; resultDisplay.classList.remove('winning');
+                 if (soundEnabled) sounds.spin.play(); balls.forEach(b => b.body?.wakeUp());
+                 const speedFactor = parseFloat(spinSpeedSelect.value); spinTargetSpeed = THREE.MathUtils.clamp( Math.abs(initialVelocityRad) + (config.maxSpinSpeedRad * 0.6 * speedFactor), config.minSpinVelocity * speedFactor, config.maxSpinSpeedRad * speedFactor ) * Math.sign(initialVelocityRad || -1); currentSpinSpeed = initialVelocityRad;
+                 const spinTime = (duration + Math.random() * config.spinRandomness) * 1000; gsap.delayedCall(spinTime / 1000, () => { if (isSpinning) spinTargetSpeed = 0; });
                  gsap.to('#canvas-container', { boxShadow: "inset 0 0 80px 40px rgba(255, 255, 200, 0.3)", duration: 0.5, yoyo: true, repeat: -1, repeatDelay: 0.1, ease:"power1.inOut" });
             }
             function stopSpinning() {
-                 if (!isSpinning) return;
-                 isSpinning = false; spinTargetSpeed = 0;
-                 if (sounds.spin && sounds.spin.playing()) sounds.spin.stop(); // Check if sounds exists
-                 gsap.killTweensOf('#canvas-container');
-                 gsap.to('#canvas-container', { boxShadow: "0 5px 15px var(--shadow-color)", duration: 0.5 });
-                 // Delay winner determination slightly longer
-                 gsap.delayedCall(2.5, determineWinner); // Use gsap for delay
+                 if (!isSpinning) return; isSpinning = false; spinTargetSpeed = 0;
+                 if (sounds.spin && sounds.spin.playing()) sounds.spin.stop(); gsap.killTweensOf('#canvas-container'); gsap.to('#canvas-container', { boxShadow: "0 5px 15px var(--shadow-color)", duration: 0.5 });
+                 gsap.delayedCall(2.5, determineWinner);
             }
             function determineWinner() {
-                 if (isSpinning) return; // Double check
-                 let winner = null; let lowestY = Infinity; let potentialWinners = [];
-                 const holeCheckRadiusSq = (config.ballRadius * 1.5)**2;
-                 const holeCheckY = -config.machineHeight / 2 + config.ballRadius * 1.5;
-
-                 balls.forEach(ball => {
-                     if (!ball || !ball.body) return;
-                     const pos = ball.body.position;
-                     const distSq = pos.x * pos.x + pos.z * pos.z;
-                     if (distSq < holeCheckRadiusSq && pos.y < holeCheckY) { potentialWinners.push(ball); }
-                     if (pos.y < lowestY) { lowestY = pos.y; winner = ball; }
-                 });
-
-                 if (potentialWinners.length > 0) {
-                     winner = potentialWinners.reduce((lowest, current) => (current.body.position.y < lowest.body.position.y ? current : lowest), potentialWinners[0]);
-                     console.log(`選中出口附近的球 (共 ${potentialWinners.length} 個)`);
-                 } else { console.log("出口附近無球，選擇最低的球"); }
-
-                 if (winner && winner.body) {
-                     console.log(`中獎！獎品: ${winner.prize.label}`);
-                     displayResult(winner); ejectBall(winner);
-                 } else {
-                     console.warn("未能選出有效的中獎球。");
-                     const fallbackWinner = balls.find(b => b && b.body);
-                     if (fallbackWinner) {
-                         console.log(`備選中獎！獎品: ${fallbackWinner.prize.label}`);
-                         displayResult(fallbackWinner); ejectBall(fallbackWinner);
-                     } else {
-                        resultDisplay.textContent = "抽選完成，無有效球";
-                        setControlsDisabled(false);
-                     }
-                 }
+                 if (isSpinning) return; let winner = null; let lowestY = Infinity; let potentialWinners = [];
+                 const holeCheckRadiusSq = (config.ballRadius * 1.5)**2; const holeCheckY = -config.machineHeight / 2 + config.ballRadius * 1.5;
+                 balls.forEach(ball => { if (!ball || !ball.body) return; const pos = ball.body.position; const distSq = pos.x * pos.x + pos.z * pos.z; if (distSq < holeCheckRadiusSq && pos.y < holeCheckY) { potentialWinners.push(ball); } if (pos.y < lowestY) { lowestY = pos.y; winner = ball; } });
+                 if (potentialWinners.length > 0) { winner = potentialWinners.reduce((lowest, current) => (current.body.position.y < lowest.body.position.y ? current : lowest), potentialWinners[0]); console.log(`選中出口附近的球 (共 ${potentialWinners.length} 個)`); }
+                 else { console.log("出口附近無球，選擇最低的球"); }
+                 if (winner && winner.body) { console.log(`中獎！獎品: ${winner.prize.label}`); displayResult(winner); ejectBall(winner); }
+                 else { console.warn("未能選出有效的中獎球。"); const fallbackWinner = balls.find(b => b && b.body); if (fallbackWinner) { console.log(`備選中獎！獎品: ${fallbackWinner.prize.label}`); displayResult(fallbackWinner); ejectBall(fallbackWinner); } else { if(resultDisplay) resultDisplay.textContent = "抽選完成，無有效球"; setControlsDisabled(false); } }
             }
 
             // --- Display Result & Ejection ---
-            function displayResult(winner) {
-                if(!winner || !winner.prize) return;
-                resultDisplay.textContent = `恭喜！抽中 ${winner.prize.label}！`; resultDisplay.classList.add('winning');
-                if (soundEnabled && sounds.win) sounds.win.play();
-                triggerParticleEffect(winner.mesh); showWinnerDisplay(winner);
-            }
+            function displayResult(winner) { if(!winner || !winner.prize || !resultDisplay) return; resultDisplay.textContent = `恭喜！抽中 ${winner.prize.label}！`; resultDisplay.classList.add('winning'); if (soundEnabled && sounds.win) sounds.win.play(); triggerParticleEffect(winner.mesh); showWinnerDisplay(winner); }
             function ejectBall(winner) {
-                if (!winner || !winner.body || !chuteMesh || !scene) return; // Add checks
-                console.log("彈出球:", winner.prize.label);
-                const bodyToRemove = winner.body; winner.body = null; world.removeBody(bodyToRemove);
-
+                if (!winner || !winner.body || !chuteMesh || !scene || !world) return;
+                console.log("彈出球:", winner.prize.label); const bodyToRemove = winner.body; winner.body = null; world.removeBody(bodyToRemove);
                 const endPos = chuteMesh.position.clone(); endPos.y -= 0.3; endPos.z += config.ballRadius;
-                const tl = gsap.timeline({
-                    onComplete: () => {
-                        console.log("球彈出動畫完成"); setControlsDisabled(false);
-                         // Safely remove mesh
-                         if(winner.mesh) {
-                             gsap.to(winner.mesh.scale, { x: 0.01, y: 0.01, z: 0.01, duration: 0.3, delay: 0.5, onComplete: () => { if(winner.mesh) scene.remove(winner.mesh); winner.mesh = null; } });
-                         }
-                         balls = balls.filter(b => b !== winner);
-                    }
-                });
+                const tl = gsap.timeline({ onComplete: () => { console.log("球彈出動畫完成"); setControlsDisabled(false); if(winner.mesh) { gsap.to(winner.mesh.scale, { x: 0.01, y: 0.01, z: 0.01, duration: 0.3, delay: 0.5, onComplete: () => { if(winner.mesh) scene.remove(winner.mesh); winner.mesh = null; } }); } balls = balls.filter(b => b !== winner); } });
                 const holePos = new CANNON.Vec3(0, -config.machineHeight / 2 - config.ballRadius * 1.5, 0);
                 tl.to(winner.mesh.position, { x: holePos.x, y: holePos.y, z: holePos.z, duration: 0.4, ease: "power1.in" });
                 tl.to(winner.mesh.position, { x: endPos.x, y: endPos.y, z: endPos.z, duration: 1.0, ease: "bounce.out" });
@@ -664,54 +545,11 @@
             }
 
             // --- Helper Functions ---
-            function setControlsDisabled(disabled) {
-                if(startButton) startButton.disabled = disabled;
-                if(resetButton) resetButton.disabled = disabled;
-                if(handleDragTrigger) {
-                    handleDragTrigger.style.pointerEvents = disabled ? 'none' : 'auto';
-                    handleDragTrigger.style.cursor = disabled ? 'not-allowed' : 'grab';
-                }
-                const draggableInstance = Draggable.get(handleDragTrigger);
-                if(draggableInstance) draggableInstance[disabled ? 'disable' : 'enable']();
-            }
-            function toggleSound() {
-                soundEnabled = !soundEnabled;
-                if(soundStatus) soundStatus.textContent = soundEnabled ? "音效開啟" : "音效關閉";
-                if(soundToggle) soundToggle.querySelector('i').className = soundEnabled ? "fas fa-volume-up" : "fas fa-volume-mute";
-                Howler.mute(!soundEnabled);
-                if (!soundEnabled && sounds.spin && sounds.spin.playing()) sounds.spin.stop();
-            }
-            function triggerParticleEffect(targetMesh) {
-                 if (isLightMode || !targetMesh || !particlesContainer || !camera || !canvasContainer) return;
-                 const screenPos = toScreenPosition(targetMesh, camera, canvasContainer);
-                 if (!screenPos) return;
-                 for (let i = 0; i < config.particleCount; i++) {
-                     const particle = document.createElement('div'); const isConfetti = Math.random() > 0.3;
-                     particle.className = `particle ${isConfetti ? 'confetti' : ''}`; particle.style.backgroundColor = config.particleColors[Math.floor(Math.random() * config.particleColors.length)];
-                     particlesContainer.appendChild(particle);
-                     gsap.set(particle, { x: screenPos.x, y: screenPos.y, opacity: 1, scale: Math.random()*0.8+0.5, rotation: Math.random()*360 });
-                     gsap.to(particle, { x: `+=${(Math.random()-0.5)*300}`, y: `+=${(Math.random()-0.5)*300}`, opacity: 0, scale: 0.1, rotation: `+=${Math.random()*720-360}`, duration: Math.random()*1.5+1, ease: "power2.out", delay: Math.random()*0.2, onComplete: () => particle.remove() });
-                 }
-            }
-            function toScreenPosition(obj, camera, rendererContainer) {
-                 if (!obj || !obj.matrixWorld || !camera || !rendererContainer) return null;
-                 const vector = new THREE.Vector3();
-                 try { obj.updateMatrixWorld(true); vector.setFromMatrixPosition(obj.matrixWorld); vector.project(camera); }
-                 catch(e) { console.error("Error projecting object:", obj, e); return null; }
-                  // Check if object is behind the camera (w < 0)
-                  if (vector.z > 1 || vector.x < -1 || vector.x > 1 || vector.y < -1 || vector.y > 1) {
-                      return null; // Object is outside NDC space or behind camera
-                  }
-                 const widthHalf = rendererContainer.clientWidth / 2; const heightHalf = rendererContainer.clientHeight / 2;
-                 const x = (vector.x * widthHalf) + widthHalf; const y = -(vector.y * heightHalf) + heightHalf;
-                 const rect = rendererContainer.getBoundingClientRect();
-                 return { x: x + rect.left, y: y + rect.top };
-            }
-            function showWinnerDisplay(winner) {
-                 if(!winner || !winner.prize || !winnerDisplay || !winnerBall || !winnerMessage) return;
-                 winnerBall.style.backgroundColor = winner.prize.color; winnerBall.textContent = winner.prize.label;
-                 winnerMessage.textContent = `恭喜您獲得 ${winner.prize.label}！願好運常伴！`; winnerDisplay.classList.add('show');
-            }
+            function setControlsDisabled(disabled) { if(startButton) startButton.disabled = disabled; if(resetButton) resetButton.disabled = disabled; if(handleDragTrigger) { handleDragTrigger.style.pointerEvents = disabled ? 'none' : 'auto'; handleDragTrigger.style.cursor = disabled ? 'not-allowed' : 'grab'; } const draggableInstance = Draggable.get(handleDragTrigger); if(draggableInstance) draggableInstance[disabled ? 'disable' : 'enable'](); }
+            function toggleSound() { soundEnabled = !soundEnabled; if(soundStatus) soundStatus.textContent = soundEnabled ? "音效開啟" : "音效關閉"; if(soundToggle) soundToggle.querySelector('i').className = soundEnabled ? "fas fa-volume-up" : "fas fa-volume-mute"; Howler.mute(!soundEnabled); if (!soundEnabled && sounds.spin && sounds.spin.playing()) sounds.spin.stop(); }
+            function triggerParticleEffect(targetMesh) { if (isLightMode || !targetMesh || !particlesContainer || !camera || !canvasContainer) return; const screenPos = toScreenPosition(targetMesh, camera, canvasContainer); if (!screenPos) return; for (let i = 0; i < config.particleCount; i++) { const particle = document.createElement('div'); const isConfetti = Math.random() > 0.3; particle.className = `particle ${isConfetti ? 'confetti' : ''}`; particle.style.backgroundColor = config.particleColors[Math.floor(Math.random() * config.particleColors.length)]; particlesContainer.appendChild(particle); gsap.set(particle, { x: screenPos.x, y: screenPos.y, opacity: 1, scale: Math.random()*0.8+0.5, rotation: Math.random()*360 }); gsap.to(particle, { x: `+=${(Math.random()-0.5)*300}`, y: `+=${(Math.random()-0.5)*300}`, opacity: 0, scale: 0.1, rotation: `+=${Math.random()*720-360}`, duration: Math.random()*1.5+1, ease: "power2.out", delay: Math.random()*0.2, onComplete: () => particle.remove() }); } }
+            function toScreenPosition(obj, camera, rendererContainer) { if (!obj || !obj.matrixWorld || !camera || !rendererContainer) return null; const vector = new THREE.Vector3(); try { obj.updateMatrixWorld(true); vector.setFromMatrixPosition(obj.matrixWorld); vector.project(camera); } catch(e) { console.error("Error projecting object:", obj, e); return null; } if (vector.z > 1 || vector.x < -1 || vector.x > 1 || vector.y < -1 || vector.y > 1) { return null; } const widthHalf = rendererContainer.clientWidth / 2; const heightHalf = rendererContainer.clientHeight / 2; const x = (vector.x * widthHalf) + widthHalf; const y = -(vector.y * heightHalf) + heightHalf; const rect = rendererContainer.getBoundingClientRect(); return { x: x + rect.left, y: y + rect.top }; }
+            function showWinnerDisplay(winner) { if(!winner || !winner.prize || !winnerDisplay || !winnerBall || !winnerMessage) return; winnerBall.style.backgroundColor = winner.prize.color; winnerBall.textContent = winner.prize.label; winnerMessage.textContent = `恭喜您獲得 ${winner.prize.label}！願好運常伴！`; winnerDisplay.classList.add('show'); }
             function hideWinnerDisplay() { if(winnerDisplay) winnerDisplay.classList.remove('show'); }
 
             // --- Reset ---
@@ -721,29 +559,15 @@
                     if (isSpinning) { isSpinning = false; spinTargetSpeed = 0; currentSpinSpeed = 0; if (sounds.spin && sounds.spin.playing()) sounds.spin.stop(); gsap.killTweensOf('#canvas-container'); gsap.to('#canvas-container', { boxShadow: "0 5px 15px var(--shadow-color)", duration: 0.1 }); }
                     if (drumBody) { drumBody.quaternion.set(0, 0, 0, 1); drumBody.angularVelocity.set(0, 0, 0); }
                     if (drumMesh) { drumMesh.quaternion.set(0, 0, 0, 1); }
-                    // Clean up existing balls thoroughly
-                    balls.forEach(ball => { if(ball.mesh) scene.remove(ball.mesh); if(ball.body) world.removeBody(ball.body); });
-                    balls = [];
-
-                    const ballCount = parseInt(ballCountInput.value, 10);
-                    const validBallCount = Math.max(5, Math.min(30, isNaN(ballCount) ? 15 : ballCount));
-                    ballCountInput.value = validBallCount;
-                    createBalls(validBallCount); // Recreate balls
-
-                    if(resultDisplay) resultDisplay.textContent = "準備開始抽選";
-                    if(resultDisplay) resultDisplay.classList.remove('winning');
-                    hideWinnerDisplay();
-                    setControlsDisabled(false);
-                    console.log("Lottery reset complete.");
-                } catch(error) {
-                    console.error("Error during resetLottery:", error);
-                    if(resultDisplay) resultDisplay.textContent = "錯誤：重置抽選機失敗";
-                }
+                    balls.forEach(ball => { if(ball.mesh) scene.remove(ball.mesh); if(ball.body) world.removeBody(ball.body); }); balls = [];
+                    const ballCount = parseInt(ballCountInput.value, 10); const validBallCount = Math.max(5, Math.min(30, isNaN(ballCount) ? 15 : ballCount)); ballCountInput.value = validBallCount; createBalls(validBallCount);
+                    if(resultDisplay) { resultDisplay.textContent = "準備開始抽選"; resultDisplay.classList.remove('winning'); }
+                    hideWinnerDisplay(); setControlsDisabled(false); console.log("Lottery reset complete.");
+                } catch(error) { console.error("Error during resetLottery:", error); if(resultDisplay) resultDisplay.textContent = "錯誤：重置抽選機失敗"; }
             }
 
             // --- Start Application ---
-            // Use DOMContentLoaded to ensure DOM is ready before init
-            document.addEventListener('DOMContentLoaded', init);
+            document.addEventListener('DOMContentLoaded', init); // Use DOMContentLoaded
 
         })(); // End IIFE
     </script>
