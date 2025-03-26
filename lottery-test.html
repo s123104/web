@@ -2,379 +2,510 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日式八角抽選機 - 和風幸運轉盤</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>雅 (Miyabi) - 日式八角抽選機</title>
     <!-- 引入字體 -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
     <!-- 引入 GSAP 動畫庫 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <!-- (可選) 引入 GSAP Draggable for better dragging -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
     <!-- 引入 Howler.js 音效庫 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
     <!-- 引入 FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         :root {
-            --primary: #B28046;
-            --primary-light: #D4AF6A;
-            --primary-dark: #8C5E2A;
-            --accent: #9E2A2B;
-            --background: #F5F5F0;
-            --text: #33281E;
-            --glass: rgba(255, 255, 255, 0.25);
-            --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #F1DB8B 40%, #F8F4E3 50%, #F1DB8B 60%, #D4AF37 100%);
-            --wooden-gradient: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
+            --primary: #B28046; /* 主色 - 棕金 */
+            --primary-light: #D4AF6A; /* 亮金 */
+            --primary-dark: #8C5E2A; /* 深木色 */
+            --accent: #C0392b; /* 強調色 - 紅 */
+            --background: #FDF6E3; /* 背景 - 米白 */
+            --text: #4A3F35; /* 文字 - 深棕 */
+            --glass: rgba(255, 255, 255, 0.2);
+            --gold-gradient: linear-gradient(135deg, #E4C57A 0%, #F8F4D8 50%, #E4C57A 100%);
+            --wood-gradient: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
+            --shadow-color: rgba(0, 0, 0, 0.15);
+            --highlight-color: rgba(255, 255, 255, 0.6);
+            --ball-shadow: rgba(0, 0, 0, 0.3);
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
+        html {
+            height: 100%;
+        }
+
         body {
             font-family: 'Noto Sans TC', sans-serif;
             background-color: var(--background);
-            background-image: 
-                radial-gradient(circle at 100% 0%, rgba(178, 128, 70, 0.15) 0%, transparent 60%), 
-                radial-gradient(circle at 0% 100%, rgba(158, 42, 43, 0.1) 0%, transparent 50%);
+            background-image:
+                radial-gradient(circle at 100% 0%, rgba(178, 128, 70, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 0% 100%, rgba(192, 57, 43, 0.05) 0%, transparent 40%);
             color: var(--text);
             overflow-x: hidden;
-            min-height: 100vh;
+            min-height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            position: relative;
+            padding: 20px; /* Add padding for smaller screens */
+             -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
         }
-        
+
         .title-area {
             text-align: center;
             margin-bottom: 20px;
-            padding: 10px;
             position: relative;
             z-index: 10;
         }
-        
+
         .title-area h1 {
             font-family: 'Noto Serif JP', serif;
-            font-size: 2.5rem;
+            font-size: clamp(1.8rem, 5vw, 2.5rem); /* Responsive font size */
             color: var(--primary-dark);
-            margin-bottom: 5px;
+            margin-bottom: 15px; /* Increased spacing */
             letter-spacing: 2px;
             position: relative;
             display: inline-block;
         }
-        
+
         .title-area h1::after {
             content: '';
             position: absolute;
             bottom: -8px;
             left: 10%;
             width: 80%;
-            height: 2px;
+            height: 3px;
             background: var(--gold-gradient);
+            border-radius: 2px;
         }
-        
+
         .title-area p {
-            font-size: 1rem;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
             color: var(--text);
             opacity: 0.8;
         }
-        
+
         /* 主要抽選機容器 */
         .lottery-scene {
             position: relative;
             width: 100%;
-            max-width: 800px;
-            height: 600px;
-            perspective: 1000px;
+            max-width: 600px; /* Adjusted max-width */
+            /* height: 500px; */ /* Let height be determined by content/aspect ratio */
+            aspect-ratio: 4 / 3; /* Maintain aspect ratio */
+            perspective: 1200px; /* Increased perspective */
             margin: 0 auto;
+            /* border: 1px dashed red; */ /* For debugging layout */
         }
-        
-        /* 八角形抽選機 */
+
+        /* 抽選機本體定位與基礎變換 */
         .lottery-machine {
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotateX(15deg);
+            width: 280px; /* Adjusted size */
+            height: 280px;
             transform-style: preserve-3d;
-            width: 320px;
-            height: 320px;
-            transition: transform 0.5s ease;
+            /* Initial transform: Centered, slightly tilted */
+            transform: translate(-50%, -50%) rotateX(10deg) rotateY(0deg);
+             transition: transform 0.5s ease; /* For hover effects if any */
+            /* border: 1px solid blue; */ /* Debugging */
         }
-        
-        .octagon {
+
+        /* 八角形滾筒 (旋轉部分) */
+        .octagon-drum {
             position: absolute;
             width: 100%;
             height: 100%;
             transform-style: preserve-3d;
+             /* Center the rotation axis */
+            transform-origin: center center;
+            /* border: 1px solid green; */ /* Debugging */
         }
-        
+
         /* 八個面 */
         .octagon-face {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 140px;
-            height: 320px;
+            /* Dimensions calculated by JS */
             background: var(--glass);
-            border: 2px solid var(--primary-light);
-            backdrop-filter: blur(5px);
-            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.5);
-            transform-origin: center center;
-            transform-style: preserve-3d;
+            border: 1px solid var(--primary-light);
+            /* backdrop-filter: blur(3px); /* Performance intensive, use carefully */
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.3);
+            transform-origin: center center; /* Set origin for rotation */
             overflow: hidden;
+            backface-visibility: hidden; /* Optional: hide back */
+            /* Add subtle inner gloss */
+             background: linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.05));
         }
-        
-        .octagon-face::after {
+         /* Gold pattern overlay */
+        .octagon-face::before {
             content: '';
+            position: absolute;
+            inset: 5px; /* Inset border */
+            border: 1px dashed rgba(212, 175, 55, 0.5); /* Dashed gold line */
+            opacity: 0.7;
+        }
+
+
+        /* 球的容器 - 必須在滾筒內並繼承3D */
+        .balls-container {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, 
-                        rgba(255, 255, 255, 0.4) 0%, 
-                        rgba(255, 255, 255, 0.1) 50%, 
-                        rgba(255, 255, 255, 0) 100%);
-            pointer-events: none;
-        }
-        
-        /* 八角形頂部與底部 */
-        .top-cap, .bottom-cap {
-            position: absolute;
-            width: 260px;
-            height: 260px;
-            left: 50%;
-            transform: translateX(-50%) rotateX(90deg);
-            background: var(--gold-gradient);
-            border-radius: 50%;
             transform-style: preserve-3d;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+             /* border: 1px solid yellow; */ /* Debugging */
         }
-        
-        .top-cap {
-            top: -40px;
-            background-image: var(--gold-gradient);
-        }
-        
-        .top-cap::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.2);
-            transform: translate(-50%, -50%);
-        }
-        
-        .bottom-cap {
-            bottom: -40px;
-            background-image: var(--wooden-gradient);
-        }
-        
-        /* 手把 */
-        .handle-container {
-            position: absolute;
-            width: 40px;
-            height: 300px;
-            right: -100px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: grab;
-            z-index: 5;
-            transform-style: preserve-3d;
-        }
-        
-        .handle {
-            position: absolute;
-            width: 40px;
-            height: 200px;
-            background-color: var(--primary-dark);
-            border-radius: 20px;
-            bottom: 0;
-            transform-origin: bottom center;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-        }
-        
-        .handle-knob {
-            position: absolute;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: var(--gold-gradient);
-            top: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
-            border: 3px solid #D4AF37;
-        }
-        
-        .handle-base {
-            position: absolute;
-            width: 80px;
-            height: 40px;
-            background: var(--wooden-gradient);
-            border-radius: 10px;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-        }
-        
+
         /* 抽選球 */
         .ball {
             position: absolute;
-            width: 40px;
-            height: 40px;
+            /* Size will be set relative to machine */
+            width: 35px;
+            height: 35px;
             border-radius: 50%;
             text-align: center;
-            line-height: 40px;
             font-weight: bold;
-            font-size: 1.2rem;
+            font-size: 1rem;
+            color: white; /* Default text color */
+            text-shadow: 1px 1px 2px var(--ball-shadow);
             transform-style: preserve-3d;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2), 0 0 5px rgba(0, 0, 0, 0.3);
+            box-shadow: inset 0 -3px 5px rgba(0, 0, 0, 0.25), /* Inner shadow */
+                        inset 0 2px 3px rgba(255, 255, 255, 0.4), /* Inner highlight */
+                        0 2px 4px var(--ball-shadow); /* Outer shadow */
+            cursor: default; /* Prevent text cursor */
+             will-change: transform; /* Performance hint */
+             /* Set line-height dynamically if needed */
+             display: flex;
+             align-items: center;
+             justify-content: center;
         }
-        
+        /* Ball highlight */
+         .ball::before {
+             content: '';
+             position: absolute;
+             top: 5%;
+             left: 15%;
+             width: 50%;
+             height: 40%;
+             border-radius: 50%;
+             background: radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 70%);
+             transform: rotate(-30deg);
+         }
+
+        /* 頂部與底部蓋子 (不隨滾筒旋轉) */
+        .top-cap, .bottom-base {
+            position: absolute;
+            left: 50%;
+            width: 240px; /* Slightly smaller than machine width */
+            height: 240px;
+            transform-style: preserve-3d;
+            transform-origin: center center;
+        }
+
+        .top-cap {
+            top: 0;
+            transform: translateX(-50%) translateY(-50%) rotateX(90deg) translateZ(140px); /* Position above */
+            background: var(--gold-gradient);
+            border-radius: 50%;
+             border: 3px solid #BFA058;
+            box-shadow: 0 5px 15px var(--shadow-color);
+        }
+         /* Top cap decorative center */
+         .top-cap::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 60%; height: 60%;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%) translateZ(2px); /* Slightly raised */
+             border: 1px solid rgba(255, 255, 255, 0.5);
+         }
+
+        .bottom-base {
+             bottom: 0;
+             transform: translateX(-50%) translateY(50%) rotateX(90deg) translateZ(-140px); /* Position below */
+             background: var(--wood-gradient);
+             border-radius: 10px; /* Can be square or rounded */
+             box-shadow: 0 8px 20px var(--shadow-color), inset 0 0 10px rgba(0,0,0,0.2);
+             border: 3px solid var(--primary-dark);
+             width: 260px; /* Make base slightly wider */
+             height: 260px;
+        }
+
+        /* 手把容器 */
+        .handle-assembly {
+            position: absolute;
+             /* Position relative to the machine center */
+            top: 50%;
+            /* Adjust right position based on machine size */
+            right: -100px; /* Initial position */
+             width: 80px; /* Width of the base */
+            height: 300px; /* Overall height */
+            transform: translateY(-50%); /* Vertically center */
+            transform-style: preserve-3d;
+            z-index: 5;
+             /* border: 1px dashed magenta; */ /* Debugging */
+        }
+
+        /* 手把 (可旋轉部分) */
+        .handle {
+            position: absolute;
+            bottom: 30px; /* Position above base */
+            left: 50%;
+            width: 30px; /* Thinner handle */
+            height: 160px;
+            transform: translateX(-50%);
+            background: linear-gradient(to right, var(--primary-dark) 0%, #A87038 50%, var(--primary-dark) 100%);
+            border-radius: 15px;
+            transform-origin: bottom center; /* Rotation point */
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+             cursor: grab;
+             will-change: transform;
+        }
+         .handle:active {
+             cursor: grabbing;
+         }
+
+        /* 手把旋鈕 */
+        .handle-knob {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--gold-gradient);
+            top: -25px; /* Position at the top of handle */
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.4), inset 0 0 5px rgba(255,255,255,0.5);
+            border: 2px solid #D4AF37;
+        }
+
+        /* 手把底座 (固定) */
+        .handle-base {
+            position: absolute;
+            width: 100%; /* Match assembly width */
+            height: 50px;
+            background: var(--wood-gradient);
+            border-radius: 8px;
+            bottom: 0;
+            left: 0;
+            box-shadow: 0 5px 10px var(--shadow-color), inset 0 0 8px rgba(0,0,0,0.2);
+             border: 2px solid var(--primary-dark);
+        }
+
         /* 控制面板 */
         .control-panel {
             position: relative;
             width: 100%;
-            max-width: 600px;
-            margin: 30px auto;
+            max-width: 500px; /* Adjusted width */
+            margin: 40px auto 0; /* Increased top margin */
             padding: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px; /* More rounded */
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
             text-align: center;
             border: 1px solid var(--primary-light);
             z-index: 20;
         }
-        
+
         .result-display {
-            font-size: 1.5rem;
+            font-size: clamp(1.2rem, 4vw, 1.5rem);
             font-weight: bold;
             margin: 15px 0;
-            padding: 10px;
+            padding: 15px; /* Increased padding */
             min-height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 5px;
-            background-color: rgba(245, 245, 240, 0.7);
-            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            background-color: var(--background); /* Match body bg */
+            box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.1);
             color: var(--text);
+            transition: all 0.3s ease;
         }
-        
+         .result-display.winning {
+             background-color: var(--primary-light);
+             color: var(--primary-dark);
+             font-weight: 700;
+             box-shadow: 0 0 15px var(--primary-light);
+         }
+
+
         .button {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 12px 25px;
+            padding: 10px 25px;
             font-size: 1rem;
             border-radius: 30px;
             cursor: pointer;
-            margin: 5px;
+            margin: 8px; /* Increased margin */
             font-weight: 500;
             letter-spacing: 1px;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease-out;
             font-family: 'Noto Sans TC', sans-serif;
+             position: relative;
+             overflow: hidden;
+             -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
         }
-        
+         /* Ripple effect */
+         .button::after {
+             content: '';
+             position: absolute;
+             top: 50%;
+             left: 50%;
+             width: 5px;
+             height: 5px;
+             background: rgba(255, 255, 255, 0.5);
+             opacity: 0;
+             border-radius: 100%;
+             transform: scale(1, 1) translate(-50%);
+             transform-origin: 50% 50%;
+         }
+         @keyframes ripple {
+             0% { transform: scale(0, 0) translate(-50%); opacity: 1; }
+             20% { transform: scale(25, 25) translate(-50%); opacity: 1; }
+             100% { opacity: 0; transform: scale(40, 40) translate(-50%); }
+         }
+         .button:focus:not(:active)::after {
+             animation: ripple 1s ease-out;
+         }
+
+
         .button:hover {
             background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
-        
+         .button:active {
+             transform: translateY(-1px);
+             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+         }
+
         .button.start {
             background: var(--accent);
         }
-        
         .button.start:hover {
-            background: #7D2122;
+            background: #a5281e; /* Darker red */
         }
-        
+        .button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+
         /* 設定面板 */
         .settings-panel {
-            margin-top: 15px;
-            padding-top: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
             border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
-        
+
         .settings-panel h3 {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             font-size: 1.1rem;
             color: var(--text);
+             font-weight: 500;
         }
-        
+
         .settings-row {
             display: flex;
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 10px;
+            gap: 15px 25px; /* Row and column gap */
+            margin-bottom: 15px;
         }
-        
+
         .input-group {
             display: flex;
             align-items: center;
         }
-        
+
         .input-group label {
             margin-right: 8px;
             font-size: 0.9rem;
+             white-space: nowrap;
         }
-        
+
         .input-group input, .input-group select {
-            padding: 8px;
+            padding: 8px 12px;
             border-radius: 5px;
-            border: 1px solid #ddd;
+            border: 1px solid #ccc;
             font-family: inherit;
+             min-width: 60px;
+             background-color: white;
         }
-        
+         .input-group input[type="number"] {
+             width: 70px;
+         }
+
         /* 粒子效果 */
         .particles-container {
-            position: absolute;
+            position: fixed; /* Use fixed for fullscreen overlay */
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 30;
+            z-index: 100; /* Above everything else */
             overflow: hidden;
         }
-        
+
         .particle {
             position: absolute;
-            width: 10px;
-            height: 10px;
             border-radius: 50%;
             opacity: 0;
+            pointer-events: none;
+            /* Base size, will be scaled */
+             width: 8px;
+             height: 8px;
         }
-        
+         /* Different particle shapes (using pseudo-elements) */
+         .particle.confetti {
+             width: 6px; height: 12px; border-radius: 0;
+         }
+         .particle.star::before {
+             content: '\2605'; /* Unicode star */
+             position: absolute;
+             top: 50%; left: 50%;
+             transform: translate(-50%, -50%);
+             font-size: 12px;
+             color: inherit; /* Use particle color */
+         }
+
+
         /* 燈光效果 */
         .spotlight {
             position: absolute;
-            top: -150px;
+            top: 50%; /* Center relative to machine */
             left: 50%;
-            transform: translateX(-50%);
-            width: 600px;
-            height: 600px;
+            width: 300%; /* Large size */
+            height: 300%;
+            border-radius: 50%;
             background: radial-gradient(
-                ellipse at center, 
-                rgba(255, 255, 255, 0.4) 0%,
-                rgba(255, 255, 255, 0) 70%
+                ellipse at center,
+                rgba(255, 255, 220, 0.5) 0%, /* Soft yellow light */
+                rgba(255, 255, 220, 0) 50% /* Fade out */
             );
+             transform: translate(-50%, -50%) translateZ(200px); /* Position in front */
             pointer-events: none;
             opacity: 0;
+             will-change: opacity;
             z-index: 25;
         }
-        
+
         /* 獎項顯示區 */
         .winner-display {
             position: fixed;
@@ -382,902 +513,914 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.75); /* Darker overlay */
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 100;
+            z-index: 110; /* Above particles */
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.4s ease-in-out;
+             padding: 20px;
         }
-        
+        .winner-display.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+
         .winner-content {
-            background: white;
-            padding: 30px;
+            background: linear-gradient(to bottom, #ffffff, #f8f8f0); /* Subtle gradient */
+            padding: clamp(20px, 5vw, 40px);
             border-radius: 15px;
             text-align: center;
-            max-width: 80%;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
-            transform: scale(0.8);
-            transition: transform 0.5s ease;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 0 5px rgba(255,255,255,0.3); /* Added white border */
+            transform: scale(0.7);
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Bounce effect */
+            position: relative; /* For close button */
         }
-        
+         .winner-display.show .winner-content {
+             transform: scale(1);
+         }
+
+
         .winner-ball {
-            width: 100px;
-            height: 100px;
+            width: clamp(80px, 20vw, 100px);
+            height: clamp(80px, 20vw, 100px);
             border-radius: 50%;
-            margin: 0 auto 20px;
+            margin: 0 auto 25px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.5rem;
+            font-size: clamp(2rem, 8vw, 2.8rem);
             font-weight: bold;
             color: white;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.3), 0 5px 15px rgba(0,0,0,0.3);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+             border: 3px solid rgba(255,255,255,0.5);
         }
-        
+         /* Add highlight to winner ball */
+         .winner-ball::before {
+            content: '';
+             position: absolute;
+             top: 5%; left: 15%; width: 50%; height: 40%;
+             border-radius: 50%;
+             background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%);
+             transform: rotate(-30deg);
+         }
+
+
         .winner-title {
-            font-size: 1.8rem;
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
             color: var(--accent);
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             font-family: 'Noto Serif JP', serif;
+            font-weight: 700;
         }
-        
+
         .winner-message {
-            font-size: 1.2rem;
-            margin-bottom: 20px;
+            font-size: clamp(1rem, 3.5vw, 1.2rem);
+            margin-bottom: 25px;
+             color: var(--text);
         }
-        
+
         .close-button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s ease;
+            /* Using the general button style */
         }
-        
-        .close-button:hover {
-            background: var(--primary-dark);
+         /* Position close button if needed */
+         /* .close-button { position: absolute; top: 10px; right: 10px; ... } */
+
+
+        /* 自定義球色區塊 (Placeholder) */
+        .custom-balls-placeholder {
+             font-size: 0.9rem;
+             color: #888;
+             margin-top: 10px;
         }
-        
-        /* 自定義球色區塊 */
-        .custom-balls {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .ball-preview {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .ball-color {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            margin-bottom: 5px;
-            cursor: pointer;
-            border: 1px solid rgba(0, 0, 0, 0.2);
-        }
-        
-        .ball-label {
-            font-size: 0.8rem;
-        }
-        
+
         .sound-controls {
             display: flex;
             justify-content: center;
             align-items: center;
             margin-top: 10px;
         }
-        
+
         .sound-toggle {
             display: flex;
             align-items: center;
-            margin-left: 15px;
             cursor: pointer;
+             padding: 5px 10px;
+             border-radius: 20px;
+             transition: background-color 0.2s ease;
+             font-size: 0.9rem;
         }
-        
+         .sound-toggle:hover {
+             background-color: rgba(0,0,0,0.05);
+         }
+
         .sound-toggle i {
-            margin-right: 5px;
+            margin-right: 8px;
             color: var(--primary);
+            font-size: 1.1em;
         }
-        
+
         /* 響應式設計 */
         @media (max-width: 767px) {
             .lottery-scene {
-                height: 450px;
-                max-width: 100%;
+                /* height: 400px; */ /* Using aspect-ratio now */
+                 max-width: 95%;
+                 perspective: 1000px;
             }
-            
+
             .lottery-machine {
-                width: 240px;
-                height: 240px;
-            }
-            
-            .octagon-face {
-                width: 100px;
-                height: 240px;
-            }
-            
-            .top-cap, .bottom-cap {
-                width: 200px;
+                width: 200px; /* Smaller machine */
                 height: 200px;
+                 transform: translate(-50%, -50%) rotateX(5deg); /* Less tilt */
             }
-            
-            .top-cap::after {
-                width: 140px;
-                height: 140px;
-            }
-            
-            .handle-container {
-                right: -80px;
-                height: 220px;
-            }
-            
-            .handle {
-                height: 150px;
-            }
-            
-            .title-area h1 {
-                font-size: 1.8rem;
-            }
-            
+
+             /* Adjust face/cap positions based on new size */
+             /* JS will handle face transforms */
+             .top-cap { width: 180px; height: 180px; transform: translateX(-50%) translateY(-50%) rotateX(90deg) translateZ(100px); }
+             .bottom-base { width: 200px; height: 200px; transform: translateX(-50%) translateY(50%) rotateX(90deg) translateZ(-100px); }
+
+
+             .handle-assembly {
+                 right: -65px; /* Closer handle */
+                 height: 220px;
+                 width: 60px;
+             }
+             .handle { height: 120px; width: 25px; bottom: 25px; }
+             .handle-knob { width: 40px; height: 40px; top: -20px;}
+             .handle-base { height: 40px; }
+
+
             .ball {
-                width: 30px;
-                height: 30px;
-                line-height: 30px;
-                font-size: 1rem;
+                width: 25px;
+                height: 25px;
+                font-size: 0.8rem;
             }
-            
+
             .control-panel {
                 padding: 15px;
+                margin-top: 30px;
             }
-            
+
             .settings-row {
-                flex-direction: column;
-                align-items: stretch;
+                gap: 10px 15px;
             }
-            
-            .winner-content {
-                padding: 20px;
-                max-width: 95%;
-            }
+             .input-group label { font-size: 0.85rem; }
+             .input-group input, .input-group select { padding: 6px 8px; }
+
         }
-        
+        @media (max-width: 480px) {
+             .title-area h1 { font-size: 1.6rem; }
+             .title-area p { font-size: 0.85rem; }
+             .button { padding: 8px 20px; font-size: 0.9rem; margin: 5px; }
+             .control-panel { margin-top: 20px; }
+             .settings-panel h3 { font-size: 1rem; }
+
+             .handle-assembly {
+                 right: -55px;
+                 width: 50px;
+             }
+             .handle { height: 100px; width: 20px; }
+             .handle-knob { width: 35px; height: 35px; }
+             .handle-base { height: 35px; }
+        }
+
         /* 輕量模式的樣式 */
         body.light-mode .octagon-face {
             backdrop-filter: none;
+            background: rgba(255, 255, 255, 0.3); /* Simpler background */
         }
-        
-        /* 動畫 */
-        @keyframes shimmer {
-            0% { opacity: 0.4; }
-            50% { opacity: 0.8; }
-            100% { opacity: 0.4; }
+        body.light-mode .spotlight {
+            display: none; /* Disable spotlight */
         }
-        
-        .shimmer {
-            animation: shimmer 3s infinite;
-        }
+
     </style>
 </head>
-<body>
+<body > <!-- Add class 'light-mode' here if needed -->
     <!-- 標題區域 -->
     <div class="title-area">
-        <h1>御縁の抽選機</h1>
-        <p>緣分天注定，運勢在此時</p>
+        <h1>雅 - 御縁抽選機</h1>
+        <p>轉動幸運，結下良緣</p>
     </div>
-    
+
     <!-- 主要抽選機場景 -->
     <div class="lottery-scene">
         <!-- 燈光效果 -->
-        <div class="spotlight"></div>
-        
+        <div class="spotlight" id="spotlight"></div>
+
         <!-- 八角形抽選機 -->
-        <div class="lottery-machine">
-            <div class="octagon" id="octagon">
-                <!-- 八個面會被JS動態生成 -->
-            </div>
+        <div class="lottery-machine" id="lotteryMachine">
+            <!-- Top and bottom are outside the rotating drum -->
             <div class="top-cap"></div>
-            <div class="bottom-cap"></div>
+            <div class="bottom-base"></div>
+            <!-- The rotating part -->
+            <div class="octagon-drum" id="octagonDrum">
+                 <!-- Faces and balls container added by JS -->
+                 <div class="balls-container" id="ballsContainer"></div>
+            </div>
         </div>
-        
-        <!-- 手把 -->
-        <div class="handle-container" id="handleContainer">
-            <div class="handle">
+
+        <!-- 手把組件 -->
+        <div class="handle-assembly" id="handleAssembly">
+            <div class="handle" id="handle">
                 <div class="handle-knob"></div>
             </div>
             <div class="handle-base"></div>
         </div>
     </div>
-    
+
     <!-- 控制面板 -->
     <div class="control-panel">
         <div class="result-display" id="resultDisplay">
-            準備開始抽選...
+            準備好轉動幸運了嗎？
         </div>
         <div>
             <button class="button start" id="startButton">開始抽選</button>
-            <button class="button" id="resetButton">重新設置</button>
+            <button class="button" id="resetButton">重置獎球</button>
         </div>
-        
+
         <!-- 設定面板 -->
         <div class="settings-panel">
             <h3>抽選設定</h3>
             <div class="settings-row">
                 <div class="input-group">
                     <label for="ballCount">球數量:</label>
-                    <input type="number" id="ballCount" min="1" max="30" value="10">
+                    <input type="number" id="ballCount" min="5" max="40" value="15">
                 </div>
                 <div class="input-group">
                     <label for="spinSpeed">轉速:</label>
                     <select id="spinSpeed">
-                        <option value="slow">慢速</option>
-                        <option value="medium" selected>中速</option>
-                        <option value="fast">快速</option>
+                        <option value="0.8">慢</option>
+                        <option value="1.0" selected>中</option>
+                        <option value="1.3">快</option>
                     </select>
                 </div>
                 <div class="sound-controls">
                     <div class="sound-toggle" id="soundToggle">
-                        <i class="fas fa-volume-up"></i> 音效開啟
+                        <i class="fas fa-volume-up"></i> <span id="soundStatus">音效開啟</span>
                     </div>
                 </div>
             </div>
-            <div class="settings-row">
-                <button class="button" id="customizeButton">自訂球色/名稱</button>
-            </div>
+             <div class="settings-row custom-balls-placeholder">
+                 <!-- <button class="button" id="customizeButton">自訂球色/名稱</button> -->
+                 (自訂球色功能開發中)
+             </div>
         </div>
     </div>
-    
+
     <!-- 粒子效果容器 -->
     <div class="particles-container" id="particlesContainer"></div>
-    
+
     <!-- 獎項顯示區 -->
     <div class="winner-display" id="winnerDisplay">
         <div class="winner-content">
-            <div class="winner-ball" id="winnerBall"></div>
+            <div class="winner-ball" id="winnerBall">?</div>
             <h2 class="winner-title">恭喜中獎！</h2>
-            <p class="winner-message" id="winnerMessage">您抽中了神秘獎項！</p>
-            <button class="close-button" id="closeWinner">確認</button>
+            <p class="winner-message" id="winnerMessage">您抽中了幸運獎項！</p>
+            <button class="button close-button" id="closeWinner">確認</button>
         </div>
     </div>
-    
+
     <!-- JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 基本設定與變數
-            const octagonContainer = document.getElementById('octagon');
-            const handleContainer = document.getElementById('handleContainer');
-            const handle = handleContainer.querySelector('.handle');
+            // --- DOM References ---
+            const lotteryMachine = document.getElementById('lotteryMachine');
+            const octagonDrum = document.getElementById('octagonDrum');
+            const ballsContainer = document.getElementById('ballsContainer');
+            const handleAssembly = document.getElementById('handleAssembly');
+            const handle = document.getElementById('handle');
             const resultDisplay = document.getElementById('resultDisplay');
             const startButton = document.getElementById('startButton');
             const resetButton = document.getElementById('resetButton');
-            const customizeButton = document.getElementById('customizeButton');
+            // const customizeButton = document.getElementById('customizeButton');
             const ballCountInput = document.getElementById('ballCount');
             const spinSpeedSelect = document.getElementById('spinSpeed');
             const soundToggle = document.getElementById('soundToggle');
+            const soundStatus = document.getElementById('soundStatus');
             const particlesContainer = document.getElementById('particlesContainer');
-            const spotlight = document.querySelector('.spotlight');
+            const spotlight = document.getElementById('spotlight');
             const winnerDisplay = document.getElementById('winnerDisplay');
             const winnerBall = document.getElementById('winnerBall');
             const winnerMessage = document.getElementById('winnerMessage');
             const closeWinner = document.getElementById('closeWinner');
-            
-            // 全局變數
+
+            // --- Configuration ---
+            const config = {
+                numFaces: 8,
+                machineWidth: 280, // Sync with CSS .lottery-machine width
+                machineHeight: 280, // Sync with CSS .lottery-machine height
+                ballSize: 35, // Sync with CSS .ball width/height
+                handleSensitivity: 1.5, // How much drag affects rotation
+                dragInertia: 0.92, // Friction for handle release spin
+                minSpinVelocity: 50, // Minimum velocity from drag to trigger spin
+                baseSpinDuration: 4, // Base duration for button spin
+                spinRandomness: 2, // Random extra duration
+                ballColors: [
+                    '#E74C3C', '#3498DB', '#2ECC71', '#F1C40F', '#9B59B6',
+                    '#E67E22', '#1ABC9C', '#D35400', '#2980B9', '#27AE60',
+                    '#FF7F50', '#6A5ACD', '#FF69B4', '#4682B4', '#CD5C5C'
+                ],
+                 prizes: [ // Example with labels and colors
+                    { label: "大吉", color: "#E74C3C", weight: 1 },
+                    { label: "中吉", color: "#E67E22", weight: 2 },
+                    { label: "小吉", color: "#F1C40F", weight: 3 },
+                    { label: "吉", color: "#2ECC71", weight: 5 },
+                    { label: "末吉", color: "#3498DB", weight: 8 },
+                    { label: "無念", color: "#95A5A6", weight: 10 }
+                 ],
+                particleCount: 80,
+                particleColors: ['#FFD700', '#FFC107', '#FF9800', '#FF69B4', '#FFFFFF']
+            };
+
+            // --- State Variables ---
             let isSpinning = false;
-            let spinSpeed = 0;
-            let spinAngle = 0;
-            let spinInterval = null;
+            let currentRotationY = 0;
             let balls = [];
             let soundEnabled = true;
             let isLightMode = false;
-            let dragStartY = 0;
-            let handleAngle = 0;
-            let handleVelocity = 0;
-            let lastDragY = 0;
-            let isDragging = false;
-            let lastDrawTime = 0;
-            
-            // 定義顏色
-            const ballColors = [
-                '#FF5252', // 紅
-                '#448AFF', // 藍
-                '#66BB6A', // 綠
-                '#FFC107', // 黃
-                '#9C27B0', // 紫
-                '#FF7043', // 橙
-                '#26C6DA', // 青
-                '#EC407A', // 粉
-                '#AB47BC', // 深紫
-                '#7E57C2', // 淡紫
-                '#5C6BC0', // 靛青
-                '#42A5F5', // 淺藍
-                '#26A69A', // 淺綠
-                '#D4E157', // 淺黃
-                '#FFCA28', // 金黃
-                '#FF7043', // 珊瑚
-                '#8D6E63', // 棕
-                '#78909C', // 灰藍
-                '#BDBDBD', // 銀
-                '#212121'  // 黑
-            ];
-            
-            // 音效設定
+            let spinTween = null; // To control GSAP animation
+            let drumRadius, faceWidth, translateZ; // Geometry calculated in init
+
+            // --- Audio ---
+             // Use shorter, cleaner base64 if possible, or CDN links
             const sounds = {
-                spin: new Howl({
-                    src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUHh4eHh4qKioqKioqNDQ0NDRAQEBAQEBMTExMTExMWFhYWFhkZGRkZGRwcHBwcHB8fHx8fHyIiIiIiIiIlJSUlJSUnJycnJyouLi4uLi4xMTExMTE0NDQ0NDQ0NDc3Nzc3Nzc6Ojo6Oj09PT09PT///8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAQoAAAAAAAeMwGvI84AAAAAAAAAAAAAAAAA//uQwAALcABEnCAAACNCwQnG8gAQAYRERERERERRAAIR5zjn5uecIQhEQnOOcABAIBAMBAIThCcIQhCEIQiIiIiRERERI='],
-                    volume: 0.5,
-                    loop: true
-                }),
-                win: new Howl({
-                    src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tUwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAeAAAyQAAFBQsLERERFxwcHCIiIigvLy8vNTU1Ozs7O0FBQUdNTU1NUlJSWFhYWF5eXmRpaWlpcG9vdnZ2dnx8fIKCgoKIiIiOlJSUlJqamp+fn5+mp6enrKyssbGxscbGxs3NzdLY2Nja4ODg4Obj4+no6Ojv7+/v9PT0+fn5+f///wAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQEKQAAAAAAAAAAAAAAAA//+xDEAAPAAAGkAAAAIAAANIAAAARMQU1FMy45OS41VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7IMQFg8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ=='],
-                    volume: 0.8
-                }),
-                click: new Howl({
-                    src: ['data:audio/mp3;base64,SUQzAwAAAAAAJlRQRTEAAAAcAAAAU291bmRKYXkuY29tIFNvdW5kIEVmZmVjdHMA//uQxAADwAABpAAAACAAADSAAAAETEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU='],
-                    volume: 0.6
-                }),
-                bounce: new Howl({
-                    src: ['data:audio/mp3;base64,SUQzAwAAAAAAJlRQRTEAAAAcAAAAU291bmRKYXkuY29tIFNvdW5kIEVmZmVjdHMA//uUxAADwAABpAAAACAAADSAAAAETEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU='],
-                    volume: 0.4
-                })
-            };
-            
-            // 響應式設計相關
-            function checkDevicePerformance() {
-                // 檢測裝置性能
-                const isMobile = window.innerWidth <= 767;
-                const isLowPerformance = isMobile || navigator.hardwareConcurrency <= 4;
-                
-                // 若裝置性能較低，使用輕量模式
-                if (isLowPerformance) {
-                    document.body.classList.add('light-mode');
-                    isLightMode = true;
-                }
-                
-                return { isMobile, isLowPerformance };
+                 spin: new Howl({ src: ['data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YXcAAAAAAAAAAAA='], volume: 0.4, loop: true, rate: 1.0 }), // Replace with actual spin sound
+                 win: new Howl({ src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQwAAAAAAAC/AAIA/w==' ], volume: 0.7 }), // Replace with actual win sound
+                 click: new Howl({ src: ['data:audio/wav;base64,UklGRigAAAAXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==' ], volume: 0.6 }), // Replace with actual click sound
+                 // bounce: new Howl({ src: ['...'], volume: 0.3 }) // Optional ball bounce
+             };
+             Howler.autoUnlock = true; // Attempt to unlock audio context on interaction
+
+
+            // --- Initialization ---
+            function init() {
+                checkDevicePerformance();
+                calculateGeometry();
+                createOctagonFaces();
+                resetLottery(); // Creates initial balls
+                setupEventListeners();
+                adjustLayout(); // Adjust sizes based on calculated geometry
+                console.log("雅 - 抽選機 初始化完成！");
             }
-            
-            // 建立八角形
-            function createOctagon() {
-                octagonContainer.innerHTML = '';
-                const numFaces = 8;
-                const angleIncrement = 360 / numFaces;
-                
-                for (let i = 0; i < numFaces; i++) {
+
+             // --- Geometry Calculation ---
+             function calculateGeometry() {
+                 const angleIncrement = (Math.PI * 2) / config.numFaces; // Radians
+                 // Calculate radius based on width, assuming width is the distance between parallel faces
+                 drumRadius = config.machineWidth / 2;
+                 // Calculate the length of one side of the octagon
+                 const sideLength = config.machineWidth * Math.tan(angleIncrement / 2);
+                 // Face width should maybe be the side length? Let's try that.
+                 faceWidth = sideLength;
+                 // TranslateZ is the apothem (distance from center to midpoint of a side)
+                 translateZ = drumRadius; // For a regular octagon inscribed in a circle where width is diameter
+
+                 // Let's adjust faceWidth to make it visually fit better maybe?
+                 // If machineWidth is outer diameter, maybe faceWidth is smaller.
+                 // Let's base it on side length derived from radius
+                 faceWidth = 2 * drumRadius * Math.tan(Math.PI / config.numFaces);
+                 translateZ = drumRadius; // Distance from center to vertex might be this R
+
+                 // Re-calculate translateZ: distance from center to the *middle* of the face (apothem)
+                 translateZ = (faceWidth / 2) / Math.tan(Math.PI / config.numFaces);
+
+                 console.log(`Drum Radius: ${drumRadius.toFixed(2)}, Face Width: ${faceWidth.toFixed(2)}, TranslateZ: ${translateZ.toFixed(2)}`);
+             }
+
+             // Adjust dynamic sizes
+             function adjustLayout() {
+                 gsap.set(lotteryMachine, { width: config.machineWidth, height: config.machineHeight });
+                 // Adjust caps based on machine size
+                 const capSize = config.machineWidth * 0.85;
+                 gsap.set(".top-cap, .bottom-base", { width: capSize, height: capSize });
+                 gsap.set(".top-cap", { transform: `translateX(-50%) translateY(-50%) rotateX(90deg) translateZ(${config.machineHeight/2}px)` });
+                 gsap.set(".bottom-base", { transform: `translateX(-50%) translateY(50%) rotateX(90deg) translateZ(-${config.machineHeight/2}px)` });
+
+                 // Adjust handle position based on machine size
+                 gsap.set(handleAssembly, { right: -config.machineWidth * 0.35 });
+
+                 // Adjust ball size relative to machine
+                 config.ballSize = Math.max(20, Math.min(35, config.machineWidth / 8));
+                 // Update ball elements if they exist
+                 document.querySelectorAll('.ball').forEach(b => {
+                    gsap.set(b, { width: config.ballSize, height: config.ballSize, fontSize: config.ballSize * 0.4 });
+                 });
+             }
+
+
+            // --- Setup Functions ---
+            function checkDevicePerformance() {
+                isLightMode = window.innerWidth <= 767 || navigator.hardwareConcurrency <= 4;
+                if (isLightMode) {
+                    document.body.classList.add('light-mode');
+                    config.particleCount = Math.floor(config.particleCount / 2); // Reduce particles
+                    console.log("啟用輕量模式");
+                }
+            }
+
+            function createOctagonFaces() {
+                octagonDrum.innerHTML = ''; // Clear previous faces
+                const angleIncrementDeg = 360 / config.numFaces;
+
+                for (let i = 0; i < config.numFaces; i++) {
                     const face = document.createElement('div');
                     face.className = 'octagon-face';
-                    face.style.transform = `rotateY(${i * angleIncrement}deg) translateZ(140px)`;
-                    octagonContainer.appendChild(face);
-                }
-            }
-            
-            // 生成彈珠
-            function createBalls(count) {
-                balls = [];
-                
-                // 清除現有球
-                const existingBalls = document.querySelectorAll('.ball');
-                existingBalls.forEach(ball => ball.remove());
-                
-                // 創建新的球
-                for (let i = 0; i < count; i++) {
-                    const ball = document.createElement('div');
-                    ball.className = 'ball';
-                    ball.textContent = (i + 1).toString();
-                    
-                    // 設置球的顏色
-                    const colorIndex = i % ballColors.length;
-                    ball.style.backgroundColor = ballColors[colorIndex];
-                    
-                    // 初始化球的位置
-                    const randomPosition = getRandomPosition();
-                    ball.style.left = `${randomPosition.x}px`;
-                    ball.style.top = `${randomPosition.y}px`;
-                    
-                    document.querySelector('.lottery-machine').appendChild(ball);
-                    
-                    balls.push({
-                        element: ball,
-                        x: randomPosition.x,
-                        y: randomPosition.y,
-                        z: randomPosition.z,
-                        vx: (Math.random() - 0.5) * 2,
-                        vy: (Math.random() - 0.5) * 2,
-                        vz: (Math.random() - 0.5) * 2
+                    // Set face dimensions and transform
+                    gsap.set(face, {
+                        width: faceWidth,
+                        height: config.machineHeight,
+                         // Position face center at origin before rotating/translating
+                        left: `calc(50% - ${faceWidth / 2}px)`,
+                        top: `calc(50% - ${config.machineHeight / 2}px)`,
+                         // Rotate face then push it out
+                        transform: `rotateY(${i * angleIncrementDeg}deg) translateZ(${translateZ}px)`
                     });
+                    octagonDrum.appendChild(face);
                 }
-                
-                return balls;
+                 // Add balls container after faces
+                 octagonDrum.appendChild(ballsContainer);
             }
-            
-            // 隨機球位置
-            function getRandomPosition() {
-                const radius = 100;
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.random() * Math.PI;
-                
-                return {
-                    x: 130 + radius * Math.sin(phi) * Math.cos(theta),
-                    y: 130 + radius * Math.sin(phi) * Math.sin(theta),
-                    z: radius * Math.cos(phi)
-                };
-            }
-            
-            // 更新球位置
-            function updateBallPositions() {
-                const maxRadius = 120; // 八角形內部半徑
-                const radiusSquared = maxRadius * maxRadius;
-                const center = { x: 130, y: 130, z: 0 };
-                const friction = 0.98;
-                const spinFactor = spinSpeed * 0.05;
-                
-                balls.forEach(ball => {
-                    // 旋轉影響
-                    const rotationEffect = spinFactor * (ball.z / maxRadius);
-                    ball.vx += rotationEffect;
-                    
-                    // 更新速度和位置
-                    ball.x += ball.vx;
-                    ball.y += ball.vy;
-                    ball.z += ball.vz;
-                    
-                    // 應用摩擦力
-                    ball.vx *= friction;
-                    ball.vy *= friction;
-                    ball.vz *= friction;
-                    
-                    // 檢查邊界碰撞
-                    const dx = ball.x - center.x;
-                    const dy = ball.y - center.y;
-                    const dz = ball.z;
-                    const distanceSquared = dx * dx + dy * dy + dz * dz;
-                    
-                    if (distanceSquared > radiusSquared) {
-                        // 碰撞邊界
-                        const distance = Math.sqrt(distanceSquared);
-                        const nx = dx / distance;
-                        const ny = dy / distance;
-                        const nz = dz / distance;
-                        
-                        // 反射速度
-                        const dotProduct = ball.vx * nx + ball.vy * ny + ball.vz * nz;
-                        ball.vx = ball.vx - 2 * dotProduct * nx;
-                        ball.vy = ball.vy - 2 * dotProduct * ny;
-                        ball.vz = ball.vz - 2 * dotProduct * nz;
-                        
-                        // 修正位置
-                        const correction = maxRadius - distance;
-                        ball.x += nx * correction;
-                        ball.y += ny * correction;
-                        ball.z += nz * correction;
-                        
-                        // 播放反彈音效
-                        if (soundEnabled && Math.random() < 0.1) {
-                            sounds.bounce.play();
-                        }
-                    }
-                    
-                    // 更新視覺位置
-                    const scale = 0.5 + ((ball.z + maxRadius) / (2 * maxRadius));
-                    
-                    ball.element.style.transform = `translate3d(${ball.x}px, ${ball.y}px, ${ball.z}px) scale(${scale})`;
-                    ball.element.style.zIndex = Math.floor(ball.z + 1000);
-                    
-                    // 基於z位置調整透明度
-                    const opacity = (ball.z + maxRadius) / (2 * maxRadius);
-                    ball.element.style.opacity = 0.5 + opacity * 0.5;
+
+            function createBalls(count) {
+                ballsContainer.innerHTML = ''; // Clear existing balls
+                balls = [];
+                let weightedPrizes = [];
+                config.prizes.forEach(prize => {
+                    for (let i = 0; i < prize.weight; i++) weightedPrizes.push(prize);
                 });
+
+                const ballRadius = config.ballSize / 2;
+                 // Max distance from center for balls (slightly less than drum radius)
+                const maxBallDist = translateZ - ballRadius - 5; // Keep balls away from faces
+                 const maxBallHeight = config.machineHeight / 2 - ballRadius - 5;
+
+                for (let i = 0; i < count; i++) {
+                    const prizeData = weightedPrizes[Math.floor(Math.random() * weightedPrizes.length)];
+
+                    const ballElement = document.createElement('div');
+                    ballElement.className = 'ball';
+                    ballElement.textContent = prizeData.label; // Show prize label
+                    ballElement.style.backgroundColor = prizeData.color;
+                    gsap.set(ballElement, {
+                        width: config.ballSize,
+                        height: config.ballSize,
+                        fontSize: config.ballSize * 0.4, // Adjust font size based on ball size
+                        lineHeight: `${config.ballSize}px` // Center text vertically
+                    });
+
+
+                    // Random initial position within the drum using translate3d
+                    const r = Math.random() * maxBallDist;
+                    const angle = Math.random() * Math.PI * 2;
+                    const x = r * Math.cos(angle);
+                    const z = r * Math.sin(angle);
+                    const y = (Math.random() - 0.5) * 2 * maxBallHeight; // Random height
+
+                    // Store ball data and initial transform
+                    const ballData = {
+                        element: ballElement,
+                        prize: prizeData,
+                        x: x, y: y, z: z, // Current position
+                        vx: (Math.random() - 0.5) * 2, // Initial velocity
+                        vy: (Math.random() - 0.5) * 5,
+                        vz: (Math.random() - 0.5) * 2,
+                         // Initial transform for GSAP
+                        transformString: `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, ${z.toFixed(2)}px)`
+                    };
+                     gsap.set(ballElement, { transform: ballData.transformString });
+
+                    ballsContainer.appendChild(ballElement);
+                    balls.push(ballData);
+                }
+                console.log(`創建了 ${balls.length} 個球`);
             }
-            
-            // 旋轉八角形
-            function rotateOctagon() {
-                spinAngle += spinSpeed;
-                octagonContainer.style.transform = `rotateY(${spinAngle}deg)`;
-                
-                if (isSpinning) {
-                    // 減速直到停止
-                    spinSpeed *= 0.995;
-                    
-                    if (spinSpeed < 0.2) {
+
+            // --- Event Listeners ---
+            function setupEventListeners() {
+                startButton.addEventListener('click', handleSpinButtonClick);
+                resetButton.addEventListener('click', handleResetClick);
+                soundToggle.addEventListener('click', toggleSound);
+                closeWinner.addEventListener('click', hideWinnerDisplay);
+
+                // --- Handle Dragging using GSAP Draggable ---
+                 let startRotationY = 0;
+                 let rotationVelocity = 0;
+                 let dragTicker = null;
+
+                Draggable.create(handle, {
+                    type: "rotation", // Use rotation type for handle-like drag
+                    trigger: handle,
+                     // bounds: { minRotation: -45, maxRotation: 45 }, // Limit handle rotation
+                    inertia: true, // Enable inertia
+                    throwResistance: 5000, // Adjust resistance
+                    maxDuration: 0.8, // Limit throw duration
+                    throwProps: {
+                        rotation: {
+                             velocity: "auto", // Calculate velocity automatically
+                             // end: (rotation) => rotation // Let it spin freely
+                         }
+                    },
+                    snap: (endValue) => {
+                        // Optional: Snap back to 0 after throw?
+                        // return Math.round(endValue / 90) * 90;
+                         return endValue;
+                    },
+                    onDragStart: function() {
+                        if (isSpinning) {
+                             this.disable(); // Prevent dragging if already spinning
+                             return;
+                        }
+                        this.enable();
+                         startRotationY = currentRotationY; // Store drum rotation at drag start
+                        if (sounds.click && soundEnabled) sounds.click.play();
+                        gsap.to(handle, { scale: 1.1, duration: 0.1 });
+                    },
+                    onDrag: function() {
+                        // Optional: Directly link handle rotation to drum rotation? Or just use velocity?
+                        // For now, just let the handle rotate visually.
+                        // Velocity is tracked by Draggable internally.
+                    },
+                    onThrowUpdate: function() {
+                         // While the handle is spinning due to inertia
+                         handleVelocity = this.getDirection("rotation") * this.getVelocity("rotation");
+                         // Could potentially add visual shake/rumble here
+                    },
+                    onDragEnd: function() {
+                         gsap.to(handle, { scale: 1, duration: 0.3 });
+                         handleVelocity = this.getDirection("rotation") * this.getVelocity("rotation"); // Get final velocity
+                         console.log("Handle Velocity:", handleVelocity);
+
+                         // Trigger spin if velocity is high enough
+                         if (Math.abs(handleVelocity) > config.minSpinVelocity && !isSpinning) {
+                             console.log("手把拖曳結束，啟動慣性旋轉");
+                             // Calculate spin amount based on velocity
+                             const additionalRotation = handleVelocity * 0.5; // Scale velocity to rotation degrees
+                             const duration = Math.min(5, Math.abs(handleVelocity) / 100); // Duration based on velocity
+                             startSpin(additionalRotation, duration);
+                         } else {
+                             console.log("手把拖曳結束，速度不足");
+                             // Optional: Animate handle back to 0 smoothly if needed
+                              gsap.to(this.target, { rotation: 0, duration: 0.5, ease: "elastic.out(1, 0.5)" });
+                         }
+                    },
+                     // Prevent text selection during drag
+                     allowNativeTouchScrolling: false,
+                     cursor: "grab"
+                });
+
+                // Handle window resize
+                window.addEventListener('resize', debounce(onResize, 200));
+            }
+
+             function debounce(func, wait) {
+                 let timeout;
+                 return function executedFunction(...args) {
+                     const later = () => {
+                         clearTimeout(timeout);
+                         func(...args);
+                     };
+                     clearTimeout(timeout);
+                     timeout = setTimeout(later, wait);
+                 };
+             }
+
+             function onResize() {
+                 console.log("Window resized");
+                 checkDevicePerformance();
+                 calculateGeometry();
+                 // Re-adjust layout might be complex, could require re-creating faces/balls
+                 // Simple approach: Scale the scene?
+                 const scaleFactor = Math.min(1, window.innerWidth / 800); // Example scaling
+                 // gsap.set(lotteryScene, { scale: scaleFactor }); // This might distort perspective
+                 // Better: recalculate and reposition might be needed if layout breaks significantly
+                  adjustLayout(); // Try re-running layout adjustments
+                  // May need to reposition balls if their container size changes
+             }
+
+
+            // --- Interaction Logic ---
+            function handleSpinButtonClick() {
+                if (isSpinning) return;
+                if (sounds.click && soundEnabled) sounds.click.play();
+                console.log("按鈕點擊，啟動旋轉");
+                // Use default spin parameters
+                startSpin(0, config.baseSpinDuration + Math.random() * config.spinRandomness);
+            }
+
+            function handleResetClick() {
+                if (isSpinning) return; // Don't reset while spinning
+                if (sounds.click && soundEnabled) sounds.click.play();
+                console.log("重置獎球");
+                resetLottery();
+                 resultDisplay.textContent = "獎球已重置";
+                 resultDisplay.classList.remove('winning');
+            }
+
+            function toggleSound() {
+                soundEnabled = !soundEnabled;
+                 soundStatus.textContent = soundEnabled ? "音效開啟" : "音效關閉";
+                 soundToggle.querySelector('i').className = soundEnabled ? "fas fa-volume-up" : "fas fa-volume-mute";
+                 Howler.mute(!soundEnabled); // Mute all Howler sounds
+                 if (!soundEnabled && sounds.spin.playing()) {
+                     sounds.spin.stop(); // Stop spin sound immediately if muted
+                 }
+                console.log("音效狀態:", soundEnabled);
+            }
+
+            // --- Core Spin Animation ---
+            function startSpin(additionalRotation = 0, duration) {
+                if (isSpinning) return;
+                isSpinning = true;
+                setControlsDisabled(true);
+                resultDisplay.textContent = '幸運轉動中...';
+                resultDisplay.classList.remove('winning');
+
+                if (soundEnabled) sounds.spin.play();
+
+                // Calculate target rotation
+                const randomRotations = Math.floor(Math.random() * 3) + 5; // 5-7 full spins
+                const speedFactor = parseFloat(spinSpeedSelect.value);
+                const baseTargetRotation = currentRotationY + (randomRotations * 360);
+                const finalTargetRotation = baseTargetRotation + additionalRotation + (Math.random() * 360); // Add random end angle
+
+                const finalDuration = duration * (1 / speedFactor); // Adjust duration by speed setting
+
+                // Use GSAP for smooth animation
+                if (spinTween) spinTween.kill(); // Kill previous tween if any
+
+                spinTween = gsap.to(octagonDrum, {
+                    rotationY: finalTargetRotation,
+                    duration: finalDuration,
+                    ease: "power2.out", // Deceleration ease
+                    onUpdate: () => {
+                        currentRotationY = gsap.getProperty(octagonDrum, "rotationY");
+                        updateBallsDuringSpin(spinTween.progress()); // Pass progress for physics adjustment
+                         // Adjust spin sound playback rate based on velocity (optional, complex)
+                         // let currentVelocity = ?; // Hard to get velocity easily from GSAP tween
+                         // if (soundEnabled && sounds.spin.playing()) sounds.spin.rate( Math.max(0.5, Math.min(2, currentVelocity / 1000)) );
+                    },
+                    onStart: () => {
+                         gsap.to(spotlight, { opacity: isLightMode ? 0 : 0.6, duration: 0.5 });
+                    },
+                    onComplete: () => {
+                        console.log(`旋轉結束，最終角度: ${currentRotationY.toFixed(2)}`);
                         stopSpinning();
                     }
-                }
-            }
-            
-            // 動畫循環
-            function animate(timestamp) {
-                if (!lastDrawTime) lastDrawTime = timestamp;
-                const deltaTime = timestamp - lastDrawTime;
-                lastDrawTime = timestamp;
-                
-                // 限制更新頻率以提高性能
-                if (deltaTime < 1000 / 30) {
-                    rotateOctagon();
-                    updateBallPositions();
-                }
-                
-                // 處理手把動畫
-                if (isDragging) {
-                    // 計算拖曳速度
-                    handleVelocity = handleVelocity * 0.9 + (lastDragY - dragStartY) * 0.1;
-                } else if (Math.abs(handleAngle) > 0) {
-                    // 手把回彈
-                    handleAngle *= 0.85;
-                    handle.style.transform = `rotate(${handleAngle}deg)`;
-                    
-                    if (Math.abs(handleAngle) < 0.5) {
-                        handleAngle = 0;
-                        handle.style.transform = '';
-                    }
-                }
-                
-                requestAnimationFrame(animate);
-            }
-            
-            // 開始抽選
-            function startSpinning() {
-                if (isSpinning) return;
-                
-                isSpinning = true;
-                resultDisplay.textContent = '抽選中...';
-                
-                // 根據選擇的速度設定
-                const speedMap = {
-                    slow: 2,
-                    medium: 4,
-                    fast: 6
-                };
-                spinSpeed = speedMap[spinSpeedSelect.value];
-                
-                // 啟動音效
-                if (soundEnabled) {
-                    sounds.spin.play();
-                }
-                
-                // 開啟燈光效果
-                gsap.to(spotlight, {
-                    opacity: 0.8,
-                    duration: 1,
-                    ease: 'power2.inOut'
                 });
-                
-                // 禁用按鈕
-                startButton.disabled = true;
-                resetButton.disabled = true;
-                
-                // 設置自動停止計時器
-                setTimeout(function() {
-                    if (isSpinning) {
-                        // 開始減速
-                        spinSpeed *= 0.9;
-                    }
-                }, 3000 + Math.random() * 2000);
             }
-            
-            // 停止抽選並顯示結果
+
+             // --- Ball Physics Simulation during Spin ---
+             const gravity = -0.1; // Simple downward force
+             const friction = 0.98; // Air resistance / friction
+             const collisionDamping = 0.3; // Energy loss on collision
+
+             function updateBallsDuringSpin(progress) {
+                 const deltaTime = 1/60; // Assume 60fps for simplicity
+                 const rotationSpeed = spinTween ? (spinTween.vars.rotationY - currentRotationY) / (spinTween.duration() * (1 - progress)) : 0; // Approximate speed
+                 const centrifugalForceFactor = Math.abs(rotationSpeed) * 0.0001; // Force pushing balls outward
+
+                 balls.forEach(ball => {
+                     // 1. Apply Forces
+                     // Gravity
+                     ball.vy += gravity * deltaTime;
+
+                     // Centrifugal force (approximation) - pushes outward from center
+                     const distFromCenter = Math.sqrt(ball.x * ball.x + ball.z * ball.z);
+                     if (distFromCenter > 1) { // Avoid division by zero
+                         ball.vx += (ball.x / distFromCenter) * centrifugalForceFactor * deltaTime;
+                         ball.vz += (ball.z / distFromCenter) * centrifugalForceFactor * deltaTime;
+                     }
+
+                     // Tumbling effect (add random impulse)
+                     if (Math.random() < 0.1) {
+                         ball.vx += (Math.random() - 0.5) * 0.5;
+                         ball.vy += (Math.random() - 0.5) * 0.5;
+                         ball.vz += (Math.random() - 0.5) * 0.5;
+                     }
+
+
+                     // 2. Update Velocity with Friction
+                     ball.vx *= friction;
+                     ball.vy *= friction;
+                     ball.vz *= friction;
+
+                     // 3. Update Position
+                     ball.x += ball.vx * deltaTime * 100; // Scale factor for visual movement
+                     ball.y += ball.vy * deltaTime * 100;
+                     ball.z += ball.vz * deltaTime * 100;
+
+                     // 4. Boundary Collision (Simplified Cylinder + Top/Bottom Caps)
+                     const ballRadius = config.ballSize / 2;
+                     const maxBallDist = translateZ - ballRadius;
+                     const maxBallHeight = config.machineHeight / 2 - ballRadius;
+
+                     // Side collision (cylinder)
+                     const horizontalDistSq = ball.x * ball.x + ball.z * ball.z;
+                     if (horizontalDistSq > maxBallDist * maxBallDist) {
+                         const horizontalDist = Math.sqrt(horizontalDistSq);
+                         const overlap = horizontalDist - maxBallDist;
+                         const nx = ball.x / horizontalDist; // Normal vector x
+                         const nz = ball.z / horizontalDist; // Normal vector z
+
+                         // Reflect velocity
+                         const dotProduct = ball.vx * nx + ball.vz * nz;
+                         ball.vx -= (1 + collisionDamping) * dotProduct * nx;
+                         ball.vz -= (1 + collisionDamping) * dotProduct * nz;
+
+                         // Correct position
+                         ball.x -= overlap * nx;
+                         ball.z -= overlap * nz;
+                          // if (soundEnabled && sounds.bounce && Math.random() < 0.05) sounds.bounce.play();
+                     }
+
+                     // Top/Bottom collision
+                     if (ball.y > maxBallHeight) {
+                         const overlap = ball.y - maxBallHeight;
+                         ball.vy *= -collisionDamping;
+                         ball.y -= overlap * (1 + collisionDamping);
+                          // if (soundEnabled && sounds.bounce && Math.random() < 0.05) sounds.bounce.play();
+                     } else if (ball.y < -maxBallHeight) {
+                         const overlap = -maxBallHeight - ball.y;
+                         ball.vy *= -collisionDamping;
+                         ball.y += overlap * (1 + collisionDamping);
+                          // if (soundEnabled && sounds.bounce && Math.random() < 0.05) sounds.bounce.play();
+                     }
+
+
+                      // 5. Update Ball Element Transform
+                     ball.transformString = `translate3d(${ball.x.toFixed(2)}px, ${ball.y.toFixed(2)}px, ${ball.z.toFixed(2)}px)`;
+                     gsap.set(ball.element, {
+                         transform: ball.transformString,
+                         zIndex: Math.round(ball.z + 1000) // Adjust zIndex based on depth
+                     });
+                 });
+             }
+
+
+            // --- Stop Spin & Determine Winner ---
             function stopSpinning() {
                 isSpinning = false;
-                spinSpeed = 0;
-                
-                // 停止音效
-                if (soundEnabled) {
-                    sounds.spin.stop();
-                }
-                
-                // 關閉燈光效果
-                gsap.to(spotlight, {
-                    opacity: 0,
-                    duration: 1,
-                    ease: 'power2.inOut'
+                if (sounds.spin.playing()) sounds.spin.stop();
+                gsap.to(spotlight, { opacity: 0, duration: 0.5 });
+
+                // Determine winner (e.g., lowest ball after settling a bit)
+                // Simple random for now
+                gsap.delayedCall(0.5, () => { // Wait half a second for balls to settle
+                     let winner = null;
+                     // Option 1: Pure Random
+                     // winner = balls[Math.floor(Math.random() * balls.length)];
+
+                     // Option 2: Lowest ball (more realistic for GaraGara)
+                     let lowestY = Infinity;
+                     balls.forEach(ball => {
+                         if (ball.y < lowestY) {
+                             lowestY = ball.y;
+                             winner = ball;
+                         }
+                     });
+
+                     if (winner) {
+                         console.log(`中獎！獎品: ${winner.prize.label}`);
+                         displayResult(winner);
+                     } else {
+                         // Fallback if no balls somehow
+                         resultDisplay.textContent = "抽選出錯";
+                         setControlsDisabled(false);
+                     }
                 });
-                
-                // 選擇獲獎球
-                const winnerIndex = Math.floor(Math.random() * balls.length);
-                const winner = balls[winnerIndex];
-                
-                // 產生粒子效果
-                createParticleEffect(winner);
-                
-                // 顯示獲獎球
+            }
+
+            // --- Display Result & Effects ---
+            function displayResult(winner) {
+                resultDisplay.textContent = `恭喜！抽中 ${winner.prize.label}！`;
+                 resultDisplay.classList.add('winning');
+                 resultDisplay.style.borderColor = winner.prize.color; // Highlight border
+
+                // Highlight the winning ball briefly
                 gsap.to(winner.element, {
-                    scale: 1.5,
-                    boxShadow: '0 0 20px rgba(255, 215, 0, 0.8)',
-                    duration: 0.5,
+                    scale: 1.4,
+                    boxShadow: `0 0 25px 10px ${winner.prize.color}`,
+                    duration: 0.4,
                     yoyo: true,
                     repeat: 3,
-                    onComplete: function() {
-                        // 顯示獲獎資訊
-                        showWinner(winner);
-                    }
+                    ease: "power1.inOut"
                 });
-                
-                // 重新啟用按鈕
-                startButton.disabled = false;
-                resetButton.disabled = false;
+
+                if (soundEnabled) sounds.win.play();
+                triggerParticleEffect(winner.element);
+                showWinnerDisplay(winner);
+
+                // Re-enable controls after showing result
+                gsap.delayedCall(1, () => {
+                    setControlsDisabled(false);
+                });
             }
-            
-            // 顯示獲獎結果
-            function showWinner(winner) {
-                // 播放勝利音效
-                if (soundEnabled) {
-                    sounds.win.play();
-                }
-                
-                // 設置獲獎球顯示
-                winnerBall.style.backgroundColor = winner.element.style.backgroundColor;
-                winnerBall.textContent = winner.element.textContent;
-                
-                // 設置獲獎訊息
-                const messages = [
-                    '恭喜！您的幸運數字！',
-                    '命運之神眷顧了您！',
-                    '福氣降臨，恭喜中獎！',
-                    '今日良辰吉時，恭喜您！',
-                    '緣分天注定，這個獎品屬於您！'
-                ];
-                winnerMessage.textContent = messages[Math.floor(Math.random() * messages.length)];
-                
-                // 更新結果顯示
-                resultDisplay.textContent = `抽中號碼: ${winner.element.textContent}`;
-                
-                // 顯示獲獎彈窗
-                winnerDisplay.style.opacity = '1';
-                winnerDisplay.style.pointerEvents = 'auto';
-                
-                gsap.fromTo(winnerDisplay.querySelector('.winner-content'), 
-                    { scale: 0.5, opacity: 0 },
-                    { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }
-                );
+
+            function setControlsDisabled(disabled) {
+                 startButton.disabled = disabled;
+                 resetButton.disabled = disabled;
+                 handle.style.pointerEvents = disabled ? 'none' : 'auto'; // Disable handle drag
+                 handle.style.cursor = disabled ? 'not-allowed' : 'grab';
+                 if (Draggable.get(handle)) { // Check if Draggable exists
+                     Draggable.get(handle)[disabled ? 'disable' : 'enable']();
+                 }
             }
-            
-            // 粒子效果
-            function createParticleEffect(winner) {
-                if (isLightMode) return; // 輕量模式跳過粒子效果
-                
-                const particleCount = 50;
-                const colors = ['#FFD700', '#FFC107', '#FF9800', '#FF5722', '#F44336'];
-                
-                for (let i = 0; i < particleCount; i++) {
+
+            // --- Effects Functions ---
+            function triggerParticleEffect(targetElement) {
+                if (isLightMode) return;
+
+                const rect = targetElement.getBoundingClientRect();
+                // Calculate center relative to the viewport
+                const startX = rect.left + rect.width / 2;
+                const startY = rect.top + rect.height / 2;
+
+                for (let i = 0; i < config.particleCount; i++) {
                     const particle = document.createElement('div');
-                    particle.className = 'particle';
-                    
-                    // 隨機顏色
-                    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                    
-                    // 設定初始位置為獲獎球
-                    const rect = winner.element.getBoundingClientRect();
-                    const x = rect.left + rect.width / 2;
-                    const y = rect.top + rect.height / 2;
-                    
-                    particle.style.left = `${x}px`;
-                    particle.style.top = `${y}px`;
-                    
+                    const isConfetti = Math.random() > 0.5;
+                     particle.className = `particle ${isConfetti ? 'confetti' : ''}`;
+                     particle.style.backgroundColor = config.particleColors[Math.floor(Math.random() * config.particleColors.length)];
+
                     particlesContainer.appendChild(particle);
-                    
-                    // 粒子動畫
-                    gsap.to(particle, {
-                        x: (Math.random() - 0.5) * 200,
-                        y: (Math.random() - 0.5) * 200,
+
+                    gsap.set(particle, {
+                        x: startX,
+                        y: startY,
                         opacity: 1,
-                        scale: Math.random() * 2 + 1,
-                        duration: 0.1,
-                        onComplete: function() {
-                            gsap.to(particle, {
-                                x: (Math.random() - 0.5) * 400,
-                                y: (Math.random() - 0.5) * 400,
-                                opacity: 0,
-                                scale: 0,
-                                duration: Math.random() * 2 + 1,
-                                ease: 'power2.out',
-                                onComplete: function() {
-                                    particle.remove();
-                                }
-                            });
+                        scale: Math.random() * 0.8 + 0.5,
+                         rotation: Math.random() * 360
+                    });
+
+                    const endX = startX + (Math.random() - 0.5) * (window.innerWidth * 0.8);
+                    const endY = startY + (Math.random() - 0.5) * (window.innerHeight * 0.8);
+                    const duration = Math.random() * 1.5 + 1;
+
+                    gsap.to(particle, {
+                        x: endX,
+                        y: endY,
+                        opacity: 0,
+                        scale: 0.1,
+                        rotation: Math.random() * 720 - 360,
+                        duration: duration,
+                        ease: "power2.out",
+                         delay: Math.random() * 0.2, // Stagger start
+                        onComplete: () => {
+                            particle.remove();
                         }
                     });
                 }
+                console.log("觸發粒子特效");
             }
-            
-            // 重設抽選機
+
+             // --- Winner Modal Display ---
+             function showWinnerDisplay(winner) {
+                 winnerBall.style.backgroundColor = winner.prize.color;
+                 winnerBall.textContent = winner.prize.label;
+                 winnerMessage.textContent = `恭喜您獲得 ${winner.prize.label}！願好運常伴！`;
+
+                 winnerDisplay.classList.add('show');
+             }
+
+             function hideWinnerDisplay() {
+                 winnerDisplay.classList.remove('show');
+                 if (soundEnabled) sounds.click.play();
+                 // Reset winner ball display if needed
+                 // setTimeout(() => {
+                 //     winnerBall.textContent = '?';
+                 //     winnerBall.style.backgroundColor = '#ccc';
+                 // }, 400); // After transition
+             }
+
+
+            // --- Reset Function ---
             function resetLottery() {
-                // 停止旋轉
-                isSpinning = false;
-                spinSpeed = 0;
-                
-                // 停止音效
-                if (soundEnabled) {
-                    sounds.spin.stop();
-                }
-                
-                // 重置顯示
-                resultDisplay.textContent = '準備開始抽選...';
-                
-                // 重新創建球
-                const ballCount = parseInt(ballCountInput.value, 10);
-                createBalls(ballCount);
-                
-                // 啟用按鈕
-                startButton.disabled = false;
-                resetButton.disabled = false;
+                 if (spinTween) spinTween.kill();
+                 isSpinning = false;
+                 setControlsDisabled(false);
+                 gsap.set(octagonDrum, { rotationY: 0 }); // Reset rotation visually
+                 currentRotationY = 0;
+                 gsap.to(handle, { rotation: 0, duration: 0.3 }); // Reset handle visual rotation
+
+                 const ballCount = parseInt(ballCountInput.value, 10);
+                 if (isNaN(ballCount) || ballCount < 5 || ballCount > 40) {
+                     ballCountInput.value = 15; // Reset to default if invalid
+                     createBalls(15);
+                 } else {
+                    createBalls(ballCount);
+                 }
+
+                 resultDisplay.textContent = "準備開始抽選";
+                 resultDisplay.classList.remove('winning');
+                 hideWinnerDisplay(); // Hide winner display if shown
             }
-            
-            // 處理手把拖曳
-            function handleDrag() {
-                handleContainer.addEventListener('mousedown', startDrag);
-                handleContainer.addEventListener('touchstart', startDrag, { passive: false });
-                
-                document.addEventListener('mousemove', moveDrag);
-                document.addEventListener('touchmove', moveDrag, { passive: false });
-                
-                document.addEventListener('mouseup', endDrag);
-                document.addEventListener('touchend', endDrag);
-                
-                // 開始拖曳
-                function startDrag(e) {
-                    if (isSpinning) return;
-                    
-                    e.preventDefault();
-                    isDragging = true;
-                    
-                    // 記錄初始位置
-                    if (e.type === 'mousedown') {
-                        dragStartY = e.clientY;
-                    } else if (e.type === 'touchstart') {
-                        dragStartY = e.touches[0].clientY;
-                    }
-                    
-                    lastDragY = dragStartY;
-                    handleContainer.style.cursor = 'grabbing';
-                }
-                
-                // 拖曳移動
-                function moveDrag(e) {
-                    if (!isDragging) return;
-                    
-                    let currentY;
-                    if (e.type === 'mousemove') {
-                        currentY = e.clientY;
-                    } else if (e.type === 'touchmove') {
-                        e.preventDefault();
-                        currentY = e.touches[0].clientY;
-                    }
-                    
-                    // 計算移動距離和角度
-                    const deltaY = currentY - dragStartY;
-                    handleAngle = Math.min(45, Math.max(-45, deltaY / 3));
-                    
-                    // 設置手把旋轉
-                    handle.style.transform = `rotate(${handleAngle}deg)`;
-                    
-                    // 更新上次拖曳位置
-                    lastDragY = currentY;
-                }
-                
-                // 結束拖曳
-                function endDrag() {
-                    if (!isDragging) return;
-                    
-                    isDragging = false;
-                    handleContainer.style.cursor = 'grab';
-                    
-                    // 檢查是否有足夠速度啟動抽選
-                    const velocity = Math.abs(handleVelocity);
-                    if (velocity > 10 && !isSpinning) {
-                        // 播放點擊音效
-                        if (soundEnabled) {
-                            sounds.click.play();
-                        }
-                        
-                        // 開始抽選
-                        startSpinning();
-                        
-                        // 增加初始旋轉速度
-                        spinSpeed += velocity * 0.05;
-                    }
-                }
-            }
-            
-            // 初始化設置
-            function init() {
-                // 檢查裝置性能
-                const { isMobile } = checkDevicePerformance();
-                
-                // 創建八角形
-                createOctagon();
-                
-                // 創建球
-                const initialBallCount = parseInt(ballCountInput.value, 10);
-                createBalls(initialBallCount);
-                
-                // 設置手把拖曳
-                handleDrag();
-                
-                // 開始動畫循環
-                requestAnimationFrame(animate);
-                
-                // 按鈕事件
-                startButton.addEventListener('click', function() {
-                    if (!isSpinning) {
-                        startSpinning();
-                        
-                        // 播放點擊音效
-                        if (soundEnabled) {
-                            sounds.click.play();
-                        }
-                    }
-                });
-                
-                resetButton.addEventListener('click', function() {
-                    resetLottery();
-                    
-                    // 播放點擊音效
-                    if (soundEnabled) {
-                        sounds.click.play();
-                    }
-                });
-                
-                // 自定義球設置
-                customizeButton.addEventListener('click', function() {
-                    // 簡易的自定義介面
-                    alert('功能開發中：未來版本將支援自定義球色與名稱！');
-                });
-                
-                // 關閉獲獎彈窗
-                closeWinner.addEventListener('click', function() {
-                    winnerDisplay.style.opacity = '0';
-                    winnerDisplay.style.pointerEvents = 'none';
-                    
-                    // 播放點擊音效
-                    if (soundEnabled) {
-                        sounds.click.play();
-                    }
-                });
-                
-                // 音效開關
-                soundToggle.addEventListener('click', function() {
-                    soundEnabled = !soundEnabled;
-                    
-                    if (soundEnabled) {
-                        soundToggle.innerHTML = '<i class="fas fa-volume-up"></i> 音效開啟';
-                    } else {
-                        soundToggle.innerHTML = '<i class="fas fa-volume-mute"></i> 音效關閉';
-                        sounds.spin.stop();
-                    }
-                });
-                
-                // 監聽球數量變化
-                ballCountInput.addEventListener('change', function() {
-                    let value = parseInt(this.value, 10);
-                    
-                    // 限制範圍
-                    if (value < 1) value = 1;
-                    if (value > 30) value = 30;
-                    
-                    this.value = value;
-                    resetLottery();
-                });
-                
-                // 移動裝置優化
-                if (isMobile) {
-                    // 調整手把位置和大小
-                    handleContainer.style.right = '-65px';
-                    
-                    // 提示使用按鈕
-                    resultDisplay.textContent = '點擊開始按鈕來抽選！';
-                }
-            }
-            
-            // 啟動應用
+
+            // --- Start ---
             init();
         });
     </script>
