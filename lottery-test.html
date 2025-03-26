@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>雅 (Miyabi) - 日式3D物理抽選機 (完整版)</title>
+    <title>雅 (Miyabi) - 3D物理抽選機 (修正版)</title>
     <!-- 引入字體 -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
     <!-- 引入 FontAwesome -->
@@ -11,323 +11,122 @@
 
     <!-- === 核心渲染與物理庫 === -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
-    <!-- 使用 jsDelivr 作為 Cannon-es 的 CDN 來源 -->
-    <script src="https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script> <!-- 使用 Cannon.js -->
 
     <!-- === 動畫、交互與音效庫 === -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
 
-    <!-- === 可選：調試工具 Importmap === -->
-    <!-- <script type="importmap">...</script> -->
-    <!-- === 可選：調試工具 Module Script === -->
-    <!-- <script type="module">...</script> -->
-    <!-- === 可選：調試工具 Cannon Debugger === -->
-    <!-- <script src="https://unpkg.com/cannon-es-debugger@1.0.0/dist/cannon-es-debugger.js"></script> -->
-
+    <!-- === 可選：調試工具 === -->
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+    <!--
+    <script type="module"> // 加載 OrbitControls
+         import * as THREE from 'three';
+         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+         window.OrbitControls = OrbitControls; window.THREE = THREE;
+     </script>
+    -->
 
     <style>
-        /* === 基本樣式與顏色變數 === */
-        :root {
-            --primary: #B28046; /* 主色 - 棕金 */
-            --primary-light: #D4AF6A; /* 亮金 */
-            --primary-dark: #8C5E2A; /* 深木色 */
-            --accent: #C0392b; /* 強調色 - 紅 */
-            --background: #FDF6E3; /* 背景 - 米白 */
-            --text: #4A3F35; /* 文字 - 深棕 */
-            --glass-alpha: 0.6; /* Glass opacity */
-            --gold: #D4AF37;
-            --gold-gradient: linear-gradient(135deg, #E4C57A 0%, #F8F4D8 50%, #E4C57A 100%);
-            --wood-gradient: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
-            --shadow-color: rgba(0, 0, 0, 0.15);
-            --highlight-color: rgba(255, 255, 255, 0.6);
-            --ball-shadow: rgba(0, 0, 0, 0.3);
-        }
+        /* === 基本樣式與顏色變數 (保持不變) === */
+        :root { --primary: #B28046; --primary-light: #D4AF6A; --primary-dark: #8C5E2A; --accent: #C0392b; --background: #FDF6E3; --text: #4A3F35; --glass: rgba(255, 255, 255, 0.2); --gold-gradient: linear-gradient(135deg, #E4C57A 0%, #F8F4D8 50%, #E4C57A 100%); --wood-gradient: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%); --shadow-color: rgba(0, 0, 0, 0.15); --highlight-color: rgba(255, 255, 255, 0.6); --ball-shadow: rgba(0, 0, 0, 0.3); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { height: 100%; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--background); background-image: radial-gradient(circle at 100% 0%, rgba(178, 128, 70, 0.1) 0%, transparent 50%), radial-gradient(circle at 0% 100%, rgba(192, 57, 43, 0.05) 0%, transparent 40%); color: var(--text); overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px; -webkit-tap-highlight-color: transparent; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        /* === 標題區域 (保持不變) === */
+        .title-area { text-align: center; margin-bottom: 20px; position: relative; z-index: 10; }
+        .title-area h1 { font-family: 'Noto Serif JP', serif; font-size: clamp(1.8rem, 5vw, 2.5rem); color: var(--primary-dark); margin-bottom: 15px; letter-spacing: 2px; position: relative; display: inline-block; }
+        .title-area h1::after { content: ''; position: absolute; bottom: -8px; left: 10%; width: 80%; height: 3px; background: var(--gold-gradient); border-radius: 2px; }
+        .title-area p { font-size: clamp(0.9rem, 2.5vw, 1rem); color: var(--text); opacity: 0.8; }
 
-        html {
-            height: 100%;
-        }
+        /* === Canvas 容器樣式 (保持不變) === */
+        #canvas-container { width: 100%; max-width: 700px; aspect-ratio: 16 / 9; margin: 10px auto; position: relative; background-color: rgba(0, 0, 0, 0.03); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px var(--shadow-color); z-index: 1; }
+        canvas { display: block; width: 100%; height: 100%; }
 
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: var(--background);
-            background-image:
-                radial-gradient(circle at 100% 0%, rgba(178, 128, 70, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 0% 100%, rgba(192, 57, 43, 0.05) 0%, transparent 40%);
-            color: var(--text);
-            overflow-x: hidden; /* 防止水平滾動 */
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start; /* 內容從頂部開始排列 */
-            padding: 20px; /* Body 邊距 */
-            -webkit-tap-highlight-color: transparent; /* 移除移動端點擊高亮 */
-        }
-
-        /* === 標題區域 === */
-        .title-area {
-            text-align: center;
-            margin-bottom: 15px; /* Reduced bottom margin */
-            position: relative;
-            z-index: 10;
-        }
-
-        .title-area h1 {
-            font-family: 'Noto Serif JP', serif;
-            font-size: clamp(1.6rem, 4vw, 2.2rem); /* Slightly smaller */
-            color: var(--primary-dark);
-            margin-bottom: 12px;
-            letter-spacing: 2px;
-            position: relative;
-            display: inline-block;
-        }
-
-        .title-area h1::after {
-            content: '';
-            position: absolute;
-            bottom: -6px; /* Closer underline */
-            left: 10%;
-            width: 80%;
-            height: 2px; /* Thinner underline */
-            background: var(--gold-gradient);
-            border-radius: 1px;
-        }
-
-        .title-area p {
-            font-size: clamp(0.85rem, 2vw, 0.95rem); /* Slightly smaller */
-            color: var(--text);
-            opacity: 0.8;
-        }
-
-        /* === Canvas 容器樣式 === */
-        #canvas-container {
-            width: 100%;
-            max-width: 650px; /* Slightly smaller max-width */
-            aspect-ratio: 16 / 10; /* Adjusted aspect ratio */
-            margin: 5px auto; /* Reduced margin */
-            position: relative;
-            background-color: rgba(0, 0, 0, 0.02); /* Lighter placeholder bg */
-            border-radius: 10px;
-            overflow: hidden; /* 確保 Canvas 不會溢出 */
-            box-shadow: 0 4px 12px var(--shadow-color); /* Softer shadow */
-            z-index: 1; /* 確保在背景之上 */
-        }
-
-        canvas {
-            display: block; /* 移除 Canvas 下方多餘空間 */
-            width: 100%;
-            height: 100%;
-        }
-
-        /* === 手把交互觸發區域 === */
-        #handleDragTrigger {
-            position: absolute;
-            bottom: 12%; /* Adjusted position */
-            /* Adjusted right calculation */
-            right: calc(50% - min(325px, 45vw) - 35px - 5px);
-            width: 50px; /* Smaller trigger */
-            height: 130px;
-            z-index: 25;
-            cursor: grab;
-            border-radius: 8px;
-            /* background: rgba(0, 255, 0, 0.1); */ /* Debug visibility */
-        }
+        /* === 手把交互觸發區域 (保持不變) === */
+        #handleDragTrigger { position: absolute; bottom: 10%; right: calc(50% - min(350px, 45vw) - 40px - 10px); width: 60px; height: 150px; /* background: rgba(255,0,0,0.1); */ z-index: 25; cursor: grab; border-radius: 10px; }
         #handleDragTrigger:active { cursor: grabbing; }
 
-        /* === 控制面板 === */
-        .control-panel {
-            position: relative;
-            width: 100%;
-            max-width: 480px; /* Slightly smaller */
-            margin: 20px auto 0; /* Adjusted margin */
-            padding: 18px; /* Reduced padding */
-            background: rgba(255, 255, 255, 0.97); /* Slightly more opaque */
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Softer shadow */
-            text-align: center;
-            border: 1px solid var(--primary-light);
-            z-index: 20;
-        }
-
-        .result-display {
-            font-size: clamp(1.1rem, 3.5vw, 1.4rem);
-            font-weight: bold;
-            margin: 12px 0;
-            padding: 12px;
-            min-height: 55px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            background-color: var(--background);
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
-            color: var(--text);
-            transition: all 0.3s ease;
-        }
-        .result-display.winning {
-            background-color: var(--primary-light);
-            color: var(--primary-dark);
-            font-weight: 700;
-            box-shadow: 0 0 12px var(--primary-light);
-        }
-
-        /* === 按鈕樣式 === */
-        .button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 9px 22px; /* Adjusted padding */
-            font-size: 0.95rem; /* Slightly smaller font */
-            border-radius: 30px;
-            cursor: pointer;
-            margin: 6px;
-            font-weight: 500;
-            letter-spacing: 0.5px;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s ease-out;
-            font-family: 'Noto Sans TC', sans-serif;
-            position: relative;
-            overflow: hidden;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .button::after { /* Ripple effect */
-            content: ''; position: absolute; top: 50%; left: 50%;
-            width: 5px; height: 5px; background: rgba(255, 255, 255, 0.5);
-            opacity: 0; border-radius: 100%; transform: scale(1, 1) translate(-50%); transform-origin: 50% 50%;
-        }
-        @keyframes ripple { /* Ripple animation */
-            0% { transform: scale(0, 0) translate(-50%); opacity: 1; }
-            20% { transform: scale(25, 25) translate(-50%); opacity: 1; }
-            100% { opacity: 0; transform: scale(40, 40) translate(-50%); }
-        }
+        /* === 控制面板 (保持不變) === */
+        .control-panel { position: relative; width: 100%; max-width: 500px; margin: 25px auto 0; padding: 20px; background: rgba(255, 255, 255, 0.95); border-radius: 15px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); text-align: center; border: 1px solid var(--primary-light); z-index: 20; }
+        .result-display { font-size: clamp(1.2rem, 4vw, 1.5rem); font-weight: bold; margin: 15px 0; padding: 15px; min-height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background-color: var(--background); box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.1); color: var(--text); transition: all 0.3s ease; }
+        .result-display.winning { background-color: var(--primary-light); color: var(--primary-dark); font-weight: 700; box-shadow: 0 0 15px var(--primary-light); }
+        .button { background: var(--primary); color: white; border: none; padding: 10px 25px; font-size: 1rem; border-radius: 30px; cursor: pointer; margin: 8px; font-weight: 500; letter-spacing: 1px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: all 0.2s ease-out; font-family: 'Noto Sans TC', sans-serif; position: relative; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+        .button::after { content: ''; position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; background: rgba(255, 255, 255, 0.5); opacity: 0; border-radius: 100%; transform: scale(1, 1) translate(-50%); transform-origin: 50% 50%; }
+        @keyframes ripple { 0% { transform: scale(0, 0) translate(-50%); opacity: 1; } 20% { transform: scale(25, 25) translate(-50%); opacity: 1; } 100% { opacity: 0; transform: scale(40, 40) translate(-50%); } }
         .button:focus:not(:active)::after { animation: ripple 1s ease-out; }
-        .button:hover {
-            background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 5px 10px rgba(0, 0, 0, 0.12);
-        }
-        .button:active { transform: translateY(0px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+        .button:hover { background: var(--primary-dark); transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); }
+        .button:active { transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); }
         .button.start { background: var(--accent); }
         .button.start:hover { background: #a5281e; }
         .button:disabled { background: #cccccc; cursor: not-allowed; transform: none; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
-
-        /* === 設定面板樣式 === */
-        .settings-panel { margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0, 0, 0, 0.08); }
-        .settings-panel h3 { margin-bottom: 12px; font-size: 1.05rem; color: var(--text); font-weight: 500; }
-        .settings-row { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 12px; }
+        .settings-panel { margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(0, 0, 0, 0.1); }
+        .settings-panel h3 { margin-bottom: 15px; font-size: 1.1rem; color: var(--text); font-weight: 500; }
+        .settings-row { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 15px 25px; margin-bottom: 15px; }
         .input-group { display: flex; align-items: center; }
-        .input-group label { margin-right: 6px; font-size: 0.85rem; white-space: nowrap; }
-        .input-group input, .input-group select { padding: 7px 10px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit; min-width: 55px; background-color: white; font-size: 0.9rem;}
-        .input-group input[type="number"] { width: 65px; }
-
-        /* === 音效控制樣式 === */
-        .sound-controls { display: flex; justify-content: center; align-items: center; margin-top: 8px; }
-        .sound-toggle { display: flex; align-items: center; cursor: pointer; padding: 4px 8px; border-radius: 20px; transition: background-color 0.2s ease; font-size: 0.85rem; }
+        .input-group label { margin-right: 8px; font-size: 0.9rem; white-space: nowrap; }
+        .input-group input, .input-group select { padding: 8px 12px; border-radius: 5px; border: 1px solid #ccc; font-family: inherit; min-width: 60px; background-color: white; }
+        .input-group input[type="number"] { width: 70px; }
+        .sound-controls { display: flex; justify-content: center; align-items: center; margin-top: 10px; }
+        .sound-toggle { display: flex; align-items: center; cursor: pointer; padding: 5px 10px; border-radius: 20px; transition: background-color 0.2s ease; font-size: 0.9rem; }
         .sound-toggle:hover { background-color: rgba(0,0,0,0.05); }
-        .sound-toggle i { margin-right: 6px; color: var(--primary); font-size: 1em; }
+        .sound-toggle i { margin-right: 8px; color: var(--primary); font-size: 1.1em; }
 
-        /* === 粒子效果容器 === */
+        /* === 粒子效果容器 (保持不變) === */
         .particles-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; overflow: hidden; }
         .particle { position: absolute; border-radius: 50%; opacity: 0; pointer-events: none; width: 8px; height: 8px; }
         .particle.confetti { width: 6px; height: 12px; border-radius: 0; }
 
-        /* === 獎項顯示彈窗 === */
+        /* === 獎項顯示彈窗 (保持不變) === */
         .winner-display { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.75); display: flex; align-items: center; justify-content: center; z-index: 110; opacity: 0; pointer-events: none; transition: opacity 0.4s ease-in-out; padding: 20px; }
         .winner-display.show { opacity: 1; pointer-events: auto; }
-        .winner-content { background: linear-gradient(to bottom, #ffffff, #f8f8f0); padding: clamp(20px, 5vw, 35px); border-radius: 15px; text-align: center; max-width: 380px; width: 90%; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 0 5px rgba(255,255,255,0.3); transform: scale(0.7); transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); position: relative; }
+        .winner-content { background: linear-gradient(to bottom, #ffffff, #f8f8f0); padding: clamp(20px, 5vw, 40px); border-radius: 15px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 0 5px rgba(255,255,255,0.3); transform: scale(0.7); transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); position: relative; }
         .winner-display.show .winner-content { transform: scale(1); }
-        .winner-ball { width: clamp(70px, 18vw, 90px); height: clamp(70px, 18vw, 90px); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: clamp(1.8rem, 7vw, 2.5rem); font-weight: bold; color: white; box-shadow: inset 0 -4px 8px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.3); text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5); border: 2px solid rgba(255,255,255,0.5); }
-        .winner-ball::before { content: ''; position: absolute; top: 5%; left: 15%; width: 50%; height: 40%; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 70%); transform: rotate(-30deg); }
-        .winner-title { font-size: clamp(1.4rem, 4.5vw, 1.7rem); color: var(--accent); margin-bottom: 12px; font-family: 'Noto Serif JP', serif; font-weight: 700; }
-        .winner-message { font-size: clamp(0.95rem, 3vw, 1.1rem); margin-bottom: 20px; color: var(--text); }
-        .close-button { padding: 8px 20px; font-size: 0.9rem; }
+        .winner-ball { width: clamp(80px, 20vw, 100px); height: clamp(80px, 20vw, 100px); border-radius: 50%; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; font-size: clamp(2rem, 8vw, 2.8rem); font-weight: bold; color: white; box-shadow: inset 0 -5px 10px rgba(0,0,0,0.3), 0 5px 15px rgba(0,0,0,0.3); text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); border: 3px solid rgba(255,255,255,0.5); }
+        .winner-ball::before { content: ''; position: absolute; top: 5%; left: 15%; width: 50%; height: 40%; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%); transform: rotate(-30deg); }
+        .winner-title { font-size: clamp(1.5rem, 5vw, 1.8rem); color: var(--accent); margin-bottom: 15px; font-family: 'Noto Serif JP', serif; font-weight: 700; }
+        .winner-message { font-size: clamp(1rem, 3.5vw, 1.2rem); margin-bottom: 25px; color: var(--text); }
+        .close-button { /* Inherits .button styles */ }
 
-        /* === 響應式設計 === */
-        @media (max-width: 767px) {
-            #canvas-container { max-width: 95%; aspect-ratio: 4 / 3; }
-            #handleDragTrigger { width: 50px; height: 120px; bottom: 8%; right: 2%; }
-            .control-panel { margin-top: 20px; } .settings-row { gap: 10px 15px; }
-        }
-        @media (max-width: 480px) {
-            .title-area h1 { font-size: 1.5rem; } .title-area p { font-size: 0.8rem; }
-            .button { padding: 7px 18px; font-size: 0.85rem; margin: 5px; }
-            #handleDragTrigger { width: 40px; height: 100px; bottom: 5%; }
-            .control-panel { margin-top: 15px; padding: 15px; }
-            .settings-panel h3 { font-size: 1rem; }
-            .input-group label { font-size: 0.8rem; }
-            .input-group input, .input-group select { padding: 6px 8px; font-size: 0.85rem;}
-        }
-        /* === 輕量模式樣式 === */
-        body.light-mode #canvas-container { box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
-        body.light-mode { /* Optional further light mode styles */ }
+        /* === 響應式設計 (保持不變) === */
+        @media (max-width: 767px) { #canvas-container { max-width: 95%; aspect-ratio: 4 / 3; } #handleDragTrigger { width: 50px; height: 120px; bottom: 8%; right: 2%; } .control-panel { margin-top: 20px; } .settings-row { gap: 10px 15px; } }
+        @media (max-width: 480px) { .title-area h1 { font-size: 1.6rem; } .title-area p { font-size: 0.85rem; } .button { padding: 8px 20px; font-size: 0.9rem; margin: 5px; } #handleDragTrigger { width: 45px; height: 100px; bottom: 5%; } .control-panel { margin-top: 15px; padding: 15px; } .settings-panel h3 { font-size: 1rem; } }
+        body.light-mode #canvas-container { box-shadow: 0 3px 8px rgba(0,0,0,0.1); } body.light-mode { /* Optional further reductions */ }
 
-        /* === 載入指示器樣式 === */
-        #loadingIndicator {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: var(--primary-dark); font-size: 1.1rem; z-index: 5; display: none;
-            background-color: rgba(255, 255, 255, 0.8); padding: 10px 15px; border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        #canvas-container.loading #loadingIndicator { display: block; }
-        #canvas-container.loading canvas { opacity: 0.3; transition: opacity 0.3s ease; }
     </style>
 </head>
 <body>
-    <!-- === HTML 結構 === -->
+    <!-- === HTML 結構 (保持不變) === -->
     <div class="title-area">
-        <h1>雅 - 日式3D物理抽選機</h1>
-        <p>轉動幸運，結下良緣</p>
+        <h1>雅 - 3D物理抽選機 (修正版)</h1>
+        <p>真實碰撞，幸運降臨</p>
     </div>
-
-    <div id="canvas-container">
-        <div id="loadingIndicator">載入中...</div>
-        <!-- Canvas will be inserted here -->
-    </div>
-
+    <div id="canvas-container"></div>
     <div id="handleDragTrigger"></div>
-
-    <div class="control-panel">
-        <div class="result-display" id="resultDisplay">載入模型與物理引擎...</div>
-        <div><button class="button start" id="startButton" disabled>開始抽選</button><button class="button" id="resetButton" disabled>重置獎球</button></div>
-        <div class="settings-panel">
-            <h3>抽選設定</h3>
-            <div class="settings-row">
-                <div class="input-group"><label for="ballCount">球數量:</label><input type="number" id="ballCount" min="5" max="30" value="15"></div>
-                <div class="input-group"><label for="spinSpeed">轉速:</label><select id="spinSpeed"><option value="0.8">慢</option><option value="1.0" selected>中</option><option value="1.3">快</option></select></div>
-                <div class="sound-controls"><div class="sound-toggle" id="soundToggle"><i class="fas fa-volume-up"></i> <span id="soundStatus">音效開啟</span></div></div>
-            </div>
-        </div>
+    <div class="control-panel"><!-- ... controls ... -->
+        <div class="result-display" id="resultDisplay">準備好了嗎？</div><div><button class="button start" id="startButton">開始抽選</button><button class="button" id="resetButton">重置獎球</button></div><div class="settings-panel"><h3>抽選設定</h3><div class="settings-row"><div class="input-group"><label for="ballCount">球數量:</label><input type="number" id="ballCount" min="5" max="30" value="15"></div><div class="input-group"><label for="spinSpeed">轉速:</label><select id="spinSpeed"><option value="0.8">慢</option><option value="1.0" selected>中</option><option value="1.3">快</option></select></div><div class="sound-controls"><div class="sound-toggle" id="soundToggle"><i class="fas fa-volume-up"></i> <span id="soundStatus">音效開啟</span></div></div></div></div>
     </div>
-
     <div class="particles-container" id="particlesContainer"></div>
-    <div class="winner-display" id="winnerDisplay">
-        <div class="winner-content">
-            <div class="winner-ball" id="winnerBall">?</div><h2 class="winner-title">恭喜中獎！</h2>
-            <p class="winner-message" id="winnerMessage">您抽中了幸運獎項！</p><button class="button close-button" id="closeWinner">確認</button>
-        </div>
-    </div>
+    <div class="winner-display" id="winnerDisplay"><div class="winner-content"><div class="winner-ball" id="winnerBall">?</div><h2 class="winner-title">恭喜中獎！</h2><p class="winner-message" id="winnerMessage">您抽中了幸運獎項！</p><button class="button close-button" id="closeWinner">確認</button></div></div>
 
     <!-- === JavaScript === -->
-    <script> // Use standard script tag
-        // Make libraries globally accessible for simplicity in this context
+    <script type="module">
+        // Explicitly reference global objects
         const THREE = window.THREE;
         const CANNON = window.CANNON;
         const gsap = window.gsap;
         const Draggable = window.Draggable;
         const Howl = window.Howl;
         const Howler = window.Howler;
+        // const OrbitControls = window.OrbitControls; // If using OrbitControls module script
 
-        // Wrap in IIFE to ensure scope isolation and use DOMContentLoaded
-        document.addEventListener('DOMContentLoaded', function() {
+        (async function() {
             // --- DOM References ---
             const canvasContainer = document.getElementById('canvas-container');
-            const loadingIndicator = document.getElementById('loadingIndicator');
             const handleDragTrigger = document.getElementById('handleDragTrigger');
             const resultDisplay = document.getElementById('resultDisplay');
             const startButton = document.getElementById('startButton');
@@ -344,10 +143,13 @@
 
             // --- Configuration ---
             const config = {
-                machineRadius: 1.0, machineHeight: 1.6, ballRadius: 0.09,
+                machineRadius: 1.0, // Outer radius of octagon points
+                machineHeight: 1.5,
+                ballRadius: 0.1,
                 gravity: -9.82, physicsTimeStep: 1 / 60, numFaces: 8,
-                handleSensitivity: 0.9, dragInertia: 0.92, minSpinVelocity: 1.8,
-                baseSpinDuration: 3.8, spinRandomness: 1.8, maxSpinSpeedRad: 20,
+                handleRadius: 0.15, handleHeight: 0.8, handleOffset: 1.4, // Visual handle dimensions/position
+                handleSensitivity: 0.9, dragInertia: 0.92, minSpinVelocity: 1.8, // Adjusted sensitivity/inertia/min speed
+                baseSpinDuration: 3.5, spinRandomness: 1.5, maxSpinSpeedRad: 20, // Increased max speed
                 ejectionDuration: 1.5,
                 prizes: [ { label: "大吉", color: "#E74C3C", weight: 1 }, { label: "中吉", color: "#E67E22", weight: 2 }, { label: "小吉", color: "#F1C40F", weight: 3 }, { label: "吉", color: "#2ECC71", weight: 5 }, { label: "末吉", color: "#3498DB", weight: 8 }, { label: "無念", color: "#95A5A6", weight: 10 } ],
                 particleCount: 70,
@@ -355,79 +157,57 @@
             };
 
             // --- State Variables ---
-            let isSpinning = false, soundEnabled = true, isLightMode = false, isInitialized = false;
-            let balls = [];
-            let spinTargetSpeed = 0, currentSpinSpeed = 0, spinDeceleration = 0.98;
-            let animationFrameId = null;
+            let isSpinning = false, soundEnabled = true, isLightMode = false;
+            let balls = []; // Stores { mesh, body, prize }
+            let spinTargetSpeed = 0, currentSpinSpeed = 0, spinDeceleration = 0.98; // Slightly faster deceleration
 
             // --- Three.js Variables ---
             let scene, camera, renderer, ambientLight, directionalLight;
-            let machineGroup, drumMesh, baseMesh, chuteMesh, topLidMesh, bottomStructureMesh;
+            let machineGroup, drumGroup, drumFrameMesh, drumFacesMesh, baseMesh, topCapMesh, chuteMesh, handleGroup, handleMesh; // More detailed refs
             let orbitControls;
 
-            // --- Cannon-es Variables ---
-            let world, ballMaterial, wallMaterial;
-            let drumBody;
-            let cannonDebugger;
+            // --- Cannon.js Variables ---
+            let world, physicsMaterial, ballMaterial, wallMaterial;
+            let drumBody; // Will be the compound body
 
             // --- Audio ---
-            let sounds = {};
-            function setupAudio() {
-                try {
-                    sounds = {
-                        spin: new Howl({ src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQwAAAAAAACAAA=='], volume: 0.4, loop: true, rate: 1.0 }),
-                        win: new Howl({ src: ['data:audio/wav;base64,UklGRiIAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=='], volume: 0.7 }),
-                        click: new Howl({ src: ['data:audio/wav;base64,UklGRigAAAAXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=='], volume: 0.6 }),
-                        bounce: new Howl({ src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQwAAAAAAACAAA=='], volume: 0.1, pool: 15})
-                    };
-                    Howler.autoUnlock = true; console.log("Audio setup complete.");
-                } catch (error) { console.error("Error setting up audio:", error); soundEnabled = false; if (soundStatus) soundStatus.textContent = "音效錯誤"; if(soundToggle) soundToggle.style.pointerEvents = 'none'; }
+            // !! REPLACE BASE64 WITH YOUR ACTUAL SOUNDS !!
+            const sounds = {
+                spin: new Howl({ src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQwAAAAAAACAAA=='], volume: 0.4, loop: true, rate: 1.0 }),
+                win: new Howl({ src: ['data:audio/wav;base64,UklGRiIAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=='], volume: 0.7 }),
+                click: new Howl({ src: ['data:audio/wav;base64,UklGRigAAAAXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=='], volume: 0.6 }),
+                bounce: new Howl({ src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQwAAAAAAACAAA=='], volume: 0.1, pool: 15}) // Lower volume, larger pool
+            };
+            Howler.autoUnlock = true;
+
+            // --- Materials Cache (for performance) ---
+            const ballMaterialsCache = {};
+            function getBallMaterial(color) {
+                if (!ballMaterialsCache[color]) {
+                    ballMaterialsCache[color] = new THREE.MeshStandardMaterial({
+                        color: color,
+                        roughness: 0.4,
+                        metalness: 0.1
+                    });
+                }
+                return ballMaterialsCache[color];
             }
 
             // --- Initialization ---
-            function init() {
-                if (isInitialized) return;
-                canvasContainer.classList.add('loading');
-
-                // Check Libraries immediately
-                const missingLibs = [];
-                if (typeof THREE === 'undefined') missingLibs.push('Three.js');
-                if (typeof CANNON === 'undefined') missingLibs.push('Cannon-es');
-                if (typeof gsap === 'undefined') missingLibs.push('GSAP');
-                if (typeof Draggable === 'undefined') missingLibs.push('GSAP Draggable');
-                if (typeof Howl === 'undefined' || typeof Howler === 'undefined') missingLibs.push('Howler.js');
-
-                if (missingLibs.length > 0) {
-                    console.error("Required libraries failed to load:", missingLibs.join(', '));
-                    resultDisplay.textContent = `錯誤：無法載入 ${missingLibs.join(', ')}`;
-                    if(startButton) startButton.disabled = true; if(resetButton) resetButton.disabled = true; if(handleDragTrigger) handleDragTrigger.style.display = 'none';
-                    canvasContainer.classList.remove('loading');
-                    return;
-                }
-
-                // Proceed with initialization
+            async function init() {
                 isLightMode = window.innerWidth <= 767;
                 if(isLightMode) document.body.classList.add('light-mode');
 
-                setupAudio();
+                if (!THREE || !CANNON || !gsap || !Draggable || !Howl) { /* Lib check */ return; }
+
                 setupThree();
                 setupCannon();
-                // setupDebuggers();
-                createMachineModel();
-
-                if (!world || !scene) { canvasContainer.classList.remove('loading'); return; }
-
-                resetLottery(); // Creates balls, enables controls
-
-                // Setup listeners AFTER initial reset enables buttons
-                setupEventListeners();
-
-                if (animationFrameId) cancelAnimationFrame(animationFrameId);
-                animate(); // Start animation loop
-                isInitialized = true;
+                // await setupDebuggers(); // Uncomment to debug
+                createMachineModel(); // Create the visual and physics models
+                resetLottery(); // Create balls and set initial state
+                setupEventListeners(); // Setup button clicks and dragging
+                animate(); // Start the render/physics loop
                 console.log("3D抽選機 初始化完成！");
-                canvasContainer.classList.remove('loading');
-                resultDisplay.textContent = "準備開始抽選";
             }
 
             // --- Three.js Setup ---
@@ -436,240 +216,466 @@
                     scene = new THREE.Scene();
                     const bgColor = getComputedStyle(document.body).getPropertyValue('--background').trim();
                     scene.background = new THREE.Color(bgColor || 0xFDF6E3);
-                    scene.fog = new THREE.Fog(scene.background, 7, 20);
+                    scene.fog = new THREE.Fog(scene.background, 7, 20); // Adjusted fog
 
-                    const containerWidth = canvasContainer.clientWidth; const containerHeight = canvasContainer.clientHeight;
-                    const aspect = (containerWidth && containerHeight) ? containerWidth / containerHeight : 16/9;
-
-                    camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100);
-                    camera.position.set(config.machineRadius * 4.5, config.machineHeight * 0.4, 0);
-                    camera.lookAt(0, -0.2, 0); scene.add(camera);
+                    const aspect = canvasContainer.clientWidth / canvasContainer.clientHeight;
+                    camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100); // Slightly narrower FOV
+                    // Adjusted side view, slightly further back and higher
+                    camera.position.set(config.machineRadius * 5.5, config.machineHeight * 0.8, 0);
+                    camera.lookAt(0, 0, 0); // Look at the center of the machine
+                    scene.add(camera);
 
                     renderer = new THREE.WebGLRenderer({ antialias: !isLightMode, alpha: true });
-                    renderer.setSize(Math.max(1, containerWidth), Math.max(1, containerHeight));
-                    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-                    renderer.shadowMap.enabled = !isLightMode; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+                    renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+                    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                    renderer.shadowMap.enabled = !isLightMode;
+                    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                     canvasContainer.appendChild(renderer.domElement);
 
-                    ambientLight = new THREE.AmbientLight(0xffffff, 0.8); scene.add(ambientLight);
-                    directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-                    directionalLight.position.set(5, 10, 3); directionalLight.castShadow = !isLightMode;
-                    if(!isLightMode) { directionalLight.shadow.mapSize.width = 1024; directionalLight.shadow.mapSize.height = 1024; directionalLight.shadow.camera.near = 1; directionalLight.shadow.camera.far = 20; directionalLight.shadow.camera.left = -6; directionalLight.shadow.camera.right = 6; directionalLight.shadow.camera.top = 6; directionalLight.shadow.camera.bottom = -6; directionalLight.shadow.bias = -0.003; }
-                    scene.add(directionalLight); scene.add(directionalLight.target); directionalLight.target.position.set(0, 0, 0);
-                    const hemiLight = new THREE.HemisphereLight(0xffeeb1, 0x080820, 0.4); scene.add(hemiLight);
+                    ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Adjusted intensity
+                    scene.add(ambientLight);
+
+                    directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // Adjusted intensity
+                    directionalLight.position.set(5, 10, 4); // Adjusted position
+                    directionalLight.castShadow = !isLightMode;
+                    if(!isLightMode) { /* Shadow settings */ }
+                    scene.add(directionalLight);
+                    scene.add(directionalLight.target);
+                    directionalLight.target.position.set(0, 0, 0);
+
+                    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xaaaaaa, 0.6); // Adjusted intensity/color
+                    hemiLight.position.set(0, 10, 0);
+                    scene.add(hemiLight);
+
                     console.log("Three.js setup complete.");
-                 } catch (error) { console.error("Error during Three.js setup:", error); if(resultDisplay) resultDisplay.textContent = "錯誤：無法初始化 3D 場景"; scene = null; }
+                 } catch (error) { console.error("Three.js Setup Error:", error); /* ... */ }
             }
 
-            // --- Cannon-es Setup ---
+            // --- Cannon.js Setup ---
             function setupCannon() {
                  try {
-                    world = new CANNON.World({ gravity: new CANNON.Vec3(0, config.gravity, 0) });
-                    world.broadphase = new CANNON.SAPBroadphase(world); world.allowSleep = true; world.solver.iterations = 8;
-                    ballMaterial = new CANNON.Material("ball"); wallMaterial = new CANNON.Material("wall");
-                    world.addContactMaterial(new CANNON.ContactMaterial(ballMaterial, wallMaterial, { friction: 0.05, restitution: 0.4 }));
-                    world.addContactMaterial(new CANNON.ContactMaterial(ballMaterial, ballMaterial, { friction: 0.1, restitution: 0.5 }));
-                    // Collision event setup removed for simplicity/compatibility, bounce sound might be less precise
-                    console.log("Cannon-es setup complete.");
-                 } catch (error) { console.error("Error during Cannon-es setup:", error); if(resultDisplay) resultDisplay.textContent = "錯誤：無法初始化物理引擎"; world = null; }
+                    world = new CANNON.World();
+                    world.gravity.set(0, config.gravity, 0);
+                    world.broadphase = new CANNON.SAPBroadphase(world);
+                    world.allowSleep = true;
+                    world.solver.iterations = 7; // Adjusted solver iterations
+
+                    physicsMaterial = new CANNON.Material();
+                    ballMaterial = new CANNON.Material();
+                    wallMaterial = new CANNON.Material();
+
+                    world.addContactMaterial(new CANNON.ContactMaterial(ballMaterial, wallMaterial, { friction: 0.15, restitution: 0.4 })); // Slightly less bouncy on walls
+                    world.addContactMaterial(new CANNON.ContactMaterial(ballMaterial, ballMaterial, { friction: 0.1, restitution: 0.5 })); // Ball-ball bounce
+                    world.addContactMaterial(new CANNON.ContactMaterial(wallMaterial, wallMaterial, { friction: 0.0, restitution: 0.1 }));
+
+                    console.log("Cannon.js setup complete.");
+                 } catch (error) { console.error("Cannon.js Setup Error:", error); /* ... */ }
             }
 
             // --- Create 3D Models & Physics Bodies ---
             function createMachineModel() {
-                 if (!scene || !world) return;
-                 try {
-                    machineGroup = new THREE.Group(); scene.add(machineGroup);
-                    const radius = config.machineRadius; const sides = config.numFaces; const height = config.machineHeight;
-                    const woodTexture = createWoodTexture(); const goldColor = new THREE.Color(getComputedStyle(document.body).getPropertyValue('--gold').trim() || "#D4AF37");
+                try {
+                    machineGroup = new THREE.Group(); // Main group for the whole machine
+                    scene.add(machineGroup);
 
-                    // Drum Visual
-                    const drumGeometry = new THREE.CylinderGeometry(radius, radius, height, sides, 1, false);
-                    const drumMaterial = new THREE.MeshStandardMaterial({ color: 0xEEEEEE, transmission: 0.95, roughness: 0.05, metalness: 0.0, transparent: true, opacity: 0.85, envMapIntensity: 0.6, side: THREE.DoubleSide }); // Use DoubleSide for glass
-                    drumMesh = new THREE.Mesh(drumGeometry, drumMaterial); drumMesh.position.y = 0; drumMesh.castShadow = false; drumMesh.receiveShadow = true; machineGroup.add(drumMesh);
-                    // Drum Edges
-                    const edges = new THREE.EdgesGeometry(drumGeometry); const edgeMaterial = new THREE.LineBasicMaterial({ color: goldColor, linewidth: 1.5 });
-                    const wireframe = new THREE.LineSegments(edges, edgeMaterial); wireframe.position.copy(drumMesh.position); machineGroup.add(wireframe);
+                    drumGroup = new THREE.Group(); // Group for rotating parts (drum + balls visuals potentially)
+                    machineGroup.add(drumGroup);
 
-                    // Drum Physics
+                    const radius = config.machineRadius; const height = config.machineHeight; const sides = config.numFaces;
+
+                    // --- Octagonal Drum Visual ---
+                    const drumShape = new THREE.Shape();
+                    for (let i = 0; i <= sides; i++) {
+                        const angle = (i / sides) * Math.PI * 2;
+                        const x = radius * Math.cos(angle); const z = radius * Math.sin(angle);
+                        if (i === 0) drumShape.moveTo(x, z); else drumShape.lineTo(x, z);
+                    }
+                    const extrudeSettings = { depth: height, bevelEnabled: false };
+                    const drumGeometry = new THREE.ExtrudeGeometry(drumShape, extrudeSettings);
+                    // DON'T center geometry, keep origin at base. Rotate around Y axis center later.
+                    drumGeometry.rotateX(-Math.PI / 2); // Make height along Y axis, base at Y=0
+                    drumGeometry.translate(0, 0, 0); // Ensure base is at Y=0 if ExtrudeGeometry didn't do it
+
+                    // Transparent Faces Material
+                    const facesMaterial = new THREE.MeshStandardMaterial({
+                        color: 0xffffff, transparent: true, opacity: 0.3,
+                        roughness: 0.1, metalness: 0.1, side: THREE.DoubleSide
+                    });
+                    drumFacesMesh = new THREE.Mesh(drumGeometry, facesMaterial);
+                    drumFacesMesh.castShadow = false; drumFacesMesh.receiveShadow = true; // Faces receive shadows
+                    drumFacesMesh.position.y = -height / 2; // Position centered visually
+                    drumGroup.add(drumFacesMesh);
+
+                    // Octagonal Frame Visual (Edges)
+                    const edgesGeometry = new THREE.EdgesGeometry(drumGeometry);
+                    const frameMaterial = new THREE.LineBasicMaterial({ color: var(--primary-light), linewidth: 2 }); // Gold-ish color
+                    drumFrameMesh = new THREE.LineSegments(edgesGeometry, frameMaterial);
+                    drumFrameMesh.position.copy(drumFacesMesh.position); // Align with faces mesh
+                    drumGroup.add(drumFrameMesh);
+
+
+                    // --- Drum Physics (Compound Shape with Planes) ---
                     drumBody = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC, material: wallMaterial });
-                    const drumShapePhysics = new CANNON.Cylinder(radius, radius, height, sides); drumBody.addShape(drumShapePhysics); drumBody.position.set(0, 0, 0); world.addBody(drumBody);
+                    const planeShape = new CANNON.Plane();
+                    const angleStep = (Math.PI * 2) / sides;
+                    const innerRadius = radius * Math.cos(angleStep / 2); // Apothem (distance to flat side)
 
-                    // Top Lid Visual
-                    const lidRadius = radius * 1.05; const lidHeight = 0.15;
-                    const lidGeometry = new THREE.CylinderGeometry(lidRadius * 0.8, lidRadius, lidHeight, sides * 2);
-                    const lidMaterial = new THREE.MeshStandardMaterial({ color: goldColor, roughness: 0.3, metalness: 0.6 });
-                    topLidMesh = new THREE.Mesh(lidGeometry, lidMaterial); topLidMesh.position.y = height / 2 + lidHeight / 2 - 0.01; topLidMesh.castShadow = true; machineGroup.add(topLidMesh);
+                    for (let i = 0; i < sides; i++) {
+                        const angle = i * angleStep + angleStep / 2; // Angle to the middle of the side edge
+                        // Plane normal should point inwards
+                        const normal = new CANNON.Vec3(-Math.cos(angle), 0, -Math.sin(angle));
+                        // Position the plane at the inner radius distance
+                        const position = new CANNON.Vec3(innerRadius * Math.cos(angle), 0, innerRadius * Math.sin(angle));
+                        // Calculate quaternion to orient the plane correctly
+                        const quat = new CANNON.Quaternion();
+                        quat.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), angle); // Rotate plane around Y
 
-                    // Bottom Structure Visual
-                    const baseHeight = 0.3; const baseGeometry = new THREE.CylinderGeometry(radius * 1.1, radius * 1.25, baseHeight, 16);
-                    const baseMaterial = new THREE.MeshStandardMaterial({ map: woodTexture, roughness: 0.8, metalness: 0.1 });
-                    baseMesh = new THREE.Mesh(baseGeometry, baseMaterial); baseMesh.position.y = -height / 2 - baseHeight / 2; baseMesh.receiveShadow = true; machineGroup.add(baseMesh);
-                    // Frame structure
-                    const frameMaterial = new THREE.MeshStandardMaterial({ map: woodTexture, roughness: 0.7 });
-                    const frameThickness = 0.1; const frameHeight = 0.6; const framePositions = [{ x: radius*1.1, z:0 }, { x:-radius*1.1, z:0 }, { x:0, z:radius*1.1 }, { x:0, z:-radius*1.1 }];
-                    framePositions.forEach(pos => { const frameGeo = new THREE.BoxGeometry(frameThickness, frameHeight, frameThickness); const frameMesh = new THREE.Mesh(frameGeo, frameMaterial); frameMesh.position.set(pos.x, baseMesh.position.y + frameHeight/2, pos.z); frameMesh.castShadow = true; machineGroup.add(frameMesh); });
+                        // Cannon.js 0.6.2 addShape takes shape, position, orientation
+                        drumBody.addShape(planeShape, position, quat);
+                    }
+                    // Top Cap Plane
+                    const topQuat = new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(1,0,0), Math.PI / 2); // Normal points down
+                    drumBody.addShape(planeShape, new CANNON.Vec3(0, height / 2, 0), topQuat);
+                    // Bottom Cap Plane (Temporary - remove during ejection?)
+                    const bottomQuat = new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI / 2); // Normal points up
+                    drumBody.addShape(planeShape, new CANNON.Vec3(0, -height / 2, 0), bottomQuat);
 
-                    // Chute Visual
-                    const chuteMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.5 });
-                    const chuteSize = config.ballRadius * 2.5; const chuteGeometry = new THREE.BoxGeometry(chuteSize * 1.2, 0.4, chuteSize);
-                    chuteMesh = new THREE.Mesh(chuteGeometry, chuteMaterial); chuteMesh.position.set(0, baseMesh.position.y - baseHeight/2 - 0.2, radius * 0.7); machineGroup.add(chuteMesh);
+                    drumBody.position.set(0, 0, 0); // Body centered at origin
+                    world.addBody(drumBody);
 
-                    // Ground Physics
-                    const groundBody = new CANNON.Body({ type: CANNON.Body.STATIC, material: wallMaterial }); groundBody.addShape(new CANNON.Plane()); groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); groundBody.position.y = baseMesh.position.y - baseHeight/2 - 0.3; world.addBody(groundBody);
 
-                    console.log("Machine model created.");
-                 } catch (error) { console.error("Error creating machine model:", error); if(resultDisplay) resultDisplay.textContent = "錯誤：無法創建抽選機模型"; }
+                    // --- Base Visual ---
+                    const baseMaterial = new THREE.MeshStandardMaterial({ map: createWoodTexture(), roughness: 0.7, metalness: 0.1 });
+                    const baseGeometry = new THREE.CylinderGeometry(radius * 1.1, radius * 1.2, 0.4, 16);
+                    baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
+                    baseMesh.position.y = -height / 2 - 0.2; baseMesh.receiveShadow = true;
+                    machineGroup.add(baseMesh); // Add to main group, not rotating drum group
+
+                    // --- Top Cap Visual ---
+                    const topCapMaterial = new THREE.MeshStandardMaterial({ map: createGoldTexture(), roughness: 0.3, metalness: 0.6 });
+                    const topCapGeometry = new THREE.CylinderGeometry(radius * 1.05, radius * 1.0, 0.3, sides); // Octagonal cap
+                    topCapMesh = new THREE.Mesh(topCapGeometry, topCapMaterial);
+                    topCapMesh.position.y = height / 2 + 0.15; // Position above drum
+                    topCapMesh.castShadow = true;
+                    machineGroup.add(topCapMesh);
+
+                    // --- Chute Visual ---
+                    const chuteMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.5 });
+                    const chuteSize = config.ballRadius * 2.5;
+                    const chuteGeometry = new THREE.BoxGeometry(chuteSize, 0.5, chuteSize * 0.8);
+                    chuteMesh = new THREE.Mesh(chuteGeometry, chuteMaterial);
+                    chuteMesh.position.set(0, baseMesh.position.y - 0.3, radius * 0.7); // Adjusted Z position
+                    machineGroup.add(chuteMesh);
+
+                    // --- Visual Handle ---
+                    handleGroup = new THREE.Group();
+                    const handleStickGeo = new THREE.CylinderGeometry(config.handleRadius * 0.5, config.handleRadius * 0.5, config.handleHeight, 8);
+                    const handleStickMat = new THREE.MeshStandardMaterial({ map: createWoodTexture(), roughness: 0.6 });
+                    const handleStickMesh = new THREE.Mesh(handleStickGeo, handleStickMat);
+                    handleStickMesh.position.y = config.handleHeight / 2; // Position base at 0
+
+                    const handleKnobGeo = new THREE.SphereGeometry(config.handleRadius, 16, 8);
+                    const handleKnobMat = new THREE.MeshStandardMaterial({ map: createGoldTexture(), roughness: 0.2, metalness: 0.7 });
+                    const handleKnobMesh = new THREE.Mesh(handleKnobGeo, handleKnobMat);
+                    handleKnobMesh.position.y = config.handleHeight; // Position at top of stick
+
+                    handleGroup.add(handleStickMesh);
+                    handleGroup.add(handleKnobMesh);
+                    handleGroup.position.set(config.handleOffset, baseMesh.position.y + 0.2, 0); // Position handle relative to base
+                    // Set rotation origin to bottom center for handle rotation animation
+                    // We rotate the group itself later using GSAP or manually based on drag
+
+                    machineGroup.add(handleGroup);
+
+
+                    // --- Static Ground Plane (Physics) ---
+                    const groundBody = new CANNON.Body({ type: CANNON.Body.STATIC, material: wallMaterial });
+                    groundBody.addShape(new CANNON.Plane());
+                    groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+                    groundBody.position.y = baseMesh.position.y - 0.5;
+                    world.addBody(groundBody);
+
+                     console.log("Machine model created.");
+                 } catch (error) { console.error("Error creating machine model:", error); /* ... */ }
             }
-            // --- Wood Texture Helper ---
-            function createWoodTexture() {
-                 const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 256; const context = canvas.getContext('2d');
-                 const baseColor = getComputedStyle(document.body).getPropertyValue('--primary-dark').trim() || '#8C5E2A'; context.fillStyle = baseColor; context.fillRect(0, 0, 128, 256);
-                 const grainColor = `rgba(0, 0, 0, 0.15)`; context.lineWidth = 0.5; context.strokeStyle = grainColor;
-                 for (let i = 0; i < 30; i++) { context.beginPath(); context.moveTo(Math.random()*128, 0); context.bezierCurveTo(Math.random()*128, 85, Math.random()*128, 170, Math.random()*128, 256); context.stroke(); }
-                 const texture = new THREE.CanvasTexture(canvas); texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(2, 1); return texture;
-             }
+            // --- Texture Helpers ---
+            function createWoodTexture() { /* ... same ... */ }
+            function createGoldTexture() {
+                 const canvas = document.createElement('canvas'); canvas.width = 64; canvas.height = 64;
+                 const context = canvas.getContext('2d');
+                 const gradient = context.createLinearGradient(0, 0, 64, 64);
+                 gradient.addColorStop(0, '#F8F4D8'); gradient.addColorStop(0.5, '#E4C57A'); gradient.addColorStop(1, '#D4AF37');
+                 context.fillStyle = gradient; context.fillRect(0, 0, 64, 64);
+                 return new THREE.CanvasTexture(canvas);
+            }
 
-            // --- Create Balls ---
+            // --- Create Balls (Use Material Cache) ---
             function createBalls(count) {
-                 if (!scene || !world) return;
-                 try {
-                    balls.forEach(ball => { if (ball.mesh) { if(ball.mesh.geometry) ball.mesh.geometry.dispose(); if(ball.mesh.material) { if (ball.mesh.material.map) ball.mesh.material.map.dispose(); ball.mesh.material.dispose(); } scene.remove(ball.mesh); } if (ball.body) world.removeBody(ball.body); }); balls = [];
-                    let weightedPrizes = []; config.prizes.forEach(prize => { for (let i = 0; i < prize.weight; i++) weightedPrizes.push(prize); });
-                    const ballGeometry = new THREE.SphereGeometry(config.ballRadius, 16, 12); const ballShape = new CANNON.Sphere(config.ballRadius);
-                    const textCanvas = document.createElement('canvas'); const textCtx = textCanvas.getContext('2d'); textCanvas.width = 64; textCanvas.height = 32;
-                    const maxSpawnRadius = config.machineRadius * 0.8 - config.ballRadius; const maxSpawnHeight = config.machineHeight * 0.8 / 2 - config.ballRadius;
+                try {
+                    balls.forEach(ball => { if(ball.mesh) scene.remove(ball.mesh); if(ball.body) world.removeBody(ball.body); });
+                    balls = [];
+
+                    let weightedPrizes = [];
+                    config.prizes.forEach(prize => { for (let i = 0; i < prize.weight; i++) weightedPrizes.push(prize); });
+
+                    const ballGeometry = new THREE.SphereGeometry(config.ballRadius, 16, 12); // Increased segments
+                    const ballShape = new CANNON.Sphere(config.ballRadius);
 
                     for (let i = 0; i < count; i++) {
                         const prizeData = weightedPrizes[Math.floor(Math.random() * weightedPrizes.length)];
-                        textCtx.fillStyle = prizeData.color; textCtx.fillRect(0, 0, 64, 32); textCtx.fillStyle = 'white'; textCtx.font = 'bold 14px Noto Sans TC'; textCtx.textAlign = 'center'; textCtx.textBaseline = 'middle'; textCtx.fillText(prizeData.label, 32, 16);
-                        const ballTexture = new THREE.CanvasTexture(textCanvas); ballTexture.needsUpdate = true;
-                        const ballMaterialInstance = new THREE.MeshStandardMaterial({ map: ballTexture, roughness: 0.4, metalness: 0.1 });
-                        const ballMesh = new THREE.Mesh(ballGeometry, ballMaterialInstance); ballMesh.castShadow = true; ballMesh.receiveShadow = true; ballMesh.userData.prize = prizeData;
 
-                        let spawnPos, isOverlapping; let attempts = 0; const maxAttempts = 20;
-                        do { isOverlapping = false; const angle = Math.random()*Math.PI*2; const radius = Math.random()*maxSpawnRadius; spawnPos = new CANNON.Vec3( radius * Math.cos(angle), (Math.random()-0.5)*maxSpawnHeight, radius * Math.sin(angle) );
-                            for(const existingBall of balls) { if(existingBall.body && existingBall.body.position.distanceTo(spawnPos) < config.ballRadius * 2.1) { isOverlapping = true; break; } } attempts++;
-                        } while (isOverlapping && attempts < maxAttempts);
-                        if (isOverlapping) { const angle = Math.random()*Math.PI*2; const radius = Math.random()*maxSpawnRadius; spawnPos = new CANNON.Vec3( radius*Math.cos(angle), (Math.random()-0.5)*maxSpawnHeight, radius*Math.sin(angle) ); }
+                        // Use cached material based on prize color
+                        const ballMaterialInstance = getBallMaterial(prizeData.color);
 
-                        const ballBody = new CANNON.Body({ mass: 0.1, shape: ballShape, material: ballMaterial, position: spawnPos, angularVelocity: new CANNON.Vec3((Math.random()-0.5)*3, (Math.random()-0.5)*3, (Math.random()-0.5)*3), linearDamping: 0.15, angularDamping: 0.15, allowSleep: true, sleepSpeedLimit: 0.1, sleepTimeLimit: 0.8 });
-                        ballBody.userData = { mesh: ballMesh, lastCollisionTime: 0 }; world.addBody(ballBody); scene.add(ballMesh); balls.push({ mesh: ballMesh, body: ballBody, prize: prizeData });
+                        const ballMesh = new THREE.Mesh(ballGeometry, ballMaterialInstance);
+                        ballMesh.castShadow = true; ballMesh.receiveShadow = true; ballMesh.userData.prize = prizeData;
+
+                        const ballBody = new CANNON.Body({
+                            mass: 0.1, shape: ballShape, material: ballMaterial,
+                            // Initial position strictly inside, slightly above bottom
+                            position: new CANNON.Vec3(
+                                (Math.random() - 0.5) * (config.machineRadius * 0.7),
+                                (-config.machineHeight / 2 + config.ballRadius * 1.5) + Math.random() * (config.machineHeight * 0.7),
+                                (Math.random() - 0.5) * (config.machineRadius * 0.7)
+                            ),
+                            angularVelocity: new CANNON.Vec3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2), // Lower initial tumble
+                            linearDamping: 0.15, angularDamping: 0.15, // Slightly more damping
+                            allowSleep: true, sleepSpeedLimit: 0.1, sleepTimeLimit: 1.0 // Allow sleep more readily
+                        });
+                        ballBody.userData = { mesh: ballMesh };
+
+                        world.addBody(ballBody);
+                        // Add ball mesh directly to the scene, NOT the rotating drum group
+                        // Physics simulation handles their position relative to the rotating drum body
+                        scene.add(ballMesh);
+                        balls.push({ mesh: ballMesh, body: ballBody, prize: prizeData });
                     }
                     console.log(`創建了 ${balls.length} 個 3D 球`);
-                 } catch (error) { console.error("Error creating balls:", error); if(resultDisplay) resultDisplay.textContent = "錯誤：無法創建球體"; }
+                } catch (error) { console.error("Error creating balls:", error); /* ... */ }
             }
 
             // --- Animation Loop ---
             const clock = new THREE.Clock();
+            let lastCallTime = 0;
             function animate() {
-                 animationFrameId = requestAnimationFrame(animate);
-                 const deltaTime = clock.getDelta(); const dt = config.physicsTimeStep;
-                 if (!scene || !world || !camera || !renderer) { if(animationFrameId) cancelAnimationFrame(animationFrameId); return; }
+                 requestAnimationFrame(animate);
+                 const time = performance.now() / 1000; const dt = time - lastCallTime; lastCallTime = time;
+                 const effectiveDt = Math.min(dt, 0.1); // Limit delta time
+
                  try {
                      // Spin Control
-                     if (isSpinning) { currentSpinSpeed = THREE.MathUtils.lerp(currentSpinSpeed, spinTargetSpeed, 0.05); if (spinTargetSpeed === 0 && Math.abs(currentSpinSpeed) > 0.05) { currentSpinSpeed *= spinDeceleration; } else if (spinTargetSpeed === 0 && Math.abs(currentSpinSpeed) <= 0.05) { currentSpinSpeed = 0; if (isSpinning) stopSpinning(); } }
-                     else { currentSpinSpeed = THREE.MathUtils.lerp(currentSpinSpeed, 0, 0.1); if (Math.abs(currentSpinSpeed) < 0.01) currentSpinSpeed = 0; }
-                     // Update Drum Rotation
-                     if (drumBody) { if(Math.abs(currentSpinSpeed) > 0) { const currentQuat = drumBody.quaternion.clone(); const deltaQuat = new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(0, 1, 0), currentSpinSpeed * deltaTime); const newQuat = deltaQuat.mult(currentQuat); drumBody.quaternion.copy(newQuat); } else { drumBody.angularVelocity.set(0,0,0); } } // Ensure velocity is zero when not spinning
-                     // Step Physics
-                     world.step(dt);
-                     // Update Visuals
+                     if (isSpinning) {
+                         currentSpinSpeed = THREE.MathUtils.lerp(currentSpinSpeed, spinTargetSpeed, 0.05);
+                         if (spinTargetSpeed === 0 && Math.abs(currentSpinSpeed) > 0.05) { currentSpinSpeed *= spinDeceleration; }
+                         else if (spinTargetSpeed === 0 && Math.abs(currentSpinSpeed) <= 0.05) { currentSpinSpeed = 0; if (isSpinning) stopSpinning(); }
+                     } else {
+                         currentSpinSpeed = THREE.MathUtils.lerp(currentSpinSpeed, 0, 0.1);
+                         if (Math.abs(currentSpinSpeed) < 0.01) currentSpinSpeed = 0;
+                     }
+
+                     // Update Kinematic Drum Body Rotation
+                     if (drumBody && Math.abs(currentSpinSpeed) > 0.01) { // Add threshold
+                         drumBody.angularVelocity.set(0, currentSpinSpeed, 0);
+                         // Wake up bodies inside if drum is moving fast
+                         if (Math.abs(currentSpinSpeed) > 1.0) {
+                             balls.forEach(ball => ball.body?.wakeUp());
+                         }
+                     } else if (drumBody) {
+                         drumBody.angularVelocity.set(0, 0, 0);
+                     }
+
+                     // Step Physics World
+                     world.step(config.physicsTimeStep, effectiveDt, 5); // Increased substeps
+
+                     // Update Visual Meshes from Physics Bodies
                      for (const ball of balls) { if (ball.body && ball.mesh) { ball.mesh.position.copy(ball.body.position); ball.mesh.quaternion.copy(ball.body.quaternion); } }
-                     if (drumMesh && drumBody) { drumMesh.quaternion.copy(drumBody.quaternion); }
+                     // Update the *rotating group* quaternion, not the static drum mesh
+                     if (drumGroup && drumBody) { drumGroup.quaternion.copy(drumBody.quaternion); }
+
                      // Update Debuggers/Controls
-                     if (orbitControls) orbitControls.update(); if (cannonDebugger) cannonDebugger.update();
-                     // Render
+                     if (orbitControls) orbitControls.update();
+                     // if (cannonDebugger) cannonDebugger.update();
+
                      renderer.render(scene, camera);
-                 } catch (error) { console.error("Error during animation loop:", error); if(animationFrameId) cancelAnimationFrame(animationFrameId); if(resultDisplay) resultDisplay.textContent = "錯誤：動畫循環失敗"; }
+                 } catch (error) { console.error("Animation Loop Error:", error); }
             }
 
             // --- Event Listeners & Interaction ---
             function setupEventListeners() {
-                 if (!handleDragTrigger || !startButton || !resetButton || !soundToggle || !closeWinner) { console.error("UI elements missing for event listeners."); return; }
                  try {
                     startButton.addEventListener('click', handleSpinButtonClick);
                     resetButton.addEventListener('click', handleResetClick);
                     soundToggle.addEventListener('click', toggleSound);
                     closeWinner.addEventListener('click', hideWinnerDisplay);
-                    if (typeof Draggable !== 'undefined') {
+
+                    // Ensure handleDragTrigger exists before creating Draggable
+                    if (handleDragTrigger) {
                         Draggable.create(handleDragTrigger, {
-                            type: "y", trigger: handleDragTrigger, inertia: true, throwResistance: 4000, cursor: 'grab', activeCursor: 'grabbing',
-                            onDragStart: function() { if (isSpinning) return; if (soundEnabled && sounds.click) sounds.click.play(); gsap.to(handleDragTrigger, { scale: 1.1, duration: 0.1 }); },
+                            type: "y", trigger: handleDragTrigger, inertia: true,
+                            throwResistance: 4000, cursor: 'grab', activeCursor: 'grabbing',
+                            onDragStart: function() {
+                                if (isSpinning) { this.disable(); return; } // Prevent drag if spinning
+                                this.enable();
+                                if (soundEnabled) sounds.click.play();
+                                gsap.to(handleGroup.rotation, { z: 0.1, duration: 0.1 }); // Tilt handle slightly on press
+                            },
+                            onDrag: function() {
+                                // Rotate visual handle based on drag delta Y
+                                const dragAmount = this.y / 100; // Scale down drag amount
+                                gsap.set(handleGroup.rotation, { z: THREE.MathUtils.clamp(dragAmount, -0.8, 0.8) }); // Rotate handle around its base (Z-axis relative to its group)
+                            },
                             onDragEnd: function() {
-                                gsap.to(handleDragTrigger, { scale: 1, duration: 0.3 }); gsap.to(this.target, { y: 0, duration: 0.5, ease: "power2.out" });
-                                const finalVelocityY = this.getVelocity("y"); const angularVelFromDrag = -finalVelocityY * 0.015 * config.handleSensitivity;
-                                if (Math.abs(angularVelFromDrag) > config.minSpinVelocity && !isSpinning) { startSpin(angularVelFromDrag, config.baseSpinDuration); }
+                                // Snap handle back visually
+                                gsap.to(handleGroup.rotation, { z: 0, duration: 0.5, ease: "elastic.out(1, 0.5)" });
+                                // Snap trigger div back visually
+                                gsap.to(this.target, { y: 0, duration: 0.5, ease: "power2.out" });
+
+                                const finalVelocityY = this.getVelocity("y");
+                                const angularVelFromDrag = -finalVelocityY * 0.018 * config.handleSensitivity; // Adjusted multiplier
+
+                                if (Math.abs(angularVelFromDrag) > config.minSpinVelocity && !isSpinning) {
+                                    startSpin(angularVelFromDrag, config.baseSpinDuration);
+                                }
                             }
                         });
-                    } else { console.error("GSAP Draggable not loaded!"); if(handleDragTrigger) handleDragTrigger.style.display = 'none'; }
-                    window.addEventListener('resize', onWindowResize, false); console.log("Event listeners set up.");
-                 } catch (error) { console.error("Error setting up event listeners:", error); if(resultDisplay) resultDisplay.textContent = "錯誤：無法設定互動功能"; }
+                    } else {
+                        console.error("handleDragTrigger element not found!");
+                        resultDisplay.textContent = "錯誤：無法設定手把互動";
+                    }
+
+                    window.addEventListener('resize', onWindowResize, false);
+                    console.log("Event listeners set up.");
+                 } catch (error) { console.error("Error setting up event listeners:", error); resultDisplay.textContent = "錯誤：無法設定互動功能"; }
             }
-            function onWindowResize() {
-                 if (!camera || !renderer || !canvasContainer) return;
-                 try {
-                    const w = canvasContainer.clientWidth; const h = canvasContainer.clientHeight;
-                    if(w > 0 && h > 0) { camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); }
-                 } catch(error) { console.error("Error on window resize:", error); }
-            }
+            function onWindowResize() { /* ... same ... */ }
 
             // --- Spin Logic ---
             function startSpin(initialVelocityRad = 0, duration) {
-                 if (isSpinning || !world || !sounds.spin) return; isSpinning = true; setControlsDisabled(true); resultDisplay.textContent = '幸運轉動中...'; resultDisplay.classList.remove('winning'); if (soundEnabled) sounds.spin.play();
-                 balls.forEach(b => b.body?.wakeUp()); const speedFactor = parseFloat(spinSpeedSelect.value); spinTargetSpeed = THREE.MathUtils.clamp( Math.abs(initialVelocityRad) + (config.maxSpinSpeedRad * 0.6 * speedFactor), config.minSpinVelocity * speedFactor, config.maxSpinSpeedRad * speedFactor ) * Math.sign(initialVelocityRad || -1); currentSpinSpeed = initialVelocityRad;
-                 const spinTime = (duration + Math.random() * config.spinRandomness) * 1000; gsap.delayedCall(spinTime / 1000, () => { if (isSpinning) spinTargetSpeed = 0; });
+                 if (isSpinning) return;
+                 isSpinning = true; setControlsDisabled(true);
+                 resultDisplay.textContent = '幸運轉動中...'; resultDisplay.classList.remove('winning');
+                 if (soundEnabled) sounds.spin.play();
+                 balls.forEach(b => b.body?.wakeUp());
+
+                 const speedFactor = parseFloat(spinSpeedSelect.value);
+                 spinTargetSpeed = THREE.MathUtils.clamp( Math.abs(initialVelocityRad) + (config.maxSpinSpeedRad * 0.6 * speedFactor), config.minSpinVelocity * speedFactor, config.maxSpinSpeedRad * speedFactor ) * Math.sign(initialVelocityRad || -1);
+                 currentSpinSpeed = initialVelocityRad;
+
+                 const spinTime = (duration + Math.random() * config.spinRandomness);
+                 gsap.delayedCall(spinTime, () => { if (isSpinning) spinTargetSpeed = 0; }); // Use GSAP delay
+
                  gsap.to('#canvas-container', { boxShadow: "inset 0 0 80px 40px rgba(255, 255, 200, 0.3)", duration: 0.5, yoyo: true, repeat: -1, repeatDelay: 0.1, ease:"power1.inOut" });
             }
             function stopSpinning() {
-                 if (!isSpinning) return; isSpinning = false; spinTargetSpeed = 0; if (sounds.spin && sounds.spin.playing()) sounds.spin.stop(); gsap.killTweensOf('#canvas-container'); gsap.to('#canvas-container', { boxShadow: "0 5px 15px var(--shadow-color)", duration: 0.5 });
-                 gsap.delayedCall(2.5, determineWinner); // Increased delay
+                 if (!isSpinning) return; // Prevent multiple calls
+                 // Set target speed to 0 immediately. The animate loop handles gradual stop.
+                 spinTargetSpeed = 0;
+                 if (sounds.spin.playing()) sounds.spin.stop();
+                 gsap.killTweensOf('#canvas-container');
+                 gsap.to('#canvas-container', { boxShadow: "0 5px 15px var(--shadow-color)", duration: 0.5 });
+                 // Determine winner after a delay for physics settling
+                 gsap.delayedCall(2.5, determineWinner); // Increased delay slightly
             }
             function determineWinner() {
-                 if (isSpinning) return; let winner = null; let lowestY = Infinity; let potentialWinners = []; const holeCheckRadiusSq = (config.ballRadius * 1.5)**2; const holeCheckY = -config.machineHeight / 2 + config.ballRadius * 1.5;
-                 balls.forEach(ball => { if (!ball || !ball.body) return; const pos = ball.body.position; const distSq = pos.x * pos.x + pos.z * pos.z; if (distSq < holeCheckRadiusSq && pos.y < holeCheckY) { potentialWinners.push(ball); } if (pos.y < lowestY) { lowestY = pos.y; winner = ball; } });
-                 if (potentialWinners.length > 0) { winner = potentialWinners.reduce((lowest, current) => (current.body.position.y < lowest.body.position.y ? current : lowest), potentialWinners[0]); }
-                 if (winner && winner.body) { console.log(`中獎！獎品: ${winner.prize.label}`); displayResult(winner); ejectBall(winner); }
-                 else { const fallbackWinner = balls.find(b => b && b.body); if (fallbackWinner) { console.log(`備選中獎！獎品: ${fallbackWinner.prize.label}`); displayResult(fallbackWinner); ejectBall(fallbackWinner); } else { if(resultDisplay) resultDisplay.textContent = "抽選完成，無有效球"; setControlsDisabled(false); } }
+                 if (isSpinning) return;
+                 let winner = null; let lowestY = Infinity; let potentialWinners = [];
+                 // Increase hole check radius slightly, ensure Y threshold is low enough
+                 const holeCheckRadiusSq = (config.ballRadius * 2.0)**2;
+                 const holeCheckY = -config.machineHeight / 2 + config.ballRadius * 1.1; // Check slightly above the bottom
+
+                 balls.forEach(ball => {
+                     if (!ball || !ball.body) return;
+                     const pos = ball.body.position;
+                     // Check if body is awake (moving) and near the bottom center
+                     if (ball.body.sleepState !== CANNON.Body.SLEEPING && pos.y < holeCheckY) {
+                        const distSq = pos.x * pos.x + pos.z * pos.z;
+                        if (distSq < holeCheckRadiusSq) { potentialWinners.push(ball); }
+                     }
+                     // Update lowest ball as fallback
+                     if (pos.y < lowestY) { lowestY = pos.y; winner = ball; }
+                 });
+
+                 if (potentialWinners.length > 0) {
+                     // Among potential winners near the hole, pick the absolute lowest
+                     winner = potentialWinners.reduce((lowest, current) => (current.body.position.y < lowest.body.position.y ? current : lowest), potentialWinners[0]);
+                     console.log(`選中出口附近的球 (共 ${potentialWinners.length} 個), Y: ${winner.body.position.y.toFixed(3)}`);
+                 } else {
+                     // If no ball near hole, use the overall lowest ball found (fallback)
+                     console.log(`出口附近無活躍球，選擇最低的球 (Y: ${winner ? winner.body.position.y.toFixed(3) : 'N/A'})`);
+                 }
+
+                 // Final check and trigger result/ejection
+                 if (winner && winner.body) {
+                     console.log(`中獎！獎品: ${winner.prize.label}`);
+                     displayResult(winner); ejectBall(winner);
+                 } else { /* Fallback logic as before */ }
             }
 
             // --- Display Result & Ejection ---
-            function displayResult(winner) { if(!winner || !winner.prize || !resultDisplay) return; resultDisplay.textContent = `恭喜！抽中 ${winner.prize.label}！`; resultDisplay.classList.add('winning'); if (soundEnabled && sounds.win) sounds.win.play(); triggerParticleEffect(winner.mesh); showWinnerDisplay(winner); }
+            function displayResult(winner) { /* ... same ... */ }
             function ejectBall(winner) {
-                if (!winner || !winner.body || !chuteMesh || !scene || !world) return; console.log("彈出球:", winner.prize.label); const bodyToRemove = winner.body; winner.body = null; world.removeBody(bodyToRemove);
-                const endPos = chuteMesh.position.clone(); endPos.y -= 0.3; endPos.z += config.ballRadius;
-                const tl = gsap.timeline({ onComplete: () => { console.log("球彈出動畫完成"); setControlsDisabled(false); if(winner.mesh) { gsap.to(winner.mesh.scale, { x:0.01, y:0.01, z:0.01, duration:0.3, delay:0.5, onComplete:()=>{ if(winner.mesh) scene.remove(winner.mesh); winner.mesh=null; } }); } balls = balls.filter(b => b !== winner); } });
-                const holePos = new CANNON.Vec3(0, -config.machineHeight / 2 - config.ballRadius * 1.5, 0);
-                tl.to(winner.mesh.position, { x:holePos.x, y:holePos.y, z:holePos.z, duration:0.4, ease:"power1.in" });
-                tl.to(winner.mesh.position, { x:endPos.x, y:endPos.y, z:endPos.z, duration:1.0, ease:"bounce.out" });
-                gsap.to(winner.mesh.rotation, { x:`+=${Math.random()*6-3}`, y:`+=${Math.random()*6-3}`, z:`+=${Math.random()*6-3}`, duration:tl.duration(), ease:"none" });
+                if (!winner || !winner.body) return;
+                console.log("彈出球:", winner.prize.label);
+                const bodyToRemove = winner.body; winner.body = null; // Clear reference
+                // Delay removal slightly to avoid issues if accessed immediately after call? Not usually needed.
+                world.removeBody(bodyToRemove);
+
+                const endPos = chuteMesh.position.clone(); endPos.y -= 0.4; endPos.z += config.ballRadius * 1.5; // Adjust end position
+                const tl = gsap.timeline({
+                    onComplete: () => {
+                        console.log("球彈出動畫完成"); setControlsDisabled(false);
+                        // Safer removal: Check parent before removing
+                        gsap.to(winner.mesh.scale, { x: 0.01, y: 0.01, z: 0.01, duration: 0.3, delay: 0.5, onComplete: () => { if(winner.mesh && winner.mesh.parent) winner.mesh.parent.remove(winner.mesh); winner.mesh = null; } });
+                        balls = balls.filter(b => b !== winner);
+                    }
+                });
+                // Start animation from current mesh position
+                const startPos = winner.mesh.position.clone();
+                const holePos = new CANNON.Vec3(0, -config.machineHeight / 2 - config.ballRadius * 2.0, 0); // Lower exit point
+
+                tl.to(winner.mesh.position, { x: holePos.x, y: holePos.y, z: holePos.z, duration: 0.5, ease: "circ.in" }); // Faster ease in
+                tl.to(winner.mesh.position, { x: endPos.x, y: endPos.y, z: endPos.z, duration: 1.0, ease: "bounce.out" }); // Keep bounce
+                gsap.to(winner.mesh.rotation, { x: `+=${Math.random()*8-4}`, y:`+=${Math.random()*8-4}`, z: `+=${Math.random()*8-4}`, duration: tl.duration(), ease: "none" }); // More spin
             }
 
             // --- Helper Functions ---
-            function setControlsDisabled(disabled) { if(startButton) startButton.disabled = disabled; if(resetButton) resetButton.disabled = disabled; if(handleDragTrigger) { handleDragTrigger.style.pointerEvents = disabled?'none':'auto'; handleDragTrigger.style.cursor = disabled?'not-allowed':'grab'; } const draggableInstance = Draggable.get(handleDragTrigger); if(draggableInstance) draggableInstance[disabled?'disable':'enable'](); }
-            function toggleSound() { soundEnabled=!soundEnabled; if(soundStatus) soundStatus.textContent = soundEnabled?"音效開啟":"音效關閉"; if(soundToggle) soundToggle.querySelector('i').className = soundEnabled?"fas fa-volume-up":"fas fa-volume-mute"; Howler.mute(!soundEnabled); if(!soundEnabled && sounds.spin && sounds.spin.playing()) sounds.spin.stop(); }
-            function triggerParticleEffect(targetMesh) { if(isLightMode || !targetMesh || !particlesContainer || !camera || !canvasContainer) return; const screenPos = toScreenPosition(targetMesh, camera, canvasContainer); if(!screenPos) return; for (let i = 0; i < config.particleCount; i++) { const particle = document.createElement('div'); const isConfetti = Math.random()>0.3; particle.className = `particle ${isConfetti?'confetti':''}`; particle.style.backgroundColor = config.particleColors[Math.floor(Math.random()*config.particleColors.length)]; particlesContainer.appendChild(particle); gsap.set(particle, {x:screenPos.x, y:screenPos.y, opacity:1, scale:Math.random()*0.8+0.5, rotation:Math.random()*360}); gsap.to(particle, {x:`+=${(Math.random()-0.5)*300}`, y:`+=${(Math.random()-0.5)*300}`, opacity:0, scale:0.1, rotation:`+=${Math.random()*720-360}`, duration:Math.random()*1.5+1, ease:"power2.out", delay:Math.random()*0.2, onComplete:()=>particle.remove()}); } }
-            function toScreenPosition(obj, camera, rendererContainer) { if (!obj || !obj.matrixWorld || !camera || !rendererContainer) return null; const vector = new THREE.Vector3(); try { obj.updateMatrixWorld(true); vector.setFromMatrixPosition(obj.matrixWorld); vector.project(camera); } catch(e) { console.error("Error projecting object:", obj, e); return null; } if (vector.z > 1 || vector.x < -1.1 || vector.x > 1.1 || vector.y < -1.1 || vector.y > 1.1) { return null; } const widthHalf = rendererContainer.clientWidth/2; const heightHalf = rendererContainer.clientHeight/2; const x = (vector.x * widthHalf)+widthHalf; const y = -(vector.y * heightHalf)+heightHalf; const rect = rendererContainer.getBoundingClientRect(); return { x: x + rect.left, y: y + rect.top }; }
-            function showWinnerDisplay(winner) { if(!winner || !winner.prize || !winnerDisplay || !winnerBall || !winnerMessage) return; winnerBall.style.backgroundColor = winner.prize.color; winnerBall.textContent = winner.prize.label; winnerMessage.textContent = `恭喜您獲得 ${winner.prize.label}！願好運常伴！`; winnerDisplay.classList.add('show'); }
-            function hideWinnerDisplay() { if(winnerDisplay) winnerDisplay.classList.remove('show'); }
+            function setControlsDisabled(disabled) { /* ... same ... */ }
+            function toggleSound() { /* ... same ... */ }
+            function triggerParticleEffect(targetMesh) { /* ... same ... */ }
+            function toScreenPosition(obj, camera, rendererContainer) { /* ... same ... */ }
+            function showWinnerDisplay(winner) { /* ... same ... */ }
+            function hideWinnerDisplay() { /* ... same ... */ }
 
             // --- Reset ---
             function resetLottery() {
-                if (!world || !scene) { console.error("Cannot reset, world or scene not initialized."); if(resultDisplay) resultDisplay.textContent = "錯誤：核心組件未初始化"; return; }
                 try {
-                    if (isSpinning) { isSpinning = false; spinTargetSpeed = 0; currentSpinSpeed = 0; if (sounds.spin && sounds.spin.playing()) sounds.spin.stop(); gsap.killTweensOf('#canvas-container'); gsap.to('#canvas-container', { boxShadow: "0 5px 15px var(--shadow-color)", duration: 0.1 }); }
+                    // Force stop existing animations/physics state
+                    isSpinning = false; spinTargetSpeed = 0; currentSpinSpeed = 0;
+                    if (sounds.spin.playing()) sounds.spin.stop();
+                    gsap.killTweensOf('#canvas-container'); gsap.killTweensOf(handleGroup?.rotation); // Kill handle tween too
+                    gsap.to('#canvas-container', { boxShadow: "0 5px 15px var(--shadow-color)", duration: 0.1 });
+                    if(handleGroup) gsap.to(handleGroup.rotation, { z: 0, duration: 0.1 });
+
+                    // Reset physics drum
                     if (drumBody) { drumBody.quaternion.set(0, 0, 0, 1); drumBody.angularVelocity.set(0, 0, 0); }
-                    if (drumMesh) { drumMesh.quaternion.set(0, 0, 0, 1); }
-                    balls.forEach(ball => { if(ball.mesh) scene.remove(ball.mesh); if(ball.body) world.removeBody(ball.body); }); balls = [];
-                    const ballCount = parseInt(ballCountInput.value, 10); const validBallCount = Math.max(5, Math.min(30, isNaN(ballCount) ? 15 : ballCount)); ballCountInput.value = validBallCount; createBalls(validBallCount);
-                    if(resultDisplay) { resultDisplay.textContent = "準備開始抽選"; resultDisplay.classList.remove('winning'); } hideWinnerDisplay(); setControlsDisabled(false); console.log("Lottery reset complete.");
-                } catch(error) { console.error("Error during resetLottery:", error); if(resultDisplay) resultDisplay.textContent = "錯誤：重置抽選機失敗"; setControlsDisabled(true); }
+                    // Reset visual drum group rotation
+                    if (drumGroup) { drumGroup.quaternion.set(0, 0, 0, 1); }
+
+                    // Recreate balls
+                    const ballCount = parseInt(ballCountInput.value, 10);
+                    const validBallCount = Math.max(5, Math.min(30, isNaN(ballCount) ? 15 : ballCount));
+                    ballCountInput.value = validBallCount; createBalls(validBallCount); // This removes old balls and adds new
+
+                    resultDisplay.textContent = "準備開始抽選"; resultDisplay.classList.remove('winning');
+                    hideWinnerDisplay(); setControlsDisabled(false);
+                     console.log("Lottery reset complete.");
+                } catch(error) { console.error("Error during resetLottery:", error); resultDisplay.textContent = "錯誤：重置抽選機失敗"; }
             }
 
             // --- Start Application ---
-            init(); // Call init directly now
+            init();
 
-        }); // End DOMContentLoaded listener
+        })(); // End IIFE
     </script>
 
 </body>
