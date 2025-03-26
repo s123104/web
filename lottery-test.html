@@ -5,73 +5,376 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>雅 (Miyabi) - 日式八角抽選機</title>
     <!-- GSAP CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <!-- Howler.js CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
-    <!-- (Optional) Three.js / Physics Engine CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <!-- Howler.js CDN (Optional for now) -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script> -->
 
     <style>
         /* --- Reset & Base Styles --- */
-        /* ... (box-sizing, body background, etc.) ... */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-        /* --- Layout --- */
-        .miyabi-container { /* 全局容器，用於居中和佈局 */ }
-        .scene { /* 3D 透視容器 */ }
+        html, body {
+            height: 100%;
+            overflow: hidden; /* Prevent scrollbars during animation */
+            font-family: '游ゴシック体', YuGothic, '游ゴシック', 'Yu Gothic', sans-serif; /* Japanese font stack */
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle, #f5f5dc 8%, #e0d8c0 70%, #c8bca8 100%); /* Beige/Paper gradient */
+            color: #3a2e28; /* Dark brown text */
+        }
+
+        /* --- Layout Container --- */
+        .miyabi-container {
+            position: relative;
+            width: 90vw;
+            max-width: 600px; /* Limit max size */
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- 3D Scene --- */
+        .scene {
+            width: 300px; /* Fixed size for easier calculation */
+            height: 450px; /* Increased height for base/handle */
+            perspective: 1500px; /* Increase perspective for less distortion */
+            margin-bottom: 20px;
+            /* border: 1px dashed grey; */ /* For debugging layout */
+        }
 
         /* --- Machine Components --- */
-        .machine { /* 抽選機整體 */ }
-        .machine-body { /* 主要旋轉部分 */ }
-        .octagon-drum { /* 八角形滾筒 (包含8個面) */ }
-        .face { /* 八角形的每個面 (透明) */ }
-        .face-pattern { /* (Optional) 面的裝飾，如金箔線條 */ }
-        .balls-container { /* 球的容器 (在滾筒內部) */ }
-        .ball { /* 單顆球 */ }
-        .machine-base { /* 機器底座 */ }
-        .machine-lid { /* 機器頂蓋 (可選) */ }
-        .handle { /* 手把 */ }
-        .handle-grip { /* 手把可抓握部分 */ }
+        .machine {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            /* Start tilted slightly for better view */
+            transform: rotateX(-10deg) rotateY(20deg);
+        }
+
+        .machine-body {
+            width: 100%; /* Takes width from .scene */
+            height: 250px; /* Height of the rotating part */
+            position: absolute;
+            top: 50px; /* Position below potential lid */
+            left: 0;
+            transform-style: preserve-3d;
+            transform-origin: center center; /* Rotate around its center */
+            /* border: 1px solid red; */
+        }
+
+        .octagon-drum {
+            width: 200px; /* Diameter of the octagon */
+            height: 200px; /* Height of the drum */
+            position: absolute;
+            top: 50%; /* Center vertically in machine-body */
+            left: 50%; /* Center horizontally in machine-body */
+            transform-style: preserve-3d;
+            transform: translate(-50%, -50%) translateZ(0); /* Center helper */
+             /* border: 1px solid blue; */
+        }
+
+        /* --- Octagon Face Calculation & Styling --- */
+        /*
+           For a regular octagon with side length 's':
+           Width W = s * (1 + sqrt(2))
+           Apothem (distance from center to mid-side) A = s * (1 + sqrt(2)) / 2 = W / 2
+           Distance from center to vertex R = s * sqrt( (2 + sqrt(2)) / 2 )
+           TranslateZ needed = Apothem = W/2 if faces are placed edge-to-edge.
+           Let's use drum width W = 200px. translateZ should be approx 100px.
+           Let's calculate side length 's': s = W / (1 + sqrt(2)) = 200 / 2.414 ≈ 82.8px
+           So face width should be ~83px.
+           Face Height = Drum Height = 200px.
+           Rotation angle = 360 / 8 = 45deg.
+        */
+        .face {
+            position: absolute;
+            width: 83px; /* Calculated side length */
+            height: 200px; /* Drum height */
+            top: 0;
+            left: calc(50% - 83px / 2); /* Center face horizontally */
+
+            background-color: rgba(240, 248, 255, 0.15); /* AliceBlue, slightly transparent */
+            border: 1.5px solid #b8860b; /* DarkGoldenrod - simulating gold */
+            box-shadow: inset 0 0 10px rgba(218, 165, 32, 0.3); /* Inner gold glow */
+            backdrop-filter: blur(3px); /* Frosted glass effect */
+            -webkit-backdrop-filter: blur(3px);
+
+            /* Crucial: Set transform origin to center bottom for rotation */
+            transform-origin: center center;
+
+            /* Apply individual rotations and translations */
+            /* JS will set these based on index */
+        }
+
+        /* Add subtle pattern/texture to faces */
+        .face::before {
+            content: '';
+            position: absolute;
+            inset: 5px; /* Inset border */
+            border: 1px dashed rgba(218, 165, 32, 0.4); /* Dashed inner gold line */
+            opacity: 0.7;
+        }
+
+
+        /* --- Balls Container --- */
+        .balls-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-style: preserve-3d;
+             /* Make it slightly smaller than drum to contain balls */
+             transform: scale(0.9);
+            /* border: 1px solid green; */
+        }
+
+        /* --- Ball Styling --- */
+        .ball {
+            position: absolute;
+            /* Position set by JS */
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), currentColor 70%); /* Shiny effect */
+            box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3), /* Inner shadow */
+                        0px 2px 5px rgba(0,0,0,0.2); /* Outer shadow */
+            /* Improve performance slightly */
+            will-change: transform;
+            /* Ensure balls are clickable/targetable if needed later */
+            pointer-events: auto;
+        }
+
+        /* --- Machine Base --- */
+        .machine-base {
+            width: 260px; /* Wider than drum */
+            height: 80px;
+            position: absolute;
+            bottom: 30px; /* Positioned below the rotating body */
+            left: calc(50% - 130px);
+            background: linear-gradient(to bottom, #8B4513, #A0522D); /* SaddleBrown to Sienna - Wood grain */
+            border-radius: 5px 5px 15px 15px; /* Rounded bottom */
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            transform-style: preserve-3d;
+            transform: translateZ(-30px); /* Push it back slightly */
+        }
+         /* Add a top surface look */
+        .machine-base::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 5px;
+            right: 5px;
+            height: 10px;
+            background: #A0522D; /* Sienna */
+            border-radius: 3px;
+            transform: translateZ(5px); /* Bring it forward slightly */
+             box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
+        }
+
+
+        /* --- Handle --- */
+        .handle {
+            width: 50px;
+            height: 150px;
+            position: absolute;
+            bottom: 50px; /* Position relative to machine bottom */
+            /* Right side placement, adjust Z */
+            right: -40px; /* Move it out to the side */
+            transform-style: preserve-3d;
+            transform-origin: center 120px; /* Rotate around the base connection */
+            cursor: grab;
+             /* border: 1px dashed hotpink; */
+             transform: translateZ(50px) rotateZ(15deg); /* Initial angle and depth */
+        }
+
+        .handle::before { /* Handle Arm */
+             content: '';
+             position: absolute;
+             width: 12px;
+             height: 100px; /* Length of the arm */
+             background: linear-gradient(#dcdcdc, #a9a9a9, #dcdcdc); /* Silver metal */
+             bottom: 30px; /* Connects near the base */
+             left: calc(50% - 6px);
+             border-radius: 3px;
+             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+             transform: translateZ(-3px);
+        }
+
+        .handle-grip {
+            width: 50px;
+            height: 40px;
+            position: absolute;
+            bottom: 110px; /* Position at the top of the arm */
+            left: 0;
+            background: linear-gradient(to right, #6B4226, #8e5e3a); /* Darker wood */
+            border-radius: 50%; /* Round grip */
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.4), 0 3px 5px rgba(0,0,0,0.3);
+            transform: translateZ(5px) rotateX(90deg); /* Orient the grip */
+        }
+
+        .handle:active {
+            cursor: grabbing;
+        }
+        .handle:active .handle-grip {
+             transform: translateZ(5px) rotateX(90deg) scale(0.95); /* Slight shrink on grab */
+        }
+
 
         /* --- Controls & Display --- */
-        .controls { /* 控制面板 */ }
-        #spinButton { /* 抽選按鈕 */ }
-        #resultDisplay { /* 結果顯示區域 */ }
-        #resultText { /* 中獎文字 */ }
-        .prize-icon { /* (Optional) 獎品圖標 (SVG/Icon Font) */ }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 30px; /* Space below scene */
+            background: rgba(255, 255, 255, 0.5); /* Semi-transparent white panel */
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        #spinButton {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(to bottom, #c0392b, #a93226); /* Red gradient */
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(169, 50, 38, 0.4);
+            transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+            margin-bottom: 15px;
+        }
+
+        #spinButton:hover:not(:disabled) {
+            background: linear-gradient(to bottom, #d64538, #c0392b);
+            box-shadow: 0 6px 12px rgba(169, 50, 38, 0.5);
+        }
+
+        #spinButton:active:not(:disabled) {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(169, 50, 38, 0.3);
+        }
+
+         #spinButton:disabled {
+             background: #cccccc;
+             color: #888888;
+             cursor: not-allowed;
+             box-shadow: none;
+         }
+
+        #resultDisplay {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #4a3c35; /* Darker brown for emphasis */
+            min-height: 1.5em; /* Prevent layout shift */
+            transition: color 0.5s ease;
+        }
+
+         #resultDisplay.won {
+             /* Style applied by JS on win */
+             animation: pulseColor 1s ease-in-out;
+         }
+
+         @keyframes pulseColor {
+             0%, 100% { transform: scale(1); }
+             50% { transform: scale(1.1); }
+         }
+
 
         /* --- Effects --- */
-        .effects-overlay { /* 特效層 (如彩帶、光暈) */ }
-        .confetti-particle { /* 彩帶粒子 */ }
-        .spotlight { /* 聚光燈效果 */ }
+        .effects-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            overflow: hidden; /* Contain particles */
+        }
+
+        .confetti-particle {
+            position: absolute;
+            width: 8px;
+            height: 15px; /* Rectangular confetti */
+            opacity: 0.9;
+            will-change: transform, opacity; /* Optimize animation */
+        }
 
         /* --- RWD --- */
-        /* ... (@media queries) ... */
+        @media (max-width: 768px) {
+            .scene {
+                width: 250px;
+                height: 380px;
+                 perspective: 1200px;
+            }
+            .machine-body { height: 200px; top: 40px;}
+            .octagon-drum { width: 160px; height: 160px; }
+            .face { width: 66px; height: 160px; } /* Recalculate face width for 160px drum */
+             /* JS needs to adjust translateZ too */
+            .machine-base { width: 210px; left: calc(50% - 105px); height: 60px; bottom: 25px; }
+            .handle { right: -30px; transform: translateZ(40px) rotateZ(15deg); scale: 0.9; }
 
-        /* --- Animations (Keyframes for CSS-based effects) --- */
-        /* ... (@keyframes for confetti, etc.) ... */
+            .ball { width: 20px; height: 20px; }
+
+             .controls { padding: 10px 20px; margin-top: 20px;}
+             #spinButton { padding: 10px 20px; font-size: 1em;}
+             #resultDisplay { font-size: 1.1em; }
+        }
+
+         @media (max-width: 480px) {
+             body { align-items: flex-start; padding-top: 5vh;} /* More space at top */
+             .miyabi-container { height: auto; }
+             .scene {
+                 width: 200px;
+                 height: 300px;
+                 perspective: 1000px;
+                 margin-bottom: 15px;
+             }
+             .machine-body { height: 160px; top: 30px; }
+             .octagon-drum { width: 130px; height: 130px; }
+             .face { width: 54px; height: 130px; } /* Recalculate face width */
+             /* JS needs to adjust translateZ */
+             .machine-base { width: 170px; left: calc(50% - 85px); height: 50px; bottom: 20px; }
+             .handle { right: -25px; transform: translateZ(30px) rotateZ(15deg); scale: 0.8; }
+             .ball { width: 16px; height: 16px; }
+
+             .controls { width: 90%; padding: 8px 15px; margin-top: 15px; }
+             #spinButton { padding: 8px 15px; font-size: 0.9em;}
+             #resultDisplay { font-size: 1em; }
+         }
+
     </style>
 </head>
 <body>
     <div class="miyabi-container">
         <div class="scene">
             <div class="machine" id="lotteryMachine">
+                <div class="machine-base"></div>
                 <div class="machine-body" id="machineBody">
                     <div class="octagon-drum" id="octagonDrum">
-                        <!-- Generate 8 faces using JS or hardcode -->
-                        <div class="face front"></div>
-                        <div class="face right"></div>
-                        <!-- ... 6 more faces ... -->
+                        <!-- Faces will be added by JS -->
                         <div class="balls-container" id="ballsContainer">
                             <!-- Balls will be added by JS -->
                         </div>
                     </div>
                 </div>
-                <div class="machine-base"></div>
-                <div class="machine-lid"></div>
-                <div class="handle" id="handle">
-                    <div class="handle-grip"></div>
-                </div>
-                <!-- (Optional) Spotlight Effect -->
-                <div class="spotlight"></div>
+                 <div class="handle" id="handle">
+                     <div class="handle-grip"></div>
+                 </div>
             </div>
         </div>
 
@@ -79,7 +382,6 @@
             <button id="spinButton">運試し</button> <!-- "Test Your Luck" -->
             <div id="resultDisplay" aria-live="polite">
                 結果：<span id="resultText">---</span>
-                <!-- <span class="prize-icon"></span> -->
             </div>
         </div>
 
@@ -88,394 +390,475 @@
     </div>
 
     <script>
-        // --- Constants and Configuration ---
-        const config = {
-            numBalls: 20,
-            ballColors: ["#FFD700", "#E6E6FA", "#FFB6C1", "#ADD8E6", "#90EE90"], // Gold, Lavender, LightPink, LightBlue, LightGreen
-            prizes: [ // Example: associating data with balls
-                { label: "大吉", color: "#DC143C", weight: 1 }, // Crimson Red
-                { label: "中吉", color: "#FF8C00", weight: 3 }, // DarkOrange
-                { label: "小吉", color: "#FFD700", weight: 5 }, // Gold
-                { label: "吉", color: "#90EE90", weight: 10 }, // LightGreen
-                { label: "末吉", color: "#ADD8E6", weight: 15 }, // LightBlue
-                { label: "残念", color: "#D3D3D3", weight: 20 }  // LightGray
-            ],
-            spinDuration: { min: 3, max: 5 }, // seconds
-            maxAngularVelocity: 1080, // degrees per second
-            dragSensitivity: 0.5,
-            inertiaDampening: 0.95, // Friction factor for drag release
-            sounds: {
-                // Use Data URIs or find CDN links for royalty-free sounds
-                spin: '...', // Spinning sound (loopable)
-                click: '...', // Handle click/ball collision (short)
-                win: '...',   // Winning fanfare
-                confetti: '...' // Confetti burst sound
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Constants and Configuration ---
+            const config = {
+                numBalls: 30,
+                ballColors: ["#FFD700", "#DC143C", "#FFFFFF", "#ADD8E6", "#90EE90", "#FFA07A"], // Gold, Crimson, White, LightBlue, LightGreen, LightSalmon
+                prizes: [ // Example weighted prizes
+                    { label: "🥇 大吉", color: "#FFD700", weight: 1 }, // Gold
+                    { label: "🥈 中吉", color: "#C0C0C0", weight: 3 }, // Silver (use white ball)
+                    { label: "🥉 小吉", color: "#CD7F32", weight: 6 }, // Bronze (use light salmon)
+                    { label: "👍 吉", color: "#90EE90", weight: 10 }, // LightGreen
+                    { label: "🙂 末吉", color: "#ADD8E6", weight: 15 }, // LightBlue
+                    { label: "残念", color: "#A9A9A9", weight: 25 }  // DarkGray (use white ball + text)
+                ],
+                spinDuration: { min: 4, max: 7 }, // seconds
+                dragSensitivity: 0.8, // Increased sensitivity
+                inertiaDampening: 0.92, // Friction factor for drag release
+                // Sound placeholders (implement with Howler.js later)
+                sounds: { spin: null, win: null, confetti: null }
+            };
+
+            // --- DOM References ---
+            const machine = document.getElementById('lotteryMachine');
+            const machineBody = document.getElementById('machineBody');
+            const octagonDrum = document.getElementById('octagonDrum');
+            const ballsContainer = document.getElementById('ballsContainer');
+            const handle = document.getElementById('handle');
+            const spinButton = document.getElementById('spinButton');
+            const resultText = document.getElementById('resultText');
+            const resultDisplay = document.getElementById('resultDisplay');
+            const effectsOverlay = document.getElementById('effectsOverlay');
+
+            // --- State Variables ---
+            let isSpinning = false;
+            let currentYRotation = 20; // Initial rotation from CSS
+            let currentXRotation = -10; // Initial tilt from CSS
+            let balls = [];
+            let faceTranslateZ = 0; // Will be calculated
+
+            // --- Initialization ---
+            function init() {
+                console.log("雅 - 抽選機 初期化開始...");
+                calculateFaceTranslateZ(); // Calculate based on current drum size
+                setupOctagonFaces();
+                createBalls();
+                setupEventListeners();
+                // setupAudio(); // Call when Howler is integrated
+                applyInitialTransforms(); // Apply initial rotations set in CSS via JS/GSAP
+                console.log("雅 - 抽選機 初期化完了！");
             }
-        };
 
-        // --- DOM References ---
-        const machine = document.getElementById('lotteryMachine');
-        const machineBody = document.getElementById('machineBody');
-        const octagonDrum = document.getElementById('octagonDrum');
-        const ballsContainer = document.getElementById('ballsContainer');
-        const handle = document.getElementById('handle');
-        const spinButton = document.getElementById('spinButton');
-        const resultText = document.getElementById('resultText');
-        const effectsOverlay = document.getElementById('effectsOverlay');
+             // Apply initial CSS rotation via GSAP for smoother transitions later
+             function applyInitialTransforms() {
+                 gsap.set(machine, { rotationY: currentYRotation, rotationX: currentXRotation });
+                 gsap.set(handle, { rotationY: currentYRotation * 0.3 }); // Rotate handle less initially
+             }
 
-        // --- State Variables ---
-        let isSpinning = false;
-        let currentRotation = 0;
-        let balls = []; // Array to hold ball objects/elements
-        let audio = {}; // To hold Howler sound objects
+            // --- Setup Functions ---
+             function calculateFaceTranslateZ() {
+                 // Calculate translateZ based on the CURRENT rendered width of the drum
+                 // This makes it responsive if CSS changes drum size via @media
+                 const drumWidth = octagonDrum.offsetWidth;
+                 const sideLength = drumWidth / (1 + Math.sqrt(2));
+                 faceTranslateZ = (sideLength / 2) / Math.tan(Math.PI / 8);
+                 console.log(`計算結果: Drum Width=${drumWidth}px, Face Width=${sideLength.toFixed(2)}px, TranslateZ=${faceTranslateZ.toFixed(2)}px`);
+             }
 
-        // --- Initialization ---
-        function init() {
-            setupOctagonFaces();
-            createBalls();
-            setupAudio();
-            setupEventListeners();
-            console.log("雅 - 抽選機 初始化完成！");
-        }
+            function setupOctagonFaces() {
+                octagonDrum.innerHTML = ''; // Clear potential placeholders if any
+                const faceCount = 8;
+                const angleIncrement = 360 / faceCount; // 45 degrees
 
-        // --- Setup Functions ---
-        function setupOctagonFaces() {
-            const faceCount = 8;
-            const angleIncrement = 360 / faceCount; // 45 degrees
-            // Calculate translateZ based on desired size (requires geometry)
-            // Example: Approx. based on width of octagon-drum
-            const drumWidth = octagonDrum.offsetWidth; // Get width AFTER initial render or set explicitly
-            const faceWidth = drumWidth / (1 + Math.sqrt(2)); // Approximation, refine
-            const translateZ = faceWidth / (2 * Math.tan(Math.PI / faceCount));
-
-            const faces = octagonDrum.querySelectorAll('.face'); // Assuming 8 faces are hardcoded or select dynamically
-            faces.forEach((face, i) => {
-                // Apply transform: rotateY(i * angleIncrement deg) translateZ(translateZ px);
-                // Add styles for transparency, borders (gold?), patterns via CSS
-            });
-             console.log(`設置八角面: ${faces.length} 個面, translateZ ≈ ${translateZ.toFixed(2)}px`);
-        }
-
-        function createBalls() {
-            ballsContainer.innerHTML = ''; // Clear existing balls
-            balls = [];
-            let weightedPrizes = [];
-             config.prizes.forEach(prize => {
-                 for (let i = 0; i < prize.weight; i++) {
-                     weightedPrizes.push(prize);
-                 }
-             });
-
-            for (let i = 0; i < config.numBalls; i++) {
-                const ballData = weightedPrizes[Math.floor(Math.random() * weightedPrizes.length)]; // Select prize based on weight
-
-                const ballElement = document.createElement('div');
-                ballElement.classList.add('ball');
-                // Assign color based on ballData or randomly from config.ballColors
-                ballElement.style.backgroundColor = ballData.color || config.ballColors[i % config.ballColors.length];
-                 // Store data directly on the element or in the balls array
-                ballElement.dataset.prizeLabel = ballData.label;
-                ballElement.dataset.prizeColor = ballData.color;
-
-
-                // Initial random positioning within the drum (use 3D transforms)
-                const R = octagonDrum.offsetWidth / 3; // Max radius inside drum
-                const randX = (Math.random() - 0.5) * 2 * R;
-                const randY = (Math.random() - 0.5) * 2 * R;
-                const randZ = (Math.random() - 0.5) * 2 * R / 2; // Z-depth less pronounced
-                gsap.set(ballElement, { x: randX, y: randY, z: randZ });
-
-                ballsContainer.appendChild(ballElement);
-                balls.push({ element: ballElement, data: ballData });
+                for (let i = 0; i < faceCount; i++) {
+                    const face = document.createElement('div');
+                    face.classList.add('face');
+                    // Calculate rotation and translation for this face
+                    const rotationY = i * angleIncrement;
+                    // Apply transform using GSAP for consistency
+                    gsap.set(face, {
+                        rotationY: rotationY,
+                        transformOrigin: "center center", // Ensure origin is correct
+                         // Use the calculated translateZ
+                        z: faceTranslateZ, // GSAP's shorthand for translateZ
+                        // Force hardware acceleration
+                         force3D: true
+                    });
+                    octagonDrum.appendChild(face);
+                }
+                 // Re-append balls container AFTER faces are added
+                 octagonDrum.appendChild(ballsContainer);
+                console.log(`八角面 ${faceCount} 個を設置完了`);
             }
-             console.log(`創建了 ${balls.length} 個球`);
-        }
 
-        function setupAudio() {
-            // Initialize Howler sounds
-            // Example:
-            // audio.spin = new Howl({ src: [config.sounds.spin], loop: true });
-            // audio.win = new Howl({ src: [config.sounds.win] });
-            // ... etc.
-            // Handle potential loading errors
-             console.log("音效設置完成 (或跳過，若無音源)");
-        }
-
-        // --- Event Listeners ---
-        function setupEventListeners() {
-            spinButton.addEventListener('click', handleSpinButtonClick);
-            handle.addEventListener('mousedown', handleDragStart);
-            handle.addEventListener('touchstart', handleDragStart, { passive: false }); // Use passive: false if preventDefault is needed
-        }
-
-        // --- Interaction Logic ---
-        let dragStartY = 0;
-        let dragStartTime = 0;
-        let lastDragY = 0;
-        let angularVelocity = 0;
-        let dragAnimationTicker = null; // To update rotation during drag
-
-        function handleDragStart(e) {
-            if (isSpinning) return;
-            e.preventDefault(); // Prevent text selection/scrolling
-
-            const posY = e.touches ? e.touches[0].clientY : e.clientY;
-            dragStartY = posY;
-            lastDragY = posY;
-            dragStartTime = Date.now();
-            angularVelocity = 0;
-
-            // Add move/end listeners to the window/document for wider capture area
-            document.addEventListener('mousemove', handleDragMove);
-            document.addEventListener('touchmove', handleDragMove, { passive: false });
-            document.addEventListener('mouseup', handleDragEnd);
-            document.addEventListener('touchend', handleDragEnd);
-
-            gsap.to(handle, { scale: 1.1, duration: 0.2 }); // Visual feedback
-            handle.style.cursor = 'grabbing';
-
-            // Start ticker for smooth visual rotation during drag
-             if(dragAnimationTicker) gsap.ticker.remove(updateDragRotation); // remove previous if any
-            gsap.ticker.add(updateDragRotation);
-        }
-
-         let rotationOffset = 0; // Accumulate rotation during drag
-
-        function handleDragMove(e) {
-            e.preventDefault();
-            const posY = e.touches ? e.touches[0].clientY : e.clientY;
-            const deltaY = posY - lastDragY;
-
-            // Convert vertical drag to rotation (adjust sensitivity)
-             rotationOffset += deltaY * config.dragSensitivity;
-
-            // Calculate velocity (degrees per second)
-            const deltaTime = (Date.now() - dragStartTime) / 1000 || 0.01; // Avoid division by zero
-            const totalDeltaY = posY - dragStartY;
-            angularVelocity = (totalDeltaY * config.dragSensitivity / deltaTime) * 0.1; // Adjust velocity scaling
-
-            lastDragY = posY;
-            // Don't directly set rotation here, let the ticker handle it smoothly
-        }
-
-         function updateDragRotation() {
-             // Apply the accumulated rotation offset smoothly
-             currentRotation += rotationOffset; // Add the change since last frame
-             gsap.set(machineBody, { rotationY: currentRotation });
-             gsap.set(handle, { rotationY: currentRotation * 0.5 }); // Make handle rotate less for effect
-
-             // Simulate ball tumbling during drag (simple version)
-             balls.forEach(ball => {
-                 gsap.to(ball.element, {
-                     x: `+=${(Math.random() - 0.5) * 2}`,
-                     y: `+=${(Math.random() - 0.5) * 2}`,
-                     duration: 0.1
+            function createBalls() {
+                ballsContainer.innerHTML = ''; // Clear existing balls
+                balls = [];
+                let weightedPrizes = [];
+                 config.prizes.forEach(prize => {
+                     for (let i = 0; i < prize.weight; i++) {
+                         weightedPrizes.push(prize);
+                     }
                  });
-             });
 
-             rotationOffset = 0; // Reset offset after applying it
-         }
-
-
-        function handleDragEnd(e) {
-             gsap.ticker.remove(updateDragRotation); // Stop drag update loop
-
-            document.removeEventListener('mousemove', handleDragMove);
-            document.removeEventListener('touchmove', handleDragMove);
-            document.removeEventListener('mouseup', handleDragEnd);
-            document.removeEventListener('touchend', handleDragEnd);
-
-            gsap.to(handle, { scale: 1, duration: 0.2 }); // Reset visual feedback
-            handle.style.cursor = 'grab';
-
-            // Apply Inertia if velocity is sufficient
-            const dragDuration = (Date.now() - dragStartTime) / 1000;
-            if (Math.abs(angularVelocity) > 50 && dragDuration < 0.5) { // Threshold for flick/inertia
-                console.log(`手把拖曳結束，啟動慣性旋轉，初速度: ${angularVelocity.toFixed(2)} deg/s`);
-                startSpin(angularVelocity);
-            } else {
-                console.log("手把拖曳結束，速度不足或時間過長，未觸發慣性旋轉");
-            }
-             angularVelocity = 0; // Reset velocity
-        }
+                 // Shuffle weighted prizes for more randomness in initial color distribution
+                 weightedPrizes.sort(() => Math.random() - 0.5);
 
 
-        function handleSpinButtonClick() {
-            if (isSpinning) return;
-            console.log("按鈕點擊，啟動旋轉");
-            startSpin(0); // Start with no initial velocity from drag
-        }
+                const drumRadius = octagonDrum.offsetWidth * 0.9 / 2; // Use 90% of radius
+                const drumHeight = octagonDrum.offsetHeight * 0.9;
 
-        // --- Core Spin Animation ---
-        function startSpin(initialVelocity = 0) {
-            if (isSpinning) return;
-            isSpinning = true;
-            spinButton.disabled = true;
-            resultText.textContent = "抽選中...";
-            resultText.parentElement.classList.remove('won'); // Reset previous win style
+                for (let i = 0; i < config.numBalls; i++) {
+                    // Select prize based on weight, ensure enough variety if numBalls > weighted total
+                     const prizeData = weightedPrizes[i % weightedPrizes.length];
 
-            // Play spin sound
-            // if (audio.spin) audio.spin.play();
+                    const ballElement = document.createElement('div');
+                    ballElement.classList.add('ball');
+                    ballElement.style.backgroundColor = prizeData.color || config.ballColors[i % config.ballColors.length]; // Use prize color primarily
+                    ballElement.dataset.prizeLabel = prizeData.label; // Store prize label
 
-            // Calculate target rotation: current + random full rotations + random extra angle
-            const randomRotations = Math.floor(Math.random() * 3) + 3; // 3-5 full spins
-            const randomExtraAngle = Math.random() * 360;
-            const targetRotation = currentRotation + initialVelocity + (randomRotations * 360) + randomExtraAngle;
+                    // Improved Initial random positioning within the drum (cylinder approximation)
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = Math.random() * drumRadius;
+                    const randX = Math.cos(angle) * radius;
+                    const randZ = Math.sin(angle) * radius; // Use Z for depth
+                    const randY = (Math.random() - 0.5) * drumHeight; // Vertical position
 
-            const duration = config.spinDuration.min + Math.random() * (config.spinDuration.max - config.spinDuration.min);
-
-            // Use GSAP for smooth animation with easing and callbacks
-            gsap.to(machineBody, {
-                rotationY: targetRotation,
-                duration: duration,
-                ease: "power2.out", // Deceleration ease
-                onUpdate: () => {
-                    currentRotation = gsap.getProperty(machineBody, "rotationY");
-                    // Update handle rotation (optional, maybe less rotation)
-                    gsap.set(handle, { rotationY: currentRotation * 0.5 });
-
-                    // Make balls tumble realistically (or simplified)
-                    balls.forEach(ball => {
-                         // Simple jiggle based on rotation speed (proxy)
-                         const speedFactor = Math.abs(gsap.getProperty(machineBody, "rotationY") - currentRotation) / (1/60); // Approximate speed
-                         gsap.to(ball.element, {
-                            x: `+=${(Math.random() - 0.5) * speedFactor * 0.01}`,
-                            y: `+=${(Math.random() - 0.5) * speedFactor * 0.01}`,
-                            z: `+=${(Math.random() - 0.5) * speedFactor * 0.005}`,
-                             duration: 0.1
-                         });
+                    gsap.set(ballElement, {
+                         x: randX,
+                         y: randY,
+                         z: randZ,
+                         force3D: true // Optimize rendering
                     });
 
-                    // Adjust spin sound pitch/volume based on speed (optional, complex)
-                    // let currentSpeed = Math.abs(gsap.getProperty(machineBody._gsTransform, "rotationY") - previousRotation) * 60; // fps
-                    // if (audio.spin) audio.spin.rate(Math.max(0.5, Math.min(2, currentSpeed / 500)));
-                },
-                onComplete: () => {
-                    console.log(`旋轉結束，最終角度: ${currentRotation.toFixed(2)}`);
-                    // Stop spin sound
-                    // if (audio.spin) audio.spin.stop();
-                    determineWinner();
+                    ballsContainer.appendChild(ballElement);
+                    balls.push({ element: ballElement, data: prizeData });
                 }
-            });
-        }
+                console.log(`${balls.length} 個のボールを作成完了`);
+            }
 
-        // --- Determine Winner ---
-        function determineWinner() {
-            // Simple random selection for now
-             const winnerIndex = Math.floor(Math.random() * balls.length);
-             const winningBall = balls[winnerIndex];
+            // --- Event Listeners ---
+            function setupEventListeners() {
+                spinButton.addEventListener('click', handleSpinButtonClick);
+                // Add drag listeners (simplified version for now)
+                 handle.addEventListener('mousedown', handleDragStart);
+                 handle.addEventListener('touchstart', handleDragStart, { passive: false });
 
-             console.log(`中獎！ 球號: ${winnerIndex + 1}, 獎品: ${winningBall.data.label}`);
+                // Recalculate on resize for RWD
+                window.addEventListener('resize', debounce(handleResize, 250));
+            }
 
-            displayResult(winningBall);
-        }
+             // Debounce function to limit resize handler calls
+             function debounce(func, wait) {
+                 let timeout;
+                 return function executedFunction(...args) {
+                     const later = () => {
+                         clearTimeout(timeout);
+                         func(...args);
+                     };
+                     clearTimeout(timeout);
+                     timeout = setTimeout(later, wait);
+                 };
+             }
 
-        // --- Display Result & Effects ---
-        function displayResult(winningBall) {
-             resultText.textContent = winningBall.data.label;
-            resultText.parentElement.classList.add('won'); // Add class for styling
-             resultText.parentElement.style.color = winningBall.data.color || '#000'; // Use prize color
+            // --- Interaction Logic (Simplified Drag & Button) ---
+            let dragStartY = 0;
+            let dragStartTime = 0;
+            let currentHandleRotation = 0; // Track handle rotation separately if needed
+            let angularVelocity = 0; // Degrees per second during drag
+             let isDragging = false;
+             let animationFrameId = null; // For smooth drag update
 
-            // Highlight the winning ball
-            gsap.to(winningBall.element, {
-                scale: 1.5,
-                boxShadow: `0 0 20px 10px ${winningBall.data.color || 'yellow'}`,
-                duration: 0.5,
-                yoyo: true, // Briefly pulse
-                repeat: 3,
-                ease: "power1.inOut"
-            });
 
-            // Play winning sound
-            // if (audio.win) audio.win.play();
+            function handleDragStart(e) {
+                if (isSpinning) return;
+                e.preventDefault();
+                isDragging = true;
 
-            // Trigger effects (e.g., confetti)
-            triggerConfetti();
-             triggerSpotlight(winningBall.element); // Spotlight on winner
+                dragStartY = e.touches ? e.touches[0].clientY : e.clientY;
+                dragStartTime = performance.now();
+                angularVelocity = 0;
 
-            // Re-enable interactions after a delay
-            gsap.delayedCall(2, () => { // Wait 2 seconds after effects start
-                isSpinning = false;
-                spinButton.disabled = false;
-                 // Reset winning ball highlight
-                 gsap.to(winningBall.element, { scale: 1, boxShadow: 'none', duration: 0.3 });
-                 console.log("可以再次抽選");
-            });
-        }
+                gsap.to(handle, { scale: 1.1, duration: 0.2 });
+                handle.style.cursor = 'grabbing';
+                document.body.style.cursor = 'grabbing'; // Apply to body too
 
-        // --- Effects Functions ---
-        function triggerConfetti() {
-            // if (audio.confetti) audio.confetti.play();
-            const particleCount = 50;
-            const colors = ["#FFD700", "#FF69B4", "#87CEFA", "#ADFF2F"]; // Gold, Pink, Blue, GreenYellow
+                document.addEventListener('mousemove', handleDragMove);
+                document.addEventListener('touchmove', handleDragMove, { passive: false });
+                document.addEventListener('mouseup', handleDragEnd);
+                document.addEventListener('touchend', handleDragEnd);
 
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('div');
-                particle.classList.add('confetti-particle');
-                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                effectsOverlay.appendChild(particle);
+                // Start smooth update loop
+                 cancelAnimationFrame(animationFrameId); // Clear previous loop if any
+                 animationFrameId = requestAnimationFrame(updateDragRotation);
+            }
 
-                // Position randomly at top
-                 gsap.set(particle, {
-                     x: Math.random() * window.innerWidth,
-                     y: -20, // Start above screen
-                     scale: Math.random() * 0.5 + 0.5, // Random size
-                     rotationZ: Math.random() * 360 // Random initial rotation
-                 });
+             let lastDragY = 0;
+             let rotationAccumulator = 0; // Accumulate rotation change per frame
 
-                // Animate falling and fading out using GSAP
-                gsap.to(particle, {
-                    y: window.innerHeight + 20, // Fall off screen
-                    x: `+=${(Math.random() - 0.5) * 300}`, // Horizontal drift
-                    rotationZ: `+=${(Math.random() - 0.5) * 720}`, // Tumble
-                    opacity: 0,
-                    duration: Math.random() * 3 + 2, // Random duration
-                    ease: "power1.in",
-                    delay: Math.random() * 0.5, // Stagger start times
-                     onComplete: () => {
-                         particle.remove(); // Clean up DOM
-                     }
+            function handleDragMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+
+                const currentY = e.touches ? e.touches[0].clientY : e.clientY;
+                 if(lastDragY === 0) lastDragY = currentY; // Initialize lastDragY on first move
+
+                const deltaY = currentY - lastDragY;
+                 rotationAccumulator += deltaY * config.dragSensitivity; // Add delta rotation
+
+                 // Calculate instantaneous velocity (optional, useful for inertia)
+                 const timeNow = performance.now();
+                 const deltaTime = (timeNow - dragStartTime) / 1000 || 0.01;
+                 const totalDeltaY = currentY - dragStartY;
+                 // Make velocity more sensitive to quick flicks
+                 angularVelocity = (deltaY / (performance.now() - (window.lastMoveTime || dragStartTime)) * 1000) * config.dragSensitivity * 5;
+                 window.lastMoveTime = performance.now(); // Store time for next delta calculation
+
+                lastDragY = currentY;
+            }
+
+             // Smoothly update rotation in sync with browser rendering
+             function updateDragRotation() {
+                 if (!isDragging) return;
+
+                 currentYRotation += rotationAccumulator; // Apply accumulated rotation
+                 currentHandleRotation += rotationAccumulator * 0.5; // Handle rotates less
+
+                 gsap.set(machineBody, { rotationY: currentYRotation });
+                 gsap.set(handle, { rotationY: currentHandleRotation });
+
+                 // Simple ball jiggle during drag
+                 tumbleBalls(rotationAccumulator * 0.1); // Pass rotation delta as speed proxy
+
+                 rotationAccumulator = 0; // Reset accumulator for next frame
+
+                 animationFrameId = requestAnimationFrame(updateDragRotation); // Continue loop
+             }
+
+
+            function handleDragEnd(e) {
+                 if (!isDragging) return;
+                 isDragging = false;
+                 cancelAnimationFrame(animationFrameId); // Stop the update loop
+
+                document.removeEventListener('mousemove', handleDragMove);
+                document.removeEventListener('touchmove', handleDragMove);
+                document.removeEventListener('mouseup', handleDragEnd);
+                document.removeEventListener('touchend', handleDragEnd);
+
+                gsap.to(handle, { scale: 1, duration: 0.2 });
+                handle.style.cursor = 'grab';
+                 document.body.style.cursor = 'default';
+                 lastDragY = 0; // Reset last Y position
+
+                const dragDuration = (performance.now() - dragStartTime) / 1000;
+                 // Use the last calculated angular velocity, apply inertia dampening
+                 const inertiaVelocity = angularVelocity * Math.pow(config.inertiaDampening, dragDuration * 60); // Simulate friction over time
+
+                // Trigger inertia spin only if dragged fast enough (quick flick)
+                if (Math.abs(inertiaVelocity) > 100 && dragDuration < 0.8) {
+                    console.log(`手把拖曳結束，啟動慣性旋轉，初速度: ${inertiaVelocity.toFixed(0)} deg/s`);
+                    startSpin(inertiaVelocity);
+                } else {
+                    console.log(`手把拖曳結束，速度 (${inertiaVelocity.toFixed(0)} deg/s) 或 時間 (${dragDuration.toFixed(2)}s) 不足，未觸發慣性`);
+                }
+                 angularVelocity = 0; // Reset velocity
+            }
+
+
+            function handleSpinButtonClick() {
+                if (isSpinning || isDragging) return;
+                console.log("按鈕點擊，啟動旋轉");
+                startSpin(0); // Start with no initial velocity
+            }
+
+            // --- Core Spin Animation ---
+             let spinTween = null; // Reference to the main spin animation
+
+            function startSpin(initialVelocity = 0) {
+                if (isSpinning) return;
+                isSpinning = true;
+                spinButton.disabled = true;
+                resultText.textContent = "抽選中...";
+                resultDisplay.classList.remove('won');
+                resultDisplay.style.color = '#4a3c35'; // Reset color
+
+
+                // Calculate target rotation: current + initial velocity effect + random spins
+                // Add initial velocity contribution to total rotation (simulates momentum)
+                 const velocityContribution = initialVelocity * 0.5; // Adjust impact factor
+                const randomRotations = Math.floor(Math.random() * 4) + 4; // 4-7 full spins
+                const randomExtraAngle = Math.random() * 360;
+                // Ensure minimum rotation even with high negative velocity
+                 const minRotation = 3 * 360;
+                 let targetRotation = currentYRotation + velocityContribution + (randomRotations * 360) + randomExtraAngle;
+
+                 // Ensure we spin at least a minimum amount forward
+                 if (targetRotation < currentYRotation + minRotation) {
+                     targetRotation += Math.ceil((currentYRotation + minRotation - targetRotation) / 360) * 360;
+                 }
+
+
+                const duration = config.spinDuration.min + Math.random() * (config.spinDuration.max - config.spinDuration.min);
+
+                 let lastRotation = currentYRotation; // Track rotation for onUpdate speed calculation
+
+                // Kill previous tween if any (shouldn't happen with isSpinning flag, but safe)
+                if (spinTween) spinTween.kill();
+
+                spinTween = gsap.to(machineBody, {
+                    rotationY: targetRotation,
+                    duration: duration,
+                    ease: "power2.out", // Deceleration ease
+                    onUpdate: () => {
+                        const currentRotation = gsap.getProperty(machineBody, "rotationY");
+                         const deltaRotation = currentRotation - lastRotation;
+                        currentYRotation = currentRotation; // Update global state
+                        lastRotation = currentRotation;
+
+                        // Update handle rotation (less intense)
+                         currentHandleRotation += deltaRotation * 0.5;
+                        gsap.set(handle, { rotationY: currentHandleRotation });
+
+                        // Tumble balls based on rotation speed (deltaRotation)
+                        tumbleBalls(deltaRotation);
+
+                    },
+                    onComplete: () => {
+                        console.log(`旋轉結束，最終角度: ${currentYRotation.toFixed(2)}`);
+                        determineWinner();
+                    }
                 });
             }
-            console.log("觸發彩帶特效");
-        }
 
-         function triggerSpotlight(targetElement) {
-            // This is tricky with pure CSS 3D.
-            // Option 1: A CSS gradient overlay on the scene that 'points' towards the winner.
-            // Option 2: If using Three.js, add a real SpotLight.
-            // Option 3: Fake it with a ::before/::after pseudo-element on the machine or scene.
-             console.log("聚光燈效果 (待實現 - 較複雜)");
-             // Simple Glow Effect on Winner (already done in displayResult)
-        }
+            // --- Ball Tumbling Simulation ---
+             function tumbleBalls(speed) {
+                 const speedFactor = Math.min(Math.abs(speed) * 0.5, 15); // Clamp effect strength
+                 const tumbleIntensity = 1 + speedFactor * 0.1; // Base tumble + speed based
 
-
-        // --- Ball Ejection (Advanced - Optional) ---
-        function ejectBall(ballElement) {
-            // Requires knowing the 'exit' point of the machine model
-            // Use GSAP timeline for complex motion:
-            // 1. Move ball towards exit point inside drum
-            // 2. Animate it 'popping' out (translateZ, maybe scale)
-            // 3. Add bounce physics on the 'ground' (using GSAP physics props or manual eases)
-            console.log("球體彈出效果 (待實現 - 需精確定位)");
-        }
-
-        // --- RWD Handling ---
-        function handleResize() {
-            // Adjust layout, sizes, maybe simplify effects on smaller screens
-            // Example: scale down the entire machine
-            const scaleFactor = Math.min(1, window.innerWidth / 1024); // Scale down if less than 1024px wide
-            gsap.set(machine, { scale: scaleFactor });
-             console.log(`視窗大小改變，縮放因子: ${scaleFactor.toFixed(2)}`);
-            // Re-calculate octagon face positions if dependent on size
-             // setupOctagonFaces(); // Be careful with performance on frequent resize
-        }
-        window.addEventListener('resize', handleResize);
+                 balls.forEach(ball => {
+                      // Quick, small, random movements using GSAP quickSetter/quickTo for performance
+                      // This simulates erratic tumbling and settling
+                     gsap.to(ball.element, {
+                         x: `+=${(Math.random() - 0.5) * tumbleIntensity}`,
+                         y: `+=${(Math.random() - 0.5) * tumbleIntensity * 0.5 + (speedFactor * 0.02)}`, // Slight upward bias when fast
+                         z: `+=${(Math.random() - 0.5) * tumbleIntensity}`,
+                         rotationX: `+=${(Math.random() - 0.5) * speedFactor * 2}`,
+                         rotationZ: `+=${(Math.random() - 0.5) * speedFactor * 2}`,
+                         duration: 0.1, // Short duration for quick jiggles
+                         ease: "power1.out"
+                     });
+                 });
+             }
 
 
-        // --- Start the application ---
-        document.addEventListener('DOMContentLoaded', init);
+            // --- Determine Winner ---
+            function determineWinner() {
+                // Simple random selection from the balls array
+                const winnerIndex = Math.floor(Math.random() * balls.length);
+                const winningBall = balls[winnerIndex];
 
+                console.log(`中獎！ ボール ${winnerIndex + 1}, 獎品: ${winningBall.data.label}`);
+
+                displayResult(winningBall);
+            }
+
+            // --- Display Result & Effects ---
+            function displayResult(winningBall) {
+                resultText.textContent = winningBall.data.label;
+                resultDisplay.classList.add('won');
+                // Use prize color for the text, fallback to default if no color defined
+                resultDisplay.style.color = winningBall.data.color && winningBall.data.color !== '#FFFFFF' // Don't use white text on white bg
+                                             ? winningBall.data.color
+                                             : '#c0392b'; // Fallback to red
+
+                // Highlight the winning ball with GSAP
+                gsap.to(winningBall.element, {
+                    scale: 1.8,
+                    y: "-=10", // Move up slightly
+                    boxShadow: `0 0 25px 15px ${winningBall.element.style.backgroundColor || 'yellow'}`,
+                    duration: 0.6,
+                    ease: "elastic.out(1, 0.5)", // Bouncy effect
+                     yoyo: true, // Briefly pulse
+                     repeat: 1, // Pulse once (total 2 states)
+                    onComplete: () => {
+                        // Ensure scale returns to 1 after pulsing
+                        gsap.to(winningBall.element, { scale: 1, boxShadow: ball.element.style.boxShadow || 'none', duration: 0.3 });
+                    }
+                });
+
+                // Trigger confetti
+                triggerConfetti(winningBall.element.style.backgroundColor);
+
+                // Re-enable interactions after effects play out
+                gsap.delayedCall(2.5, () => {
+                    isSpinning = false;
+                    spinButton.disabled = false;
+                    console.log("抽選結果表示完了。再度抽選可能。");
+                });
+            }
+
+            // --- Effects Functions ---
+            function triggerConfetti(baseColor = '#FFD700') {
+                const particleCount = 60;
+                const colors = [baseColor, "#FF69B4", "#87CEFA", "#FFFACD", "#FFFFFF"]; // Prize color + festive colors
+
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.classList.add('confetti-particle');
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    particle.style.backgroundColor = color;
+                    // Add contrast border for light particles
+                     if (color === '#FFFFFF' || color === '#FFFACD' || color === '#87CEFA') {
+                         particle.style.border = '1px solid rgba(0,0,0,0.2)';
+                     }
+                    effectsOverlay.appendChild(particle);
+
+                    // Position randomly across the top width
+                    const startX = Math.random() * window.innerWidth;
+                     const endX = startX + (Math.random() - 0.5) * 400; // Horizontal drift
+
+                    gsap.set(particle, {
+                        x: startX,
+                        y: -20, // Start above screen
+                        scale: Math.random() * 0.6 + 0.4, // Random size
+                        rotationZ: Math.random() * 360 // Random initial rotation
+                    });
+
+                    // Animate falling, fading, and tumbling
+                    gsap.to(particle, {
+                        y: window.innerHeight + 20, // Fall off screen
+                        x: endX,
+                        rotationZ: `+=${(Math.random() - 0.5) * 1080}`, // Tumble more
+                        rotationX: `+=${(Math.random() - 0.5) * 720}`, // Add X rotation
+                        opacity: 0,
+                        duration: Math.random() * 4 + 3, // Longer duration (3-7s)
+                        ease: "power1.in", // Accelerate slightly as it falls seems more natural for confetti
+                        delay: Math.random() * 0.8, // Stagger start times
+                        onComplete: () => {
+                            particle.remove(); // Clean up DOM
+                        }
+                    });
+                }
+                console.log("🎉 紙吹雪エフェクト発動！");
+            }
+
+
+            // --- RWD Handling ---
+            function handleResize() {
+                console.log("ウィンドウサイズ変更検知");
+                 // Recalculate face position based on new drum width
+                 calculateFaceTranslateZ();
+                 // Reapply transforms to existing faces
+                 const faces = octagonDrum.querySelectorAll('.face');
+                 const angleIncrement = 45;
+                 faces.forEach((face, i) => {
+                     gsap.set(face, {
+                         rotationY: i * angleIncrement,
+                         z: faceTranslateZ,
+                         force3D: true
+                     });
+                 });
+                 // Optional: Adjust ball positions or scene scale if needed
+            }
+
+
+            // --- Start the application ---
+            init();
+
+        }); // End DOMContentLoaded
     </script>
 </body>
 </html>
