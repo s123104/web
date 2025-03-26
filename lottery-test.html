@@ -1,654 +1,1393 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no">
-  <title>雅 (Miyabi) - 日式3D抽選機 (八角側視)</title>
-  <!-- 字體 & FontAwesome -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-  <!-- Three.js 與 Cannon.js (0.6.2) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
-  <!-- GSAP & Draggable -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
-  <!-- Howler 音效 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
-
-  <style>
-    /* === 基礎重置 & 背景 === */
-    * {
-      margin: 0; padding: 0; box-sizing: border-box;
-    }
-    body {
-      font-family: 'Noto Sans TC', sans-serif;
-      background: #FDF6E3;
-      color: #333;
-      -webkit-tap-highlight-color: transparent;
-    }
-    h1 {
-      text-align: center;
-      margin-top: 20px;
-      margin-bottom: 10px;
-      font-family: 'Noto Serif JP', serif;
-    }
-
-    /* === Canvas 容器 === */
-    #canvas-container {
-      width: 100%;
-      max-width: 700px;
-      aspect-ratio: 16 / 9;
-      margin: 10px auto;
-      background-color: #EEE;
-      position: relative;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* === 手把拖曳區 (供 Draggable 用) === */
-    #handleDragTrigger {
-      position: absolute;
-      width: 50px;
-      height: 120px;
-      background: rgba(255, 0, 0, 0); /* 透明區域 */
-      right: 10%;
-      top: 50%;
-      transform: translateY(-50%);
-      cursor: grab;
-      z-index: 10;
-    }
-    #handleDragTrigger:active {
-      cursor: grabbing;
-    }
-
-    /* === 控制面板 === */
-    .control-panel {
-      width: 100%;
-      max-width: 500px;
-      margin: 20px auto;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-      text-align: center;
-    }
-    .result-display {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    .button {
-      display: inline-block;
-      padding: 8px 16px;
-      margin: 6px;
-      border: none;
-      border-radius: 20px;
-      background: #B28046;
-      color: white;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.2s;
-    }
-    .button:hover {
-      background: #8C5E2A;
-      transform: translateY(-2px);
-    }
-    .button:active {
-      transform: translateY(0);
-    }
-    input[type="number"], select {
-      padding: 4px 8px;
-      margin: 4px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-    label {
-      margin: 0 4px;
-    }
-
-    /* === 音效切換 === */
-    .sound-toggle {
-      display: inline-flex;
-      align-items: center;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-    .sound-toggle i {
-      margin-right: 6px;
-      color: #B28046;
-    }
-
-    /* === 粒子特效容器 === */
-    .particles-container {
-      pointer-events: none;
-      position: fixed;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      overflow: hidden;
-      z-index: 100;
-    }
-    .particle {
-      position: absolute;
-      border-radius: 50%;
-      opacity: 0;
-      pointer-events: none;
-      width: 8px; height: 8px;
-    }
-    .confetti {
-      width: 6px; height: 12px; border-radius: 0;
-    }
-
-    /* === 中獎顯示彈窗 === */
-    .winner-display {
-      position: fixed;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.75);
-      z-index: 110;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .winner-content {
-      background: #fff;
-      padding: 20px 30px;
-      border-radius: 10px;
-      text-align: center;
-      max-width: 400px;
-      width: 80%;
-      box-shadow: 0 0 20px rgba(255,255,255,0.3);
-      position: relative;
-    }
-    .winner-ball {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      margin: 0 auto 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 1.5rem;
-      font-weight: bold;
-      box-shadow: inset 0 -5px 10px rgba(0,0,0,0.3), 0 5px 15px rgba(0,0,0,0.3);
-      border: 3px solid rgba(255,255,255,0.5);
-    }
-    .winner-title {
-      font-size: 1.4rem;
-      margin-bottom: 10px;
-      color: #C0392b;
-      font-family: 'Noto Serif JP', serif;
-    }
-    .winner-message {
-      font-size: 1rem;
-      margin-bottom: 20px;
-      color: #333;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>御縁の抽選機 - 日式八角抽選機</title>
+    <!-- 引入字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 引入 GSAP 動畫庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <!-- 引入 Howler.js 音效庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+    <!-- 引入 FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root {
+            --primary: #B28046;
+            --primary-light: #D4AF6A;
+            --primary-dark: #8C5E2A;
+            --accent: #9E2A2B;
+            --background: #F5F5F0;
+            --text: #33281E;
+            --glass: rgba(255, 255, 255, 0.25);
+            --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #F1DB8B 40%, #F8F4E3 50%, #F1DB8B 60%, #D4AF37 100%);
+            --wooden-gradient: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--background);
+            background-image: 
+                radial-gradient(circle at 100% 0%, rgba(178, 128, 70, 0.15) 0%, transparent 60%), 
+                radial-gradient(circle at 0% 100%, rgba(158, 42, 43, 0.1) 0%, transparent 50%);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 20px;
+        }
+        
+        .title-area {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .title-area h1 {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 2.5rem;
+            color: var(--primary-dark);
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .title-area h1::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background: var(--gold-gradient);
+        }
+        
+        .title-area p {
+            font-size: 1rem;
+            color: var(--text);
+            opacity: 0.8;
+        }
+        
+        /* 主要抽選機容器 */
+        .lottery-scene {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            perspective: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* 八角形抽選機 */
+        .lottery-machine {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotateX(10deg);
+            transform-style: preserve-3d;
+            width: 320px;
+            height: 320px;
+            transition: transform 0.5s ease;
+        }
+        
+        .octagon {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+        
+        /* 八個面 */
+        .octagon-face {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 140px;
+            height: 320px;
+            background: var(--glass);
+            border: 2px solid var(--primary-light);
+            backdrop-filter: blur(5px);
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.5);
+            transform-origin: center center;
+            transform-style: preserve-3d;
+            overflow: hidden;
+        }
+        
+        .octagon-face::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                        rgba(255, 255, 255, 0.4) 0%, 
+                        rgba(255, 255, 255, 0.1) 50%, 
+                        rgba(255, 255, 255, 0) 100%);
+            pointer-events: none;
+        }
+        
+        /* 八角形頂部與底部 */
+        .top-cap, .bottom-cap {
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            left: 50%;
+            transform: translateX(-50%) rotateX(90deg);
+            background: var(--gold-gradient);
+            border-radius: 50%;
+            transform-style: preserve-3d;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .top-cap {
+            top: -40px;
+            background-image: var(--gold-gradient);
+        }
+        
+        .top-cap::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+        }
+        
+        .bottom-cap {
+            bottom: -40px;
+            background-image: var(--wooden-gradient);
+        }
+        
+        /* 手把 */
+        .handle-container {
+            position: absolute;
+            width: 40px;
+            height: 300px;
+            right: -100px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: grab;
+            z-index: 5;
+            transform-style: preserve-3d;
+        }
+        
+        .handle {
+            position: absolute;
+            width: 40px;
+            height: 200px;
+            background-color: var(--primary-dark);
+            border-radius: 20px;
+            bottom: 0;
+            transform-origin: bottom center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .handle-knob {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--gold-gradient);
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+            border: 3px solid #D4AF37;
+        }
+        
+        .handle-base {
+            position: absolute;
+            width: 80px;
+            height: 40px;
+            background: var(--wooden-gradient);
+            border-radius: 10px;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 抽選球 */
+        .ball {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transform-style: preserve-3d;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2), 0 0 5px rgba(0, 0, 0, 0.3);
+            color: white;
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* 控制面板 */
+        .control-panel {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border: 1px solid var(--primary-light);
+            z-index: 20;
+        }
+        
+        .result-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 15px 0;
+            padding: 10px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            background-color: rgba(245, 245, 240, 0.7);
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+            color: var(--text);
+        }
+        
+        .result-display.winning {
+            background-color: var(--primary-light);
+            color: var(--text);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(178, 128, 70, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(178, 128, 70, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(178, 128, 70, 0); }
+        }
+        
+        .button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        
+        .button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .button.start {
+            background: var(--accent);
+        }
+        
+        .button.start:hover {
+            background: #7D2122;
+        }
+        
+        .button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 設定面板 */
+        .settings-panel {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .settings-panel h3 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            color: var(--text);
+        }
+        
+        .settings-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .input-group {
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-group label {
+            margin-right: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .input-group input, .input-group select {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-family: inherit;
+        }
+        
+        /* 粒子效果 */
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 30;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            opacity: 0;
+        }
+        
+        /* 燈光效果 */
+        .spotlight {
+            position: absolute;
+            top: -150px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(
+                ellipse at center, 
+                rgba(255, 255, 255, 0.4) 0%,
+                rgba(255, 255, 255, 0) 70%
+            );
+            pointer-events: none;
+            opacity: 0;
+            z-index: 25;
+        }
+        
+        /* 獎項顯示區 */
+        .winner-display {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        
+        .winner-display.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .winner-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 80%;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            transform: scale(0.8);
+            transition: transform 0.5s ease;
+        }
+        
+        .winner-display.show .winner-content {
+            transform: scale(1);
+        }
+        
+        .winner-ball {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        .winner-title {
+            font-size: 1.8rem;
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-family: 'Noto Serif JP', serif;
+        }
+        
+        .winner-message {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .close-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .close-button:hover {
+            background: var(--primary-dark);
+        }
+        
+        /* 音效控制 */
+        .sound-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .sound-toggle {
+            display: flex;
+            align-items: center;
+            margin-left: 15px;
+            cursor: pointer;
+        }
+        
+        .sound-toggle i {
+            margin-right: 5px;
+            color: var(--primary);
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 767px) {
+            .lottery-scene {
+                height: 450px;
+                max-width: 100%;
+            }
+            
+            .lottery-machine {
+                width: 240px;
+                height: 240px;
+            }
+            
+            .octagon-face {
+                width: 100px;
+                height: 240px;
+            }
+            
+            .top-cap, .bottom-cap {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .top-cap::after {
+                width: 140px;
+                height: 140px;
+            }
+            
+            .handle-container {
+                right: -70px;
+                height: 220px;
+            }
+            
+            .handle {
+                height: 150px;
+            }
+            
+            .title-area h1 {
+                font-size: 1.8rem;
+            }
+            
+            .ball {
+                width: 30px;
+                height: 30px;
+                line-height: 30px;
+                font-size: 1rem;
+            }
+            
+            .control-panel {
+                padding: 15px;
+            }
+            
+            .settings-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .winner-content {
+                padding: 20px;
+                max-width: 95%;
+            }
+        }
+        
+        /* 輕量模式的樣式 */
+        body.light-mode .octagon-face {
+            backdrop-filter: none;
+        }
+        
+        /* 動畫 */
+        @keyframes shimmer {
+            0% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.4; }
+        }
+        
+        .shimmer {
+            animation: shimmer 3s infinite;
+        }
+    </style>
 </head>
 <body>
-  <h1>日式3D抽選機 - 八角造型側視</h1>
-
-  <div id="canvas-container"></div>
-  <div id="handleDragTrigger"></div>
-
-  <div class="control-panel">
-    <div class="result-display" id="resultDisplay">準備好了？</div>
-    <button class="button" id="startButton">開始抽選</button>
-    <button class="button" id="resetButton">重置</button>
-    <div>
-      <label for="ballCount">球數量:</label>
-      <input id="ballCount" type="number" value="12" min="5" max="30">
-      <label for="spinSpeed">轉速:</label>
-      <select id="spinSpeed">
-        <option value="0.8">慢</option>
-        <option value="1.0" selected>中</option>
-        <option value="1.3">快</option>
-      </select>
+    <!-- 標題區域 -->
+    <div class="title-area">
+        <h1>御縁の抽選機</h1>
+        <p>緣分天注定，運勢在此時</p>
     </div>
-    <div class="sound-toggle" id="soundToggle">
-      <i class="fas fa-volume-up"></i>
-      <span id="soundStatus">音效開啟</span>
+    
+    <!-- 主要抽選機場景 -->
+    <div class="lottery-scene">
+        <!-- 燈光效果 -->
+        <div class="spotlight"></div>
+        
+        <!-- 八角形抽選機 -->
+        <div class="lottery-machine">
+            <div class="octagon" id="octagon">
+                <!-- 八個面會被JS動態生成 -->
+            </div>
+            <div class="top-cap"></div>
+            <div class="bottom-cap"></div>
+        </div>
+        
+        <!-- 手把 -->
+        <div class="handle-container" id="handleContainer">
+            <div class="handle">
+                <div class="handle-knob"></div>
+            </div>
+            <div class="handle-base"></div>
+        </div>
     </div>
-  </div>
-
-  <div class="particles-container" id="particlesContainer"></div>
-
-  <div class="winner-display" id="winnerDisplay" style="display:none;">
-    <div class="winner-content">
-      <div class="winner-ball" id="winnerBall">?</div>
-      <h2 class="winner-title">恭喜中獎！</h2>
-      <p class="winner-message" id="winnerMessage">您抽中了幸運獎項！</p>
-      <button class="button" id="closeWinner">確認</button>
+    
+    <!-- 控制面板 -->
+    <div class="control-panel">
+        <div class="result-display" id="resultDisplay">
+            準備開始抽選...
+        </div>
+        <div>
+            <button class="button start" id="startButton">開始抽選</button>
+            <button class="button" id="resetButton">重新設置</button>
+        </div>
+        
+        <!-- 設定面板 -->
+        <div class="settings-panel">
+            <h3>抽選設定</h3>
+            <div class="settings-row">
+                <div class="input-group">
+                    <label for="ballCount">球數量:</label>
+                    <input type="number" id="ballCount" min="5" max="30" value="15">
+                </div>
+                <div class="input-group">
+                    <label for="spinSpeed">轉速:</label>
+                    <select id="spinSpeed">
+                        <option value="slow">慢速</option>
+                        <option value="medium" selected>中速</option>
+                        <option value="fast">快速</option>
+                    </select>
+                </div>
+                <div class="sound-controls">
+                    <div class="sound-toggle" id="soundToggle">
+                        <i class="fas fa-volume-up"></i> <span id="soundStatus">音效開啟</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-
-  <script type="module">
-    /* 幹嘛要我貼全部，我都貼了啦 (╯°□°）╯︵ ┻━┻ */
-    const THREE = window.THREE;
-    const CANNON = window.CANNON;
-    const gsap = window.gsap;
-    const Draggable = window.Draggable;
-    const Howl = window.Howl;
-    const Howler = window.Howler;
-
-    // 抓DOM元素
-    const canvasContainer = document.getElementById('canvas-container');
-    const handleDragTrigger = document.getElementById('handleDragTrigger');
-    const resultDisplay = document.getElementById('resultDisplay');
-    const startButton = document.getElementById('startButton');
-    const resetButton = document.getElementById('resetButton');
-    const ballCountInput = document.getElementById('ballCount');
-    const spinSpeedSelect = document.getElementById('spinSpeed');
-    const soundToggle = document.getElementById('soundToggle');
-    const soundStatus = document.getElementById('soundStatus');
-    const winnerDisplay = document.getElementById('winnerDisplay');
-    const winnerBall = document.getElementById('winnerBall');
-    const winnerMessage = document.getElementById('winnerMessage');
-    const closeWinner = document.getElementById('closeWinner');
-    const particlesContainer = document.getElementById('particlesContainer');
-
-    // 全域變數
-    let scene, camera, renderer, world;
-    let drumMesh, drumBody;
-    let balls = [];
-    let isSpinning = false;
-    let currentSpinSpeed = 0, spinTargetSpeed = 0;
-    let spinDeceleration = 0.985;
-    let soundEnabled = true;
-    let lastT = 0;
-
-    // 設定物件
-    const config = {
-      machineRadius: 1.0,
-      machineHeight: 1.2,
-      numFaces: 8, // 八角
-      ballRadius: 0.1,
-      gravity: -9.82,
-      physicsTimeStep: 1 / 60,
-      handleSensitivity: 0.8,
-      baseSpinDuration: 3.5,
-      spinRandomness: 1.5,
-      maxSpinSpeedRad: 18,
-      minSpinVelocity: 1.5,
-      // 權重獎項
-      prizes: [
-        { label: "大吉", color: "#E74C3C", weight: 1 },
-        { label: "中吉", color: "#E67E22", weight: 2 },
-        { label: "小吉", color: "#F1C40F", weight: 3 },
-        { label: "吉",   color: "#2ECC71", weight: 5 },
-        { label: "末吉", color: "#3498DB", weight: 8 },
-        { label: "無念", color: "#95A5A6", weight: 10 }
-      ],
-      particleCount: 60,
-      particleColors: ['#FFD700', '#FFC107', '#FF9800', '#FF69B4', '#FFFFFF']
-    };
-
-    // 音效
-    // 下列是假的Base64音效，只是用最短的wav檔當佔位
-    const sounds = {
-      spin: new Howl({
-        src: [
-          'data:audio/wav;base64,UklGRnIAAABXQVZFZm10IBAAAAABAAEAQB8AAIhYAQACABAAZGF0YVIAAACAgICA'
-        ],
-        volume: 0.5,
-        loop: true
-      }),
-      win: new Howl({
-        src: [
-          'data:audio/wav;base64,UklGRnIAAABXQVZFZm10IBAAAAABAAEAQB8AAIhYAQACABAAZGF0YVIAAACAgICA'
-        ],
-        volume: 0.7
-      }),
-      click: new Howl({
-        src: [
-          'data:audio/wav;base64,UklGRnIAAABXQVZFZm10IBAAAAABAAEAQB8AAIhYAQACABAAZGF0YVIAAACAgICA'
-        ],
-        volume: 0.5
-      })
-    };
-    // 真的要放音樂的話，請自行換成你的音檔連結
-
-    init();
-    animate();
-
-    function init() {
-      // === Three.js ===
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(
-        50,
-        canvasContainer.clientWidth / canvasContainer.clientHeight,
-        0.1,
-        100
-      );
-      camera.position.set(3.5, 1.2, 0);
-      camera.lookAt(0, 0, 0);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
-      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
-      canvasContainer.appendChild(renderer.domElement);
-
-      // 簡單燈光
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-      directionalLight.position.set(3, 5, 2);
-      scene.add(directionalLight);
-      scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-
-      // === Cannon.js ===
-      world = new CANNON.World();
-      world.gravity.set(0, config.gravity, 0);
-      world.broadphase = new CANNON.SAPBroadphase(world);
-      world.allowSleep = true;
-
-      // 地板
-      const groundBody = new CANNON.Body({ type: CANNON.Body.STATIC });
-      const groundShape = new CANNON.Plane();
-      groundBody.addShape(groundShape);
-      groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
-      groundBody.position.y = -1.0;
-      world.addBody(groundBody);
-
-      createMachineModel();
-      resetLottery();
-
-      // 事件監聽
-      startButton.addEventListener('click', handleSpinButtonClick);
-      resetButton.addEventListener('click', handleResetClick);
-      closeWinner.addEventListener('click', () => {
-        winnerDisplay.style.display = 'none';
-      });
-      soundToggle.addEventListener('click', toggleSound);
-
-      Draggable.create(handleDragTrigger, {
-        type: "y",
-        inertia: true,
-        onDragStart: () => {
-          if (soundEnabled) sounds.click.play();
-          gsap.to(handleDragTrigger, { scale: 1.1, duration: 0.1 });
-        },
-        onDragEnd: function () {
-          gsap.to(handleDragTrigger, { scale: 1, duration: 0.3 });
-          gsap.to(this.target, { y: 0, duration: 0.5 });
-          const vy = this.getVelocity("y");
-          const spinVel = -vy * 0.015 * config.handleSensitivity;
-          if (Math.abs(spinVel) > config.minSpinVelocity && !isSpinning) {
-            startSpin(spinVel, config.baseSpinDuration);
-          }
-        }
-      });
-
-      window.addEventListener('resize', onResize);
-    }
-
-    function createMachineModel() {
-      // 建立八角形的鼓
-      const radiusTop = config.machineRadius * 1.0;
-      const radiusBot = config.machineRadius * 1.0;
-      const height = config.machineHeight;
-      const sides = config.numFaces; // 8
-
-      // Three.js 視覺外殼
-      const drumGeo = new THREE.CylinderGeometry(radiusTop, radiusBot, height, sides, 1, false);
-      // 稍微縮放 Z，變扁一點
-      drumGeo.scale(1, 1, 0.6);
-      const drumMat = new THREE.MeshStandardMaterial({
-        color: 0xeaeaea,
-        transparent: true,
-        opacity: 0.7
-      });
-      drumMesh = new THREE.Mesh(drumGeo, drumMat);
-      drumMesh.position.y = -0.2;
-      scene.add(drumMesh);
-
-      // Cannon Body (KINEMATIC)
-      drumBody = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC });
-      const drumShape = new CANNON.Cylinder(radiusTop, radiusBot, height, sides);
-      drumBody.addShape(drumShape);
-      drumBody.position.set(0, -0.2, 0);
-      world.addBody(drumBody);
-    }
-
-    function createBalls(count) {
-      // 先清除舊的
-      balls.forEach(b => {
-        if (b.mesh) scene.remove(b.mesh);
-        if (b.body) world.removeBody(b.body);
-      });
-      balls = [];
-
-      // 構成一個權重獎池
-      let weighted = [];
-      config.prizes.forEach(pr => {
-        for (let i = 0; i < pr.weight; i++) {
-          weighted.push(pr);
-        }
-      });
-
-      // 建立球
-      const ballGeo = new THREE.SphereGeometry(config.ballRadius, 16, 12);
-      for (let i = 0; i < count; i++) {
-        // 從權重裡隨機抽
-        const p = weighted[Math.floor(Math.random() * weighted.length)];
-        const mat = new THREE.MeshStandardMaterial({ color: p.color });
-        const mesh = new THREE.Mesh(ballGeo, mat);
-        scene.add(mesh);
-
-        // 隨機位置，放在底部附近
-        const x = (Math.random() - 0.5) * 0.5;
-        const z = (Math.random() - 0.5) * 0.5;
-        const y = -0.5 + Math.random() * 0.3;
-
-        const body = new CANNON.Body({
-          mass: 0.05,
-          shape: new CANNON.Sphere(config.ballRadius),
-          position: new CANNON.Vec3(x, y, z),
-          linearDamping: 0.2,
-          angularDamping: 0.2
+    
+    <!-- 粒子效果容器 -->
+    <div class="particles-container" id="particlesContainer"></div>
+    
+    <!-- 獎項顯示區 -->
+    <div class="winner-display" id="winnerDisplay">
+        <div class="winner-content">
+            <div class="winner-ball" id="winnerBall"></div>
+            <h2 class="winner-title">恭喜中獎！</h2>
+            <p class="winner-message" id="winnerMessage">您抽中了神秘獎項！</p>
+            <button class="close-button" id="closeWinner">確認</button>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 基本設定與變數
+            const octagonContainer = document.getElementById('octagon');
+            const handleContainer = document.getElementById('handleContainer');
+            const handle = handleContainer.querySelector('.handle');
+            const resultDisplay = document.getElementById('resultDisplay');
+            const startButton = document.getElementById('startButton');
+            const resetButton = document.getElementById('resetButton');
+            const ballCountInput = document.getElementById('ballCount');
+            const spinSpeedSelect = document.getElementById('spinSpeed');
+            const soundToggle = document.getElementById('soundToggle');
+            const soundStatus = document.getElementById('soundStatus');
+            const particlesContainer = document.getElementById('particlesContainer');
+            const spotlight = document.querySelector('.spotlight');
+            const winnerDisplay = document.getElementById('winnerDisplay');
+            const winnerBall = document.getElementById('winnerBall');
+            const winnerMessage = document.getElementById('winnerMessage');
+            const closeWinner = document.getElementById('closeWinner');
+            
+            // 全局變數
+            let isSpinning = false;
+            let spinSpeed = 0;
+            let spinAngle = 0;
+            let spinInterval = null;
+            let balls = [];
+            let soundEnabled = true;
+            let isLightMode = false;
+            let dragStartY = 0;
+            let handleAngle = 0;
+            let handleVelocity = 0;
+            let lastDragY = 0;
+            let isDragging = false;
+            let lastDrawTime = 0;
+            
+            // 定義獎項
+            const prizes = [
+                { label: "大吉", color: "#E74C3C", weight: 1 },
+                { label: "中吉", color: "#E67E22", weight: 2 },
+                { label: "小吉", color: "#F1C40F", weight: 3 },
+                { label: "吉", color: "#2ECC71", weight: 5 },
+                { label: "末吉", color: "#3498DB", weight: 8 },
+                { label: "凶", color: "#9B59B6", weight: 3 },
+                { label: "大凶", color: "#34495E", weight: 1 }
+            ];
+            
+            // 音效設定
+            const sounds = {
+                spin: new Howl({
+                    src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUHh4eHh4qKioqKioqNDQ0NDRAQEBAQEBMTExMTExMWFhYWFhkZGRkZGRwcHBwcHB8fHx8fHyIiIiIiIiIlJSUlJSUnJycnJyouLi4uLi4xMTExMTE0NDQ0NDQ0NDc3Nzc3Nzc6Ojo6Oj09PT09PT///8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAQoAAAAAAAeMwGvI84AAAAAAAAAAAAAAAAA//uQwAALcABEnCAAACNCwQnG8gAQAYRERERERERRAAIR5zjn5uecIQhEQnOOcABAIBAMBAIThCcIQhCEIQiIiIiRERERI='],
+                    volume: 0.5,
+                    loop: true
+                }),
+                win: new Howl({
+                    src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tUwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAeAAAyQAAFBQsLERERFxwcHCIiIigvLy8vNTU1Ozs7O0FBQUdNTU1NUlJSWFhYWF5eXmRpaWlpcG9vdnZ2dnx8fIKCgoKIiIiOlJSUlJqamp+fn5+mp6enrKyssbGxscbGxs3NzdLY2Nja4ODg4Obj4+no6Ojv7+/v9PT0+fn5+f///wAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQEKQAAAAAAAAAAAAAAAA//+xDEAAPAAAGkAAAAIAAANIAAAARMQU1FMy45OS41VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7IMQFg8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ=='],
+                    volume: 0.8
+                }),
+                click: new Howl({
+                    src: ['data:audio/mp3;base64,SUQzAwAAAAAAJlRQRTEAAAAcAAAAU291bmRKYXkuY29tIFNvdW5kIEVmZmVjdHMA//uQxAADwAABpAAAACAAADSAAAAETEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU='],
+                    volume: 0.6
+                }),
+                bounce: new Howl({
+                    src: ['data:audio/mp3;base64,SUQzAwAAAAAAJlRQRTEAAAAcAAAAU291bmRKYXkuY29tIFNvdW5kIEVmZmVjdHMA//uUxAADwAABpAAAACAAADSAAAAETEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU='],
+                    volume: 0.4,
+                    pool: 5 // 允許多個音效同時播放
+                })
+            };
+            
+            // 響應式設計相關
+            function checkDevicePerformance() {
+                // 檢測裝置性能
+                const isMobile = window.innerWidth <= 767;
+                const isLowPerformance = isMobile || navigator.hardwareConcurrency <= 4;
+                
+                // 若裝置性能較低，使用輕量模式
+                if (isLowPerformance) {
+                    document.body.classList.add('light-mode');
+                    isLightMode = true;
+                }
+                
+                return { isMobile, isLowPerformance };
+            }
+            
+            // 建立八角形
+            function createOctagon() {
+                octagonContainer.innerHTML = '';
+                const numFaces = 8;
+                const angleIncrement = 360 / numFaces;
+                
+                for (let i = 0; i < numFaces; i++) {
+                    const face = document.createElement('div');
+                    face.className = 'octagon-face';
+                    face.style.transform = `rotateY(${i * angleIncrement}deg) translateZ(140px)`;
+                    octagonContainer.appendChild(face);
+                }
+            }
+            
+            // 生成加權隨機獎項
+            function getRandomPrize() {
+                // 計算總權重
+                let totalWeight = 0;
+                for (const prize of prizes) {
+                    totalWeight += prize.weight;
+                }
+                
+                // 獲得一個介於0到totalWeight之間的隨機數
+                const random = Math.random() * totalWeight;
+                
+                // 根據權重選擇獎項
+                let weightSum = 0;
+                for (const prize of prizes) {
+                    weightSum += prize.weight;
+                    if (random < weightSum) {
+                        return prize;
+                    }
+                }
+                
+                // 以防萬一，返回最後一個獎項
+                return prizes[prizes.length - 1];
+            }
+            
+            // 生成彈珠
+            function createBalls(count) {
+                balls = [];
+                
+                // 清除現有球
+                const existingBalls = document.querySelectorAll('.ball');
+                existingBalls.forEach(ball => ball.remove());
+                
+                // 創建新的球
+                for (let i = 0; i < count; i++) {
+                    const ball = document.createElement('div');
+                    ball.className = 'ball';
+                    
+                    // 根據獎項權重隨機選擇獎項
+                    const prize = getRandomPrize();
+                    ball.textContent = prize.label;
+                    ball.style.backgroundColor = prize.color;
+                    ball.dataset.prize = prize.label;
+                    
+                    // 初始化球的位置，確保在抽選機中部集中
+                    const phi = Math.acos(2 * Math.random() - 1) - Math.PI/2;
+                    const theta = Math.random() * Math.PI * 2;
+                    
+                    // 縮小初始半徑，使球更集中
+                    const radius = 40 + Math.random() * 40;  // 較小的半徑
+                    const x = 130 + radius * Math.cos(theta) * Math.cos(phi);
+                    const y = 130 + radius * Math.sin(phi);
+                    const z = radius * Math.sin(theta) * Math.cos(phi);
+                    
+                    ball.style.left = `${x}px`;
+                    ball.style.top = `${y}px`;
+                    
+                    document.querySelector('.lottery-machine').appendChild(ball);
+                    
+                    balls.push({
+                        element: ball,
+                        x: x,
+                        y: y,
+                        z: z,
+                        vx: 0,  // 初始速度為0，靜止狀態
+                        vy: 0,
+                        vz: 0,
+                        prize: prize
+                    });
+                }
+                
+                return balls;
+            }
+            
+            // 更新球位置
+            function updateBallPositions() {
+                const maxRadius = 110; // 八角形內部半徑，略小於真實半徑，防止球出界
+                const radiusSquared = maxRadius * maxRadius;
+                const center = { x: 130, y: 130, z: 0 };
+                const friction = 0.98;  // 每次更新減少的摩擦力
+                const spinFactor = spinSpeed * 0.05;  // 旋轉因子
+                
+                balls.forEach(ball => {
+                    // 旋轉影響
+                    const rotationEffect = spinFactor * (ball.z / maxRadius);
+                    ball.vx += rotationEffect;
+                    
+                    // 增加微小的重力作用，讓球有下墜感
+                    ball.vy += 0.02;
+                    
+                    // 更新速度和位置
+                    ball.x += ball.vx;
+                    ball.y += ball.vy;
+                    ball.z += ball.vz;
+                    
+                    // 應用摩擦力
+                    ball.vx *= friction;
+                    ball.vy *= friction;
+                    ball.vz *= friction;
+                    
+                    // 檢查邊界碰撞
+                    const dx = ball.x - center.x;
+                    const dy = ball.y - center.y;
+                    const dz = ball.z;
+                    const distanceSquared = dx * dx + dy * dy + dz * dz;
+                    
+                    if (distanceSquared > radiusSquared) {
+                        // 碰撞邊界
+                        const distance = Math.sqrt(distanceSquared);
+                        const nx = dx / distance;
+                        const ny = dy / distance;
+                        const nz = dz / distance;
+                        
+                        // 計算碰撞前的速度大小，用於判斷是否發出反彈音效
+                        const oldVel = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy + ball.vz * ball.vz);
+                        
+                        // 反射速度
+                        const dotProduct = ball.vx * nx + ball.vy * ny + ball.vz * nz;
+                        ball.vx = ball.vx - 2 * dotProduct * nx;
+                        ball.vy = ball.vy - 2 * dotProduct * ny;
+                        ball.vz = ball.vz - 2 * dotProduct * nz;
+                        
+                        // 稍微增加彈性，使球動作更有活力
+                        ball.vx *= 1.01;
+                        ball.vy *= 1.01;
+                        ball.vz *= 1.01;
+                        
+                        // 修正位置
+                        const correction = maxRadius - distance;
+                        ball.x += nx * correction;
+                        ball.y += ny * correction;
+                        ball.z += nz * correction;
+                        
+                        // 播放反彈音效，但僅在速度較大時 
+                        if (soundEnabled && oldVel > 0.5 && Math.random() < 0.3) {
+                            sounds.bounce.play();
+                        }
+                    }
+                    
+                    // 檢查球與球之間的碰撞
+                    for (let i = balls.indexOf(ball) + 1; i < balls.length; i++) {
+                        const otherBall = balls[i];
+                        const dx = ball.x - otherBall.x;
+                        const dy = ball.y - otherBall.y;
+                        const dz = ball.z - otherBall.z;
+                        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        const minDist = 35;  // 兩球最小距離 (球直徑)
+                        
+                        if (distance < minDist) {
+                            // 計算法線
+                            const nx = dx / distance;
+                            const ny = dy / distance;
+                            const nz = dz / distance;
+                            
+                            // 計算碰撞前總動能
+                            const oldKE = ball.vx * ball.vx + ball.vy * ball.vy + ball.vz * ball.vz +
+                                      otherBall.vx * otherBall.vx + otherBall.vy * otherBall.vy + otherBall.vz * otherBall.vz;
+                            
+                            // 分離球體，防止黏在一起
+                            const correction = (minDist - distance) / 2;
+                            ball.x += nx * correction;
+                            ball.y += ny * correction;
+                            ball.z += nz * correction;
+                            otherBall.x -= nx * correction;
+                            otherBall.y -= ny * correction;
+                            otherBall.z -= nz * correction;
+                            
+                            // 計算碰撞反應 (彈性碰撞)
+                            const dotProduct1 = ball.vx * nx + ball.vy * ny + ball.vz * nz;
+                            const dotProduct2 = otherBall.vx * nx + otherBall.vy * ny + otherBall.vz * nz;
+                            
+                            // 更新速度 (簡化的彈性碰撞)
+                            const dampening = 0.9;  // 碰撞能量損失因子
+                            
+                            ball.vx = (ball.vx - dotProduct1 * nx) * dampening;
+                            ball.vy = (ball.vy - dotProduct1 * ny) * dampening;
+                            ball.vz = (ball.vz - dotProduct1 * nz) * dampening;
+                            
+                            otherBall.vx = (otherBall.vx - dotProduct2 * -nx) * dampening;
+                            otherBall.vy = (otherBall.vy - dotProduct2 * -ny) * dampening;
+                            otherBall.vz = (otherBall.vz - dotProduct2 * -nz) * dampening;
+                            
+                            // 計算碰撞後總動能
+                            const newKE = ball.vx * ball.vx + ball.vy * ball.vy + ball.vz * ball.vz +
+                                      otherBall.vx * otherBall.vx + otherBall.vy * otherBall.vy + otherBall.vz * otherBall.vz;
+                            
+                            // 判定是否發出碰撞音效
+                            if (soundEnabled && (oldKE > 1.0 || newKE > 1.0) && Math.random() < 0.2) {
+                                sounds.bounce.play();
+                            }
+                        }
+                    }
+                    
+                    // 更新視覺位置，基於透視投影
+                    const scale = 0.5 + ((ball.z + maxRadius) / (2 * maxRadius));
+                    
+                    ball.element.style.transform = `translate3d(${ball.x}px, ${ball.y}px, ${ball.z}px) scale(${scale})`;
+                    ball.element.style.zIndex = Math.floor(ball.z + 1000);
+                    
+                    // 基於z位置調整透明度，讓近的球更清晰
+                    const opacity = (ball.z + maxRadius) / (2 * maxRadius);
+                    ball.element.style.opacity = 0.5 + opacity * 0.5;
+                });
+            }
+            
+            // 旋轉八角形
+            function rotateOctagon() {
+                spinAngle += spinSpeed;
+                octagonContainer.style.transform = `rotateY(${spinAngle}deg)`;
+                
+                if (isSpinning) {
+                    // 減速直到停止
+                    spinSpeed *= 0.995;
+                    
+                    if (spinSpeed < 0.2) {
+                        stopSpinning();
+                    }
+                }
+            }
+            
+            // 動畫循環
+            function animate(timestamp) {
+                if (!lastDrawTime) lastDrawTime = timestamp;
+                const deltaTime = timestamp - lastDrawTime;
+                lastDrawTime = timestamp;
+                
+                // 限制更新頻率以提高性能
+                if (deltaTime < 1000 / 30) {
+                    rotateOctagon();
+                    updateBallPositions();
+                }
+                
+                // 處理手把動畫
+                if (isDragging) {
+                    // 計算拖曳速度
+                    handleVelocity = handleVelocity * 0.9 + (lastDragY - dragStartY) * 0.1;
+                } else if (Math.abs(handleAngle) > 0) {
+                    // 手把回彈
+                    handleAngle *= 0.85;
+                    handle.style.transform = `rotate(${handleAngle}deg)`;
+                    
+                    if (Math.abs(handleAngle) < 0.5) {
+                        handleAngle = 0;
+                        handle.style.transform = '';
+                    }
+                }
+                
+                requestAnimationFrame(animate);
+            }
+            
+            // 開始抽選
+            function startSpinning() {
+                if (isSpinning) return;
+                
+                isSpinning = true;
+                resultDisplay.textContent = '抽選中...';
+                resultDisplay.classList.remove('winning');
+                
+                // 根據選擇的速度設定
+                const speedMap = {
+                    slow: 2,
+                    medium: 4,
+                    fast: 6
+                };
+                spinSpeed = speedMap[spinSpeedSelect.value];
+                
+                // 啟動音效
+                if (soundEnabled) {
+                    sounds.spin.play();
+                }
+                
+                // 開啟燈光效果
+                gsap.to(spotlight, {
+                    opacity: 0.8,
+                    duration: 1,
+                    ease: 'power2.inOut'
+                });
+                
+                // 為每個球添加速度
+                balls.forEach(ball => {
+                    // 給每個球添加隨機的初始速度
+                    ball.vx += (Math.random() - 0.5) * 2;
+                    ball.vy += (Math.random() - 0.5) * 2;
+                    ball.vz += (Math.random() - 0.5) * 2;
+                });
+                
+                // 禁用按鈕
+                startButton.disabled = true;
+                resetButton.disabled = true;
+                
+                // 設置自動停止計時器
+                setTimeout(function() {
+                    if (isSpinning) {
+                        // 開始減速
+                        spinSpeed *= 0.9;
+                    }
+                }, 3000 + Math.random() * 2000);
+            }
+            
+            // 停止抽選並顯示結果
+            function stopSpinning() {
+                isSpinning = false;
+                spinSpeed = 0;
+                
+                // 停止音效
+                if (soundEnabled) {
+                    sounds.spin.stop();
+                }
+                
+                // 關閉燈光效果
+                gsap.to(spotlight, {
+                    opacity: 0,
+                    duration: 1,
+                    ease: 'power2.inOut'
+                });
+                
+                // 選擇獲獎球（稍微偏向底部的球）
+                let winnerIndex = 0;
+                let lowestY = -Infinity;
+                
+                for (let i = 0; i < balls.length; i++) {
+                    // 加大權重讓底部的球更可能被選中
+                    const yPosition = balls[i].y;
+                    const randomBoost = Math.random() * 40; // 隨機因子
+                    const effectiveY = yPosition + randomBoost;
+                    
+                    if (effectiveY > lowestY) {
+                        lowestY = effectiveY;
+                        winnerIndex = i;
+                    }
+                }
+                
+                const winner = balls[winnerIndex];
+                
+                // 產生粒子效果
+                createParticleEffect(winner);
+                
+                // 顯示獲獎球
+                gsap.to(winner.element, {
+                    scale: 1.5,
+                    boxShadow: '0 0 20px rgba(255, 215, 0, 0.8)',
+                    duration: 0.5,
+                    yoyo: true,
+                    repeat: 3,
+                    onComplete: function() {
+                        // 顯示獲獎資訊
+                        showWinner(winner);
+                    }
+                });
+                
+                // 重新啟用按鈕
+                startButton.disabled = false;
+                resetButton.disabled = false;
+            }
+            
+            // 顯示獲獎結果
+            function showWinner(winner) {
+                // 播放勝利音效
+                if (soundEnabled) {
+                    sounds.win.play();
+                }
+                
+                // 設置獲獎球顯示
+                winnerBall.style.backgroundColor = winner.prize.color;
+                winnerBall.textContent = winner.prize.label;
+                
+                // 設置獲獎訊息
+                const messages = [
+                    '恭喜！您的幸運選擇！',
+                    '命運之神眷顧了您！',
+                    '福氣降臨，恭喜中獎！',
+                    '今日良辰吉時，恭喜您！',
+                    '緣分天注定，這個獎項屬於您！'
+                ];
+                winnerMessage.textContent = messages[Math.floor(Math.random() * messages.length)];
+                
+                // 更新結果顯示
+                resultDisplay.textContent = `抽中: ${winner.prize.label}`;
+                resultDisplay.classList.add('winning');
+                
+                // 顯示獲獎彈窗
+                winnerDisplay.classList.add('show');
+                
+                gsap.fromTo(winnerDisplay.querySelector('.winner-content'), 
+                    { scale: 0.5, opacity: 0 },
+                    { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }
+                );
+            }
+            
+            // 粒子效果
+            function createParticleEffect(winner) {
+                if (isLightMode) return; // 輕量模式跳過粒子效果
+                
+                const particleCount = 50;
+                const colors = ['#FFD700', '#FFC107', '#FF9800', '#FF5722', '#F44336'];
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    
+                    // 隨機顏色
+                    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // 設定初始位置為獲獎球
+                    const ballRect = winner.element.getBoundingClientRect();
+                    const x = ballRect.left + ballRect.width / 2;
+                    const y = ballRect.top + ballRect.height / 2;
+                    
+                    particle.style.left = `${x}px`;
+                    particle.style.top = `${y}px`;
+                    
+                    particlesContainer.appendChild(particle);
+                    
+                    // 粒子動畫
+                    gsap.to(particle, {
+                        x: (Math.random() - 0.5) * 200,
+                        y: (Math.random() - 0.5) * 200,
+                        opacity: 1,
+                        scale: Math.random() * 2 + 1,
+                        duration: 0.1,
+                        onComplete: function() {
+                            gsap.to(particle, {
+                                x: (Math.random() - 0.5) * 400,
+                                y: (Math.random() - 0.5) * 400,
+                                opacity: 0,
+                                scale: 0,
+                                duration: Math.random() * 2 + 1,
+                                ease: 'power2.out',
+                                onComplete: function() {
+                                    particle.remove();
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+            
+            // 重設抽選機
+            function resetLottery() {
+                // 停止旋轉
+                isSpinning = false;
+                spinSpeed = 0;
+                
+                // 停止音效
+                if (soundEnabled) {
+                    sounds.spin.stop();
+                }
+                
+                // 重置顯示
+                resultDisplay.textContent = '準備開始抽選...';
+                resultDisplay.classList.remove('winning');
+                
+                // 隱藏獲獎顯示
+                winnerDisplay.classList.remove('show');
+                
+                // 重新創建球
+                const ballCount = parseInt(ballCountInput.value, 10);
+                const validCount = Math.min(Math.max(ballCount, 5), 30); // 確保在5-30之間
+                createBalls(validCount);
+                
+                // 啟用按鈕
+                startButton.disabled = false;
+                resetButton.disabled = false;
+            }
+            
+            // 處理手把拖曳
+            function handleDrag() {
+                handleContainer.addEventListener('mousedown', startDrag);
+                handleContainer.addEventListener('touchstart', startDrag, { passive: false });
+                
+                document.addEventListener('mousemove', moveDrag);
+                document.addEventListener('touchmove', moveDrag, { passive: false });
+                
+                document.addEventListener('mouseup', endDrag);
+                document.addEventListener('touchend', endDrag);
+                
+                // 開始拖曳
+                function startDrag(e) {
+                    if (isSpinning) return;
+                    
+                    e.preventDefault();
+                    isDragging = true;
+                    
+                    // 記錄初始位置
+                    if (e.type === 'mousedown') {
+                        dragStartY = e.clientY;
+                    } else if (e.type === 'touchstart') {
+                        dragStartY = e.touches[0].clientY;
+                    }
+                    
+                    lastDragY = dragStartY;
+                    handleContainer.style.cursor = 'grabbing';
+                }
+                
+                // 拖曳移動
+                function moveDrag(e) {
+                    if (!isDragging) return;
+                    
+                    let currentY;
+                    if (e.type === 'mousemove') {
+                        currentY = e.clientY;
+                    } else if (e.type === 'touchmove') {
+                        e.preventDefault();
+                        currentY = e.touches[0].clientY;
+                    }
+                    
+                    // 計算移動距離和角度
+                    const deltaY = currentY - dragStartY;
+                    handleAngle = Math.min(45, Math.max(-45, deltaY / 3));
+                    
+                    // 設置手把旋轉
+                    handle.style.transform = `rotate(${handleAngle}deg)`;
+                    
+                    // 更新上次拖曳位置
+                    lastDragY = currentY;
+                }
+                
+                // 結束拖曳
+                function endDrag() {
+                    if (!isDragging) return;
+                    
+                    isDragging = false;
+                    handleContainer.style.cursor = 'grab';
+                    
+                    // 檢查是否有足夠速度啟動抽選
+                    const velocity = Math.abs(handleVelocity);
+                    if (velocity > 10 && !isSpinning) {
+                        // 播放點擊音效
+                        if (soundEnabled) {
+                            sounds.click.play();
+                        }
+                        
+                        // 開始抽選
+                        startSpinning();
+                        
+                        // 增加初始旋轉速度，速度方向基於拖曳方向
+                        const direction = Math.sign(lastDragY - dragStartY) || -1;
+                        spinSpeed += velocity * 0.05 * direction;
+                    }
+                }
+            }
+            
+            // 音量控制
+            function toggleSound() {
+                soundEnabled = !soundEnabled;
+                
+                if (soundEnabled) {
+                    soundStatus.textContent = "音效開啟";
+                    soundToggle.querySelector('i').className = "fas fa-volume-up";
+                    if (isSpinning) {
+                        sounds.spin.play();
+                    }
+                } else {
+                    soundStatus.textContent = "音效關閉";
+                    soundToggle.querySelector('i').className = "fas fa-volume-mute";
+                    sounds.spin.stop();
+                }
+            }
+            
+            // 初始化設置
+            function init() {
+                // 檢查裝置性能
+                const { isMobile } = checkDevicePerformance();
+                
+                // 創建八角形
+                createOctagon();
+                
+                // 創建球
+                const initialBallCount = parseInt(ballCountInput.value, 10);
+                const validCount = Math.min(Math.max(initialBallCount, 5), 30); // 確保在5-30之間
+                ballCountInput.value = validCount; // 更新輸入框顯示值
+                createBalls(validCount);
+                
+                // 設置手把拖曳
+                handleDrag();
+                
+                // 開始動畫循環
+                requestAnimationFrame(animate);
+                
+                // 按鈕事件
+                startButton.addEventListener('click', function() {
+                    if (!isSpinning) {
+                        startSpinning();
+                        
+                        // 播放點擊音效
+                        if (soundEnabled) {
+                            sounds.click.play();
+                        }
+                    }
+                });
+                
+                resetButton.addEventListener('click', function() {
+                    resetLottery();
+                    
+                    // 播放點擊音效
+                    if (soundEnabled) {
+                        sounds.click.play();
+                    }
+                });
+                
+                // 音效開關
+                soundToggle.addEventListener('click', toggleSound);
+                
+                // 關閉獲獎彈窗
+                closeWinner.addEventListener('click', function() {
+                    winnerDisplay.classList.remove('show');
+                    
+                    // 播放點擊音效
+                    if (soundEnabled) {
+                        sounds.click.play();
+                    }
+                });
+                
+                // 監聽球數量變化
+                ballCountInput.addEventListener('change', function() {
+                    let value = parseInt(this.value, 10);
+                    
+                    // 限制範圍
+                    if (value < 5) value = 5;
+                    if (value > 30) value = 30;
+                    
+                    this.value = value;
+                    resetLottery();
+                });
+                
+                // 移動裝置優化
+                if (isMobile) {
+                    // 調整手把位置和大小
+                    handleContainer.style.right = '-60px';
+                    
+                    // 提示使用按鈕
+                    resultDisplay.textContent = '點擊開始按鈕來抽選！';
+                }
+            }
+            
+            // 啟動應用
+            init();
         });
-        body.userData = { prize: p, mesh: mesh };
-        world.addBody(body);
-
-        balls.push({ mesh, body, prize: p });
-      }
-    }
-
-    function resetLottery() {
-      // 重置狀態
-      isSpinning = false;
-      spinTargetSpeed = 0;
-      currentSpinSpeed = 0;
-      if (drumBody) {
-        drumBody.quaternion.set(0, 0, 0, 1);
-        drumBody.angularVelocity.setZero();
-      }
-      createBalls(parseInt(ballCountInput.value, 10) || 12);
-      resultDisplay.textContent = "準備抽選";
-      winnerDisplay.style.display = 'none';
-    }
-
-    function startSpin(initialVel, duration) {
-      isSpinning = true;
-      resultDisplay.textContent = "轉動中...";
-      if (soundEnabled) sounds.spin.play();
-
-      const spinFactor = parseFloat(spinSpeedSelect.value);
-      spinTargetSpeed = THREE.MathUtils.clamp(
-        Math.abs(initialVel) + 10 * spinFactor,
-        config.minSpinVelocity * spinFactor,
-        config.maxSpinSpeedRad * spinFactor
-      ) * Math.sign(initialVel || 1);
-
-      gsap.delayedCall(duration + Math.random() * config.spinRandomness, () => {
-        spinTargetSpeed = 0; // 開始減速
-      });
-    }
-
-    function handleSpinButtonClick() {
-      if (!isSpinning) {
-        if (soundEnabled) sounds.click.play();
-        startSpin(-2, config.baseSpinDuration);
-      }
-    }
-
-    function handleResetClick() {
-      if (soundEnabled) sounds.click.play();
-      resetLottery();
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-      updatePhysics();
-      renderer.render(scene, camera);
-    }
-
-    function updatePhysics() {
-      const now = performance.now() / 1000;
-      const dt = now - lastT;
-      lastT = now;
-      const fixedDt = config.physicsTimeStep;
-
-      // 處理轉動
-      if (isSpinning) {
-        currentSpinSpeed = THREE.MathUtils.lerp(currentSpinSpeed, spinTargetSpeed, 0.05);
-        if (spinTargetSpeed === 0 && Math.abs(currentSpinSpeed) > 0.05) {
-          currentSpinSpeed *= spinDeceleration;
-        } else if (spinTargetSpeed === 0 && Math.abs(currentSpinSpeed) <= 0.05) {
-          currentSpinSpeed = 0;
-          isSpinning = false;
-          if (sounds.spin.playing()) sounds.spin.stop();
-          gsap.delayedCall(1.5, determineWinner);
-        }
-      } else {
-        currentSpinSpeed = THREE.MathUtils.lerp(currentSpinSpeed, 0, 0.1);
-      }
-
-      if (drumBody) {
-        drumBody.angularVelocity.set(0, currentSpinSpeed, 0);
-      }
-
-      // step
-      world.step(fixedDt, dt, 3);
-
-      // sync
-      if (drumMesh && drumBody) {
-        drumMesh.quaternion.copy(drumBody.quaternion);
-      }
-      for (const b of balls) {
-        if (!b.body) continue;
-        b.mesh.position.copy(b.body.position);
-        b.mesh.quaternion.copy(b.body.quaternion);
-      }
-    }
-
-    function determineWinner() {
-      let winner = balls[0];
-      let minY = 9999;
-      for (const b of balls) {
-        if (b.body.position.y < minY) {
-          minY = b.body.position.y;
-          winner = b;
-        }
-      }
-      if (winner) {
-        displayWinner(winner);
-        ejectBall(winner);
-      }
-    }
-
-    function displayWinner(w) {
-      resultDisplay.textContent = `恭喜！中到 ${w.prize.label}`;
-      if (soundEnabled) sounds.win.play();
-      winnerBall.style.backgroundColor = w.prize.color;
-      winnerBall.textContent = w.prize.label;
-      winnerMessage.textContent = `您抽中了 ${w.prize.label}，好運連發！`;
-      winnerDisplay.style.display = 'flex';
-      triggerParticleEffect(w.mesh);
-    }
-
-    function ejectBall(w) {
-      const mesh = w.mesh;
-      const body = w.body;
-      world.removeBody(body);
-
-      gsap.to(mesh.position, {
-        duration: 1,
-        y: -1.2,
-        ease: "power2.in",
-        onComplete: () => {
-          scene.remove(mesh);
-          balls = balls.filter(b => b !== w);
-        }
-      });
-    }
-
-    function onResize() {
-      const w = canvasContainer.clientWidth;
-      const h = canvasContainer.clientHeight;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    }
-
-    function toggleSound() {
-      soundEnabled = !soundEnabled;
-      soundStatus.textContent = soundEnabled ? "音效開啟" : "音效關閉";
-      soundToggle.querySelector('i').className = soundEnabled ? "fas fa-volume-up" : "fas fa-volume-mute";
-      Howler.mute(!soundEnabled);
-    }
-
-    // 粒子特效 (隨便做個簡單的)
-    function triggerParticleEffect(targetMesh) {
-      if (!targetMesh) return;
-      const screenPos = toScreenPosition(targetMesh, camera, canvasContainer);
-      if (!screenPos) return;
-      for (let i = 0; i < config.particleCount; i++) {
-        const particle = document.createElement('div');
-        const isConfetti = Math.random() > 0.4;
-        particle.className = `particle ${isConfetti ? 'confetti' : ''}`;
-        particle.style.backgroundColor = config.particleColors[Math.floor(Math.random() * config.particleColors.length)];
-        particlesContainer.appendChild(particle);
-
-        gsap.set(particle, {
-          x: screenPos.x,
-          y: screenPos.y,
-          opacity: 1,
-          scale: Math.random() * 1 + 0.5,
-          rotation: Math.random() * 180
-        });
-        gsap.to(particle, {
-          x: `+=${(Math.random() - 0.5) * 400}`,
-          y: `+=${(Math.random() - 0.5) * 400}`,
-          opacity: 0,
-          scale: 0.1,
-          rotation: `+=${Math.random() * 360 - 180}`,
-          duration: Math.random() * 1.5 + 1,
-          ease: "power2.out",
-          onComplete: () => particle.remove()
-        });
-      }
-    }
-
-    // 物件投影到螢幕座標
-    function toScreenPosition(obj, camera, container) {
-      if (!obj || !obj.matrixWorld) return null;
-      const vector = new THREE.Vector3();
-      vector.setFromMatrixPosition(obj.matrixWorld);
-      vector.project(camera);
-
-      const halfWidth = container.clientWidth / 2;
-      const halfHeight = container.clientHeight / 2;
-      const x = (vector.x * halfWidth) + halfWidth;
-      const y = -(vector.y * halfHeight) + halfHeight;
-      const rect = container.getBoundingClientRect();
-      return { x: rect.left + x, y: rect.top + y };
-    }
-  </script>
+    </script>
 </body>
 </html>
