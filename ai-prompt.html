@@ -1736,8 +1736,42 @@
         }
       }
 
+      // 擴展應該被忽略的系統檔案列表
+      function isSystemOrHiddenFile(fileName, filePath) {
+        // 常見的系統和隱藏檔案
+        const systemFiles = [
+          ".DS_Store", // macOS 目錄資訊檔案
+          "Thumbs.db", // Windows 縮圖快取
+          "desktop.ini", // Windows 資料夾設定
+          ".directory", // KDE 資料夾設定
+          "__MACOSX", // macOS 資源檔案資料夾
+          "._*", // macOS 資源檔案
+          ".AppleDouble", // macOS 檔案屬性
+          ".LSOverride", // macOS 檔案屬性
+        ];
+
+        // 檢查檔名是否在系統檔案列表中
+        for (const pattern of systemFiles) {
+          if (pattern.includes("*")) {
+            // 處理萬用字元模式 (如 ._*)
+            const regex = new RegExp("^" + pattern.replace("*", ".*") + "$");
+            if (regex.test(fileName)) {
+              return true;
+            }
+          } else if (fileName === pattern || filePath.endsWith("/" + pattern)) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
       // 擴展機密文件的檢查函數，增加對 .git 資料夾的阻擋
       function isSecretFile(fileName, filePath) {
+        // 檢查是否為系統或隱藏檔案
+        if (isSystemOrHiddenFile(fileName, filePath)) {
+          return true;
+        }
         // 檢查是否為 .git 資料夾或其內部檔案
         if (
           filePath.includes("/.git/") ||
