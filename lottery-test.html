@@ -1,864 +1,1285 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雅 (Miyabi) - 日式八角抽選機</title>
-    <!-- GSAP CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <!-- Howler.js CDN (Optional for now) -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script> -->
-
+    <title>日式八角抽選機 - 和風幸運轉盤</title>
+    <!-- 引入字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 引入 GSAP 動畫庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- 引入 Howler.js 音效庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <!-- 引入 FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
-        /* --- Reset & Base Styles --- */
-        *, *::before, *::after {
-            box-sizing: border-box;
+        :root {
+            --primary: #B28046;
+            --primary-light: #D4AF6A;
+            --primary-dark: #8C5E2A;
+            --accent: #9E2A2B;
+            --background: #F5F5F0;
+            --text: #33281E;
+            --glass: rgba(255, 255, 255, 0.25);
+            --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #F1DB8B 40%, #F8F4E3 50%, #F1DB8B 60%, #D4AF37 100%);
+            --wooden-gradient: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
+        }
+        
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
-
-        html, body {
-            height: 100%;
-            overflow: hidden; /* Prevent scrollbars during animation */
-            font-family: '游ゴシック体', YuGothic, '游ゴシック', 'Yu Gothic', sans-serif; /* Japanese font stack */
-        }
-
+        
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(circle, #f5f5dc 8%, #e0d8c0 70%, #c8bca8 100%); /* Beige/Paper gradient */
-            color: #3a2e28; /* Dark brown text */
-        }
-
-        /* --- Layout Container --- */
-        .miyabi-container {
-            position: relative;
-            width: 90vw;
-            max-width: 600px; /* Limit max size */
-            height: 80vh;
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--background);
+            background-image: 
+                radial-gradient(circle at 100% 0%, rgba(178, 128, 70, 0.15) 0%, transparent 60%), 
+                radial-gradient(circle at 0% 100%, rgba(158, 42, 43, 0.1) 0%, transparent 50%);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-        }
-
-        /* --- 3D Scene --- */
-        .scene {
-            width: 300px; /* Fixed size for easier calculation */
-            height: 450px; /* Increased height for base/handle */
-            perspective: 1500px; /* Increase perspective for less distortion */
-            margin-bottom: 20px;
-            /* border: 1px dashed grey; */ /* For debugging layout */
-        }
-
-        /* --- Machine Components --- */
-        .machine {
-            width: 100%;
-            height: 100%;
+            justify-content: center;
             position: relative;
-            transform-style: preserve-3d;
-            /* Start tilted slightly for better view */
-            transform: rotateX(-10deg) rotateY(20deg);
         }
-
-        .machine-body {
-            width: 100%; /* Takes width from .scene */
-            height: 250px; /* Height of the rotating part */
-            position: absolute;
-            top: 50px; /* Position below potential lid */
-            left: 0;
-            transform-style: preserve-3d;
-            transform-origin: center center; /* Rotate around its center */
-            /* border: 1px solid red; */
+        
+        .title-area {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            position: relative;
+            z-index: 10;
         }
-
-        .octagon-drum {
-            width: 200px; /* Diameter of the octagon */
-            height: 200px; /* Height of the drum */
-            position: absolute;
-            top: 50%; /* Center vertically in machine-body */
-            left: 50%; /* Center horizontally in machine-body */
-            transform-style: preserve-3d;
-            transform: translate(-50%, -50%) translateZ(0); /* Center helper */
-             /* border: 1px solid blue; */
+        
+        .title-area h1 {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 2.5rem;
+            color: var(--primary-dark);
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+            position: relative;
+            display: inline-block;
         }
-
-        /* --- Octagon Face Calculation & Styling --- */
-        /*
-           For a regular octagon with side length 's':
-           Width W = s * (1 + sqrt(2))
-           Apothem (distance from center to mid-side) A = s * (1 + sqrt(2)) / 2 = W / 2
-           Distance from center to vertex R = s * sqrt( (2 + sqrt(2)) / 2 )
-           TranslateZ needed = Apothem = W/2 if faces are placed edge-to-edge.
-           Let's use drum width W = 200px. translateZ should be approx 100px.
-           Let's calculate side length 's': s = W / (1 + sqrt(2)) = 200 / 2.414 ≈ 82.8px
-           So face width should be ~83px.
-           Face Height = Drum Height = 200px.
-           Rotation angle = 360 / 8 = 45deg.
-        */
-        .face {
-            position: absolute;
-            width: 83px; /* Calculated side length */
-            height: 200px; /* Drum height */
-            top: 0;
-            left: calc(50% - 83px / 2); /* Center face horizontally */
-
-            background-color: rgba(240, 248, 255, 0.15); /* AliceBlue, slightly transparent */
-            border: 1.5px solid #b8860b; /* DarkGoldenrod - simulating gold */
-            box-shadow: inset 0 0 10px rgba(218, 165, 32, 0.3); /* Inner gold glow */
-            backdrop-filter: blur(3px); /* Frosted glass effect */
-            -webkit-backdrop-filter: blur(3px);
-
-            /* Crucial: Set transform origin to center bottom for rotation */
-            transform-origin: center center;
-
-            /* Apply individual rotations and translations */
-            /* JS will set these based on index */
-        }
-
-        /* Add subtle pattern/texture to faces */
-        .face::before {
+        
+        .title-area h1::after {
             content: '';
             position: absolute;
-            inset: 5px; /* Inset border */
-            border: 1px dashed rgba(218, 165, 32, 0.4); /* Dashed inner gold line */
-            opacity: 0.7;
+            bottom: -8px;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background: var(--gold-gradient);
         }
-
-
-        /* --- Balls Container --- */
-        .balls-container {
+        
+        .title-area p {
+            font-size: 1rem;
+            color: var(--text);
+            opacity: 0.8;
+        }
+        
+        /* 主要抽選機容器 */
+        .lottery-scene {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            perspective: 1000px;
+            margin: 0 auto;
+        }
+        
+        /* 八角形抽選機 */
+        .lottery-machine {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotateX(15deg);
+            transform-style: preserve-3d;
+            width: 320px;
+            height: 320px;
+            transition: transform 0.5s ease;
+        }
+        
+        .octagon {
+            position: absolute;
             width: 100%;
             height: 100%;
+            transform-style: preserve-3d;
+        }
+        
+        /* 八個面 */
+        .octagon-face {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 140px;
+            height: 320px;
+            background: var(--glass);
+            border: 2px solid var(--primary-light);
+            backdrop-filter: blur(5px);
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.5);
+            transform-origin: center center;
+            transform-style: preserve-3d;
+            overflow: hidden;
+        }
+        
+        .octagon-face::after {
+            content: '';
             position: absolute;
             top: 0;
             left: 0;
-            transform-style: preserve-3d;
-             /* Make it slightly smaller than drum to contain balls */
-             transform: scale(0.9);
-            /* border: 1px solid green; */
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                        rgba(255, 255, 255, 0.4) 0%, 
+                        rgba(255, 255, 255, 0.1) 50%, 
+                        rgba(255, 255, 255, 0) 100%);
+            pointer-events: none;
         }
-
-        /* --- Ball Styling --- */
+        
+        /* 八角形頂部與底部 */
+        .top-cap, .bottom-cap {
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            left: 50%;
+            transform: translateX(-50%) rotateX(90deg);
+            background: var(--gold-gradient);
+            border-radius: 50%;
+            transform-style: preserve-3d;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .top-cap {
+            top: -40px;
+            background-image: var(--gold-gradient);
+        }
+        
+        .top-cap::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+        }
+        
+        .bottom-cap {
+            bottom: -40px;
+            background-image: var(--wooden-gradient);
+        }
+        
+        /* 手把 */
+        .handle-container {
+            position: absolute;
+            width: 40px;
+            height: 300px;
+            right: -100px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: grab;
+            z-index: 5;
+            transform-style: preserve-3d;
+        }
+        
+        .handle {
+            position: absolute;
+            width: 40px;
+            height: 200px;
+            background-color: var(--primary-dark);
+            border-radius: 20px;
+            bottom: 0;
+            transform-origin: bottom center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .handle-knob {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--gold-gradient);
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+            border: 3px solid #D4AF37;
+        }
+        
+        .handle-base {
+            position: absolute;
+            width: 80px;
+            height: 40px;
+            background: var(--wooden-gradient);
+            border-radius: 10px;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 抽選球 */
         .ball {
             position: absolute;
-            /* Position set by JS */
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), currentColor 70%); /* Shiny effect */
-            box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3), /* Inner shadow */
-                        0px 2px 5px rgba(0,0,0,0.2); /* Outer shadow */
-            /* Improve performance slightly */
-            will-change: transform;
-            /* Ensure balls are clickable/targetable if needed later */
-            pointer-events: auto;
-        }
-
-        /* --- Machine Base --- */
-        .machine-base {
-            width: 260px; /* Wider than drum */
-            height: 80px;
-            position: absolute;
-            bottom: 30px; /* Positioned below the rotating body */
-            left: calc(50% - 130px);
-            background: linear-gradient(to bottom, #8B4513, #A0522D); /* SaddleBrown to Sienna - Wood grain */
-            border-radius: 5px 5px 15px 15px; /* Rounded bottom */
-            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-            transform-style: preserve-3d;
-            transform: translateZ(-30px); /* Push it back slightly */
-        }
-         /* Add a top surface look */
-        .machine-base::before {
-            content: '';
-            position: absolute;
-            top: -5px;
-            left: 5px;
-            right: 5px;
-            height: 10px;
-            background: #A0522D; /* Sienna */
-            border-radius: 3px;
-            transform: translateZ(5px); /* Bring it forward slightly */
-             box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
-        }
-
-
-        /* --- Handle --- */
-        .handle {
-            width: 50px;
-            height: 150px;
-            position: absolute;
-            bottom: 50px; /* Position relative to machine bottom */
-            /* Right side placement, adjust Z */
-            right: -40px; /* Move it out to the side */
-            transform-style: preserve-3d;
-            transform-origin: center 120px; /* Rotate around the base connection */
-            cursor: grab;
-             /* border: 1px dashed hotpink; */
-             transform: translateZ(50px) rotateZ(15deg); /* Initial angle and depth */
-        }
-
-        .handle::before { /* Handle Arm */
-             content: '';
-             position: absolute;
-             width: 12px;
-             height: 100px; /* Length of the arm */
-             background: linear-gradient(#dcdcdc, #a9a9a9, #dcdcdc); /* Silver metal */
-             bottom: 30px; /* Connects near the base */
-             left: calc(50% - 6px);
-             border-radius: 3px;
-             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-             transform: translateZ(-3px);
-        }
-
-        .handle-grip {
-            width: 50px;
+            width: 40px;
             height: 40px;
-            position: absolute;
-            bottom: 110px; /* Position at the top of the arm */
-            left: 0;
-            background: linear-gradient(to right, #6B4226, #8e5e3a); /* Darker wood */
-            border-radius: 50%; /* Round grip */
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.4), 0 3px 5px rgba(0,0,0,0.3);
-            transform: translateZ(5px) rotateX(90deg); /* Orient the grip */
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transform-style: preserve-3d;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2), 0 0 5px rgba(0, 0, 0, 0.3);
         }
-
-        .handle:active {
-            cursor: grabbing;
-        }
-        .handle:active .handle-grip {
-             transform: translateZ(5px) rotateX(90deg) scale(0.95); /* Slight shrink on grab */
-        }
-
-
-        /* --- Controls & Display --- */
-        .controls {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 30px; /* Space below scene */
-            background: rgba(255, 255, 255, 0.5); /* Semi-transparent white panel */
-            padding: 15px 30px;
+        
+        /* 控制面板 */
+        .control-panel {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border: 1px solid var(--primary-light);
+            z-index: 20;
         }
-
-        #spinButton {
-            padding: 12px 25px;
-            font-size: 1.1em;
+        
+        .result-display {
+            font-size: 1.5rem;
             font-weight: bold;
+            margin: 15px 0;
+            padding: 10px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            background-color: rgba(245, 245, 240, 0.7);
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+            color: var(--text);
+        }
+        
+        .button {
+            background: var(--primary);
             color: white;
-            background: linear-gradient(to bottom, #c0392b, #a93226); /* Red gradient */
             border: none;
-            border-radius: 8px;
+            padding: 12px 25px;
+            font-size: 1rem;
+            border-radius: 30px;
             cursor: pointer;
-            box-shadow: 0 4px 8px rgba(169, 50, 38, 0.4);
-            transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-            margin-bottom: 15px;
+            margin: 5px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            font-family: 'Noto Sans TC', sans-serif;
         }
-
-        #spinButton:hover:not(:disabled) {
-            background: linear-gradient(to bottom, #d64538, #c0392b);
-            box-shadow: 0 6px 12px rgba(169, 50, 38, 0.5);
+        
+        .button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
         }
-
-        #spinButton:active:not(:disabled) {
-            transform: translateY(2px);
-            box-shadow: 0 2px 5px rgba(169, 50, 38, 0.3);
+        
+        .button.start {
+            background: var(--accent);
         }
-
-         #spinButton:disabled {
-             background: #cccccc;
-             color: #888888;
-             cursor: not-allowed;
-             box-shadow: none;
-         }
-
-        #resultDisplay {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #4a3c35; /* Darker brown for emphasis */
-            min-height: 1.5em; /* Prevent layout shift */
-            transition: color 0.5s ease;
+        
+        .button.start:hover {
+            background: #7D2122;
         }
-
-         #resultDisplay.won {
-             /* Style applied by JS on win */
-             animation: pulseColor 1s ease-in-out;
-         }
-
-         @keyframes pulseColor {
-             0%, 100% { transform: scale(1); }
-             50% { transform: scale(1.1); }
-         }
-
-
-        /* --- Effects --- */
-        .effects-overlay {
-            position: fixed;
+        
+        /* 設定面板 */
+        .settings-panel {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .settings-panel h3 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            color: var(--text);
+        }
+        
+        .settings-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .input-group {
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-group label {
+            margin-right: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .input-group input, .input-group select {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-family: inherit;
+        }
+        
+        /* 粒子效果 */
+        .particles-container {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 100;
-            overflow: hidden; /* Contain particles */
+            z-index: 30;
+            overflow: hidden;
         }
-
-        .confetti-particle {
+        
+        .particle {
             position: absolute;
-            width: 8px;
-            height: 15px; /* Rectangular confetti */
-            opacity: 0.9;
-            will-change: transform, opacity; /* Optimize animation */
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            opacity: 0;
         }
-
-        /* --- RWD --- */
-        @media (max-width: 768px) {
-            .scene {
-                width: 250px;
-                height: 380px;
-                 perspective: 1200px;
+        
+        /* 燈光效果 */
+        .spotlight {
+            position: absolute;
+            top: -150px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(
+                ellipse at center, 
+                rgba(255, 255, 255, 0.4) 0%,
+                rgba(255, 255, 255, 0) 70%
+            );
+            pointer-events: none;
+            opacity: 0;
+            z-index: 25;
+        }
+        
+        /* 獎項顯示區 */
+        .winner-display {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        
+        .winner-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 80%;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            transform: scale(0.8);
+            transition: transform 0.5s ease;
+        }
+        
+        .winner-ball {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        .winner-title {
+            font-size: 1.8rem;
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-family: 'Noto Serif JP', serif;
+        }
+        
+        .winner-message {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .close-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .close-button:hover {
+            background: var(--primary-dark);
+        }
+        
+        /* 自定義球色區塊 */
+        .custom-balls {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .ball-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .ball-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-bottom: 5px;
+            cursor: pointer;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+        }
+        
+        .ball-label {
+            font-size: 0.8rem;
+        }
+        
+        .sound-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .sound-toggle {
+            display: flex;
+            align-items: center;
+            margin-left: 15px;
+            cursor: pointer;
+        }
+        
+        .sound-toggle i {
+            margin-right: 5px;
+            color: var(--primary);
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 767px) {
+            .lottery-scene {
+                height: 450px;
+                max-width: 100%;
             }
-            .machine-body { height: 200px; top: 40px;}
-            .octagon-drum { width: 160px; height: 160px; }
-            .face { width: 66px; height: 160px; } /* Recalculate face width for 160px drum */
-             /* JS needs to adjust translateZ too */
-            .machine-base { width: 210px; left: calc(50% - 105px); height: 60px; bottom: 25px; }
-            .handle { right: -30px; transform: translateZ(40px) rotateZ(15deg); scale: 0.9; }
-
-            .ball { width: 20px; height: 20px; }
-
-             .controls { padding: 10px 20px; margin-top: 20px;}
-             #spinButton { padding: 10px 20px; font-size: 1em;}
-             #resultDisplay { font-size: 1.1em; }
+            
+            .lottery-machine {
+                width: 240px;
+                height: 240px;
+            }
+            
+            .octagon-face {
+                width: 100px;
+                height: 240px;
+            }
+            
+            .top-cap, .bottom-cap {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .top-cap::after {
+                width: 140px;
+                height: 140px;
+            }
+            
+            .handle-container {
+                right: -80px;
+                height: 220px;
+            }
+            
+            .handle {
+                height: 150px;
+            }
+            
+            .title-area h1 {
+                font-size: 1.8rem;
+            }
+            
+            .ball {
+                width: 30px;
+                height: 30px;
+                line-height: 30px;
+                font-size: 1rem;
+            }
+            
+            .control-panel {
+                padding: 15px;
+            }
+            
+            .settings-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .winner-content {
+                padding: 20px;
+                max-width: 95%;
+            }
         }
-
-         @media (max-width: 480px) {
-             body { align-items: flex-start; padding-top: 5vh;} /* More space at top */
-             .miyabi-container { height: auto; }
-             .scene {
-                 width: 200px;
-                 height: 300px;
-                 perspective: 1000px;
-                 margin-bottom: 15px;
-             }
-             .machine-body { height: 160px; top: 30px; }
-             .octagon-drum { width: 130px; height: 130px; }
-             .face { width: 54px; height: 130px; } /* Recalculate face width */
-             /* JS needs to adjust translateZ */
-             .machine-base { width: 170px; left: calc(50% - 85px); height: 50px; bottom: 20px; }
-             .handle { right: -25px; transform: translateZ(30px) rotateZ(15deg); scale: 0.8; }
-             .ball { width: 16px; height: 16px; }
-
-             .controls { width: 90%; padding: 8px 15px; margin-top: 15px; }
-             #spinButton { padding: 8px 15px; font-size: 0.9em;}
-             #resultDisplay { font-size: 1em; }
-         }
-
+        
+        /* 輕量模式的樣式 */
+        body.light-mode .octagon-face {
+            backdrop-filter: none;
+        }
+        
+        /* 動畫 */
+        @keyframes shimmer {
+            0% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.4; }
+        }
+        
+        .shimmer {
+            animation: shimmer 3s infinite;
+        }
     </style>
 </head>
 <body>
-    <div class="miyabi-container">
-        <div class="scene">
-            <div class="machine" id="lotteryMachine">
-                <div class="machine-base"></div>
-                <div class="machine-body" id="machineBody">
-                    <div class="octagon-drum" id="octagonDrum">
-                        <!-- Faces will be added by JS -->
-                        <div class="balls-container" id="ballsContainer">
-                            <!-- Balls will be added by JS -->
-                        </div>
+    <!-- 標題區域 -->
+    <div class="title-area">
+        <h1>御縁の抽選機</h1>
+        <p>緣分天注定，運勢在此時</p>
+    </div>
+    
+    <!-- 主要抽選機場景 -->
+    <div class="lottery-scene">
+        <!-- 燈光效果 -->
+        <div class="spotlight"></div>
+        
+        <!-- 八角形抽選機 -->
+        <div class="lottery-machine">
+            <div class="octagon" id="octagon">
+                <!-- 八個面會被JS動態生成 -->
+            </div>
+            <div class="top-cap"></div>
+            <div class="bottom-cap"></div>
+        </div>
+        
+        <!-- 手把 -->
+        <div class="handle-container" id="handleContainer">
+            <div class="handle">
+                <div class="handle-knob"></div>
+            </div>
+            <div class="handle-base"></div>
+        </div>
+    </div>
+    
+    <!-- 控制面板 -->
+    <div class="control-panel">
+        <div class="result-display" id="resultDisplay">
+            準備開始抽選...
+        </div>
+        <div>
+            <button class="button start" id="startButton">開始抽選</button>
+            <button class="button" id="resetButton">重新設置</button>
+        </div>
+        
+        <!-- 設定面板 -->
+        <div class="settings-panel">
+            <h3>抽選設定</h3>
+            <div class="settings-row">
+                <div class="input-group">
+                    <label for="ballCount">球數量:</label>
+                    <input type="number" id="ballCount" min="1" max="30" value="10">
+                </div>
+                <div class="input-group">
+                    <label for="spinSpeed">轉速:</label>
+                    <select id="spinSpeed">
+                        <option value="slow">慢速</option>
+                        <option value="medium" selected>中速</option>
+                        <option value="fast">快速</option>
+                    </select>
+                </div>
+                <div class="sound-controls">
+                    <div class="sound-toggle" id="soundToggle">
+                        <i class="fas fa-volume-up"></i> 音效開啟
                     </div>
                 </div>
-                 <div class="handle" id="handle">
-                     <div class="handle-grip"></div>
-                 </div>
+            </div>
+            <div class="settings-row">
+                <button class="button" id="customizeButton">自訂球色/名稱</button>
             </div>
         </div>
-
-        <div class="controls">
-            <button id="spinButton">運試し</button> <!-- "Test Your Luck" -->
-            <div id="resultDisplay" aria-live="polite">
-                結果：<span id="resultText">---</span>
-            </div>
-        </div>
-
-        <!-- Overlay for full-screen effects -->
-        <div class="effects-overlay" id="effectsOverlay"></div>
     </div>
-
+    
+    <!-- 粒子效果容器 -->
+    <div class="particles-container" id="particlesContainer"></div>
+    
+    <!-- 獎項顯示區 -->
+    <div class="winner-display" id="winnerDisplay">
+        <div class="winner-content">
+            <div class="winner-ball" id="winnerBall"></div>
+            <h2 class="winner-title">恭喜中獎！</h2>
+            <p class="winner-message" id="winnerMessage">您抽中了神秘獎項！</p>
+            <button class="close-button" id="closeWinner">確認</button>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-
-            // --- Constants and Configuration ---
-            const config = {
-                numBalls: 30,
-                ballColors: ["#FFD700", "#DC143C", "#FFFFFF", "#ADD8E6", "#90EE90", "#FFA07A"], // Gold, Crimson, White, LightBlue, LightGreen, LightSalmon
-                prizes: [ // Example weighted prizes
-                    { label: "🥇 大吉", color: "#FFD700", weight: 1 }, // Gold
-                    { label: "🥈 中吉", color: "#C0C0C0", weight: 3 }, // Silver (use white ball)
-                    { label: "🥉 小吉", color: "#CD7F32", weight: 6 }, // Bronze (use light salmon)
-                    { label: "👍 吉", color: "#90EE90", weight: 10 }, // LightGreen
-                    { label: "🙂 末吉", color: "#ADD8E6", weight: 15 }, // LightBlue
-                    { label: "残念", color: "#A9A9A9", weight: 25 }  // DarkGray (use white ball + text)
-                ],
-                spinDuration: { min: 4, max: 7 }, // seconds
-                dragSensitivity: 0.8, // Increased sensitivity
-                inertiaDampening: 0.92, // Friction factor for drag release
-                // Sound placeholders (implement with Howler.js later)
-                sounds: { spin: null, win: null, confetti: null }
-            };
-
-            // --- DOM References ---
-            const machine = document.getElementById('lotteryMachine');
-            const machineBody = document.getElementById('machineBody');
-            const octagonDrum = document.getElementById('octagonDrum');
-            const ballsContainer = document.getElementById('ballsContainer');
-            const handle = document.getElementById('handle');
-            const spinButton = document.getElementById('spinButton');
-            const resultText = document.getElementById('resultText');
+        document.addEventListener('DOMContentLoaded', function() {
+            // 基本設定與變數
+            const octagonContainer = document.getElementById('octagon');
+            const handleContainer = document.getElementById('handleContainer');
+            const handle = handleContainer.querySelector('.handle');
             const resultDisplay = document.getElementById('resultDisplay');
-            const effectsOverlay = document.getElementById('effectsOverlay');
-
-            // --- State Variables ---
+            const startButton = document.getElementById('startButton');
+            const resetButton = document.getElementById('resetButton');
+            const customizeButton = document.getElementById('customizeButton');
+            const ballCountInput = document.getElementById('ballCount');
+            const spinSpeedSelect = document.getElementById('spinSpeed');
+            const soundToggle = document.getElementById('soundToggle');
+            const particlesContainer = document.getElementById('particlesContainer');
+            const spotlight = document.querySelector('.spotlight');
+            const winnerDisplay = document.getElementById('winnerDisplay');
+            const winnerBall = document.getElementById('winnerBall');
+            const winnerMessage = document.getElementById('winnerMessage');
+            const closeWinner = document.getElementById('closeWinner');
+            
+            // 全局變數
             let isSpinning = false;
-            let currentYRotation = 20; // Initial rotation from CSS
-            let currentXRotation = -10; // Initial tilt from CSS
+            let spinSpeed = 0;
+            let spinAngle = 0;
+            let spinInterval = null;
             let balls = [];
-            let faceTranslateZ = 0; // Will be calculated
-
-            // --- Initialization ---
-            function init() {
-                console.log("雅 - 抽選機 初期化開始...");
-                calculateFaceTranslateZ(); // Calculate based on current drum size
-                setupOctagonFaces();
-                createBalls();
-                setupEventListeners();
-                // setupAudio(); // Call when Howler is integrated
-                applyInitialTransforms(); // Apply initial rotations set in CSS via JS/GSAP
-                console.log("雅 - 抽選機 初期化完了！");
-            }
-
-             // Apply initial CSS rotation via GSAP for smoother transitions later
-             function applyInitialTransforms() {
-                 gsap.set(machine, { rotationY: currentYRotation, rotationX: currentXRotation });
-                 gsap.set(handle, { rotationY: currentYRotation * 0.3 }); // Rotate handle less initially
-             }
-
-            // --- Setup Functions ---
-             function calculateFaceTranslateZ() {
-                 // Calculate translateZ based on the CURRENT rendered width of the drum
-                 // This makes it responsive if CSS changes drum size via @media
-                 const drumWidth = octagonDrum.offsetWidth;
-                 const sideLength = drumWidth / (1 + Math.sqrt(2));
-                 faceTranslateZ = (sideLength / 2) / Math.tan(Math.PI / 8);
-                 console.log(`計算結果: Drum Width=${drumWidth}px, Face Width=${sideLength.toFixed(2)}px, TranslateZ=${faceTranslateZ.toFixed(2)}px`);
-             }
-
-            function setupOctagonFaces() {
-                octagonDrum.innerHTML = ''; // Clear potential placeholders if any
-                const faceCount = 8;
-                const angleIncrement = 360 / faceCount; // 45 degrees
-
-                for (let i = 0; i < faceCount; i++) {
-                    const face = document.createElement('div');
-                    face.classList.add('face');
-                    // Calculate rotation and translation for this face
-                    const rotationY = i * angleIncrement;
-                    // Apply transform using GSAP for consistency
-                    gsap.set(face, {
-                        rotationY: rotationY,
-                        transformOrigin: "center center", // Ensure origin is correct
-                         // Use the calculated translateZ
-                        z: faceTranslateZ, // GSAP's shorthand for translateZ
-                        // Force hardware acceleration
-                         force3D: true
-                    });
-                    octagonDrum.appendChild(face);
-                }
-                 // Re-append balls container AFTER faces are added
-                 octagonDrum.appendChild(ballsContainer);
-                console.log(`八角面 ${faceCount} 個を設置完了`);
-            }
-
-            function createBalls() {
-                ballsContainer.innerHTML = ''; // Clear existing balls
-                balls = [];
-                let weightedPrizes = [];
-                 config.prizes.forEach(prize => {
-                     for (let i = 0; i < prize.weight; i++) {
-                         weightedPrizes.push(prize);
-                     }
-                 });
-
-                 // Shuffle weighted prizes for more randomness in initial color distribution
-                 weightedPrizes.sort(() => Math.random() - 0.5);
-
-
-                const drumRadius = octagonDrum.offsetWidth * 0.9 / 2; // Use 90% of radius
-                const drumHeight = octagonDrum.offsetHeight * 0.9;
-
-                for (let i = 0; i < config.numBalls; i++) {
-                    // Select prize based on weight, ensure enough variety if numBalls > weighted total
-                     const prizeData = weightedPrizes[i % weightedPrizes.length];
-
-                    const ballElement = document.createElement('div');
-                    ballElement.classList.add('ball');
-                    ballElement.style.backgroundColor = prizeData.color || config.ballColors[i % config.ballColors.length]; // Use prize color primarily
-                    ballElement.dataset.prizeLabel = prizeData.label; // Store prize label
-
-                    // Improved Initial random positioning within the drum (cylinder approximation)
-                    const angle = Math.random() * Math.PI * 2;
-                    const radius = Math.random() * drumRadius;
-                    const randX = Math.cos(angle) * radius;
-                    const randZ = Math.sin(angle) * radius; // Use Z for depth
-                    const randY = (Math.random() - 0.5) * drumHeight; // Vertical position
-
-                    gsap.set(ballElement, {
-                         x: randX,
-                         y: randY,
-                         z: randZ,
-                         force3D: true // Optimize rendering
-                    });
-
-                    ballsContainer.appendChild(ballElement);
-                    balls.push({ element: ballElement, data: prizeData });
-                }
-                console.log(`${balls.length} 個のボールを作成完了`);
-            }
-
-            // --- Event Listeners ---
-            function setupEventListeners() {
-                spinButton.addEventListener('click', handleSpinButtonClick);
-                // Add drag listeners (simplified version for now)
-                 handle.addEventListener('mousedown', handleDragStart);
-                 handle.addEventListener('touchstart', handleDragStart, { passive: false });
-
-                // Recalculate on resize for RWD
-                window.addEventListener('resize', debounce(handleResize, 250));
-            }
-
-             // Debounce function to limit resize handler calls
-             function debounce(func, wait) {
-                 let timeout;
-                 return function executedFunction(...args) {
-                     const later = () => {
-                         clearTimeout(timeout);
-                         func(...args);
-                     };
-                     clearTimeout(timeout);
-                     timeout = setTimeout(later, wait);
-                 };
-             }
-
-            // --- Interaction Logic (Simplified Drag & Button) ---
+            let soundEnabled = true;
+            let isLightMode = false;
             let dragStartY = 0;
-            let dragStartTime = 0;
-            let currentHandleRotation = 0; // Track handle rotation separately if needed
-            let angularVelocity = 0; // Degrees per second during drag
-             let isDragging = false;
-             let animationFrameId = null; // For smooth drag update
-
-
-            function handleDragStart(e) {
-                if (isSpinning) return;
-                e.preventDefault();
-                isDragging = true;
-
-                dragStartY = e.touches ? e.touches[0].clientY : e.clientY;
-                dragStartTime = performance.now();
-                angularVelocity = 0;
-
-                gsap.to(handle, { scale: 1.1, duration: 0.2 });
-                handle.style.cursor = 'grabbing';
-                document.body.style.cursor = 'grabbing'; // Apply to body too
-
-                document.addEventListener('mousemove', handleDragMove);
-                document.addEventListener('touchmove', handleDragMove, { passive: false });
-                document.addEventListener('mouseup', handleDragEnd);
-                document.addEventListener('touchend', handleDragEnd);
-
-                // Start smooth update loop
-                 cancelAnimationFrame(animationFrameId); // Clear previous loop if any
-                 animationFrameId = requestAnimationFrame(updateDragRotation);
-            }
-
-             let lastDragY = 0;
-             let rotationAccumulator = 0; // Accumulate rotation change per frame
-
-            function handleDragMove(e) {
-                if (!isDragging) return;
-                e.preventDefault();
-
-                const currentY = e.touches ? e.touches[0].clientY : e.clientY;
-                 if(lastDragY === 0) lastDragY = currentY; // Initialize lastDragY on first move
-
-                const deltaY = currentY - lastDragY;
-                 rotationAccumulator += deltaY * config.dragSensitivity; // Add delta rotation
-
-                 // Calculate instantaneous velocity (optional, useful for inertia)
-                 const timeNow = performance.now();
-                 const deltaTime = (timeNow - dragStartTime) / 1000 || 0.01;
-                 const totalDeltaY = currentY - dragStartY;
-                 // Make velocity more sensitive to quick flicks
-                 angularVelocity = (deltaY / (performance.now() - (window.lastMoveTime || dragStartTime)) * 1000) * config.dragSensitivity * 5;
-                 window.lastMoveTime = performance.now(); // Store time for next delta calculation
-
-                lastDragY = currentY;
-            }
-
-             // Smoothly update rotation in sync with browser rendering
-             function updateDragRotation() {
-                 if (!isDragging) return;
-
-                 currentYRotation += rotationAccumulator; // Apply accumulated rotation
-                 currentHandleRotation += rotationAccumulator * 0.5; // Handle rotates less
-
-                 gsap.set(machineBody, { rotationY: currentYRotation });
-                 gsap.set(handle, { rotationY: currentHandleRotation });
-
-                 // Simple ball jiggle during drag
-                 tumbleBalls(rotationAccumulator * 0.1); // Pass rotation delta as speed proxy
-
-                 rotationAccumulator = 0; // Reset accumulator for next frame
-
-                 animationFrameId = requestAnimationFrame(updateDragRotation); // Continue loop
-             }
-
-
-            function handleDragEnd(e) {
-                 if (!isDragging) return;
-                 isDragging = false;
-                 cancelAnimationFrame(animationFrameId); // Stop the update loop
-
-                document.removeEventListener('mousemove', handleDragMove);
-                document.removeEventListener('touchmove', handleDragMove);
-                document.removeEventListener('mouseup', handleDragEnd);
-                document.removeEventListener('touchend', handleDragEnd);
-
-                gsap.to(handle, { scale: 1, duration: 0.2 });
-                handle.style.cursor = 'grab';
-                 document.body.style.cursor = 'default';
-                 lastDragY = 0; // Reset last Y position
-
-                const dragDuration = (performance.now() - dragStartTime) / 1000;
-                 // Use the last calculated angular velocity, apply inertia dampening
-                 const inertiaVelocity = angularVelocity * Math.pow(config.inertiaDampening, dragDuration * 60); // Simulate friction over time
-
-                // Trigger inertia spin only if dragged fast enough (quick flick)
-                if (Math.abs(inertiaVelocity) > 100 && dragDuration < 0.8) {
-                    console.log(`手把拖曳結束，啟動慣性旋轉，初速度: ${inertiaVelocity.toFixed(0)} deg/s`);
-                    startSpin(inertiaVelocity);
-                } else {
-                    console.log(`手把拖曳結束，速度 (${inertiaVelocity.toFixed(0)} deg/s) 或 時間 (${dragDuration.toFixed(2)}s) 不足，未觸發慣性`);
+            let handleAngle = 0;
+            let handleVelocity = 0;
+            let lastDragY = 0;
+            let isDragging = false;
+            let lastDrawTime = 0;
+            
+            // 定義顏色
+            const ballColors = [
+                '#FF5252', // 紅
+                '#448AFF', // 藍
+                '#66BB6A', // 綠
+                '#FFC107', // 黃
+                '#9C27B0', // 紫
+                '#FF7043', // 橙
+                '#26C6DA', // 青
+                '#EC407A', // 粉
+                '#AB47BC', // 深紫
+                '#7E57C2', // 淡紫
+                '#5C6BC0', // 靛青
+                '#42A5F5', // 淺藍
+                '#26A69A', // 淺綠
+                '#D4E157', // 淺黃
+                '#FFCA28', // 金黃
+                '#FF7043', // 珊瑚
+                '#8D6E63', // 棕
+                '#78909C', // 灰藍
+                '#BDBDBD', // 銀
+                '#212121'  // 黑
+            ];
+            
+            // 音效設定
+            const sounds = {
+                spin: new Howl({
+                    src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUHh4eHh4qKioqKioqNDQ0NDRAQEBAQEBMTExMTExMWFhYWFhkZGRkZGRwcHBwcHB8fHx8fHyIiIiIiIiIlJSUlJSUnJycnJyouLi4uLi4xMTExMTE0NDQ0NDQ0NDc3Nzc3Nzc6Ojo6Oj09PT09PT///8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAQoAAAAAAAeMwGvI84AAAAAAAAAAAAAAAAA//uQwAALcABEnCAAACNCwQnG8gAQAYRERERERERRAAIR5zjn5uecIQhEQnOOcABAIBAMBAIThCcIQhCEIQiIiIiRERERI='],
+                    volume: 0.5,
+                    loop: true
+                }),
+                win: new Howl({
+                    src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tUwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAeAAAyQAAFBQsLERERFxwcHCIiIigvLy8vNTU1Ozs7O0FBQUdNTU1NUlJSWFhYWF5eXmRpaWlpcG9vdnZ2dnx8fIKCgoKIiIiOlJSUlJqamp+fn5+mp6enrKyssbGxscbGxs3NzdLY2Nja4ODg4Obj4+no6Ojv7+/v9PT0+fn5+f///wAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQEKQAAAAAAAAAAAAAAAA//+xDEAAPAAAGkAAAAIAAANIAAAARMQU1FMy45OS41VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7IMQFg8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ=='],
+                    volume: 0.8
+                }),
+                click: new Howl({
+                    src: ['data:audio/mp3;base64,SUQzAwAAAAAAJlRQRTEAAAAcAAAAU291bmRKYXkuY29tIFNvdW5kIEVmZmVjdHMA//uQxAADwAABpAAAACAAADSAAAAETEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU='],
+                    volume: 0.6
+                }),
+                bounce: new Howl({
+                    src: ['data:audio/mp3;base64,SUQzAwAAAAAAJlRQRTEAAAAcAAAAU291bmRKYXkuY29tIFNvdW5kIEVmZmVjdHMA//uUxAADwAABpAAAACAAADSAAAAETEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU='],
+                    volume: 0.4
+                })
+            };
+            
+            // 響應式設計相關
+            function checkDevicePerformance() {
+                // 檢測裝置性能
+                const isMobile = window.innerWidth <= 767;
+                const isLowPerformance = isMobile || navigator.hardwareConcurrency <= 4;
+                
+                // 若裝置性能較低，使用輕量模式
+                if (isLowPerformance) {
+                    document.body.classList.add('light-mode');
+                    isLightMode = true;
                 }
-                 angularVelocity = 0; // Reset velocity
+                
+                return { isMobile, isLowPerformance };
             }
-
-
-            function handleSpinButtonClick() {
-                if (isSpinning || isDragging) return;
-                console.log("按鈕點擊，啟動旋轉");
-                startSpin(0); // Start with no initial velocity
+            
+            // 建立八角形
+            function createOctagon() {
+                octagonContainer.innerHTML = '';
+                const numFaces = 8;
+                const angleIncrement = 360 / numFaces;
+                
+                for (let i = 0; i < numFaces; i++) {
+                    const face = document.createElement('div');
+                    face.className = 'octagon-face';
+                    face.style.transform = `rotateY(${i * angleIncrement}deg) translateZ(140px)`;
+                    octagonContainer.appendChild(face);
+                }
             }
-
-            // --- Core Spin Animation ---
-             let spinTween = null; // Reference to the main spin animation
-
-            function startSpin(initialVelocity = 0) {
+            
+            // 生成彈珠
+            function createBalls(count) {
+                balls = [];
+                
+                // 清除現有球
+                const existingBalls = document.querySelectorAll('.ball');
+                existingBalls.forEach(ball => ball.remove());
+                
+                // 創建新的球
+                for (let i = 0; i < count; i++) {
+                    const ball = document.createElement('div');
+                    ball.className = 'ball';
+                    ball.textContent = (i + 1).toString();
+                    
+                    // 設置球的顏色
+                    const colorIndex = i % ballColors.length;
+                    ball.style.backgroundColor = ballColors[colorIndex];
+                    
+                    // 初始化球的位置
+                    const randomPosition = getRandomPosition();
+                    ball.style.left = `${randomPosition.x}px`;
+                    ball.style.top = `${randomPosition.y}px`;
+                    
+                    document.querySelector('.lottery-machine').appendChild(ball);
+                    
+                    balls.push({
+                        element: ball,
+                        x: randomPosition.x,
+                        y: randomPosition.y,
+                        z: randomPosition.z,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: (Math.random() - 0.5) * 2,
+                        vz: (Math.random() - 0.5) * 2
+                    });
+                }
+                
+                return balls;
+            }
+            
+            // 隨機球位置
+            function getRandomPosition() {
+                const radius = 100;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI;
+                
+                return {
+                    x: 130 + radius * Math.sin(phi) * Math.cos(theta),
+                    y: 130 + radius * Math.sin(phi) * Math.sin(theta),
+                    z: radius * Math.cos(phi)
+                };
+            }
+            
+            // 更新球位置
+            function updateBallPositions() {
+                const maxRadius = 120; // 八角形內部半徑
+                const radiusSquared = maxRadius * maxRadius;
+                const center = { x: 130, y: 130, z: 0 };
+                const friction = 0.98;
+                const spinFactor = spinSpeed * 0.05;
+                
+                balls.forEach(ball => {
+                    // 旋轉影響
+                    const rotationEffect = spinFactor * (ball.z / maxRadius);
+                    ball.vx += rotationEffect;
+                    
+                    // 更新速度和位置
+                    ball.x += ball.vx;
+                    ball.y += ball.vy;
+                    ball.z += ball.vz;
+                    
+                    // 應用摩擦力
+                    ball.vx *= friction;
+                    ball.vy *= friction;
+                    ball.vz *= friction;
+                    
+                    // 檢查邊界碰撞
+                    const dx = ball.x - center.x;
+                    const dy = ball.y - center.y;
+                    const dz = ball.z;
+                    const distanceSquared = dx * dx + dy * dy + dz * dz;
+                    
+                    if (distanceSquared > radiusSquared) {
+                        // 碰撞邊界
+                        const distance = Math.sqrt(distanceSquared);
+                        const nx = dx / distance;
+                        const ny = dy / distance;
+                        const nz = dz / distance;
+                        
+                        // 反射速度
+                        const dotProduct = ball.vx * nx + ball.vy * ny + ball.vz * nz;
+                        ball.vx = ball.vx - 2 * dotProduct * nx;
+                        ball.vy = ball.vy - 2 * dotProduct * ny;
+                        ball.vz = ball.vz - 2 * dotProduct * nz;
+                        
+                        // 修正位置
+                        const correction = maxRadius - distance;
+                        ball.x += nx * correction;
+                        ball.y += ny * correction;
+                        ball.z += nz * correction;
+                        
+                        // 播放反彈音效
+                        if (soundEnabled && Math.random() < 0.1) {
+                            sounds.bounce.play();
+                        }
+                    }
+                    
+                    // 更新視覺位置
+                    const scale = 0.5 + ((ball.z + maxRadius) / (2 * maxRadius));
+                    
+                    ball.element.style.transform = `translate3d(${ball.x}px, ${ball.y}px, ${ball.z}px) scale(${scale})`;
+                    ball.element.style.zIndex = Math.floor(ball.z + 1000);
+                    
+                    // 基於z位置調整透明度
+                    const opacity = (ball.z + maxRadius) / (2 * maxRadius);
+                    ball.element.style.opacity = 0.5 + opacity * 0.5;
+                });
+            }
+            
+            // 旋轉八角形
+            function rotateOctagon() {
+                spinAngle += spinSpeed;
+                octagonContainer.style.transform = `rotateY(${spinAngle}deg)`;
+                
+                if (isSpinning) {
+                    // 減速直到停止
+                    spinSpeed *= 0.995;
+                    
+                    if (spinSpeed < 0.2) {
+                        stopSpinning();
+                    }
+                }
+            }
+            
+            // 動畫循環
+            function animate(timestamp) {
+                if (!lastDrawTime) lastDrawTime = timestamp;
+                const deltaTime = timestamp - lastDrawTime;
+                lastDrawTime = timestamp;
+                
+                // 限制更新頻率以提高性能
+                if (deltaTime < 1000 / 30) {
+                    rotateOctagon();
+                    updateBallPositions();
+                }
+                
+                // 處理手把動畫
+                if (isDragging) {
+                    // 計算拖曳速度
+                    handleVelocity = handleVelocity * 0.9 + (lastDragY - dragStartY) * 0.1;
+                } else if (Math.abs(handleAngle) > 0) {
+                    // 手把回彈
+                    handleAngle *= 0.85;
+                    handle.style.transform = `rotate(${handleAngle}deg)`;
+                    
+                    if (Math.abs(handleAngle) < 0.5) {
+                        handleAngle = 0;
+                        handle.style.transform = '';
+                    }
+                }
+                
+                requestAnimationFrame(animate);
+            }
+            
+            // 開始抽選
+            function startSpinning() {
                 if (isSpinning) return;
+                
                 isSpinning = true;
-                spinButton.disabled = true;
-                resultText.textContent = "抽選中...";
-                resultDisplay.classList.remove('won');
-                resultDisplay.style.color = '#4a3c35'; // Reset color
-
-
-                // Calculate target rotation: current + initial velocity effect + random spins
-                // Add initial velocity contribution to total rotation (simulates momentum)
-                 const velocityContribution = initialVelocity * 0.5; // Adjust impact factor
-                const randomRotations = Math.floor(Math.random() * 4) + 4; // 4-7 full spins
-                const randomExtraAngle = Math.random() * 360;
-                // Ensure minimum rotation even with high negative velocity
-                 const minRotation = 3 * 360;
-                 let targetRotation = currentYRotation + velocityContribution + (randomRotations * 360) + randomExtraAngle;
-
-                 // Ensure we spin at least a minimum amount forward
-                 if (targetRotation < currentYRotation + minRotation) {
-                     targetRotation += Math.ceil((currentYRotation + minRotation - targetRotation) / 360) * 360;
-                 }
-
-
-                const duration = config.spinDuration.min + Math.random() * (config.spinDuration.max - config.spinDuration.min);
-
-                 let lastRotation = currentYRotation; // Track rotation for onUpdate speed calculation
-
-                // Kill previous tween if any (shouldn't happen with isSpinning flag, but safe)
-                if (spinTween) spinTween.kill();
-
-                spinTween = gsap.to(machineBody, {
-                    rotationY: targetRotation,
-                    duration: duration,
-                    ease: "power2.out", // Deceleration ease
-                    onUpdate: () => {
-                        const currentRotation = gsap.getProperty(machineBody, "rotationY");
-                         const deltaRotation = currentRotation - lastRotation;
-                        currentYRotation = currentRotation; // Update global state
-                        lastRotation = currentRotation;
-
-                        // Update handle rotation (less intense)
-                         currentHandleRotation += deltaRotation * 0.5;
-                        gsap.set(handle, { rotationY: currentHandleRotation });
-
-                        // Tumble balls based on rotation speed (deltaRotation)
-                        tumbleBalls(deltaRotation);
-
-                    },
-                    onComplete: () => {
-                        console.log(`旋轉結束，最終角度: ${currentYRotation.toFixed(2)}`);
-                        determineWinner();
-                    }
+                resultDisplay.textContent = '抽選中...';
+                
+                // 根據選擇的速度設定
+                const speedMap = {
+                    slow: 2,
+                    medium: 4,
+                    fast: 6
+                };
+                spinSpeed = speedMap[spinSpeedSelect.value];
+                
+                // 啟動音效
+                if (soundEnabled) {
+                    sounds.spin.play();
+                }
+                
+                // 開啟燈光效果
+                gsap.to(spotlight, {
+                    opacity: 0.8,
+                    duration: 1,
+                    ease: 'power2.inOut'
                 });
+                
+                // 禁用按鈕
+                startButton.disabled = true;
+                resetButton.disabled = true;
+                
+                // 設置自動停止計時器
+                setTimeout(function() {
+                    if (isSpinning) {
+                        // 開始減速
+                        spinSpeed *= 0.9;
+                    }
+                }, 3000 + Math.random() * 2000);
             }
-
-            // --- Ball Tumbling Simulation ---
-             function tumbleBalls(speed) {
-                 const speedFactor = Math.min(Math.abs(speed) * 0.5, 15); // Clamp effect strength
-                 const tumbleIntensity = 1 + speedFactor * 0.1; // Base tumble + speed based
-
-                 balls.forEach(ball => {
-                      // Quick, small, random movements using GSAP quickSetter/quickTo for performance
-                      // This simulates erratic tumbling and settling
-                     gsap.to(ball.element, {
-                         x: `+=${(Math.random() - 0.5) * tumbleIntensity}`,
-                         y: `+=${(Math.random() - 0.5) * tumbleIntensity * 0.5 + (speedFactor * 0.02)}`, // Slight upward bias when fast
-                         z: `+=${(Math.random() - 0.5) * tumbleIntensity}`,
-                         rotationX: `+=${(Math.random() - 0.5) * speedFactor * 2}`,
-                         rotationZ: `+=${(Math.random() - 0.5) * speedFactor * 2}`,
-                         duration: 0.1, // Short duration for quick jiggles
-                         ease: "power1.out"
-                     });
-                 });
-             }
-
-
-            // --- Determine Winner ---
-            function determineWinner() {
-                // Simple random selection from the balls array
+            
+            // 停止抽選並顯示結果
+            function stopSpinning() {
+                isSpinning = false;
+                spinSpeed = 0;
+                
+                // 停止音效
+                if (soundEnabled) {
+                    sounds.spin.stop();
+                }
+                
+                // 關閉燈光效果
+                gsap.to(spotlight, {
+                    opacity: 0,
+                    duration: 1,
+                    ease: 'power2.inOut'
+                });
+                
+                // 選擇獲獎球
                 const winnerIndex = Math.floor(Math.random() * balls.length);
-                const winningBall = balls[winnerIndex];
-
-                console.log(`中獎！ ボール ${winnerIndex + 1}, 獎品: ${winningBall.data.label}`);
-
-                displayResult(winningBall);
-            }
-
-            // --- Display Result & Effects ---
-            function displayResult(winningBall) {
-                resultText.textContent = winningBall.data.label;
-                resultDisplay.classList.add('won');
-                // Use prize color for the text, fallback to default if no color defined
-                resultDisplay.style.color = winningBall.data.color && winningBall.data.color !== '#FFFFFF' // Don't use white text on white bg
-                                             ? winningBall.data.color
-                                             : '#c0392b'; // Fallback to red
-
-                // Highlight the winning ball with GSAP
-                gsap.to(winningBall.element, {
-                    scale: 1.8,
-                    y: "-=10", // Move up slightly
-                    boxShadow: `0 0 25px 15px ${winningBall.element.style.backgroundColor || 'yellow'}`,
-                    duration: 0.6,
-                    ease: "elastic.out(1, 0.5)", // Bouncy effect
-                     yoyo: true, // Briefly pulse
-                     repeat: 1, // Pulse once (total 2 states)
-                    onComplete: () => {
-                        // Ensure scale returns to 1 after pulsing
-                        gsap.to(winningBall.element, { scale: 1, boxShadow: ball.element.style.boxShadow || 'none', duration: 0.3 });
+                const winner = balls[winnerIndex];
+                
+                // 產生粒子效果
+                createParticleEffect(winner);
+                
+                // 顯示獲獎球
+                gsap.to(winner.element, {
+                    scale: 1.5,
+                    boxShadow: '0 0 20px rgba(255, 215, 0, 0.8)',
+                    duration: 0.5,
+                    yoyo: true,
+                    repeat: 3,
+                    onComplete: function() {
+                        // 顯示獲獎資訊
+                        showWinner(winner);
                     }
                 });
-
-                // Trigger confetti
-                triggerConfetti(winningBall.element.style.backgroundColor);
-
-                // Re-enable interactions after effects play out
-                gsap.delayedCall(2.5, () => {
-                    isSpinning = false;
-                    spinButton.disabled = false;
-                    console.log("抽選結果表示完了。再度抽選可能。");
-                });
+                
+                // 重新啟用按鈕
+                startButton.disabled = false;
+                resetButton.disabled = false;
             }
-
-            // --- Effects Functions ---
-            function triggerConfetti(baseColor = '#FFD700') {
-                const particleCount = 60;
-                const colors = [baseColor, "#FF69B4", "#87CEFA", "#FFFACD", "#FFFFFF"]; // Prize color + festive colors
-
+            
+            // 顯示獲獎結果
+            function showWinner(winner) {
+                // 播放勝利音效
+                if (soundEnabled) {
+                    sounds.win.play();
+                }
+                
+                // 設置獲獎球顯示
+                winnerBall.style.backgroundColor = winner.element.style.backgroundColor;
+                winnerBall.textContent = winner.element.textContent;
+                
+                // 設置獲獎訊息
+                const messages = [
+                    '恭喜！您的幸運數字！',
+                    '命運之神眷顧了您！',
+                    '福氣降臨，恭喜中獎！',
+                    '今日良辰吉時，恭喜您！',
+                    '緣分天注定，這個獎品屬於您！'
+                ];
+                winnerMessage.textContent = messages[Math.floor(Math.random() * messages.length)];
+                
+                // 更新結果顯示
+                resultDisplay.textContent = `抽中號碼: ${winner.element.textContent}`;
+                
+                // 顯示獲獎彈窗
+                winnerDisplay.style.opacity = '1';
+                winnerDisplay.style.pointerEvents = 'auto';
+                
+                gsap.fromTo(winnerDisplay.querySelector('.winner-content'), 
+                    { scale: 0.5, opacity: 0 },
+                    { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }
+                );
+            }
+            
+            // 粒子效果
+            function createParticleEffect(winner) {
+                if (isLightMode) return; // 輕量模式跳過粒子效果
+                
+                const particleCount = 50;
+                const colors = ['#FFD700', '#FFC107', '#FF9800', '#FF5722', '#F44336'];
+                
                 for (let i = 0; i < particleCount; i++) {
                     const particle = document.createElement('div');
-                    particle.classList.add('confetti-particle');
-                    const color = colors[Math.floor(Math.random() * colors.length)];
-                    particle.style.backgroundColor = color;
-                    // Add contrast border for light particles
-                     if (color === '#FFFFFF' || color === '#FFFACD' || color === '#87CEFA') {
-                         particle.style.border = '1px solid rgba(0,0,0,0.2)';
-                     }
-                    effectsOverlay.appendChild(particle);
-
-                    // Position randomly across the top width
-                    const startX = Math.random() * window.innerWidth;
-                     const endX = startX + (Math.random() - 0.5) * 400; // Horizontal drift
-
-                    gsap.set(particle, {
-                        x: startX,
-                        y: -20, // Start above screen
-                        scale: Math.random() * 0.6 + 0.4, // Random size
-                        rotationZ: Math.random() * 360 // Random initial rotation
-                    });
-
-                    // Animate falling, fading, and tumbling
+                    particle.className = 'particle';
+                    
+                    // 隨機顏色
+                    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // 設定初始位置為獲獎球
+                    const rect = winner.element.getBoundingClientRect();
+                    const x = rect.left + rect.width / 2;
+                    const y = rect.top + rect.height / 2;
+                    
+                    particle.style.left = `${x}px`;
+                    particle.style.top = `${y}px`;
+                    
+                    particlesContainer.appendChild(particle);
+                    
+                    // 粒子動畫
                     gsap.to(particle, {
-                        y: window.innerHeight + 20, // Fall off screen
-                        x: endX,
-                        rotationZ: `+=${(Math.random() - 0.5) * 1080}`, // Tumble more
-                        rotationX: `+=${(Math.random() - 0.5) * 720}`, // Add X rotation
-                        opacity: 0,
-                        duration: Math.random() * 4 + 3, // Longer duration (3-7s)
-                        ease: "power1.in", // Accelerate slightly as it falls seems more natural for confetti
-                        delay: Math.random() * 0.8, // Stagger start times
-                        onComplete: () => {
-                            particle.remove(); // Clean up DOM
+                        x: (Math.random() - 0.5) * 200,
+                        y: (Math.random() - 0.5) * 200,
+                        opacity: 1,
+                        scale: Math.random() * 2 + 1,
+                        duration: 0.1,
+                        onComplete: function() {
+                            gsap.to(particle, {
+                                x: (Math.random() - 0.5) * 400,
+                                y: (Math.random() - 0.5) * 400,
+                                opacity: 0,
+                                scale: 0,
+                                duration: Math.random() * 2 + 1,
+                                ease: 'power2.out',
+                                onComplete: function() {
+                                    particle.remove();
+                                }
+                            });
                         }
                     });
                 }
-                console.log("🎉 紙吹雪エフェクト発動！");
             }
-
-
-            // --- RWD Handling ---
-            function handleResize() {
-                console.log("ウィンドウサイズ変更検知");
-                 // Recalculate face position based on new drum width
-                 calculateFaceTranslateZ();
-                 // Reapply transforms to existing faces
-                 const faces = octagonDrum.querySelectorAll('.face');
-                 const angleIncrement = 45;
-                 faces.forEach((face, i) => {
-                     gsap.set(face, {
-                         rotationY: i * angleIncrement,
-                         z: faceTranslateZ,
-                         force3D: true
-                     });
-                 });
-                 // Optional: Adjust ball positions or scene scale if needed
+            
+            // 重設抽選機
+            function resetLottery() {
+                // 停止旋轉
+                isSpinning = false;
+                spinSpeed = 0;
+                
+                // 停止音效
+                if (soundEnabled) {
+                    sounds.spin.stop();
+                }
+                
+                // 重置顯示
+                resultDisplay.textContent = '準備開始抽選...';
+                
+                // 重新創建球
+                const ballCount = parseInt(ballCountInput.value, 10);
+                createBalls(ballCount);
+                
+                // 啟用按鈕
+                startButton.disabled = false;
+                resetButton.disabled = false;
             }
-
-
-            // --- Start the application ---
+            
+            // 處理手把拖曳
+            function handleDrag() {
+                handleContainer.addEventListener('mousedown', startDrag);
+                handleContainer.addEventListener('touchstart', startDrag, { passive: false });
+                
+                document.addEventListener('mousemove', moveDrag);
+                document.addEventListener('touchmove', moveDrag, { passive: false });
+                
+                document.addEventListener('mouseup', endDrag);
+                document.addEventListener('touchend', endDrag);
+                
+                // 開始拖曳
+                function startDrag(e) {
+                    if (isSpinning) return;
+                    
+                    e.preventDefault();
+                    isDragging = true;
+                    
+                    // 記錄初始位置
+                    if (e.type === 'mousedown') {
+                        dragStartY = e.clientY;
+                    } else if (e.type === 'touchstart') {
+                        dragStartY = e.touches[0].clientY;
+                    }
+                    
+                    lastDragY = dragStartY;
+                    handleContainer.style.cursor = 'grabbing';
+                }
+                
+                // 拖曳移動
+                function moveDrag(e) {
+                    if (!isDragging) return;
+                    
+                    let currentY;
+                    if (e.type === 'mousemove') {
+                        currentY = e.clientY;
+                    } else if (e.type === 'touchmove') {
+                        e.preventDefault();
+                        currentY = e.touches[0].clientY;
+                    }
+                    
+                    // 計算移動距離和角度
+                    const deltaY = currentY - dragStartY;
+                    handleAngle = Math.min(45, Math.max(-45, deltaY / 3));
+                    
+                    // 設置手把旋轉
+                    handle.style.transform = `rotate(${handleAngle}deg)`;
+                    
+                    // 更新上次拖曳位置
+                    lastDragY = currentY;
+                }
+                
+                // 結束拖曳
+                function endDrag() {
+                    if (!isDragging) return;
+                    
+                    isDragging = false;
+                    handleContainer.style.cursor = 'grab';
+                    
+                    // 檢查是否有足夠速度啟動抽選
+                    const velocity = Math.abs(handleVelocity);
+                    if (velocity > 10 && !isSpinning) {
+                        // 播放點擊音效
+                        if (soundEnabled) {
+                            sounds.click.play();
+                        }
+                        
+                        // 開始抽選
+                        startSpinning();
+                        
+                        // 增加初始旋轉速度
+                        spinSpeed += velocity * 0.05;
+                    }
+                }
+            }
+            
+            // 初始化設置
+            function init() {
+                // 檢查裝置性能
+                const { isMobile } = checkDevicePerformance();
+                
+                // 創建八角形
+                createOctagon();
+                
+                // 創建球
+                const initialBallCount = parseInt(ballCountInput.value, 10);
+                createBalls(initialBallCount);
+                
+                // 設置手把拖曳
+                handleDrag();
+                
+                // 開始動畫循環
+                requestAnimationFrame(animate);
+                
+                // 按鈕事件
+                startButton.addEventListener('click', function() {
+                    if (!isSpinning) {
+                        startSpinning();
+                        
+                        // 播放點擊音效
+                        if (soundEnabled) {
+                            sounds.click.play();
+                        }
+                    }
+                });
+                
+                resetButton.addEventListener('click', function() {
+                    resetLottery();
+                    
+                    // 播放點擊音效
+                    if (soundEnabled) {
+                        sounds.click.play();
+                    }
+                });
+                
+                // 自定義球設置
+                customizeButton.addEventListener('click', function() {
+                    // 簡易的自定義介面
+                    alert('功能開發中：未來版本將支援自定義球色與名稱！');
+                });
+                
+                // 關閉獲獎彈窗
+                closeWinner.addEventListener('click', function() {
+                    winnerDisplay.style.opacity = '0';
+                    winnerDisplay.style.pointerEvents = 'none';
+                    
+                    // 播放點擊音效
+                    if (soundEnabled) {
+                        sounds.click.play();
+                    }
+                });
+                
+                // 音效開關
+                soundToggle.addEventListener('click', function() {
+                    soundEnabled = !soundEnabled;
+                    
+                    if (soundEnabled) {
+                        soundToggle.innerHTML = '<i class="fas fa-volume-up"></i> 音效開啟';
+                    } else {
+                        soundToggle.innerHTML = '<i class="fas fa-volume-mute"></i> 音效關閉';
+                        sounds.spin.stop();
+                    }
+                });
+                
+                // 監聽球數量變化
+                ballCountInput.addEventListener('change', function() {
+                    let value = parseInt(this.value, 10);
+                    
+                    // 限制範圍
+                    if (value < 1) value = 1;
+                    if (value > 30) value = 30;
+                    
+                    this.value = value;
+                    resetLottery();
+                });
+                
+                // 移動裝置優化
+                if (isMobile) {
+                    // 調整手把位置和大小
+                    handleContainer.style.right = '-65px';
+                    
+                    // 提示使用按鈕
+                    resultDisplay.textContent = '點擊開始按鈕來抽選！';
+                }
+            }
+            
+            // 啟動應用
             init();
-
-        }); // End DOMContentLoaded
+        });
     </script>
 </body>
 </html>
