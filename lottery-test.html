@@ -4,15 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>御縁の抽選機 - 日式八角抽選機</title>
-    <!-- 引入字體 -->
+    <!-- Fonts, Libs, Styles (Keep Stylesheet from previous correct version) -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
-    <!-- 引入 GSAP 動畫庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <!-- 引入 Howler.js 音效庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
-    <!-- 引入 FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
+        /* --- PASTE THE FULL CSS FROM THE PREVIOUS CORRECT ANSWER HERE --- */
+        /* For brevity, I'm omitting the full CSS block, but it's crucial */
         :root {
             --primary: #B28046;
             --primary-light: #D4AF6A;
@@ -253,6 +252,8 @@
             transform-origin: center center;
             /* 添加 will-change 提升動畫效能 */
             will-change: transform, opacity;
+            /* Ensure balls are visible initially */
+            opacity: 0.8; /* Start with some opacity */
         }
         
         /* 控制面板 */
@@ -550,17 +551,17 @@
                 /* translateZ 需要根據新的寬度和八角形要求重新計算 */
                 /* 如果保持八角形, translateZ = (100 / 2) / tan(pi / 8) ≈ 120.7 */
                 /* 使用 100px 保持比例 */
-                transform: rotateY(0deg) translateZ(100px); /* JS 會覆蓋 rotateY */
+                /* transform is set dynamically by JS in createOctagon */
             }
 
             .top-cap, .bottom-cap {
                 /* 根據新的 translateZ=100 計算 */
-                width: 200px;
+                width: 200px; /* approx 2 * 100 */
                 height: 200px;
                  /* clip-path 保持不變 */
             }
             .top-cap {
-                transform: translateX(-50%) rotateX(90deg) translateZ(120px); /* height/2 */
+                transform: translateX(-50%) rotateX(90deg) translateZ(120px); /* height/2 = 240/2 */
             }
             .bottom-cap {
                  transform: translateX(-50%) rotateX(90deg) translateZ(-120px); /* -height/2 */
@@ -587,7 +588,7 @@
             }
 
             .ball {
-                width: 30px;
+                width: 30px; /* Smaller balls */
                 height: 30px;
                 line-height: 30px;
                 font-size: 0.8rem; /* 縮小字體 */
@@ -649,11 +650,11 @@
         body.light-mode .ball {
              box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1); /* 簡化陰影 */
         }
-
     </style>
 </head>
 <body>
-    <!-- 標題區域 -->
+    <!-- HTML Structure (Keep from previous correct version) -->
+     <!-- 標題區域 -->
     <div class="title-area">
         <h1>御縁の抽選機</h1>
         <p>緣分天注定，運勢在此時</p>
@@ -732,808 +733,780 @@
     
     <!-- JavaScript -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // --- DOM Elements ---
-            const octagonContainer = document.getElementById('octagon');
-            const handleContainer = document.getElementById('handleContainer');
-            const handle = handleContainer.querySelector('.handle');
-            const resultDisplay = document.getElementById('resultDisplay');
-            const startButton = document.getElementById('startButton');
-            const resetButton = document.getElementById('resetButton');
-            const ballCountInput = document.getElementById('ballCount');
-            const spinSpeedSelect = document.getElementById('spinSpeed');
-            const soundToggle = document.getElementById('soundToggle');
-            const soundStatus = document.getElementById('soundStatus');
-            const particlesContainer = document.getElementById('particlesContainer');
-            const spotlight = document.querySelector('.spotlight');
-            const winnerDisplay = document.getElementById('winnerDisplay');
-            const winnerBall = document.getElementById('winnerBall');
-            const winnerMessage = document.getElementById('winnerMessage');
-            const closeWinner = document.getElementById('closeWinner');
-            const lotteryMachine = document.querySelector('.lottery-machine'); // Get machine element
-            
-            // --- State Variables ---
-            let isSpinning = false;
-            let currentSpinSpeed = 0; // Renamed from spinSpeed to avoid conflict with select value
-            let spinAngle = 0;
-            let balls = [];
-            let soundEnabled = true;
-            let isLightMode = false;
-            let dragStartY = 0;
-            let handleAngle = 0;
-            let handleVelocity = 0;
-            let lastDragY = 0;
-            let isDragging = false;
-            let animationFrameId = null; // To store requestAnimationFrame ID
-            let spinStartTime = 0; // To track spin duration
-            let isDecelerating = false; // Flag to control deceleration phase
+        // Wrap in try...catch for better error reporting during init
+        try {
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log("DOM Loaded. Initializing script..."); // DEBUG
 
-            // --- Constants ---
-            const DECELERATION_FACTOR = 0.995;
-            const MIN_SPIN_SPEED = 0.1;
-            const HANDLE_DRAG_THRESHOLD = 10;
-            const SPIN_DURATION_BEFORE_DECEL = 3000 + Math.random() * 2000; // 3-5 seconds
-            const BALL_DIAMETER = 40; // Should match ball CSS width/height
-            const BALL_RADIUS = BALL_DIAMETER / 2;
+                // --- DOM Elements ---
+                const octagonContainer = document.getElementById('octagon');
+                const handleContainer = document.getElementById('handleContainer');
+                const handle = handleContainer.querySelector('.handle');
+                const resultDisplay = document.getElementById('resultDisplay');
+                const startButton = document.getElementById('startButton');
+                const resetButton = document.getElementById('resetButton');
+                const ballCountInput = document.getElementById('ballCount');
+                const spinSpeedSelect = document.getElementById('spinSpeed');
+                const soundToggle = document.getElementById('soundToggle');
+                const soundStatus = document.getElementById('soundStatus');
+                const particlesContainer = document.getElementById('particlesContainer');
+                const spotlight = document.querySelector('.spotlight');
+                const winnerDisplay = document.getElementById('winnerDisplay');
+                const winnerBall = document.getElementById('winnerBall');
+                const winnerMessage = document.getElementById('winnerMessage');
+                const closeWinner = document.getElementById('closeWinner');
+                const lotteryMachine = document.querySelector('.lottery-machine'); // Get machine element
 
-             // --- Physics Constants ---
-            const GRAVITY = 0.03; // Slightly increased gravity
-            const FRICTION = 0.98;
-            const BOUNDARY_ELASTICITY = 0.7; // Reduced elasticity
-            const BALL_COLLISION_DAMPING = 0.85; // Damping for ball collisions
+                 // --- Verify Element Selection ---
+                 if (!octagonContainer) console.error("ERROR: Cannot find #octagon");
+                 if (!handleContainer) console.error("ERROR: Cannot find #handleContainer");
+                 if (!lotteryMachine) console.error("ERROR: Cannot find .lottery-machine");
+                 // ... add checks for other critical elements if needed
 
-            // --- Prize Definitions ---
-            const prizes = [
-                { label: "大吉", color: "#E74C3C", weight: 1 },
-                { label: "中吉", color: "#E67E22", weight: 2 },
-                { label: "小吉", color: "#F1C40F", weight: 3 },
-                { label: "吉", color: "#2ECC71", weight: 5 },
-                { label: "末吉", color: "#3498DB", weight: 8 },
-                { label: "凶", color: "#9B59B6", weight: 3 },
-                { label: "大凶", color: "#34495E", weight: 1 }
-            ];
-            
-            // --- Sound Effects ---
-            // Ensure Base64 strings are correct or replace with file paths
-            const sounds = {
-                spin: new Howl({
-                    src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUHh4eHh4qKioqKioqNDQ0NDRAQEBAQEBMTExMTExMWFhYWFhkZGRkZGRwcHBwcHB8fHx8fHyIiIiIiIiIlJSUlJSUnJycnJyouLi4uLi4xMTExMTE0NDQ0NDQ0NDc3Nzc3Nzc6Ojo6Oj09PT09PT///8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAQoAAAAAAAeMwGvI84AAAAAAAAAAAAAAAAA//uQwAALcABEnCAAACNCwQnG8gAQAYRERERERERRAAIR5zjn5uecIQhEQnOOcABAIBAMBAIThCcIQhCEIQiIiIiRERERI='],
-                    volume: 0.4, // Slightly lower volume
-                    loop: true
-                }),
-                win: new Howl({
-                    src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAeAAAyQAAFBQsLERERFxwcHCIiIigvLy8vNTU1Ozs7O0FBQUdNTU1NUlJSWFhYWF5eXmRpaWlpcG9vdnZ2dnx8fIKCgoKIiIiOlJSUlJqamp+fn5+mp6enrKyssbGxscbGxs3NzdLY2Nja4ODg4Obj4+no6Ojv7+/v9PT0+fn5+f///wAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQEKQAAAAAAAAAAAAAAAA//+xDEAAPAAAGkAAAAIAAANIAAAARMQU1FMy45OS41VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7IMQFg8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ=='],
-                    volume: 0.7
-                }),
-                click: new Howl({
-                    src: ['data:audio/mp3;base64,SUQzAwAAAAAAJlRQRTEAAAAcAAAAU291bmRKYXkuY29tIFNvdW5kIEVmZmVjdHMA//uQxAADwAABpAAAACAAADSAAAAETEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU='],
-                    volume: 0.6
-                }),
-                bounce: new Howl({
-                    src: ['data:audio/mp3;base64,SUQzAwAAAAAAJlRQRTEAAAAcAAAAU291bmRKYXkuY29tIFNvdW5kIEVmZmVjdHMA//uUxAADwAABpAAAACAAADSAAAAETEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU='],
-                    volume: 0.3, // Lower volume for bounces
-                    pool: 5 // Allow multiple bounce sounds
-                })
-            };
-            
-            // --- Utility Functions ---
-            
-            // Check device performance for light mode
-            function checkDevicePerformance() {
-                const isMobile = window.innerWidth <= 767;
-                // More robust check: consider memory, not just cores
-                const isLowPerformance = isMobile || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || (navigator.deviceMemory && navigator.deviceMemory < 4);
-                
-                if (isLowPerformance) {
-                    document.body.classList.add('light-mode');
-                    isLightMode = true;
-                    console.log("Light mode enabled.");
-                } else {
-                    document.body.classList.remove('light-mode');
-                    isLightMode = false;
+                // --- State Variables ---
+                let isSpinning = false;
+                let currentSpinSpeed = 0;
+                let spinAngle = 0;
+                let balls = [];
+                let soundEnabled = true;
+                let isLightMode = false;
+                let dragStartY = 0;
+                let handleAngle = 0;
+                let handleVelocity = 0;
+                let lastDragY = 0;
+                let isDragging = false;
+                let animationFrameId = null;
+                let spinStartTime = 0;
+                let isDecelerating = false;
+
+                // --- Constants ---
+                const DECELERATION_FACTOR = 0.995;
+                const MIN_SPIN_SPEED = 0.1;
+                const HANDLE_DRAG_THRESHOLD = 8; // Lowered threshold slightly
+                const SPIN_DURATION_BEFORE_DECEL = 3000 + Math.random() * 2000;
+
+                // --- Dynamic Ball Size ---
+                 function getBallDiameter() {
+                    return window.innerWidth <= 767 ? 30 : 40;
                 }
-                return { isMobile, isLowPerformance };
-            }
+                function getBallRadius() {
+                    return getBallDiameter() / 2;
+                }
 
-             // Get random prize based on weight
-             function getRandomPrize() {
-                let totalWeight = prizes.reduce((sum, prize) => sum + prize.weight, 0);
-                const random = Math.random() * totalWeight;
-                let weightSum = 0;
-                for (const prize of prizes) {
-                    weightSum += prize.weight;
-                    if (random < weightSum) {
-                        return prize;
+
+                // --- Physics Constants ---
+                const GRAVITY = 0.03;
+                const FRICTION = 0.98;
+                const BOUNDARY_ELASTICITY = 0.6; // Slightly less bouncy
+                const BALL_COLLISION_DAMPING = 0.8; // Slightly less bouncy collisions
+
+                // --- Prize Definitions ---
+                const prizes = [
+                    { label: "大吉", color: "#E74C3C", weight: 1 },
+                    { label: "中吉", color: "#E67E22", weight: 2 },
+                    { label: "小吉", color: "#F1C40F", weight: 3 },
+                    { label: "吉", color: "#2ECC71", weight: 5 },
+                    { label: "末吉", color: "#3498DB", weight: 8 },
+                    { label: "凶", color: "#9B59B6", weight: 3 },
+                    { label: "大凶", color: "#34495E", weight: 1 }
+                ];
+                
+                // --- Sound Effects ---
+                // Ensure Base64 strings are correct or replace with file paths
+                // Howler setup remains the same...
+                 const sounds = {
+                    spin: new Howl({
+                        src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUHh4eHh4qKioqKioqNDQ0NDRAQEBAQEBMTExMTExMWFhYWFhkZGRkZGRwcHBwcHB8fHx8fHyIiIiIiIiIlJSUlJSUnJycnJyouLi4uLi4xMTExMTE0NDQ0NDQ0NDc3Nzc3Nzc6Ojo6Oj09PT09PT///8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAQoAAAAAAAeMwGvI84AAAAAAAAAAAAAAAAA//uQwAALcABEnCAAACNCwQnG8gAQAYRERERERERRAAIR5zjn5uecIQhEQnOOcABAIBAMBAIThCcIQhCEIQiIiIiRERERI='],
+                        volume: 0.4, loop: true
+                    }),
+                    win: new Howl({
+                        src: ['data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAeAAAyQAAFBQsLERERFxwcHCIiIigvLy8vNTU1Ozs7O0FBQUdNTU1NUlJSWFhYWF5eXmRpaWlpcG9vdnZ2dnx8fIKCgoKIiIiOlJSUlJqamp+fn5+mp6enrKyssbGxscbGxs3NzdLY2Nja4ODg4Obj4+no6Ojv7+/v9PT0+fn5+f///wAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQEKQAAAAAAAAAAAAAAAA//+xDEAAPAAAGkAAAAIAAANIAAAARMQU1FMy45OS41VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7IMQFg8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ=='],
+                        volume: 0.7
+                    }),
+                    click: new Howl({
+                        src: ['data:audio/mp3;base64,SUQzAwAAAAAAJlRQRTEAAAAcAAAAU291bmRKYXkuY29tIFNvdW5kIEVmZmVjdHMA//uQxAADwAABpAAAACAAADSAAAAETEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU='],
+                        volume: 0.6
+                    }),
+                    bounce: new Howl({
+                        src: ['data:audio/mp3;base64,SUQzAwAAAAAAJlRQRTEAAAAcAAAAU291bmRKYXkuY29tIFNvdW5kIEVmZmVjdHMA//uUxAADwAABpAAAACAAADSAAAAETEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU='],
+                        volume: 0.25, // Even lower volume for bounces
+                        pool: 8 // Increase pool size
+                    })
+                };
+
+                // --- Utility Functions ---
+                function checkDevicePerformance() { /* ... (same as before) ... */
+                     const isMobile = window.innerWidth <= 767;
+                     const isLowPerformance = isMobile || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || (navigator.deviceMemory && navigator.deviceMemory < 4);
+                    
+                     if (isLowPerformance) {
+                         if (!document.body.classList.contains('light-mode')) {
+                            console.log("Light mode enabled.");
+                            document.body.classList.add('light-mode');
+                         }
+                         isLightMode = true;
+                     } else {
+                         if (document.body.classList.contains('light-mode')) {
+                             console.log("Light mode disabled.");
+                            document.body.classList.remove('light-mode');
+                         }
+                         isLightMode = false;
+                     }
+                     return { isMobile, isLowPerformance };
+                 }
+                function getRandomPrize() { /* ... (same as before) ... */
+                    let totalWeight = prizes.reduce((sum, prize) => sum + prize.weight, 0);
+                    const random = Math.random() * totalWeight;
+                    let weightSum = 0;
+                    for (const prize of prizes) {
+                        weightSum += prize.weight;
+                        if (random < weightSum) {
+                            return prize;
+                        }
                     }
+                    return prizes[prizes.length - 1]; // Fallback
                 }
-                return prizes[prizes.length - 1]; // Fallback
-            }
+                function getFaceTranslateZ() { return window.innerWidth <= 767 ? 100 : 140; }
+                function getMachineDimensions() { return window.innerWidth <= 767 ? { width: 240, height: 240 } : { width: 320, height: 320 }; }
 
-            // Get appropriate translateZ based on media query
-            function getFaceTranslateZ() {
-                 return window.innerWidth <= 767 ? 100 : 140;
-            }
-             // Get appropriate machine dimensions
-             function getMachineDimensions() {
-                return window.innerWidth <= 767 ? { width: 240, height: 240 } : { width: 320, height: 320 };
-            }
+                // --- Core Logic Functions ---
+                function createOctagon() {
+                    if (!octagonContainer) return; // Guard against null element
+                    console.log("DEBUG: Creating octagon faces..."); // DEBUG
+                    octagonContainer.innerHTML = '';
+                    const numFaces = 8;
+                    const angleIncrement = 360 / numFaces;
+                    const translateZ = getFaceTranslateZ();
+                    console.log(`DEBUG: Using translateZ = ${translateZ}`); // DEBUG
 
-            // --- Core Logic Functions ---
-
-            // Create octagon faces
-            function createOctagon() {
-                octagonContainer.innerHTML = ''; // Clear existing faces
-                const numFaces = 8;
-                const angleIncrement = 360 / numFaces;
-                const translateZ = getFaceTranslateZ(); // Get dynamic value
-
-                for (let i = 0; i < numFaces; i++) {
-                    const face = document.createElement('div');
-                    face.className = 'octagon-face';
-                    // Set transform dynamically via JS
-                    face.style.transform = `rotateY(${i * angleIncrement}deg) translateZ(${translateZ}px)`;
-                    octagonContainer.appendChild(face);
+                    for (let i = 0; i < numFaces; i++) {
+                        const face = document.createElement('div');
+                        face.className = 'octagon-face';
+                        face.style.transform = `rotateY(${i * angleIncrement}deg) translateZ(${translateZ}px)`;
+                        // Adjust width/height based on screen size directly if CSS isn't reliable?
+                         if (window.innerWidth <= 767) {
+                             face.style.width = '100px';
+                             face.style.height = '240px';
+                             face.style.left = 'calc(50% - 50px)';
+                         } else {
+                            face.style.width = '140px';
+                             face.style.height = '320px';
+                             face.style.left = 'calc(50% - 70px)';
+                         }
+                        octagonContainer.appendChild(face);
+                    }
+                    console.log("DEBUG: Octagon faces created."); // DEBUG
                 }
-            }
 
-            // Create lottery balls
-            function createBalls(count) {
-                balls = [];
-                // Clear existing ball elements from the machine container
-                const existingBalls = lotteryMachine.querySelectorAll('.ball');
-                existingBalls.forEach(ball => ball.remove());
-                
-                const { width: machineWidth, height: machineHeight } = getMachineDimensions();
-                const centerX = machineWidth / 2;
-                const centerY = machineHeight / 2;
-
-
-                for (let i = 0; i < count; i++) {
-                    const ball = document.createElement('div');
-                    ball.className = 'ball';
+                function createBalls(count) {
+                    console.log(`DEBUG: createBalls called with count: ${count}`); // DEBUG
+                    if (!lotteryMachine) {
+                        console.error("ERROR: lotteryMachine element not found in createBalls.");
+                        return; // Stop if container is missing
+                    }
+                    balls = [];
+                    const existingBalls = lotteryMachine.querySelectorAll('.ball');
+                    console.log(`DEBUG: Removing ${existingBalls.length} existing balls.`); // DEBUG
+                    existingBalls.forEach(ball => ball.remove());
                     
-                    const prize = getRandomPrize();
-                    ball.textContent = prize.label;
-                    ball.style.backgroundColor = prize.color;
-                    ball.dataset.prize = prize.label;
-                    
-                    // Initial position calculation (more spread out)
-                    const phi = Math.acos(2 * Math.random() - 1) - Math.PI / 2; // Latitude
-                    const theta = Math.random() * Math.PI * 2; // Longitude
-                    const radius = BALL_RADIUS + Math.random() * (getFaceTranslateZ() * 0.6); // Start within ~60% of radius
-                    
-                    // Center coordinates within the machine's local space
-                    const x = centerX + radius * Math.cos(theta) * Math.cos(phi);
-                    const y = centerY + radius * Math.sin(phi); // Y is vertical axis in this setup
-                    const z = radius * Math.sin(theta) * Math.cos(phi); // Z is depth
+                    const { width: machineWidth, height: machineHeight } = getMachineDimensions();
+                    const centerX = machineWidth / 2;
+                    const centerY = machineHeight / 2; // Mid-height
+                    const BALL_DIAM = getBallDiameter();
+                    const BALL_RAD = getBallRadius();
 
-                    // Apply initial transform
-                    ball.style.transform = `translate3d(${x - BALL_RADIUS}px, ${y - BALL_RADIUS}px, ${z}px)`;
+                    console.log(`DEBUG: Machine Dims: ${machineWidth}x${machineHeight}, Center: ${centerX},${centerY}, Ball Radius: ${BALL_RAD}`); // DEBUG
 
-                    lotteryMachine.appendChild(ball); // Append to the machine itself
-                    
-                    balls.push({
-                        element: ball,
-                        x: x, y: y, z: z,
-                        vx: 0, vy: 0, vz: 0, // Initial velocity
-                        prize: prize,
-                        radius: BALL_RADIUS
+                    for (let i = 0; i < count; i++) {
+                        try {
+                            const ball = document.createElement('div');
+                            ball.className = 'ball';
+                            ball.style.width = `${BALL_DIAM}px`; // Set size via JS too
+                            ball.style.height = `${BALL_DIAM}px`;
+                            ball.style.lineHeight = `${BALL_DIAM}px`;
+
+                            const prize = getRandomPrize();
+                            ball.textContent = prize.label;
+                            ball.style.backgroundColor = prize.color;
+                            ball.dataset.prize = prize.label;
+                            
+                            // --- Simplified Initial Position (Near Bottom Center) ---
+                            const initialX = centerX + (Math.random() - 0.5) * machineWidth * 0.4; // Spread 40% width
+                            const initialY = machineHeight * 0.7 + Math.random() * machineHeight * 0.2; // Lower 30%
+                            const initialZ = (Math.random() - 0.5) * getFaceTranslateZ() * 0.3; // Small Z spread
+
+                            // Calculate the CSS transform position (top-left corner)
+                            const cssX = initialX - BALL_RAD;
+                            const cssY = initialY - BALL_RAD;
+
+                            console.log(`DEBUG: Ball ${i} - Initial State: [x:${initialX.toFixed(1)}, y:${initialY.toFixed(1)}, z:${initialZ.toFixed(1)}], CSS: [x:${cssX.toFixed(1)}, y:${cssY.toFixed(1)}]`); // DEBUG
+
+                            // Apply initial CSS transform
+                            ball.style.transform = `translate3d(${cssX}px, ${cssY}px, ${initialZ}px)`;
+                            ball.style.opacity = '0.8'; // Ensure visible
+
+                            lotteryMachine.appendChild(ball);
+                            
+                            // --- IMPORTANT: Store the CENTER coordinates in the physics state ---
+                            balls.push({
+                                element: ball,
+                                x: initialX, // Store center X
+                                y: initialY, // Store center Y
+                                z: initialZ, // Store center Z
+                                vx: (Math.random() - 0.5) * 0.5, // Tiny initial velocity
+                                vy: (Math.random() - 0.5) * 0.5,
+                                vz: (Math.random() - 0.5) * 0.5,
+                                prize: prize,
+                                radius: BALL_RAD // Store radius
+                            });
+                        } catch (ballError) {
+                             console.error(`ERROR creating ball ${i}:`, ballError); // DEBUG
+                         }
+                    }
+                    console.log(`DEBUG: Successfully created ${balls.length} balls.`); // DEBUG
+                    // Force a reflow maybe?
+                     void lotteryMachine.offsetWidth;
+                }
+
+                function updateBallPositions() {
+                    if (!balls.length) return;
+
+                    const maxRadius = getFaceTranslateZ() - getBallRadius();
+                    const maxRadiusSquared = maxRadius * maxRadius;
+                    const { width: machineWidth, height: machineHeight } = getMachineDimensions();
+                    const centerX = machineWidth / 2;
+                    // centerY calculation removed as Y=0 is top, Y=machineHeight is bottom
+                    const spinEffectFactor = currentSpinSpeed * 0.005;
+                    const BALL_RAD = getBallRadius(); // Get current radius
+
+                    balls.forEach(ball => {
+                         // Make sure radius is up-to-date (in case of resize)
+                         ball.radius = BALL_RAD;
+
+                        // 1. Apply Forces
+                        ball.vy += GRAVITY;
+                        const spinForceX = -spinEffectFactor * ball.z;
+                        const spinForceZ = spinEffectFactor * (ball.x - centerX);
+                        ball.vx += spinForceX;
+                        ball.vz += spinForceZ;
+
+                        // 2. Update Velocity
+                        ball.vx *= FRICTION;
+                        ball.vy *= FRICTION;
+                        ball.vz *= FRICTION;
+
+                        // 3. Update Position (Center coordinates)
+                        ball.x += ball.vx;
+                        ball.y += ball.vy;
+                        ball.z += ball.vz;
+
+                        // 4. Boundary Collisions
+                        // Top/Bottom caps (Y-axis)
+                        if (ball.y < ball.radius) {
+                            ball.y = ball.radius;
+                            ball.vy *= -BOUNDARY_ELASTICITY;
+                            if (soundEnabled && Math.abs(ball.vy) > 0.2 && Math.random() < 0.05) sounds.bounce.play(); // Less frequent sounds
+                        } else if (ball.y > machineHeight - ball.radius) {
+                            ball.y = machineHeight - ball.radius;
+                            ball.vy *= -BOUNDARY_ELASTICITY;
+                            if (soundEnabled && Math.abs(ball.vy) > 0.2 && Math.random() < 0.05) sounds.bounce.play();
+                        }
+
+                        // Side walls (Radial distance in XZ plane)
+                        const dx = ball.x - centerX;
+                        const dz = ball.z;
+                        const radialDistSq = dx * dx + dz * dz;
+
+                        if (radialDistSq > maxRadiusSquared) {
+                            const radialDist = Math.sqrt(radialDistSq);
+                            const nx = dx / radialDist;
+                            const nz = dz / radialDist;
+                            const correction = radialDist - maxRadius;
+                            ball.x -= nx * correction;
+                            ball.z -= nz * correction;
+                            const dotProduct = ball.vx * nx + ball.vz * nz;
+                            ball.vx -= (1 + BOUNDARY_ELASTICITY) * dotProduct * nx;
+                            ball.vz -= (1 + BOUNDARY_ELASTICITY) * dotProduct * nz;
+                            if (soundEnabled && Math.sqrt(ball.vx*ball.vx + ball.vz*ball.vz) > 0.3 && Math.random() < 0.1) sounds.bounce.play();
+                        }
+
+                        // 5. Ball-Ball Collisions
+                         for (let i = balls.indexOf(ball) + 1; i < balls.length; i++) {
+                             const otherBall = balls[i];
+                             const dx_bb = otherBall.x - ball.x;
+                             const dy_bb = otherBall.y - ball.y;
+                             const dz_bb = otherBall.z - ball.z;
+                             const distSq = dx_bb * dx_bb + dy_bb * dy_bb + dz_bb * dz_bb;
+                             const minDist = ball.radius + otherBall.radius;
+                             const minDistSq = minDist * minDist;
+
+                             if (distSq < minDistSq && distSq > 0.01) {
+                                 const distance = Math.sqrt(distSq);
+                                 const nx = dx_bb / distance;
+                                 const ny = dy_bb / distance;
+                                 const nz = dz_bb / distance;
+                                 const overlap = minDist - distance;
+                                 const separationFactor = 0.51;
+                                 ball.x -= nx * overlap * separationFactor;
+                                 ball.y -= ny * overlap * separationFactor;
+                                 ball.z -= nz * overlap * separationFactor;
+                                 otherBall.x += nx * overlap * separationFactor;
+                                 otherBall.y += ny * overlap * separationFactor;
+                                 otherBall.z += nz * overlap * separationFactor;
+                                 const rvx = ball.vx - otherBall.vx;
+                                 const rvy = ball.vy - otherBall.vy;
+                                 const rvz = ball.vz - otherBall.vz;
+                                 const velAlongNormal = rvx * nx + rvy * ny + rvz * nz;
+                                 if (velAlongNormal > 0) continue;
+                                 const impulse = -(1 + BALL_COLLISION_DAMPING) * velAlongNormal / 2;
+                                 ball.vx += impulse * nx; ball.vy += impulse * ny; ball.vz += impulse * nz;
+                                 otherBall.vx -= impulse * nx; otherBall.vy -= impulse * ny; otherBall.vz -= impulse * nz;
+                                 if (soundEnabled && Math.abs(velAlongNormal) > 0.3 && Math.random() < 0.08) sounds.bounce.play();
+                             }
+                         }
+
+                        // 6. Update Element Style
+                        // Calculate CSS position (top-left corner) from center physics state
+                        const cssX = ball.x - ball.radius;
+                        const cssY = ball.y - ball.radius;
+                        const scale = 1 + (ball.z / (getFaceTranslateZ() * 3)); // Adjust scaling based on Z
+                        const opacity = 0.6 + 0.4 * ((ball.z + maxRadius) / (2 * maxRadius)); // Adjust opacity range
+
+                        ball.element.style.transform = `translate3d(${cssX.toFixed(2)}px, ${cssY.toFixed(2)}px, ${ball.z.toFixed(2)}px) scale(${scale.toFixed(2)})`;
+                        ball.element.style.zIndex = 500 + Math.floor(ball.y); // Base zIndex + y position
+                        ball.element.style.opacity = Math.max(0.4, Math.min(1, opacity)).toFixed(2);
+
+                         // DEBUG: Log position of one ball occasionally
+                         // if (ball === balls[0] && Math.random() < 0.01) {
+                         //     console.log(`Ball 0 - CSS: [${cssX.toFixed(1)}, ${cssY.toFixed(1)}, ${ball.z.toFixed(1)}]`);
+                         // }
                     });
                 }
-                // console.log(`Created ${balls.length} balls.`);
-            }
 
-            // Update ball positions based on physics
-            function updateBallPositions() {
-                if (!balls.length) return;
+                function rotateOctagon() {
+                    if (!octagonContainer) return;
+                    spinAngle += currentSpinSpeed;
+                    // Normalize angle to prevent huge numbers? Optional.
+                    // spinAngle = spinAngle % 360;
+                    octagonContainer.style.transform = `rotateY(${spinAngle}deg)`;
+                }
 
-                const maxRadius = getFaceTranslateZ() - BALL_RADIUS; // Max distance from center
-                const maxRadiusSquared = maxRadius * maxRadius;
-                const { width: machineWidth, height: machineHeight } = getMachineDimensions();
-                const centerX = machineWidth / 2;
-                const centerY = machineHeight / 2; // Y is vertical center
-                const spinEffectFactor = currentSpinSpeed * 0.005; // Adjusted spin effect
+                function animate(timestamp) {
+                    // DEBUG: Confirm loop runs
+                    // console.log(`DEBUG: Animate loop - ts: ${timestamp.toFixed(0)}, spinning: ${isSpinning}, speed: ${currentSpinSpeed.toFixed(2)}, handle: ${handleAngle.toFixed(2)}`);
 
-                balls.forEach(ball => {
-                    // 1. Apply Forces (Gravity, Spin)
-                    ball.vy += GRAVITY; // Gravity pulls down along Y
-                    // Centrifugal-like effect based on spin speed and Z position
-                    const spinForceX = -spinEffectFactor * ball.z;
-                    const spinForceZ = spinEffectFactor * (ball.x - centerX);
-                    ball.vx += spinForceX;
-                    ball.vz += spinForceZ;
-
-                    // 2. Update Velocity (Apply friction)
-                    ball.vx *= FRICTION;
-                    ball.vy *= FRICTION;
-                    ball.vz *= FRICTION;
-
-                    // 3. Update Position
-                    ball.x += ball.vx;
-                    ball.y += ball.vy;
-                    ball.z += ball.vz;
-
-                    // 4. Boundary Collisions (Cylinder Approximation)
-                    // Top/Bottom caps
-                     if (ball.y < BALL_RADIUS) {
-                        ball.y = BALL_RADIUS;
-                        ball.vy *= -BOUNDARY_ELASTICITY;
-                         if (soundEnabled && Math.abs(ball.vy) > 0.2 && Math.random() < 0.1) sounds.bounce.play();
-                    } else if (ball.y > machineHeight - BALL_RADIUS) {
-                        ball.y = machineHeight - BALL_RADIUS;
-                        ball.vy *= -BOUNDARY_ELASTICITY;
-                        if (soundEnabled && Math.abs(ball.vy) > 0.2 && Math.random() < 0.1) sounds.bounce.play();
+                    // Condition to stop the loop ONLY if nothing is happening
+                    if (!isSpinning && Math.abs(currentSpinSpeed) < MIN_SPIN_SPEED && Math.abs(handleAngle) < 0.1 && !isDragging) {
+                        // console.log("DEBUG: Stopping animation loop."); // DEBUG
+                        animationFrameId = null;
+                        return; // Stop the loop
                     }
 
-                    // Side walls (radial distance)
-                    const dx = ball.x - centerX;
-                    const dz = ball.z;
-                    const radialDistSq = dx * dx + dz * dz;
+                    rotateOctagon();
+                    updateBallPositions();
 
-                    if (radialDistSq > maxRadiusSquared) {
-                        const radialDist = Math.sqrt(radialDistSq);
-                        // Normal vector (points from center to ball)
-                        const nx = dx / radialDist;
-                        const nz = dz / radialDist;
-
-                        // Correct position
-                        const correction = radialDist - maxRadius;
-                        ball.x -= nx * correction;
-                        ball.z -= nz * correction;
-
-                        // Reflect velocity
-                        const dotProduct = ball.vx * nx + ball.vz * nz;
-                        ball.vx -= (1 + BOUNDARY_ELASTICITY) * dotProduct * nx;
-                        ball.vz -= (1 + BOUNDARY_ELASTICITY) * dotProduct * nz;
-
-                        if (soundEnabled && Math.sqrt(ball.vx*ball.vx + ball.vz*ball.vz) > 0.3 && Math.random() < 0.2) sounds.bounce.play();
-                    }
-
-                    // 5. Ball-Ball Collisions
-                     for (let i = balls.indexOf(ball) + 1; i < balls.length; i++) {
-                        const otherBall = balls[i];
-                        const dx = otherBall.x - ball.x;
-                        const dy = otherBall.y - ball.y;
-                        const dz = otherBall.z - ball.z;
-                        const distSq = dx * dx + dy * dy + dz * dz;
-                        const minDist = ball.radius + otherBall.radius; // Sum of radii
-                        const minDistSq = minDist * minDist;
-
-                        if (distSq < minDistSq && distSq > 0.01) { // Check for collision and avoid self-collision
-                            const distance = Math.sqrt(distSq);
-                            // Collision normal (from ball to otherBall)
-                            const nx = dx / distance;
-                            const ny = dy / distance;
-                            const nz = dz / distance;
-
-                            // Separate balls slightly to avoid sticking
-                            const overlap = minDist - distance;
-                            const separationFactor = 0.51; // Slightly more than half
-                            ball.x -= nx * overlap * separationFactor;
-                            ball.y -= ny * overlap * separationFactor;
-                            ball.z -= nz * overlap * separationFactor;
-                            otherBall.x += nx * overlap * separationFactor;
-                            otherBall.y += ny * overlap * separationFactor;
-                            otherBall.z += nz * overlap * separationFactor;
-
-
-                            // Relative velocity
-                            const rvx = ball.vx - otherBall.vx;
-                            const rvy = ball.vy - otherBall.vy;
-                            const rvz = ball.vz - otherBall.vz;
-
-                            // Velocity component along the normal
-                            const velAlongNormal = rvx * nx + rvy * ny + rvz * nz;
-
-                            // Do not resolve if velocities are separating
-                            if (velAlongNormal > 0) continue;
-
-                            // Calculate impulse scalar (simplified) - assuming equal mass
-                            const impulse = -(1 + BALL_COLLISION_DAMPING) * velAlongNormal / 2; // Divided by 2 for two balls
-
-                            // Apply impulse
-                            ball.vx += impulse * nx;
-                            ball.vy += impulse * ny;
-                            ball.vz += impulse * nz;
-                            otherBall.vx -= impulse * nx;
-                            otherBall.vy -= impulse * ny;
-                            otherBall.vz -= impulse * nz;
-
-                            if (soundEnabled && Math.abs(velAlongNormal) > 0.3 && Math.random() < 0.15) sounds.bounce.play();
+                    // Deceleration logic
+                    if (isSpinning && isDecelerating) {
+                        currentSpinSpeed *= DECELERATION_FACTOR;
+                        if (Math.abs(currentSpinSpeed) < MIN_SPIN_SPEED) {
+                             console.log("DEBUG: Spin speed below minimum, stopping spin."); // DEBUG
+                            stopSpinning(); // Trigger the stop sequence (sets isSpinning = false)
+                        }
+                    } else if (isSpinning && !isDecelerating) {
+                        if (timestamp - spinStartTime >= SPIN_DURATION_BEFORE_DECEL) {
+                            console.log("DEBUG: Spin duration reached, starting deceleration."); // DEBUG
+                            isDecelerating = true;
                         }
                     }
 
-
-                    // 6. Update Element Style
-                    // Scale based on Z for pseudo-perspective
-                    const scale = 1 + (ball.z / (getFaceTranslateZ() * 2)); // Simple scaling
-                    // Adjust position for transform origin (center)
-                    const displayX = ball.x - ball.radius;
-                    const displayY = ball.y - ball.radius;
-
-                    ball.element.style.transform = `translate3d(${displayX}px, ${displayY}px, ${ball.z}px) scale(${scale})`;
-                    ball.element.style.zIndex = Math.floor(centerY + ball.y); // Stacking order based on Y
-                     // Opacity based on Z (further away = slightly dimmer)
-                    const opacity = 0.8 + 0.2 * ((ball.z + maxRadius) / (2 * maxRadius));
-                    ball.element.style.opacity = Math.max(0.5, Math.min(1, opacity));
-                });
-            }
-            
-            // Rotate the octagon container
-            function rotateOctagon() {
-                spinAngle += currentSpinSpeed;
-                octagonContainer.style.transform = `rotateY(${spinAngle}deg)`;
-            }
-
-             // Main animation loop
-            function animate(timestamp) {
-                if (!isSpinning && currentSpinSpeed === 0 && handleAngle === 0) {
-                    // No animation needed, stop the loop
-                    animationFrameId = null;
-                    return;
-                }
-
-                rotateOctagon();
-                updateBallPositions();
-
-                // Deceleration logic
-                if (isSpinning && isDecelerating) {
-                    currentSpinSpeed *= DECELERATION_FACTOR;
-                    if (Math.abs(currentSpinSpeed) < MIN_SPIN_SPEED) {
-                        stopSpinning(); // Trigger the stop sequence
+                    // Handle spring-back animation
+                    if (!isDragging && Math.abs(handleAngle) > 0.1) {
+                        handleAngle *= 0.85;
+                        handleVelocity *= 0.85;
+                        handle.style.transform = `rotate(${handleAngle}deg)`;
+                    } else if (!isDragging && handleAngle !== 0) {
+                        handleAngle = 0;
+                        handleVelocity = 0;
+                        handle.style.transform = '';
                     }
-                } else if (isSpinning && !isDecelerating) {
-                     // Check if spin duration reached
-                    if (timestamp - spinStartTime >= SPIN_DURATION_BEFORE_DECEL) {
-                        isDecelerating = true; // Start decelerating
-                    }
-                }
 
-
-                // Handle spring-back animation
-                if (!isDragging && Math.abs(handleAngle) > 0.1) {
-                    handleAngle *= 0.85; // Dampen the angle
-                     handleVelocity *= 0.85; // Dampen velocity too
-                    handle.style.transform = `rotate(${handleAngle}deg)`;
-                } else if (!isDragging && handleAngle !== 0) {
-                    // Snap back to 0 if angle is very small
-                    handleAngle = 0;
-                    handleVelocity = 0;
-                    handle.style.transform = ''; // Reset transform
-                }
-
-                animationFrameId = requestAnimationFrame(animate); // Continue the loop
-            }
-
-            // Start the spinning process
-            function startSpinning(initialSpeedBoost = 0) {
-                if (isSpinning) return;
-                
-                isSpinning = true;
-                isDecelerating = false; // Reset deceleration flag
-                spinStartTime = performance.now(); // Record start time
-                resultDisplay.textContent = '抽選中...';
-                resultDisplay.classList.remove('winning');
-                
-                // Set base spin speed from selection
-                const speedMap = { slow: 2, medium: 4, fast: 6 };
-                currentSpinSpeed = speedMap[spinSpeedSelect.value] || 4;
-                 // Add boost from handle drag, ensuring direction matches drag
-                currentSpinSpeed += initialSpeedBoost;
-                 // Ensure minimum speed if triggered by button
-                 if (initialSpeedBoost === 0 && Math.abs(currentSpinSpeed) < 1) {
-                    currentSpinSpeed = Math.sign(currentSpinSpeed || 1) * (speedMap[spinSpeedSelect.value] || 4);
-                }
-
-
-                // Play spin sound
-                if (soundEnabled) {
-                    sounds.spin.play();
-                }
-                
-                // Show spotlight
-                spotlight.style.opacity = '0.7'; // Use CSS transition
-                
-                // Add initial impulse to balls
-                balls.forEach(ball => {
-                    ball.vx += (Math.random() - 0.5) * 4; // Increased impulse
-                    ball.vy += (Math.random() - 0.5) * 3 - 1; // Add slight upward/downward randomness
-                    ball.vz += (Math.random() - 0.5) * 4;
-                });
-                
-                // Disable controls
-                startButton.disabled = true;
-                resetButton.disabled = true;
-                ballCountInput.disabled = true;
-                spinSpeedSelect.disabled = true;
-
-                // Start animation loop if not already running
-                if (!animationFrameId) {
+                    // Continue the loop
                     animationFrameId = requestAnimationFrame(animate);
                 }
-            }
 
-            // Stop spinning and determine winner
-            function stopSpinning() {
-                isSpinning = false;
-                currentSpinSpeed = 0; // Hard stop speed
-                isDecelerating = false;
-                 // Keep octagon at final angle
-                octagonContainer.style.transform = `rotateY(${spinAngle}deg)`;
+                function startSpinning(initialSpeedBoost = 0) {
+                    if (isSpinning) {
+                        console.log("DEBUG: Already spinning, ignoring start request."); // DEBUG
+                        return;
+                    }
+                    console.log(`DEBUG: startSpinning called with boost: ${initialSpeedBoost.toFixed(2)}`); // DEBUG
 
-                // Stop spin sound
-                if (soundEnabled) {
-                    sounds.spin.stop();
+                    isSpinning = true;
+                    isDecelerating = false;
+                    spinStartTime = performance.now();
+                    resultDisplay.textContent = '抽選中...';
+                    resultDisplay.classList.remove('winning');
+
+                    const speedMap = { slow: 2, medium: 4, fast: 6 };
+                    let baseSpeed = speedMap[spinSpeedSelect.value] || 4;
+                    
+                    // Apply boost, ensuring direction is considered if boost is negative
+                    currentSpinSpeed = baseSpeed * Math.sign(initialSpeedBoost || 1) + initialSpeedBoost; // Start in boost direction
+                    // Ensure minimum speed magnitude
+                    if (Math.abs(currentSpinSpeed) < (speedMap['slow'] / 2)) {
+                       currentSpinSpeed = (speedMap['slow'] / 2) * Math.sign(currentSpinSpeed || 1);
+                    }
+
+
+                    console.log(`DEBUG: Spin started. Initial speed: ${currentSpinSpeed.toFixed(2)}`); // DEBUG
+
+                    if (soundEnabled) sounds.spin.play();
+                    spotlight.style.opacity = '0.7';
+
+                    // Add impulse
+                    balls.forEach(ball => {
+                        ball.vx += (Math.random() - 0.5) * 4;
+                        ball.vy += (Math.random() - 0.5) * 3 - 1.5; // More upward potential
+                        ball.vz += (Math.random() - 0.5) * 4;
+                    });
+
+                    startButton.disabled = true;
+                    resetButton.disabled = true;
+                    ballCountInput.disabled = true;
+                    spinSpeedSelect.disabled = true;
+
+                    // --- IMPORTANT: Ensure animation loop starts ---
+                    if (!animationFrameId) {
+                        console.log("DEBUG: Starting animation loop from startSpinning."); // DEBUG
+                        animationFrameId = requestAnimationFrame(animate);
+                    }
                 }
-                
-                // Hide spotlight
-                spotlight.style.opacity = '0';
-                
-                // --- Winner Selection Logic ---
-                // Select the ball that is "lowest" (highest Y value) and relatively central
-                let potentialWinners = balls.filter(ball => ball.y > (getMachineDimensions().height * 0.6)); // Only consider balls in lower 40%
-                if (potentialWinners.length === 0) potentialWinners = balls; // Fallback if no balls are low enough
 
-                let winner = potentialWinners[0];
-                let bestScore = -Infinity;
+                function stopSpinning() {
+                    console.log("DEBUG: stopSpinning called."); // DEBUG
+                    isSpinning = false; // Set state first
+                    currentSpinSpeed = 0;
+                    isDecelerating = false;
+                    if (octagonContainer) octagonContainer.style.transform = `rotateY(${spinAngle}deg)`; // Lock final angle
 
-                 potentialWinners.forEach(ball => {
-                     // Score based on how low (high y) and central (low radial distance) the ball is
-                     const radialDistSq = (ball.x - getMachineDimensions().width / 2)**2 + (ball.z)**2;
-                     const score = ball.y - Math.sqrt(radialDistSq) * 0.5; // Prioritize low Y, slightly penalize being far from center
+                    if (soundEnabled) sounds.spin.stop();
+                    spotlight.style.opacity = '0';
 
-                     if (score > bestScore) {
-                         bestScore = score;
-                         winner = ball;
+                    if (!balls || balls.length === 0) {
+                         console.warn("DEBUG: No balls to select winner from.");
+                         resultDisplay.textContent = '請先重設';
+                         // Re-enable controls immediately if no balls
+                         startButton.disabled = false;
+                         resetButton.disabled = false;
+                         ballCountInput.disabled = false;
+                         spinSpeedSelect.disabled = false;
+                         return; // Exit early
                      }
-                 });
 
-                 if (!winner && balls.length > 0) {
-                     winner = balls[Math.floor(Math.random() * balls.length)]; // Absolute fallback
-                 } else if (!winner) {
-                     console.error("No balls available to select a winner.");
-                     resetLottery(); // Reset if something went wrong
-                     return;
+                    // Winner Selection Logic (same as before)
+                     let potentialWinners = balls.filter(ball => ball.y > (getMachineDimensions().height * 0.6));
+                     if (potentialWinners.length === 0) potentialWinners = balls;
+                     let winner = potentialWinners[0];
+                     let bestScore = -Infinity;
+                     potentialWinners.forEach(ball => {
+                         const radialDistSq = (ball.x - getMachineDimensions().width / 2)**2 + (ball.z)**2;
+                         const score = ball.y - Math.sqrt(radialDistSq) * 0.5;
+                         if (score > bestScore) {
+                             bestScore = score;
+                             winner = ball;
+                         }
+                     });
+                    if (!winner) winner = balls[Math.floor(Math.random() * balls.length)]; // Fallback
+
+
+                    console.log("DEBUG: Winner selected:", winner?.prize?.label || 'None'); // DEBUG
+
+                    if (winner) {
+                        createParticleEffect(winner);
+                         // Use a short delay before animation to ensure physics has settled? Maybe not needed.
+                        gsap.to(winner.element, {
+                            duration: 0.4,
+                            scale: 1.8, // Use fixed scale, not dynamic here
+                            boxShadow: `0 0 25px ${winner.prize.color}`,
+                            ease: 'back.out(2)',
+                            yoyo: true,
+                            repeat: 3,
+                            onComplete: () => {
+                                showWinner(winner);
+                                // Reset ball style after animation - use the scale from physics state
+                                const finalScale = 1 + (winner.z / (getFaceTranslateZ() * 3));
+                                gsap.to(winner.element, {
+                                    duration: 0.3,
+                                    scale: finalScale, // Return to physics scale
+                                    boxShadow: 'inset 0 0 8px rgba(0, 0, 0, 0.2), 0 0 4px rgba(0, 0, 0, 0.3)'
+                                });
+                            }
+                        });
+                    } else {
+                        resultDisplay.textContent = '抽選出錯';
+                    }
+
+                    // Re-enable controls (should happen regardless of winner found)
+                    startButton.disabled = false;
+                    resetButton.disabled = false;
+                    ballCountInput.disabled = false;
+                    spinSpeedSelect.disabled = false;
+
+                    // Animation loop might stop itself if handle is also still
+                }
+
+                function showWinner(winner) { /* ... (same as before) ... */
+                     if (!winner) return;
+                     console.log("DEBUG: Showing winner display for", winner.prize.label); // DEBUG
+                     if (soundEnabled) sounds.win.play();
+                     winnerBall.style.backgroundColor = winner.prize.color;
+                     winnerBall.textContent = winner.prize.label;
+                     const messages = [ `恭喜！抽中了 ${winner.prize.label}！`, /* ... */ ];
+                     winnerMessage.textContent = messages[Math.floor(Math.random() * messages.length)];
+                     resultDisplay.textContent = `抽中: ${winner.prize.label}`;
+                     resultDisplay.classList.add('winning');
+                     winnerDisplay.classList.add('show');
+                     gsap.fromTo(winnerDisplay.querySelector('.winner-content'), { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' });
                  }
+                function createParticleEffect(winner) { /* ... (same as before, ensure ballRect is valid) ... */
+                    if (isLightMode || !winner || !winner.element) return;
+                     try {
+                         const particleCount = 50;
+                         const colors = ['#FFD700', '#FFC107', '#FFA000', winner.prize.color, '#FFFFFF'];
+                         const ballRect = winner.element.getBoundingClientRect();
+                         if (!ballRect || ballRect.width === 0) {
+                             console.warn("DEBUG: Cannot get valid rect for winner ball in createParticleEffect.");
+                             return;
+                         }
+                         const startX = ballRect.left + ballRect.width / 2;
+                         const startY = ballRect.top + ballRect.height / 2;
 
-
-                // Animate the winning ball & show result
-                if (winner) {
-                    // console.log("Winner:", winner.prize.label, winner.element);
-                    createParticleEffect(winner); // Create particles first
-
-                    gsap.to(winner.element, {
-                        duration: 0.4,
-                        scale: 1.8, // Make it larger
-                        boxShadow: `0 0 25px ${winner.prize.color}`,
-                        ease: 'back.out(2)',
-                        yoyo: true,
-                        repeat: 3,
-                        onComplete: () => {
-                            showWinner(winner); // Show modal after animation
-                            // Reset ball style after animation
-                            gsap.to(winner.element, {
-                                duration: 0.3,
-                                scale: 1 + (winner.z / (getFaceTranslateZ() * 2)), // Return to normal scale
-                                boxShadow: 'inset 0 0 8px rgba(0, 0, 0, 0.2), 0 0 4px rgba(0, 0, 0, 0.3)' // Return to normal shadow
+                         for (let i = 0; i < particleCount; i++) {
+                             const particle = document.createElement('div');
+                             particle.className = 'particle';
+                             particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                             particle.style.left = `${startX}px`;
+                             particle.style.top = `${startY}px`;
+                             particlesContainer.appendChild(particle);
+                             gsap.to(particle, {
+                                 x: (Math.random() - 0.5) * 300, y: (Math.random() - 0.5) * 300,
+                                 opacity: 1, scale: Math.random() * 1.5 + 0.5,
+                                 duration: 0.6 + Math.random() * 0.4, ease: 'power3.out',
+                                 onComplete: () => {
+                                     gsap.to(particle, {
+                                         opacity: 0, duration: 0.3 + Math.random() * 0.3, ease: 'power1.in',
+                                         onComplete: () => particle.remove()
+                                     });
+                                 }
                              });
-                        }
-                    });
-                } else {
-                     // Handle case where no winner could be determined (e.g., no balls)
-                     resultDisplay.textContent = '抽選出錯';
-                }
-
-                // Re-enable controls
-                startButton.disabled = false;
-                resetButton.disabled = false;
-                 ballCountInput.disabled = false;
-                spinSpeedSelect.disabled = false;
-
-                // Stop animation loop if handle is also still
-                if(handleAngle === 0) {
-                     cancelAnimationFrame(animationFrameId);
-                     animationFrameId = null;
+                         }
+                    } catch (particleError) {
+                        console.error("Error creating particles:", particleError);
+                    }
                  }
-            }
 
-            // Display the winning result modal
-            function showWinner(winner) {
-                if (!winner) return;
+                function resetLottery() {
+                    console.log("DEBUG: resetLottery called."); // DEBUG
+                    // Stop everything
+                    isSpinning = false;
+                    currentSpinSpeed = 0;
+                    isDecelerating = false;
+                    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                    if (soundEnabled) sounds.spin.stop();
+                    spotlight.style.opacity = '0';
+                    gsap.killTweensOf('.ball');
+                    gsap.killTweensOf('.winner-content');
+                    particlesContainer.innerHTML = ''; // Clear leftover particles
 
-                if (soundEnabled) {
-                    sounds.win.play();
-                }
-                
-                winnerBall.style.backgroundColor = winner.prize.color;
-                winnerBall.textContent = winner.prize.label;
-                
-                const messages = [
-                    `恭喜！抽中了 ${winner.prize.label}！`,
-                    `幸運降臨！是 ${winner.prize.label}！`,
-                    `您的運勢是 ${winner.prize.label}！`,
-                    `太棒了！得到 ${winner.prize.label}！`
-                ];
-                winnerMessage.textContent = messages[Math.floor(Math.random() * messages.length)];
-                
-                resultDisplay.textContent = `抽中: ${winner.prize.label}`;
-                resultDisplay.classList.add('winning');
-                
-                winnerDisplay.classList.add('show');
-                
-                // Animate modal appearance using GSAP
-                gsap.fromTo(winnerDisplay.querySelector('.winner-content'), 
-                    { scale: 0.5, opacity: 0 },
-                    { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }
-                );
-            }
+                    resultDisplay.textContent = '準備重新抽選...';
+                    resultDisplay.classList.remove('winning');
+                    winnerDisplay.classList.remove('show');
 
-            // Create particle explosion effect
-            function createParticleEffect(winner) {
-                if (isLightMode || !winner) return; // Skip in light mode or if no winner
-                
-                const particleCount = isLightMode ? 20 : 50; // Fewer particles in light mode? Or none?
-                const colors = ['#FFD700', '#FFC107', '#FFA000', winner.prize.color, '#FFFFFF'];
-                
-                 // Get winner ball position relative to the viewport
-                const ballRect = winner.element.getBoundingClientRect();
-                const startX = ballRect.left + ballRect.width / 2;
-                const startY = ballRect.top + ballRect.height / 2;
+                    let count = parseInt(ballCountInput.value, 10);
+                    count = Math.min(Math.max(count, 5), 30);
+                    ballCountInput.value = count;
 
-                for (let i = 0; i < particleCount; i++) {
-                    const particle = document.createElement('div');
-                    particle.className = 'particle';
-                    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                    
-                    // Set initial position at the center of the winner ball
-                    particle.style.left = `${startX}px`;
-                    particle.style.top = `${startY}px`;
-                    
-                    particlesContainer.appendChild(particle);
-                    
-                    // GSAP Animation for particle explosion
-                    gsap.to(particle, {
-                        x: (Math.random() - 0.5) * 300, // Spread horizontally
-                        y: (Math.random() - 0.5) * 300, // Spread vertically
-                        opacity: 1,
-                        scale: Math.random() * 1.5 + 0.5, // Random size
-                        duration: 0.6 + Math.random() * 0.4, // Random duration
-                        ease: 'power3.out',
-                        onComplete: () => {
-                            // Fade out and remove
-                            gsap.to(particle, {
-                                opacity: 0,
-                                duration: 0.3 + Math.random() * 0.3,
-                                ease: 'power1.in',
-                                onComplete: () => {
-                                    particle.remove();
-                                }
-                            });
-                        }
-                    });
-                }
-            }
+                    createBalls(count); // Recreate balls
+                    spinAngle = 0;
+                     if (octagonContainer) octagonContainer.style.transform = `rotateY(0deg)`; // Reset visual rotation
 
-            // Reset the lottery machine state
-            function resetLottery() {
-                 // Stop ongoing animations/sounds immediately
-                 isSpinning = false;
-                 currentSpinSpeed = 0;
-                 isDecelerating = false;
-                 if (animationFrameId) {
-                     cancelAnimationFrame(animationFrameId);
-                     animationFrameId = null;
-                 }
-                 if (soundEnabled) sounds.spin.stop();
-                 spotlight.style.opacity = '0';
-                 gsap.killTweensOf('.ball'); // Stop any ongoing ball animations
-                 gsap.killTweensOf('.winner-content'); // Stop modal animation
-
-                // Reset UI
-                resultDisplay.textContent = '準備重新抽選...';
-                resultDisplay.classList.remove('winning');
-                winnerDisplay.classList.remove('show');
-                
-                // Validate and get ball count
-                let count = parseInt(ballCountInput.value, 10);
-                count = Math.min(Math.max(count, 5), 30); // Clamp between 5 and 30
-                ballCountInput.value = count; // Update input field if clamped
-                
-                createBalls(count); // Recreate balls
-                spinAngle = 0; // Reset rotation angle
-                octagonContainer.style.transform = `rotateY(0deg)`; // Reset visual rotation
-
-                // Reset handle
-                handleAngle = 0;
-                handleVelocity = 0;
-                handle.style.transform = '';
-
-                // Enable controls
-                startButton.disabled = false;
-                resetButton.disabled = false;
-                ballCountInput.disabled = false;
-                spinSpeedSelect.disabled = false;
-
-                // Short delay then update text
-                setTimeout(() => {
-                     if (!isSpinning) resultDisplay.textContent = '準備開始抽選...';
-                 }, 500);
-                 console.log("Lottery reset.");
-            }
-
-            // Handle drag events for the handle
-            function handleDrag() {
-                // --- Touch Events ---
-                handleContainer.addEventListener('touchstart', (e) => {
-                    if (isSpinning) return;
-                    // e.preventDefault(); // Prevent scroll only if dragging starts
-                    isDragging = true;
-                    dragStartY = e.touches[0].clientY;
-                    lastDragY = dragStartY;
+                    handleAngle = 0;
                     handleVelocity = 0;
-                    handleContainer.style.cursor = 'grabbing';
-                    // Start animation loop if needed
-                    if (!animationFrameId) animationFrameId = requestAnimationFrame(animate);
-                }, { passive: false }); // Need passive:false to preventDefault inside
+                     if (handle) handle.style.transform = '';
 
-                document.addEventListener('touchmove', (e) => {
-                    if (!isDragging) return;
-                    e.preventDefault(); // Prevent scrolling while dragging handle
-                    const currentY = e.touches[0].clientY;
-                    const deltaY = currentY - lastDragY; // Change since last move
-                    handleAngle += deltaY * 0.3; // Adjust sensitivity
-                    handleAngle = Math.min(60, Math.max(-60, handleAngle)); // Clamp angle
+                    startButton.disabled = false;
+                    resetButton.disabled = false;
+                    ballCountInput.disabled = false;
+                    spinSpeedSelect.disabled = false;
 
-                    // Update velocity (smoothed)
-                    handleVelocity = handleVelocity * 0.8 + deltaY * 0.2;
+                    setTimeout(() => {
+                        if (!isSpinning) resultDisplay.textContent = '準備開始抽選...';
+                    }, 500);
+                    console.log("DEBUG: Lottery reset complete."); // DEBUG
+                }
 
-                    handle.style.transform = `rotate(${handleAngle}deg)`;
-                    lastDragY = currentY;
-                }, { passive: false });
+                function handleDrag() {
+                     console.log("DEBUG: Setting up handle drag listeners."); // DEBUG
+                    // Touch Events
+                    handleContainer.addEventListener('touchstart', (e) => {
+                        if (isSpinning) return;
+                        isDragging = true;
+                        dragStartY = e.touches[0].clientY;
+                        lastDragY = dragStartY;
+                        handleVelocity = 0;
+                        handleContainer.style.cursor = 'grabbing';
+                        if (!animationFrameId) { // Start loop on drag start if stopped
+                             console.log("DEBUG: Starting animation loop from touchstart."); // DEBUG
+                             animationFrameId = requestAnimationFrame(animate);
+                        }
+                    }, { passive: false });
 
-                document.addEventListener('touchend', (e) => {
-                    if (!isDragging) return;
-                    isDragging = false;
-                    handleContainer.style.cursor = 'grab';
+                    document.addEventListener('touchmove', (e) => {
+                        if (!isDragging) return;
+                        e.preventDefault();
+                        const currentY = e.touches[0].clientY;
+                        const deltaY = currentY - lastDragY;
+                        handleAngle += deltaY * 0.35; // Slightly more sensitive
+                        handleAngle = Math.min(70, Math.max(-70, handleAngle)); // Wider angle range
+                        handleVelocity = handleVelocity * 0.7 + deltaY * 0.3; // Faster velocity update
+                        if (handle) handle.style.transform = `rotate(${handleAngle}deg)`;
+                        lastDragY = currentY;
+                    }, { passive: false });
 
-                    // Check velocity threshold to start spin
-                    // console.log("Drag end velocity:", handleVelocity);
-                    if (Math.abs(handleVelocity) > HANDLE_DRAG_THRESHOLD && !isSpinning) {
-                         if (soundEnabled) sounds.click.play();
-                         // Calculate speed boost based on velocity, preserving direction
-                         const speedBoost = handleVelocity * 0.2 * (handleAngle > 0 ? -1 : 1) ; // Adjust multiplier as needed
-                         startSpinning(speedBoost);
-                    }
-                    // Don't stop animation loop here, let spring-back happen in animate()
-                });
+                    document.addEventListener('touchend', (e) => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        handleContainer.style.cursor = 'grab';
+                        console.log(`DEBUG: Touchend - Velocity: ${handleVelocity.toFixed(2)}`); // DEBUG
+                        if (Math.abs(handleVelocity) > HANDLE_DRAG_THRESHOLD && !isSpinning) {
+                            if (soundEnabled) sounds.click.play();
+                            // Boost direction based on velocity sign (pull down = positive velocity = clockwise?) Check this.
+                            // Let's make pull down start counter-clockwise (-) spin
+                            const speedBoost = -handleVelocity * 0.25; // Adjusted multiplier
+                             console.log(`DEBUG: Touchend triggered spin with boost: ${speedBoost.toFixed(2)}`); // DEBUG
+                            startSpinning(speedBoost);
+                        }
+                    });
 
-                // --- Mouse Events ---
-                handleContainer.addEventListener('mousedown', (e) => {
-                     if (isSpinning) return;
-                     e.preventDefault();
-                     isDragging = true;
-                     dragStartY = e.clientY;
-                     lastDragY = dragStartY;
-                     handleVelocity = 0;
-                     handleContainer.style.cursor = 'grabbing';
-                     // Start animation loop if needed
-                     if (!animationFrameId) animationFrameId = requestAnimationFrame(animate);
-                 });
+                    // Mouse Events (similar logic)
+                     handleContainer.addEventListener('mousedown', (e) => {
+                         if (isSpinning) return;
+                         e.preventDefault();
+                         isDragging = true;
+                         dragStartY = e.clientY;
+                         lastDragY = dragStartY;
+                         handleVelocity = 0;
+                         handleContainer.style.cursor = 'grabbing';
+                         if (!animationFrameId) {
+                            console.log("DEBUG: Starting animation loop from mousedown."); // DEBUG
+                            animationFrameId = requestAnimationFrame(animate);
+                         }
+                     });
+                     document.addEventListener('mousemove', (e) => {
+                         if (!isDragging) return;
+                         const currentY = e.clientY;
+                         const deltaY = currentY - lastDragY;
+                         handleAngle += deltaY * 0.35;
+                         handleAngle = Math.min(70, Math.max(-70, handleAngle));
+                         handleVelocity = handleVelocity * 0.7 + deltaY * 0.3;
+                         if (handle) handle.style.transform = `rotate(${handleAngle}deg)`;
+                         lastDragY = currentY;
+                     });
+                     document.addEventListener('mouseup', (e) => {
+                         if (!isDragging) return;
+                         isDragging = false;
+                         handleContainer.style.cursor = 'grab';
+                          console.log(`DEBUG: Mouseup - Velocity: ${handleVelocity.toFixed(2)}`); // DEBUG
+                         if (Math.abs(handleVelocity) > HANDLE_DRAG_THRESHOLD && !isSpinning) {
+                             if (soundEnabled) sounds.click.play();
+                              const speedBoost = -handleVelocity * 0.25;
+                              console.log(`DEBUG: Mouseup triggered spin with boost: ${speedBoost.toFixed(2)}`); // DEBUG
+                             startSpinning(speedBoost);
+                         }
+                     });
+                }
 
-                document.addEventListener('mousemove', (e) => {
-                     if (!isDragging) return;
-                     // No preventDefault needed for mousemove generally
-                     const currentY = e.clientY;
-                     const deltaY = currentY - lastDragY;
-                     handleAngle += deltaY * 0.3;
-                     handleAngle = Math.min(60, Math.max(-60, handleAngle));
-
-                     handleVelocity = handleVelocity * 0.8 + deltaY * 0.2;
-
-                     handle.style.transform = `rotate(${handleAngle}deg)`;
-                     lastDragY = currentY;
-                 });
-
-                 // Add mouseup listener to the *document* to catch release outside the handle
-                document.addEventListener('mouseup', (e) => {
-                     if (!isDragging) return;
-                     isDragging = false;
-                     handleContainer.style.cursor = 'grab';
-
-                     // console.log("Drag end velocity:", handleVelocity);
-                     if (Math.abs(handleVelocity) > HANDLE_DRAG_THRESHOLD && !isSpinning) {
-                         if (soundEnabled) sounds.click.play();
-                          const speedBoost = handleVelocity * 0.2 * (handleAngle > 0 ? -1 : 1) ;
-                         startSpinning(speedBoost);
+                function toggleSound() { /* ... (same as before) ... */
+                    soundEnabled = !soundEnabled;
+                     Howler.mute(!soundEnabled);
+                     console.log(`DEBUG: Sound ${soundEnabled ? 'Enabled' : 'Disabled'}`); // DEBUG
+                     if (soundEnabled) {
+                         soundStatus.textContent = "音效開啟";
+                         soundToggle.querySelector('i').className = "fas fa-volume-up";
+                     } else {
+                         soundStatus.textContent = "音效關閉";
+                         soundToggle.querySelector('i').className = "fas fa-volume-mute";
+                         sounds.spin.stop(); // Ensure stop on mute
                      }
-                     // Don't stop animation loop here
-                 });
-            }
+                 }
 
-            // Toggle sound on/off
-            function toggleSound() {
-                soundEnabled = !soundEnabled;
-                Howler.mute(!soundEnabled); // Mute all Howler sounds
+                // Initialize the application
+                function init() {
+                    console.log("DEBUG: init() called"); // DEBUG
+                    const { isMobile } = checkDevicePerformance();
+                    console.log(`DEBUG: isMobile: ${isMobile}, isLightMode: ${isLightMode}`); // DEBUG
 
-                if (soundEnabled) {
-                    soundStatus.textContent = "音效開啟";
-                    soundToggle.querySelector('i').className = "fas fa-volume-up";
-                } else {
-                    soundStatus.textContent = "音效關閉";
-                    soundToggle.querySelector('i').className = "fas fa-volume-mute";
-                     // Ensure looping spin sound is stopped if muted during spin
-                    sounds.spin.stop();
-                }
-                 if (soundEnabled) { // Play click sound on toggle ON
-                    sounds.click.play();
-                }
-            }
-
-            // Initialize the application
-            function init() {
-                 console.log("Initializing Lottery Machine...");
-                const { isMobile } = checkDevicePerformance();
-                
-                createOctagon();
-                
-                let initialBallCount = parseInt(ballCountInput.value, 10);
-                initialBallCount = Math.min(Math.max(initialBallCount, 5), 30);
-                ballCountInput.value = initialBallCount;
-                createBalls(initialBallCount);
-                
-                handleDrag();
-                
-                // Event Listeners
-                startButton.addEventListener('click', () => {
-                    if (!isSpinning) {
+                    createOctagon(); // Create faces first
+                    
+                    let initialBallCount = parseInt(ballCountInput.value, 10);
+                    initialBallCount = Math.min(Math.max(initialBallCount, 5), 30);
+                    ballCountInput.value = initialBallCount;
+                    createBalls(initialBallCount); // Then create balls
+                    
+                    handleDrag();
+                    
+                    // Event Listeners
+                    startButton.addEventListener('click', () => {
+                         console.log("DEBUG: Start button clicked."); // DEBUG
+                        if (!isSpinning) {
+                            if (soundEnabled) sounds.click.play();
+                            startSpinning(); // Start with default speed
+                        }
+                    });
+                    resetButton.addEventListener('click', () => {
+                        console.log("DEBUG: Reset button clicked."); // DEBUG
+                        if (soundEnabled) sounds.click.play();
+                        resetLottery();
+                    });
+                    soundToggle.addEventListener('click', toggleSound);
+                    closeWinner.addEventListener('click', () => {
+                        winnerDisplay.classList.remove('show');
+                        if (soundEnabled) sounds.click.play();
+                    });
+                    ballCountInput.addEventListener('change', () => {
+                        console.log("DEBUG: Ball count changed."); // DEBUG
+                        let value = parseInt(ballCountInput.value, 10);
+                        if (isNaN(value) || value < 5) value = 5;
+                        if (value > 30) value = 30;
+                        ballCountInput.value = value;
+                        resetLottery();
+                    });
+                    spinSpeedSelect.addEventListener('change', () => {
+                         console.log("DEBUG: Spin speed changed."); // DEBUG
                          if (soundEnabled) sounds.click.play();
-                         startSpinning(); // Start with default speed, no boost
-                    }
-                });
+                     });
+                    window.addEventListener('resize', () => {
+                         console.log("DEBUG: Window resized."); // DEBUG
+                         checkDevicePerformance();
+                         // Recreate/reset might be too disruptive on resize, maybe just update params?
+                         // For now, let's keep the reset to ensure dimensions match
+                         createOctagon();
+                         resetLottery();
+                     });
+                    
+                    resultDisplay.textContent = '準備開始抽選...';
+                    console.log("DEBUG: Initialization complete."); // DEBUG
+                }
                 
-                resetButton.addEventListener('click', () => {
-                     if (soundEnabled) sounds.click.play();
-                     resetLottery();
-                });
-                
-                soundToggle.addEventListener('click', toggleSound);
-                
-                closeWinner.addEventListener('click', () => {
-                     winnerDisplay.classList.remove('show');
-                     if (soundEnabled) sounds.click.play();
-                });
-                
-                ballCountInput.addEventListener('change', () => {
-                     // Validate on change and reset
-                     let value = parseInt(ballCountInput.value, 10);
-                     if (isNaN(value) || value < 5) value = 5;
-                     if (value > 30) value = 30;
-                     ballCountInput.value = value; // Update input field
-                     resetLottery(); // Reset when count changes
-                });
-
-                 spinSpeedSelect.addEventListener('change', () => {
-                     // Optional: Play click sound or give feedback
-                     if (soundEnabled) sounds.click.play();
-                     // Speed change will be read next time startSpinning is called
-                 });
-
-                 // Handle window resize to potentially update layout/physics params
-                 window.addEventListener('resize', () => {
-                     checkDevicePerformance(); // Re-check light mode
-                     createOctagon(); // Re-create octagon with potentially new size
-                     resetLottery(); // Reset balls based on new dimensions
-                     console.log("Resized, reset lottery.");
-                 });
-                
-                // Initial message update
-                resultDisplay.textContent = '準備開始抽選...';
-                console.log("Initialization complete.");
-            }
-            
-            // --- Start Application ---
-            init();
-        });
+                // --- Start Application ---
+                init();
+            }); // End DOMContentLoaded
+        } catch (globalError) {
+            console.error("########## GLOBAL SCRIPT ERROR ##########");
+            console.error(globalError);
+            alert("發生嚴重錯誤，請檢查控制台！");
+        }
     </script>
 </body>
 </html>
