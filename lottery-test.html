@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雅 (Miyabi) - 日式八角抽選機</title>
+    <!-- GSAP CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Howler.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+    <!-- (Optional) Three.js / Physics Engine CDN -->
+
+    <style>
+        /* --- Reset & Base Styles --- */
+        /* ... (box-sizing, body background, etc.) ... */
+
+        /* --- Layout --- */
+        .miyabi-container { /* 全局容器，用於居中和佈局 */ }
+        .scene { /* 3D 透視容器 */ }
+
+        /* --- Machine Components --- */
+        .machine { /* 抽選機整體 */ }
+        .machine-body { /* 主要旋轉部分 */ }
+        .octagon-drum { /* 八角形滾筒 (包含8個面) */ }
+        .face { /* 八角形的每個面 (透明) */ }
+        .face-pattern { /* (Optional) 面的裝飾，如金箔線條 */ }
+        .balls-container { /* 球的容器 (在滾筒內部) */ }
+        .ball { /* 單顆球 */ }
+        .machine-base { /* 機器底座 */ }
+        .machine-lid { /* 機器頂蓋 (可選) */ }
+        .handle { /* 手把 */ }
+        .handle-grip { /* 手把可抓握部分 */ }
+
+        /* --- Controls & Display --- */
+        .controls { /* 控制面板 */ }
+        #spinButton { /* 抽選按鈕 */ }
+        #resultDisplay { /* 結果顯示區域 */ }
+        #resultText { /* 中獎文字 */ }
+        .prize-icon { /* (Optional) 獎品圖標 (SVG/Icon Font) */ }
+
+        /* --- Effects --- */
+        .effects-overlay { /* 特效層 (如彩帶、光暈) */ }
+        .confetti-particle { /* 彩帶粒子 */ }
+        .spotlight { /* 聚光燈效果 */ }
+
+        /* --- RWD --- */
+        /* ... (@media queries) ... */
+
+        /* --- Animations (Keyframes for CSS-based effects) --- */
+        /* ... (@keyframes for confetti, etc.) ... */
+    </style>
+</head>
+<body>
+    <div class="miyabi-container">
+        <div class="scene">
+            <div class="machine" id="lotteryMachine">
+                <div class="machine-body" id="machineBody">
+                    <div class="octagon-drum" id="octagonDrum">
+                        <!-- Generate 8 faces using JS or hardcode -->
+                        <div class="face front"></div>
+                        <div class="face right"></div>
+                        <!-- ... 6 more faces ... -->
+                        <div class="balls-container" id="ballsContainer">
+                            <!-- Balls will be added by JS -->
+                        </div>
+                    </div>
+                </div>
+                <div class="machine-base"></div>
+                <div class="machine-lid"></div>
+                <div class="handle" id="handle">
+                    <div class="handle-grip"></div>
+                </div>
+                <!-- (Optional) Spotlight Effect -->
+                <div class="spotlight"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="spinButton">運試し</button> <!-- "Test Your Luck" -->
+            <div id="resultDisplay" aria-live="polite">
+                結果：<span id="resultText">---</span>
+                <!-- <span class="prize-icon"></span> -->
+            </div>
+        </div>
+
+        <!-- Overlay for full-screen effects -->
+        <div class="effects-overlay" id="effectsOverlay"></div>
+    </div>
+
+    <script>
+        // --- Constants and Configuration ---
+        const config = {
+            numBalls: 20,
+            ballColors: ["#FFD700", "#E6E6FA", "#FFB6C1", "#ADD8E6", "#90EE90"], // Gold, Lavender, LightPink, LightBlue, LightGreen
+            prizes: [ // Example: associating data with balls
+                { label: "大吉", color: "#DC143C", weight: 1 }, // Crimson Red
+                { label: "中吉", color: "#FF8C00", weight: 3 }, // DarkOrange
+                { label: "小吉", color: "#FFD700", weight: 5 }, // Gold
+                { label: "吉", color: "#90EE90", weight: 10 }, // LightGreen
+                { label: "末吉", color: "#ADD8E6", weight: 15 }, // LightBlue
+                { label: "残念", color: "#D3D3D3", weight: 20 }  // LightGray
+            ],
+            spinDuration: { min: 3, max: 5 }, // seconds
+            maxAngularVelocity: 1080, // degrees per second
+            dragSensitivity: 0.5,
+            inertiaDampening: 0.95, // Friction factor for drag release
+            sounds: {
+                // Use Data URIs or find CDN links for royalty-free sounds
+                spin: '...', // Spinning sound (loopable)
+                click: '...', // Handle click/ball collision (short)
+                win: '...',   // Winning fanfare
+                confetti: '...' // Confetti burst sound
+            }
+        };
+
+        // --- DOM References ---
+        const machine = document.getElementById('lotteryMachine');
+        const machineBody = document.getElementById('machineBody');
+        const octagonDrum = document.getElementById('octagonDrum');
+        const ballsContainer = document.getElementById('ballsContainer');
+        const handle = document.getElementById('handle');
+        const spinButton = document.getElementById('spinButton');
+        const resultText = document.getElementById('resultText');
+        const effectsOverlay = document.getElementById('effectsOverlay');
+
+        // --- State Variables ---
+        let isSpinning = false;
+        let currentRotation = 0;
+        let balls = []; // Array to hold ball objects/elements
+        let audio = {}; // To hold Howler sound objects
+
+        // --- Initialization ---
+        function init() {
+            setupOctagonFaces();
+            createBalls();
+            setupAudio();
+            setupEventListeners();
+            console.log("雅 - 抽選機 初始化完成！");
+        }
+
+        // --- Setup Functions ---
+        function setupOctagonFaces() {
+            const faceCount = 8;
+            const angleIncrement = 360 / faceCount; // 45 degrees
+            // Calculate translateZ based on desired size (requires geometry)
+            // Example: Approx. based on width of octagon-drum
+            const drumWidth = octagonDrum.offsetWidth; // Get width AFTER initial render or set explicitly
+            const faceWidth = drumWidth / (1 + Math.sqrt(2)); // Approximation, refine
+            const translateZ = faceWidth / (2 * Math.tan(Math.PI / faceCount));
+
+            const faces = octagonDrum.querySelectorAll('.face'); // Assuming 8 faces are hardcoded or select dynamically
+            faces.forEach((face, i) => {
+                // Apply transform: rotateY(i * angleIncrement deg) translateZ(translateZ px);
+                // Add styles for transparency, borders (gold?), patterns via CSS
+            });
+             console.log(`設置八角面: ${faces.length} 個面, translateZ ≈ ${translateZ.toFixed(2)}px`);
+        }
+
+        function createBalls() {
+            ballsContainer.innerHTML = ''; // Clear existing balls
+            balls = [];
+            let weightedPrizes = [];
+             config.prizes.forEach(prize => {
+                 for (let i = 0; i < prize.weight; i++) {
+                     weightedPrizes.push(prize);
+                 }
+             });
+
+            for (let i = 0; i < config.numBalls; i++) {
+                const ballData = weightedPrizes[Math.floor(Math.random() * weightedPrizes.length)]; // Select prize based on weight
+
+                const ballElement = document.createElement('div');
+                ballElement.classList.add('ball');
+                // Assign color based on ballData or randomly from config.ballColors
+                ballElement.style.backgroundColor = ballData.color || config.ballColors[i % config.ballColors.length];
+                 // Store data directly on the element or in the balls array
+                ballElement.dataset.prizeLabel = ballData.label;
+                ballElement.dataset.prizeColor = ballData.color;
+
+
+                // Initial random positioning within the drum (use 3D transforms)
+                const R = octagonDrum.offsetWidth / 3; // Max radius inside drum
+                const randX = (Math.random() - 0.5) * 2 * R;
+                const randY = (Math.random() - 0.5) * 2 * R;
+                const randZ = (Math.random() - 0.5) * 2 * R / 2; // Z-depth less pronounced
+                gsap.set(ballElement, { x: randX, y: randY, z: randZ });
+
+                ballsContainer.appendChild(ballElement);
+                balls.push({ element: ballElement, data: ballData });
+            }
+             console.log(`創建了 ${balls.length} 個球`);
+        }
+
+        function setupAudio() {
+            // Initialize Howler sounds
+            // Example:
+            // audio.spin = new Howl({ src: [config.sounds.spin], loop: true });
+            // audio.win = new Howl({ src: [config.sounds.win] });
+            // ... etc.
+            // Handle potential loading errors
+             console.log("音效設置完成 (或跳過，若無音源)");
+        }
+
+        // --- Event Listeners ---
+        function setupEventListeners() {
+            spinButton.addEventListener('click', handleSpinButtonClick);
+            handle.addEventListener('mousedown', handleDragStart);
+            handle.addEventListener('touchstart', handleDragStart, { passive: false }); // Use passive: false if preventDefault is needed
+        }
+
+        // --- Interaction Logic ---
+        let dragStartY = 0;
+        let dragStartTime = 0;
+        let lastDragY = 0;
+        let angularVelocity = 0;
+        let dragAnimationTicker = null; // To update rotation during drag
+
+        function handleDragStart(e) {
+            if (isSpinning) return;
+            e.preventDefault(); // Prevent text selection/scrolling
+
+            const posY = e.touches ? e.touches[0].clientY : e.clientY;
+            dragStartY = posY;
+            lastDragY = posY;
+            dragStartTime = Date.now();
+            angularVelocity = 0;
+
+            // Add move/end listeners to the window/document for wider capture area
+            document.addEventListener('mousemove', handleDragMove);
+            document.addEventListener('touchmove', handleDragMove, { passive: false });
+            document.addEventListener('mouseup', handleDragEnd);
+            document.addEventListener('touchend', handleDragEnd);
+
+            gsap.to(handle, { scale: 1.1, duration: 0.2 }); // Visual feedback
+            handle.style.cursor = 'grabbing';
+
+            // Start ticker for smooth visual rotation during drag
+             if(dragAnimationTicker) gsap.ticker.remove(updateDragRotation); // remove previous if any
+            gsap.ticker.add(updateDragRotation);
+        }
+
+         let rotationOffset = 0; // Accumulate rotation during drag
+
+        function handleDragMove(e) {
+            e.preventDefault();
+            const posY = e.touches ? e.touches[0].clientY : e.clientY;
+            const deltaY = posY - lastDragY;
+
+            // Convert vertical drag to rotation (adjust sensitivity)
+             rotationOffset += deltaY * config.dragSensitivity;
+
+            // Calculate velocity (degrees per second)
+            const deltaTime = (Date.now() - dragStartTime) / 1000 || 0.01; // Avoid division by zero
+            const totalDeltaY = posY - dragStartY;
+            angularVelocity = (totalDeltaY * config.dragSensitivity / deltaTime) * 0.1; // Adjust velocity scaling
+
+            lastDragY = posY;
+            // Don't directly set rotation here, let the ticker handle it smoothly
+        }
+
+         function updateDragRotation() {
+             // Apply the accumulated rotation offset smoothly
+             currentRotation += rotationOffset; // Add the change since last frame
+             gsap.set(machineBody, { rotationY: currentRotation });
+             gsap.set(handle, { rotationY: currentRotation * 0.5 }); // Make handle rotate less for effect
+
+             // Simulate ball tumbling during drag (simple version)
+             balls.forEach(ball => {
+                 gsap.to(ball.element, {
+                     x: `+=${(Math.random() - 0.5) * 2}`,
+                     y: `+=${(Math.random() - 0.5) * 2}`,
+                     duration: 0.1
+                 });
+             });
+
+             rotationOffset = 0; // Reset offset after applying it
+         }
+
+
+        function handleDragEnd(e) {
+             gsap.ticker.remove(updateDragRotation); // Stop drag update loop
+
+            document.removeEventListener('mousemove', handleDragMove);
+            document.removeEventListener('touchmove', handleDragMove);
+            document.removeEventListener('mouseup', handleDragEnd);
+            document.removeEventListener('touchend', handleDragEnd);
+
+            gsap.to(handle, { scale: 1, duration: 0.2 }); // Reset visual feedback
+            handle.style.cursor = 'grab';
+
+            // Apply Inertia if velocity is sufficient
+            const dragDuration = (Date.now() - dragStartTime) / 1000;
+            if (Math.abs(angularVelocity) > 50 && dragDuration < 0.5) { // Threshold for flick/inertia
+                console.log(`手把拖曳結束，啟動慣性旋轉，初速度: ${angularVelocity.toFixed(2)} deg/s`);
+                startSpin(angularVelocity);
+            } else {
+                console.log("手把拖曳結束，速度不足或時間過長，未觸發慣性旋轉");
+            }
+             angularVelocity = 0; // Reset velocity
+        }
+
+
+        function handleSpinButtonClick() {
+            if (isSpinning) return;
+            console.log("按鈕點擊，啟動旋轉");
+            startSpin(0); // Start with no initial velocity from drag
+        }
+
+        // --- Core Spin Animation ---
+        function startSpin(initialVelocity = 0) {
+            if (isSpinning) return;
+            isSpinning = true;
+            spinButton.disabled = true;
+            resultText.textContent = "抽選中...";
+            resultText.parentElement.classList.remove('won'); // Reset previous win style
+
+            // Play spin sound
+            // if (audio.spin) audio.spin.play();
+
+            // Calculate target rotation: current + random full rotations + random extra angle
+            const randomRotations = Math.floor(Math.random() * 3) + 3; // 3-5 full spins
+            const randomExtraAngle = Math.random() * 360;
+            const targetRotation = currentRotation + initialVelocity + (randomRotations * 360) + randomExtraAngle;
+
+            const duration = config.spinDuration.min + Math.random() * (config.spinDuration.max - config.spinDuration.min);
+
+            // Use GSAP for smooth animation with easing and callbacks
+            gsap.to(machineBody, {
+                rotationY: targetRotation,
+                duration: duration,
+                ease: "power2.out", // Deceleration ease
+                onUpdate: () => {
+                    currentRotation = gsap.getProperty(machineBody, "rotationY");
+                    // Update handle rotation (optional, maybe less rotation)
+                    gsap.set(handle, { rotationY: currentRotation * 0.5 });
+
+                    // Make balls tumble realistically (or simplified)
+                    balls.forEach(ball => {
+                         // Simple jiggle based on rotation speed (proxy)
+                         const speedFactor = Math.abs(gsap.getProperty(machineBody, "rotationY") - currentRotation) / (1/60); // Approximate speed
+                         gsap.to(ball.element, {
+                            x: `+=${(Math.random() - 0.5) * speedFactor * 0.01}`,
+                            y: `+=${(Math.random() - 0.5) * speedFactor * 0.01}`,
+                            z: `+=${(Math.random() - 0.5) * speedFactor * 0.005}`,
+                             duration: 0.1
+                         });
+                    });
+
+                    // Adjust spin sound pitch/volume based on speed (optional, complex)
+                    // let currentSpeed = Math.abs(gsap.getProperty(machineBody._gsTransform, "rotationY") - previousRotation) * 60; // fps
+                    // if (audio.spin) audio.spin.rate(Math.max(0.5, Math.min(2, currentSpeed / 500)));
+                },
+                onComplete: () => {
+                    console.log(`旋轉結束，最終角度: ${currentRotation.toFixed(2)}`);
+                    // Stop spin sound
+                    // if (audio.spin) audio.spin.stop();
+                    determineWinner();
+                }
+            });
+        }
+
+        // --- Determine Winner ---
+        function determineWinner() {
+            // Simple random selection for now
+             const winnerIndex = Math.floor(Math.random() * balls.length);
+             const winningBall = balls[winnerIndex];
+
+             console.log(`中獎！ 球號: ${winnerIndex + 1}, 獎品: ${winningBall.data.label}`);
+
+            displayResult(winningBall);
+        }
+
+        // --- Display Result & Effects ---
+        function displayResult(winningBall) {
+             resultText.textContent = winningBall.data.label;
+            resultText.parentElement.classList.add('won'); // Add class for styling
+             resultText.parentElement.style.color = winningBall.data.color || '#000'; // Use prize color
+
+            // Highlight the winning ball
+            gsap.to(winningBall.element, {
+                scale: 1.5,
+                boxShadow: `0 0 20px 10px ${winningBall.data.color || 'yellow'}`,
+                duration: 0.5,
+                yoyo: true, // Briefly pulse
+                repeat: 3,
+                ease: "power1.inOut"
+            });
+
+            // Play winning sound
+            // if (audio.win) audio.win.play();
+
+            // Trigger effects (e.g., confetti)
+            triggerConfetti();
+             triggerSpotlight(winningBall.element); // Spotlight on winner
+
+            // Re-enable interactions after a delay
+            gsap.delayedCall(2, () => { // Wait 2 seconds after effects start
+                isSpinning = false;
+                spinButton.disabled = false;
+                 // Reset winning ball highlight
+                 gsap.to(winningBall.element, { scale: 1, boxShadow: 'none', duration: 0.3 });
+                 console.log("可以再次抽選");
+            });
+        }
+
+        // --- Effects Functions ---
+        function triggerConfetti() {
+            // if (audio.confetti) audio.confetti.play();
+            const particleCount = 50;
+            const colors = ["#FFD700", "#FF69B4", "#87CEFA", "#ADFF2F"]; // Gold, Pink, Blue, GreenYellow
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('confetti-particle');
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                effectsOverlay.appendChild(particle);
+
+                // Position randomly at top
+                 gsap.set(particle, {
+                     x: Math.random() * window.innerWidth,
+                     y: -20, // Start above screen
+                     scale: Math.random() * 0.5 + 0.5, // Random size
+                     rotationZ: Math.random() * 360 // Random initial rotation
+                 });
+
+                // Animate falling and fading out using GSAP
+                gsap.to(particle, {
+                    y: window.innerHeight + 20, // Fall off screen
+                    x: `+=${(Math.random() - 0.5) * 300}`, // Horizontal drift
+                    rotationZ: `+=${(Math.random() - 0.5) * 720}`, // Tumble
+                    opacity: 0,
+                    duration: Math.random() * 3 + 2, // Random duration
+                    ease: "power1.in",
+                    delay: Math.random() * 0.5, // Stagger start times
+                     onComplete: () => {
+                         particle.remove(); // Clean up DOM
+                     }
+                });
+            }
+            console.log("觸發彩帶特效");
+        }
+
+         function triggerSpotlight(targetElement) {
+            // This is tricky with pure CSS 3D.
+            // Option 1: A CSS gradient overlay on the scene that 'points' towards the winner.
+            // Option 2: If using Three.js, add a real SpotLight.
+            // Option 3: Fake it with a ::before/::after pseudo-element on the machine or scene.
+             console.log("聚光燈效果 (待實現 - 較複雜)");
+             // Simple Glow Effect on Winner (already done in displayResult)
+        }
+
+
+        // --- Ball Ejection (Advanced - Optional) ---
+        function ejectBall(ballElement) {
+            // Requires knowing the 'exit' point of the machine model
+            // Use GSAP timeline for complex motion:
+            // 1. Move ball towards exit point inside drum
+            // 2. Animate it 'popping' out (translateZ, maybe scale)
+            // 3. Add bounce physics on the 'ground' (using GSAP physics props or manual eases)
+            console.log("球體彈出效果 (待實現 - 需精確定位)");
+        }
+
+        // --- RWD Handling ---
+        function handleResize() {
+            // Adjust layout, sizes, maybe simplify effects on smaller screens
+            // Example: scale down the entire machine
+            const scaleFactor = Math.min(1, window.innerWidth / 1024); // Scale down if less than 1024px wide
+            gsap.set(machine, { scale: scaleFactor });
+             console.log(`視窗大小改變，縮放因子: ${scaleFactor.toFixed(2)}`);
+            // Re-calculate octagon face positions if dependent on size
+             // setupOctagonFaces(); // Be careful with performance on frequent resize
+        }
+        window.addEventListener('resize', handleResize);
+
+
+        // --- Start the application ---
+        document.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
