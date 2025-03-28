@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智慧 Prompt 生成器</title>
+    <link rel="icon" href="img/ai.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="img/ai.ico" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Dancing+Script:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <svg
+          class="logo"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12 2L2 7L12 12L22 7L12 2Z"
+            stroke="var(--primary)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M2 17L12 22L22 17"
+            stroke="var(--primary)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M2 12L12 17L22 12"
+            stroke="var(--primary)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <circle cx="12" cy="12" r="2" fill="var(--primary)" />
+        </svg>
+        <h1>
+          <span class="title-ch">智慧 Prompt 生成器</span>
+          <span class="title-en">Smart Prompt Generator</span>
+        </h1>
+        <p>快速整理並生成結構化的 AI 提示文件</p>
+      </div>
+
+      <div class="upload-section" id="dropZone">
+        <svg
+          class="upload-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        <input
+          type="file"
+          id="fileInput"
+          class="file-input"
+          multiple
+          webkitdirectory
+          directory
+        />
+        <p>拖放檔案或資料夾至此，或</p>
+        <button
+          class="upload-button"
+          onclick="document.getElementById('fileInput').click()"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          選擇檔案或資料夾
+        </button>
+      </div>
+
+      <div class="file-list" id="fileList">
+        <!-- 檔案列表將動態生成 -->
+      </div>
+
+      <div class="version-control">
+        <input
+          type="text"
+          class="version-input"
+          id="versionName"
+          placeholder="輸入版本名稱"
+        />
+        <button class="save-btn" onclick="saveVersion()">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+            />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
+          儲存版本
+        </button>
+      </div>
+
+      <div class="saved-versions" id="savedVersions"></div>
+
+      <div class="output-container">
+        <div class="copy-btn-container">
+          <button class="copy-btn" onclick="copyOutput()" id="copyButton">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              class="icon-xs"
+            >
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z"
+                fill="currentColor"
+              />
+            </svg>
+            複製
+          </button>
+        </div>
+        <pre class="output" id="output"></pre>
+      </div>
+    </div>
+
+    <!-- 模態框 -->
+    <div id="modal" class="modal-backdrop">
+      <div class="modal-content">
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-actions" id="modalActions"></div>
+      </div>
+    </div>
+
+    <!-- 時間過濾模態視窗 -->
+    <div id="timeFilterModal" class="modal-backdrop">
+      <div class="modal-content">
+        <div class="modal-title">設定日誌檔時間過濾</div>
+        <div class="modal-body">
+          <div class="time-filter-options">
+            <label class="radio-option">
+            <input type="radio" name="timeRange" value="all" checked />
+            <span>顯示全部內容</span>
+            </label>
+            <label class="radio-option">
+            <input type="radio" name="timeRange" value="today" />
+            <span>只顯示今天</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="timeRange" value="yesterday" />
+              <span>顯示昨天至今</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="timeRange" value="week" />
+              <span>顯示一週內</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="timeRange" value="month" />
+              <span>顯示一個月內</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button
+            class="modal-btn modal-btn-secondary"
+            onclick="hideTimeFilterModal()"
+          >
+            取消
+          </button>
+          <button
+            class="modal-btn modal-btn-primary"
+            onclick="applyTimeFilter()"
+          >
+            套用
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 吐司訊息容器 -->
+    <div id="toast"></div>
+
+    <!-- 目錄選擇模態視窗 -->
+    <div id="folderSelectionModal" class="modal-backdrop folder-selection-modal">
+      <div class="modal-content">
+        <div class="modal-title">選擇要匯入的資料夾</div>
+        <div class="modal-body">
+          <div class="folder-warning">
+            <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <div>
+              部分資料夾內有大量檔案，為了避免程式停止回應，請選擇需要的資料夾進行匯入。
+              預設只選擇前50個檔案，超過的檔案需要手動選擇。
+            </div>
+          </div>
+          <div id="folderTree" class="folder-tree"></div>
+          <div class="folder-selection-summary">
+            已選擇: <span id="selectedFilesCount">0</span> 個檔案 / <span id="totalFilesCount">0</span> 個檔案
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-secondary" onclick="hideFolderSelectionModal()">
+            取消
+          </button>
+          <button class="modal-btn modal-btn-primary" onclick="processSelectedFolders()">
+            開始匯入
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 載入中提示吐司 -->
+    <div class="loading-toast" id="loadingToast">
+      <div class="loading-spinner"></div>
+      <div class="loading-message" id="loadingMessage">載入中...</div>
+    </div>
+
+    <!-- 引入 JavaScript 檔案 -->
+    <!-- 注意：順序很重要，必須先引入通用功能，再引入依賴這些功能的檔案 -->
+    <script src="js/ui.js"></script>
+    <script src="js/fileHandler.js"></script>
+    <script src="js/folderAnalyzer.js"></script>
+    <script src="js/outputHandler.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
