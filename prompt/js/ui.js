@@ -142,9 +142,19 @@ function getTimeRangeText(range) {
 
 // 更新 UI
 function updateUI() {
-  updateFileList();
-  updateOutput();
-  updateVersionsList();
+  try {
+    // 直接引用 outputHandler.js 中的 updateOutput 函數
+    updateFileList();
+    // 確保 updateOutput 已經定義
+    if (typeof updateOutput === 'function') {
+      updateOutput();
+    } else {
+      console.error('updateOutput 函數未定義');
+    }
+    updateVersionsList();
+  } catch (e) {
+    console.error('更新 UI 失敗:', e);
+  }
 }
 
 // 更新版本列表
@@ -335,11 +345,6 @@ function createFileItem(file, category) {
         </svg>
         <div class="file-details">
           <span class="file-path">${file.path}</span>
-          ${
-            file.formattedSize
-              ? `<span class="file-size">(${file.formattedSize})</span>`
-              : ""
-          }
         </div>
       </div>
       <div class="file-actions">

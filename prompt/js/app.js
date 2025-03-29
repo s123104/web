@@ -6,6 +6,10 @@
 let files = [];
 let savedVersions = [];
 
+// 导入函數
+// 確保相關函數可以被其他檔案識別
+window.updateOutput = updateOutput;
+
 // 初始化
 document.addEventListener("DOMContentLoaded", () => {
   setupDragAndDrop();

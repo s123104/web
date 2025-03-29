@@ -4,47 +4,119 @@
 
 // 文件類型定義
 const textExtensions = [
-  "js", "py", "java", "cpp", "html", "css", "jsx", "ts", "tsx", "php", "blade.php",
-  "json", "md", "txt", "csv", "xml", "yml", "yaml", "sql", "conf", "ini", "log",
-  "sh", "bat", "cfg", "scss", "sass", "less", "vue", "dockerfile", "env",
+  "js",
+  "py",
+  "java",
+  "cpp",
+  "html",
+  "css",
+  "jsx",
+  "ts",
+  "tsx",
+  "php",
+  "blade.php",
+  "json",
+  "md",
+  "txt",
+  "csv",
+  "xml",
+  "yml",
+  "yaml",
+  "sql",
+  "conf",
+  "ini",
+  "log",
+  "sh",
+  "bat",
+  "cfg",
+  "scss",
+  "sass",
+  "less",
+  "vue",
+  "dockerfile",
+  "env",
 ];
 
 const binaryExtensions = [
-  "jpg", "jpeg", "png", "gif", "bmp", "svg", "ico", "pdf", "zip", "rar", "7z",
-  "exe", "dll", "bin",
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "bmp",
+  "svg",
+  "ico",
+  "pdf",
+  "zip",
+  "rar",
+  "7z",
+  "exe",
+  "dll",
+  "bin",
 ];
 
 // 經過調整的敏感檔案類型，移除模糊匹配
 const SENSITIVE_EXTENSIONS = [
-  "pem", "key", "crt", "p12", "pfx", "keystore", "jks", "p8", "der", "csr", "pkcs12",
+  "pem",
+  "key",
+  "crt",
+  "p12",
+  "pfx",
+  "keystore",
+  "jks",
+  "p8",
+  "der",
+  "csr",
+  "pkcs12",
 ];
 
 // 經過調整的敏感檔案名稱，使用更精確匹配
 const SENSITIVE_FILENAMES = [
-  "id_rsa", "id_dsa", "authorized_keys", "known_hosts", "ssh_config",
-  "private-key", "tls.key", "client-key.pem", "server.key", "ca.key"
+  "id_rsa",
+  "id_dsa",
+  "authorized_keys",
+  "known_hosts",
+  "ssh_config",
+  "private-key",
+  "tls.key",
+  "client-key.pem",
+  "server.key",
+  "ca.key",
 ];
 
 const CONFIG_EXTENSIONS = [
-  "yml", "yaml", "conf", "cfg", "ini", "config", "properties",
+  "yml",
+  "yaml",
+  "conf",
+  "cfg",
+  "ini",
+  "config",
+  "properties",
 ];
 
-const SCRIPT_EXTENSIONS = [
-  "sh", "bash", "ps1", "bat", "cmd", "powershell",
-];
+const SCRIPT_EXTENSIONS = ["sh", "bash", "ps1", "bat", "cmd", "powershell"];
 
 const LOG_EXTENSIONS = ["log", "logs", "syslog"];
 
 const BLOCKED_EXTENSIONS = [
-  "htpasswd", "htaccess", "ssh", "ppk", "keychain",
-  "secret", "credentials", "aws", "env", "npmrc", "netrc", "pgpass",
+  "htpasswd",
+  "htaccess",
+  "ssh",
+  "ppk",
+  "keychain",
+  "secret",
+  "credentials",
+  "aws",
+  "env",
+  "npmrc",
+  "netrc",
+  "pgpass",
 ];
 
 // 處理檔案
 async function handleFiles(fileList) {
   // 分析資料夾結構
   const folderAnalysis = await analyzeFolderStructure(fileList);
-  
+
   // 顯示資料夾選擇對話框
   showFolderSelectionModal(folderAnalysis);
 }
@@ -55,11 +127,11 @@ async function processFilesInParallel(fileList, gitignoreRules) {
   let currentIndex = 0;
   const results = {
     loaded: [],
-    ignored: [],      // gitignore 過濾的檔案
-    blocked: [],      // 安全原因被阻擋的檔案
-    sensitive: [],    // 敞感檔案
-    large: [],        // 大檔案
-    errors: [],       // 讀取錯誤的檔案
+    ignored: [], // gitignore 過濾的檔案
+    blocked: [], // 安全原因被阻擋的檔案
+    sensitive: [], // 敞感檔案
+    large: [], // 大檔案
+    errors: [], // 讀取錯誤的檔案
   };
   const filesArray = Array.from(fileList);
 
@@ -69,7 +141,7 @@ async function processFilesInParallel(fileList, gitignoreRules) {
     while (currentIndex < filesArray.length) {
       const index = currentIndex++;
       const file = filesArray[index];
-      
+
       // 顯示進度
       if (index % 10 === 0) {
         updateLoadingToast(`處理檔案 ${index + 1}/${filesArray.length}...`);
@@ -96,31 +168,98 @@ async function processFilesInParallel(fileList, gitignoreRules) {
       if (SENSITIVE_EXTENSIONS.includes(ext)) {
         isSensitive = true;
       }
-      
+
       // 檢查敏感檔名
       for (const sensitiveName of SENSITIVE_FILENAMES) {
-        if (fileName === sensitiveName || fileName.includes(sensitiveName + ".")) {
+        if (
+          fileName === sensitiveName ||
+          fileName.includes(sensitiveName + ".")
+        ) {
           isSensitive = true;
           break;
         }
       }
-      
-      // 這些檔案類型是安全的，允許通過
+
+      // 憑證相關腳本處理的安全清單
       const safeScriptFiles = [
         "backup-certs.ps1",
         "backup-certs.sh",
         "backup-cert.ps1",
-        "backup-cert.sh"
+        "backup-cert.sh",
+        "generate-certs.ps1",
+        "generate-certs.sh",
+        "generate-cert.ps1",
+        "generate-cert.sh",
+        "deploy-certs.ps1",
+        "deploy-certs.sh",
+        "install-certs.ps1",
+        "install-certs.sh",
+        "renew-certs.ps1",
+        "renew-certs.sh",
+        "update-certs.ps1",
+        "update-certs.sh",
       ];
-      
+
+      const safeOperations = [
+        "backup",
+        "generate",
+        "deploy",
+        "install",
+        "renew",
+        "update",
+        "create",
+        "setup",
+      ];
+      const safeCertPatterns = [
+        "cert",
+        "certs",
+        "certificate",
+        "certificates",
+        "ssl",
+        "tls",
+      ];
+      const safeExtensions = [".ps1", ".sh", ".cmd", ".bat", ".js"];
+
       if (isSensitive) {
-        // 如果文件名完全匹配安全腳本文件列表中的任一項，或者以backup-開頭並包含certs/cert
-        if (safeScriptFiles.includes(fileName) || 
-            (fileName.startsWith("backup-") && (fileName.includes("certs") || fileName.includes("cert")))) {
+        // 1. 精確比對安全腳本檔案列表
+        if (safeScriptFiles.includes(fileName)) {
           isSensitive = false;
         }
+        // 2. 模式比對 - 操作+對象+副檔名
+        else {
+          // 取得檔案名無副檔名部分
+          let fileNameWithoutExt = fileName;
+          let fileExt = "";
+
+          for (const ext of safeExtensions) {
+            if (fileName.endsWith(ext)) {
+              fileNameWithoutExt = fileName.slice(0, -ext.length);
+              fileExt = ext;
+              break;
+            }
+          }
+
+          // 檢查檔案名是否為「安全操作-憑證相關」的格式
+          if (fileExt) {
+            // 確保有支援的副檔名
+            for (const op of safeOperations) {
+              if (fileNameWithoutExt.startsWith(op + "-")) {
+                const restOfName = fileNameWithoutExt.substring(op.length + 1);
+
+                for (const pattern of safeCertPatterns) {
+                  if (restOfName.includes(pattern)) {
+                    isSensitive = false;
+                    break;
+                  }
+                }
+
+                if (!isSensitive) break;
+              }
+            }
+          }
+        }
       }
-      
+
       if (isSensitive) {
         results.sensitive.push(file.name);
         continue;
@@ -180,7 +319,7 @@ async function processFilesInParallel(fileList, gitignoreRules) {
     workers.push(worker());
   }
   await Promise.all(workers);
-  
+
   updateLoadingToast(`處理完成，載入了 ${results.loaded.length} 個檔案`);
   return results;
 }
@@ -238,25 +377,25 @@ function isFileIgnored(filePath, gitignoreRules) {
       const parts = rule.split("*");
       let match = true;
       let restPath = filePath;
-      
+
       for (const part of parts) {
         if (!part) continue; // 空字串跳過
-        
+
         const index = restPath.indexOf(part);
         if (index === -1) {
           match = false;
           break;
         }
-        
+
         restPath = restPath.substring(index + part.length);
       }
-      
+
       if (match) return true;
     } else if (filePath === rule || filePath.includes("/" + rule)) {
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -264,28 +403,28 @@ function isFileIgnored(filePath, gitignoreRules) {
 async function parseGitignore(content) {
   const lines = content.split("\n");
   const rules = [];
-  
+
   for (let line of lines) {
     // 移除註解和空行
     line = line.trim();
     if (!line || line.startsWith("#")) {
       continue;
     }
-    
+
     // 移除前導的 !（排除規則），目前我們不處理這種情況
     if (line.startsWith("!")) {
       continue;
     }
-    
+
     // 移除前導的 /
     if (line.startsWith("/")) {
       line = line.substring(1);
     }
-    
+
     // 加入有效規則
     rules.push(line);
   }
-  
+
   return rules;
 }
 
@@ -404,10 +543,7 @@ function sortFilesByCustomOrder(filesArr) {
       return priorityMap.readme_md;
 
     if (ext === "md") return priorityMap.md;
-    if (
-      lowerName === ".env.example" ||
-      lowerName.includes(".env.example")
-    )
+    if (lowerName === ".env.example" || lowerName.includes(".env.example"))
       return priorityMap.env_example;
     if (ext === "yml" || ext === "yaml") return priorityMap.yml_yaml;
     if (ext === "conf" || ext === "config") return priorityMap.conf;

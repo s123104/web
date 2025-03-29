@@ -429,6 +429,15 @@ function processSelectedFolders() {
   // 處理選擇的檔案
   processFilesInParallel(selectedFiles, gitignoreRules).then(results => {
     files = results.loaded;
+    
+    // 將過濾結果保存到全域變量供輸出專案結構時使用
+    window.filteredResults = {
+      ignored: results.ignored || [],
+      sensitive: results.sensitive || [],
+      blocked: results.blocked || [],
+      large: results.large ? results.large.map(item => item.name) : []
+    };
+    
     updateUI();
     hideLoadingToast();
     
@@ -483,6 +492,42 @@ function processSelectedFolders() {
       );
     } else {
       showToast(`已成功讀取 ${results.loaded.length} 個檔案`);
+    }
+    
+    // 處理大型檔案過濾
+    if (results.large && results.large.length > 0) {
+      const largeFilesMessage = `
+        <div class="results-category">
+          <div class="results-category-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+              <polyline points="13 2 13 9 20 9"></polyline>
+            </svg>
+            大型檔案已過濾 ${results.large.length} 個（超過 5MB）：
+          </div>
+          <ul class="results-files">
+            ${results.large.slice(0, 5).map(file => `<li>${file.name} (${file.size})</li>`).join('')}
+            ${results.large.length > 5 ? `<li>... 以及其他 ${results.large.length - 5} 個檔案</li>` : ''}
+          </ul>
+        </div>
+      `;
+      
+      // 如果之前有顯示過濾訊息，這裡應該在一段時間後再顯示大型檔案訊息
+      if (filterMessage.length > 0) {
+        setTimeout(() => {
+          showModal(
+            "大型檔案已過濾", 
+            `<div class="results-list">${largeFilesMessage}</div>`, 
+            [{ text: "知道了", onClick: "hideModal()", primary: true }]
+          );
+        }, 2000); // 稍微延遲顯示第二個模態視窗
+      } else {
+        showModal(
+          "大型檔案已過濾", 
+          `<div class="results-list">${largeFilesMessage}</div>`, 
+          [{ text: "知道了", onClick: "hideModal()", primary: true }]
+        );
+      }
     }
   }).catch(err => {
     console.error("處理檔案錯誤:", err);
