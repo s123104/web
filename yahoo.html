@@ -1,0 +1,2586 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yahoo! 奇摩即時通 - 懷舊致敬版</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, "微軟正黑體", sans-serif;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #e9d4ff, #c9a6ff);
+        padding: 15px;
+        transition: background 1s ease;
+      }
+
+      .modern-style body {
+        background: linear-gradient(135deg, #8e57af, #6b3fa3);
+      }
+
+      /* 移除所有連結的底線 */
+      a {
+        text-decoration: none !important;
+      }
+
+      a:hover {
+        text-decoration: none !important;
+      }
+
+      /* 主要容器 */
+      .container {
+        position: relative;
+        width: 90%; /* 添加這行 */
+        max-width: 500px; /* 添加這行，設定一個較大的最大寬度 */
+        margin: 0 auto; /* 添加這行，讓容器居中 */
+      }
+
+      /* 風格切換按鈕 */
+      .style-toggle {
+        position: absolute;
+        top: -70px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 40px;
+        padding: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+        width: 320px;
+        height: 50px;
+      }
+
+      .style-btn {
+        flex: 1;
+        padding: 8px 0;
+        border: none;
+        border-radius: 30px;
+        background: transparent;
+        cursor: pointer;
+        font-size: 15px;
+        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        color: #7b579c;
+        font-weight: bold;
+        text-align: center;
+        white-space: nowrap;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      .style-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.05);
+        z-index: -1;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s ease;
+      }
+
+      .style-btn:hover::before {
+        transform: scaleX(1);
+      }
+
+      .style-btn.classic {
+        background: linear-gradient(to bottom, #f9f6fc, #e9e0f4);
+        color: #7b579c;
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8),
+          0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #d0c4e8;
+      }
+
+      .style-btn.classic i {
+        margin-right: 8px;
+        font-size: 15px;
+      }
+
+      .style-btn.classic.active {
+        background: linear-gradient(to bottom, #9372b5, #7b579c);
+        color: white;
+        box-shadow: inset 0 1px 5px rgba(0, 0, 0, 0.2);
+        border: 1px solid #7b579c;
+      }
+
+      .style-btn.modern {
+        background: linear-gradient(135deg, #f9f6fc, #f0e6f9);
+        border: 1px solid #e0d4f0;
+        color: #8e57af;
+      }
+
+      .style-btn.modern i {
+        margin-right: 8px;
+        font-size: 15px;
+      }
+
+      .style-btn.modern.active {
+        background: linear-gradient(135deg, #9d65c9, #7742a0);
+        color: white;
+        box-shadow: 0 2px 8px rgba(142, 87, 175, 0.3);
+        border: 1px solid #7742a0;
+      }
+
+      /* 登入視窗 - 增加高度 */
+      .messenger-window {
+        width: 360px; /* 增加基本寬度 */
+        height: 600px; /* 增加高度 */
+        background-color: white;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        position: relative;
+        border-radius: 4px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .messenger-window:hover {
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+      }
+
+      /* 經典模式 */
+      .classic-style .messenger-window {
+        border-radius: 0;
+        box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+        border: 1px solid #999;
+      }
+
+      /* 現代模式 */
+      .modern-style .messenger-window {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        border: none;
+      }
+
+      .title-bar {
+        background: linear-gradient(to bottom, #9372b5, #7b579c);
+        color: white;
+        padding: 4px 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+      }
+
+      .modern-style .title-bar {
+        background: linear-gradient(135deg, #8e57af, #6b3fa3);
+        padding: 10px 15px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .menu-items {
+        display: flex;
+      }
+
+      .menu-item {
+        margin-right: 10px;
+        cursor: pointer;
+      }
+
+      .title-controls {
+        display: flex;
+      }
+
+      .control-btn {
+        margin-left: 4px;
+        width: 14px;
+        height: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        cursor: pointer;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+      }
+
+      .control-btn:hover {
+        opacity: 1;
+      }
+
+      .modern-style .control-btn {
+        margin-left: 8px;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+      }
+
+      .content {
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: calc(100% - 22px);
+        position: relative;
+      }
+
+      .modern-style .content {
+        padding: 25px;
+        height: calc(100% - 44px);
+      }
+
+      .logo-container {
+        margin: 15px 0 30px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .modern-style .logo-container {
+        margin: 5px 0 35px 0;
+      }
+
+      .purple-logo {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, #9d65c9, #7742a0);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 36px;
+        box-shadow: 0 3px 10px rgba(142, 87, 175, 0.3);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .purple-logo:hover {
+        transform: scale(1.05);
+      }
+
+      .purple-logo::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0),
+          rgba(255, 255, 255, 0.2),
+          rgba(255, 255, 255, 0)
+        );
+        transition: all 0.5s ease;
+      }
+
+      .purple-logo:hover::after {
+        left: 100%;
+      }
+
+      .modern-style .purple-logo {
+        width: 80px;
+        height: 80px;
+        font-size: 40px;
+        box-shadow: 0 8px 25px rgba(142, 87, 175, 0.4);
+      }
+
+      .exclamation {
+        color: #7b3da5;
+        font-size: 45px;
+        font-weight: bold;
+        margin-left: 5px;
+        position: relative;
+        top: -3px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .modern-style .exclamation {
+        font-size: 50px;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        top: -5px;
+        margin-left: 8px;
+      }
+
+      .face-container {
+        width: 36px;
+        height: 36px;
+        position: absolute;
+        left: 65px;
+        top: 40px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+      }
+
+      .face-container:hover {
+        transform: scale(1.1);
+      }
+
+      .modern-style .face-container {
+        width: 40px;
+        height: 40px;
+        left: 70px;
+        top: 45px;
+      }
+
+      .form-group {
+        width: 100%;
+        margin-bottom: 15px;
+      }
+
+      .modern-style .form-group {
+        margin-bottom: 18px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 13px;
+        color: #333;
+      }
+
+      .modern-style .form-group label {
+        font-size: 14px;
+        color: #555;
+        margin-bottom: 8px;
+      }
+
+      .form-group input[type="text"],
+      .form-group input[type="password"] {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 13px;
+        transition: all 0.3s;
+      }
+
+      .form-group input:focus {
+        border-color: #8e57af;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(142, 87, 175, 0.2);
+      }
+
+      .modern-style .form-group input[type="text"],
+      .modern-style .form-group input[type="password"] {
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        border: 1px solid #e0e0e0;
+        background: #f9f7fc;
+      }
+
+      .modern-style .form-group input:focus {
+        background: white;
+        box-shadow: 0 0 0 3px rgba(142, 87, 175, 0.15);
+      }
+
+      .checkbox-group {
+        width: 100%;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: flex-start;
+        font-size: 13px;
+      }
+
+      .modern-style .checkbox-group {
+        margin-bottom: 8px;
+      }
+
+      .checkbox-group input[type="checkbox"] {
+        margin-right: 6px;
+        position: relative;
+        top: 1px;
+        cursor: pointer;
+      }
+
+      .checkbox-group label {
+        cursor: pointer;
+      }
+
+      .modern-style .checkbox-group label {
+        font-size: 14px;
+        color: #666;
+      }
+
+      .login-btn {
+        background: linear-gradient(to bottom, #e4c8f1, #d9b8ec);
+        color: black;
+        border: 1px solid #ccc;
+        padding: 5px 20px;
+        cursor: pointer;
+        margin-top: 5px;
+        font-size: 13px;
+        border-radius: 3px;
+        transition: all 0.3s;
+      }
+
+      .login-btn:hover {
+        background: linear-gradient(to bottom, #d9b8ec, #cca6e3);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .login-btn:active {
+        transform: translateY(0);
+        box-shadow: none;
+      }
+
+      .modern-style .login-btn {
+        width: 100%;
+        padding: 10px;
+        margin-top: 15px;
+        font-size: 15px;
+        font-weight: bold;
+        background: linear-gradient(135deg, #9d65c9, #7742a0);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(142, 87, 175, 0.3);
+      }
+
+      .modern-style .login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(142, 87, 175, 0.4);
+      }
+
+      .footer {
+        position: absolute;
+        bottom: 15px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        font-size: 12px;
+        color: #777;
+        padding: 0 15px;
+      }
+
+      .modern-style .footer {
+        bottom: 20px;
+      }
+
+      .footer a {
+        color: #6b3fa3;
+        text-decoration: none; /* 移除底線 */
+        transition: color 0.2s;
+      }
+
+      .footer a:hover {
+        color: #8e57af;
+        text-decoration: none; /* 移除hover時的底線 */
+      }
+
+      .modern-style .footer a {
+        color: #8e57af;
+        font-weight: bold;
+      }
+
+      /* 聊天室視窗 - 增加高度 */
+      .chat-window {
+        width: 320px;
+        height: 600px; /* 增加高度 */
+        background-color: white;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        position: relative;
+        border-radius: 4px;
+        overflow: hidden;
+        display: none;
+        flex-direction: column;
+        transition: all 0.5s ease;
+      }
+
+      .messenger-window,
+      .chat-window {
+        width: 320px;
+        height: 600px;
+      }
+
+      /* 經典樣式 */
+      .classic-style .chat-window {
+        border-radius: 0;
+        box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+        border: 1px solid #999;
+      }
+
+      /* 現代樣式 */
+      .modern-style .chat-window {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        border: none;
+      }
+
+      .chat-title {
+        background: linear-gradient(to bottom, #9372b5, #7b579c);
+        color: white;
+        padding: 4px 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        transition: all 0.5s ease;
+      }
+
+      .modern-style .chat-title {
+        background: linear-gradient(135deg, #8e57af, #6b3fa3);
+        padding: 10px 15px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      /* 經典模式功能列 */
+      .classic-menu-bar {
+        background: #f0f0f0;
+        border-bottom: 1px solid #ccc;
+        padding: 3px 0;
+        display: flex;
+      }
+
+      .classic-style .classic-menu-bar {
+        display: flex;
+      }
+
+      .modern-style .classic-menu-bar {
+        display: none;
+      }
+
+      .classic-menu-item {
+        padding: 2px 8px;
+        font-size: 12px;
+        border-right: 1px solid #ddd;
+        cursor: pointer;
+      }
+
+      .classic-menu-item:hover {
+        background: #e8e8e8;
+      }
+
+      /* 用戶資訊區域 */
+      .user-profile {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background: #f5f0fa;
+        border-bottom: 1px solid #e0e0e0;
+        transition: all 0.5s ease;
+      }
+
+      .modern-style .user-profile {
+        background: white;
+        padding: 15px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        overflow: hidden;
+        transition: all 0.3s;
+      }
+
+      .user-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .modern-style .user-avatar {
+        width: 45px;
+        height: 45px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .user-info {
+        flex: 1;
+      }
+
+      .user-name {
+        font-weight: bold;
+        font-size: 12px;
+        color: #333;
+        display: flex;
+        align-items: center;
+      }
+
+      .modern-style .user-name {
+        font-size: 14px;
+      }
+
+      .user-status-icon {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #28c941;
+        margin-left: 5px;
+      }
+
+      .user-status-text {
+        font-size: 11px;
+        color: #777;
+        margin-top: 2px;
+      }
+
+      .modern-style .user-status-text {
+        font-size: 12px;
+        color: #999;
+      }
+
+      .user-controls {
+        display: flex;
+      }
+
+      .user-action {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #9372b5;
+        font-size: 12px;
+        margin-left: 5px;
+        border-radius: 4px;
+        transition: all 0.3s;
+      }
+
+      .user-action:hover {
+        background: rgba(147, 114, 181, 0.1);
+      }
+
+      .modern-style .user-action {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+        background: #f9f6fc;
+        border-radius: 50%;
+      }
+
+      .modern-style .user-action:hover {
+        background: #f0e6f9;
+        transform: translateY(-2px);
+      }
+
+      /* 搜尋欄 */
+      .search-bar {
+        padding: 8px 10px;
+        background: #f9f9f9;
+        border-bottom: 1px solid #e9e9e9;
+        display: flex;
+        align-items: center;
+        transition: all 0.5s ease;
+      }
+
+      .modern-style .search-bar {
+        padding: 10px 15px;
+        background: white;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .search-input-container {
+        position: relative;
+        flex: 1;
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #aaa;
+        font-size: 12px;
+      }
+
+      .modern-style .search-icon {
+        color: #9372b5;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 5px 10px 5px 28px;
+        border: 1px solid #ddd;
+        border-radius: 15px;
+        font-size: 12px;
+        background: white;
+        transition: all 0.3s;
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: #9372b5;
+        box-shadow: 0 0 0 2px rgba(147, 114, 181, 0.1);
+      }
+
+      .modern-style .search-input {
+        padding: 8px 10px 8px 32px;
+        border-radius: 20px;
+        border: 1px solid #eee;
+        background: #f9f6fc;
+      }
+
+      /* 聊天內容 - 因增加整體高度而擴大 */
+      .chat-content {
+        flex: 1;
+        overflow-y: auto;
+        background: white;
+        transition: all 0.5s ease;
+      }
+
+      .classic-style .chat-content {
+        background: #f0f0f0;
+      }
+
+      /* 分類標籤 */
+      .section-header {
+        padding: 5px 10px;
+        background: #e9e0f4;
+        font-size: 11px;
+        color: #7b579c;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: all 0.5s ease;
+      }
+
+      .section-header:hover {
+        background: #e0d4f0;
+      }
+
+      .modern-style .section-header {
+        padding: 10px 15px;
+        background: #f9f6fc;
+        font-size: 12px;
+        border-radius: 0;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .modern-style .section-header:hover {
+        background: #f0e6f9;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+      }
+
+      .section-icon {
+        margin-right: 5px;
+        font-size: 11px;
+      }
+
+      .modern-style .section-icon {
+        font-size: 12px;
+      }
+
+      .section-count {
+        margin-left: 5px;
+        color: #9983b9;
+        font-weight: normal;
+      }
+
+      .section-toggle {
+        font-size: 10px;
+        transition: transform 0.3s;
+      }
+
+      .section-toggle.collapsed {
+        transform: rotate(-90deg);
+      }
+
+      /* 好友列表 */
+      .friend-list {
+        max-height: 500px;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+      }
+
+      .friend-list.collapsed {
+        max-height: 0;
+      }
+
+      .friend-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .friend-item:hover {
+        background: #f9f6fc;
+      }
+
+      .modern-style .friend-item {
+        padding: 10px 15px;
+      }
+
+      .friend-item:last-child {
+        border-bottom: none;
+      }
+
+      .friend-presence {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        margin-right: 6px;
+        flex-shrink: 0;
+      }
+
+      .friend-presence.online {
+        background-color: #28c941;
+      }
+
+      .friend-presence.offline {
+        background-color: #ccc;
+      }
+
+      .friend-presence.busy {
+        background-color: #ff5f57;
+      }
+
+      .friend-presence.away {
+        background-color: #ffbd2e;
+      }
+
+      .friend-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 8px;
+        font-size: 10px;
+        color: #9372b5;
+        flex-shrink: 0;
+      }
+
+      .modern-style .friend-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+      }
+
+      .friend-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .friend-name {
+        font-size: 12px;
+        color: #333;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .modern-style .friend-name {
+        font-size: 13px;
+      }
+
+      .friend-status {
+        font-size: 10px;
+        color: #999;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+      }
+
+      .modern-style .friend-status {
+        font-size: 11px;
+      }
+
+      /* 底部控制區 */
+      .bottom-controls {
+        padding: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f5f5f5;
+        border-top: 1px solid #e0e0e0;
+        transition: all 0.5s ease;
+      }
+
+      .modern-style .bottom-controls {
+        padding: 10px 15px;
+        background: white;
+        border-top: 1px solid #f0f0f0;
+      }
+
+      .control-actions {
+        display: flex;
+      }
+
+      .control-button {
+        padding: 5px 8px;
+        font-size: 11px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #666;
+        display: flex;
+        align-items: center;
+        border-radius: 3px;
+        transition: all 0.3s;
+      }
+
+      .control-button:hover {
+        background: rgba(0, 0, 0, 0.05);
+        color: #333;
+      }
+
+      .control-button i {
+        margin-right: 5px;
+        font-size: 11px;
+      }
+
+      .modern-style .control-button {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 15px;
+      }
+
+      .modern-style .control-button i {
+        font-size: 12px;
+      }
+
+      .modern-style .control-button:hover {
+        background: #f9f6fc;
+        color: #8e57af;
+        transform: translateY(-2px);
+      }
+
+      /* 廣告橫幅 */
+      .ad-banner {
+        padding: 5px;
+        background: #f0f0f0;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.5s ease;
+      }
+
+      .modern-style .ad-banner {
+        padding: 8px;
+        background: white;
+        border-top: 1px solid #f0f0f0;
+      }
+
+      .ad-content {
+        width: 100%;
+        height: 50px;
+        background: rgba(40, 201, 65, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 10px;
+        font-size: 11px;
+        border-radius: 3px;
+        transition: all 0.5s ease;
+      }
+
+      .modern-style .ad-content {
+        height: 50px;
+        background: linear-gradient(90deg, #f0f9f3, #e0f5e9);
+        border-radius: 8px;
+        padding: 0 15px;
+      }
+
+      .ad-text {
+        color: #333;
+        font-weight: bold;
+        font-size: 11px;
+      }
+
+      .modern-style .ad-text {
+        font-size: 12px;
+      }
+
+      .ad-logo {
+        display: flex;
+        align-items: center;
+      }
+
+      .ad-logo i {
+        margin-right: 5px;
+        color: #28c941;
+      }
+
+      .modern-style .ad-logo i {
+        font-size: 14px;
+      }
+
+      .ad-button {
+        background: #ffbd2e;
+        color: #333;
+        padding: 3px 8px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: bold;
+        transition: all 0.3s;
+      }
+
+      .ad-button:hover {
+        background: #ffc740;
+      }
+
+      .modern-style .ad-button {
+        padding: 5px 12px;
+        border-radius: 15px;
+        background: #28c941;
+        color: white;
+        font-size: 11px;
+        box-shadow: 0 2px 5px rgba(40, 201, 65, 0.3);
+      }
+
+      .modern-style .ad-button:hover {
+        background: #32d74b;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(40, 201, 65, 0.4);
+      }
+
+      /* 搜尋欄 */
+      .yahoo-search {
+        padding: 5px;
+        background: #e9e9e9;
+        border-top: 1px solid #d0d0d0;
+        transition: all 0.5s ease;
+        display: flex;
+      }
+
+      .modern-style .yahoo-search {
+        padding: 8px 10px;
+        background: #f9f9f9;
+        border-top: 1px solid #f0f0f0;
+      }
+
+      .search-yahoo {
+        flex: 1;
+        padding: 3px 8px;
+        border: 1px solid #ccc;
+        border-radius: 3px 0 0 3px;
+        font-size: 11px;
+      }
+
+      .modern-style .search-yahoo {
+        padding: 6px 10px;
+        font-size: 12px;
+        border: 1px solid #eee;
+        border-radius: 20px 0 0 20px;
+      }
+
+      .search-go {
+        padding: 3px 8px;
+        background: #9372b5;
+        color: white;
+        border: 1px solid #7b579c;
+        border-left: none;
+        border-radius: 0 3px 3px 0;
+        cursor: pointer;
+        font-size: 11px;
+      }
+
+      .modern-style .search-go {
+        padding: 6px 12px;
+        font-size: 12px;
+        background: linear-gradient(135deg, #9372b5, #7b579c);
+        border: none;
+        border-radius: 0 20px 20px 0;
+      }
+
+      /* SVG 表情符號容器 */
+      .face-svg-container {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Toast notification */
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        font-size: 14px;
+        opacity: 0;
+      }
+
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+
+      /* 分享模態窗 */
+      .share-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .share-modal.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .share-container {
+        width: 90%;
+        max-width: 400px;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        transform: translateY(30px);
+        transition: all 0.3s ease;
+      }
+
+      .share-modal.active .share-container {
+        transform: translateY(0);
+      }
+
+      .share-header {
+        padding: 15px;
+        background: linear-gradient(to right, #8e57af, #6b3fa3);
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .share-title {
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .share-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+      }
+
+      .share-content {
+        padding: 20px;
+      }
+
+      .threads-preview {
+        display: flex;
+        align-items: center;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        background: #f9f9f9;
+      }
+
+      .threads-logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: black;
+        color: white;
+        font-size: 22px;
+      }
+
+      .threads-info {
+        flex: 1;
+      }
+
+      .threads-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .threads-link {
+        color: #666;
+        font-size: 12px;
+        word-break: break-all;
+      }
+
+      .share-options {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .share-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        padding: 10px 5px;
+        border-radius: 8px;
+        transition: all 0.2s;
+        text-decoration: none; /* 移除連結底線 */
+      }
+
+      .share-option:hover {
+        background: #f5f0fa;
+        text-decoration: none; /* 移除hover時的底線 */
+      }
+
+      .share-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        margin-bottom: 5px;
+        color: #333;
+      }
+
+      .share-option:nth-child(1) .share-icon {
+        background: #3b5998;
+        color: white;
+      }
+
+      .share-option:nth-child(2) .share-icon {
+        background: #1da1f2;
+        color: white;
+      }
+
+      .share-option:nth-child(3) .share-icon {
+        background: #25d366;
+        color: white;
+      }
+
+      .share-option:nth-child(4) .share-icon {
+        background: #ea4335;
+        color: white;
+      }
+
+      .share-name {
+        font-size: 12px;
+        text-align: center;
+        color: #333; /* 確保文字顏色正確 */
+      }
+
+      .share-input-group {
+        position: relative;
+        margin-bottom: 15px;
+      }
+
+      .share-input {
+        width: 100%;
+        padding: 10px 15px;
+        padding-right: 50px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      .share-copy {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #8e57af;
+        font-weight: bold;
+        cursor: pointer;
+        padding: 5px 10px;
+      }
+
+      .share-button {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        background: linear-gradient(to right, #8e57af, #6b3fa3);
+        color: white;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none; /* 移除連結底線 */
+        display: block;
+        text-align: center;
+      }
+
+      .share-button:hover {
+        box-shadow: 0 4px 10px rgba(142, 87, 175, 0.3);
+        text-decoration: none; /* 移除hover時的底線 */
+      }
+
+      /* 彩蛋動畫效果 */
+      @keyframes rainbowBg {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      .rainbow-effect {
+        background: linear-gradient(
+          90deg,
+          #ff0000,
+          #ff7f00,
+          #ffff00,
+          #00ff00,
+          #0000ff,
+          #4b0082,
+          #8b00ff
+        );
+        background-size: 1400% 1400%;
+        animation: rainbowBg 10s ease infinite;
+      }
+
+      @keyframes bounce {
+        0%,
+        20%,
+        50%,
+        80%,
+        100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-20px);
+        }
+        60% {
+          transform: translateY(-10px);
+        }
+      }
+
+      .bounce-effect {
+        animation: bounce 1s ease;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .spin-effect {
+        animation: spin 1s linear;
+      }
+
+      /* RWD 設定 */
+      @media screen and (max-width: 480px) {
+        .messenger-window,
+        .chat-window {
+          width: 100%; /* 保持 100% */
+          max-width: none; /* 移除最大寬度限制 */
+          margin: 0 auto; /* 居中顯示 */
+        }
+
+        .style-toggle {
+          width: 90%;
+          max-width: none;
+        }
+
+        .container {
+          width: 90%;
+          padding: 0 10px; /* 兩側留一點空間 */
+        }
+      }
+
+      @media screen and (max-width: 360px) {
+        .friend-item,
+        .user-profile {
+          padding: 8px;
+        }
+
+        .modern-style .friend-item,
+        .modern-style .user-profile {
+          padding: 10px;
+        }
+
+        .style-btn {
+          font-size: 14px;
+        }
+      }
+
+      @media screen and (max-height: 600px) {
+        .messenger-window,
+        .chat-window {
+          height: 90vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container classic-style" id="yahoo-container">
+      <!-- 風格切換按鈕 -->
+      <div class="style-toggle">
+        <button class="style-btn classic active" id="classic-btn">
+          <i class="fas fa-history"></i>經典
+        </button>
+        <button class="style-btn modern" id="modern-btn">
+          <i class="fas fa-rocket"></i>現代
+        </button>
+      </div>
+
+      <!-- 登入視窗 -->
+      <div class="messenger-window" id="login-window">
+        <div class="title-bar">
+          <div class="menu-items">
+            <div class="menu-item">Yahoo!奇摩即時通</div>
+          </div>
+          <div class="title-controls">
+            <div class="control-btn"><i class="fas fa-minus"></i></div>
+            <div class="control-btn"><i class="fas fa-expand"></i></div>
+            <div class="control-btn"><i class="fas fa-times"></i></div>
+          </div>
+        </div>
+        <div class="content">
+          <div class="logo-container">
+            <div class="purple-logo" id="logo-egg">Y</div>
+            <div class="exclamation" id="exclamation-egg">!</div>
+            <div class="face-container" id="face-container">
+              <svg class="face-svg-container" id="face-svg" viewBox="0 0 36 36">
+                <defs>
+                  <radialGradient
+                    id="faceGradient"
+                    cx="50%"
+                    cy="50%"
+                    r="50%"
+                    fx="50%"
+                    fy="50%"
+                  >
+                    <stop offset="0%" style="stop-color: #e6e6e6" />
+                    <stop offset="90%" style="stop-color: #c0c0c0" />
+                    <stop offset="100%" style="stop-color: #a0a0a0" />
+                  </radialGradient>
+                </defs>
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="17"
+                  fill="url(#faceGradient)"
+                  stroke="#b0b0b0"
+                  stroke-width="1"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="username">登入帳號(I)：</label>
+            <input type="text" id="username" placeholder="請輸入帳號" />
+          </div>
+
+          <div class="form-group">
+            <label for="password">登入密碼(P)：</label>
+            <input type="password" id="password" placeholder="請輸入密碼" />
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="remember" checked />
+            <label for="remember" id="remember-egg"
+              >自動記住帳號及密碼(R)</label
+            >
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="auto-login" checked />
+            <label for="auto-login" id="autologin-egg">開機後自動登入(A)</label>
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="invisible" />
+            <label for="invisible" id="invisible-egg">以隱藏模式登入(V)</label>
+          </div>
+
+          <button class="login-btn" id="login-btn">登入(L)</button>
+
+          <div class="footer">
+            <p>
+              申請新的 Yahoo! 奇摩帳號<br />
+              <a href="#" id="forgot-password-egg">忘記登入密碼?</a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 聊天室視窗 -->
+      <div class="chat-window" id="chat-window">
+        <div class="chat-title">
+          <div class="menu-items">
+            <div class="menu-item">
+              <span class="menu-icon"><i class="fas fa-comment-alt"></i></span>
+              <span>Yahoo!奇摩即時通</span>
+            </div>
+          </div>
+          <div class="title-controls">
+            <div class="control-btn"><i class="fas fa-minus"></i></div>
+            <div class="control-btn"><i class="fas fa-expand"></i></div>
+            <div class="control-btn" id="close-chat">
+              <i class="fas fa-times"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 經典版功能列 -->
+        <div class="classic-menu-bar">
+          <div class="classic-menu-item" id="classic-menu-1">即時通(O)</div>
+          <div class="classic-menu-item" id="classic-menu-2">選單(M)</div>
+          <div class="classic-menu-item" id="classic-menu-3">工具(T)</div>
+          <div class="classic-menu-item" id="classic-menu-4">好友(F)</div>
+          <div class="classic-menu-item" id="classic-menu-5">說明(H)</div>
+        </div>
+
+        <!-- 用戶資料區 -->
+        <div class="user-profile">
+          <div class="user-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="user-info">
+            <div class="user-name">
+              Yahoo使用者
+              <div class="user-status-icon"></div>
+            </div>
+            <div class="user-status-text">分享目前的動態訊息...</div>
+          </div>
+          <div class="user-controls">
+            <div class="user-action" id="settings-btn">
+              <i class="fas fa-cog"></i>
+            </div>
+            <div class="user-action" id="share-btn">
+              <i class="fas fa-share-alt"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 搜尋欄 -->
+        <div class="search-bar">
+          <div class="search-input-container">
+            <i class="fas fa-search search-icon"></i>
+            <input
+              type="text"
+              class="search-input"
+              placeholder="搜尋好友、群組、訊息..."
+            />
+          </div>
+        </div>
+
+        <!-- 聊天內容 -->
+        <div class="chat-content">
+          <!-- 好友區塊 -->
+          <div class="section-header">
+            <div class="section-title">
+              <i class="fas fa-user-friends section-icon"></i>
+              <span>好友</span>
+              <span class="section-count">(13)</span>
+            </div>
+            <div class="section-toggle">
+              <i class="fas fa-chevron-down"></i>
+            </div>
+          </div>
+
+          <div class="friend-list">
+            <div class="friend-item">
+              <div class="friend-presence online"></div>
+              <div class="friend-avatar">H</div>
+              <div class="friend-info">
+                <div class="friend-name">黃小明</div>
+                <div class="friend-status">正在聽音樂: 周杰倫《七里香》</div>
+              </div>
+            </div>
+            <div class="friend-item">
+              <div class="friend-presence online"></div>
+              <div class="friend-avatar">C</div>
+              <div class="friend-info">
+                <div class="friend-name">陳大華</div>
+                <div class="friend-status">有空來聊天喔</div>
+              </div>
+            </div>
+            <div class="friend-item">
+              <div class="friend-presence busy"></div>
+              <div class="friend-avatar">L</div>
+              <div class="friend-info">
+                <div class="friend-name">李小芬</div>
+                <div class="friend-status">忙碌中，勿擾</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 離線好友區塊 -->
+          <div class="section-header">
+            <div class="section-title">
+              <i class="fas fa-user-slash section-icon"></i>
+              <span>離線好友</span>
+              <span class="section-count">(10)</span>
+            </div>
+            <div class="section-toggle">
+              <i class="fas fa-chevron-down"></i>
+            </div>
+          </div>
+
+          <div class="friend-list">
+            <div class="friend-item">
+              <div class="friend-presence offline"></div>
+              <div class="friend-avatar">W</div>
+              <div class="friend-info">
+                <div class="friend-name">王小明</div>
+                <div class="friend-status">最後上線: 今天 14:30</div>
+              </div>
+            </div>
+            <div class="friend-item">
+              <div class="friend-presence offline"></div>
+              <div class="friend-avatar">T</div>
+              <div class="friend-info">
+                <div class="friend-name">唐小虎</div>
+                <div class="friend-status">最後上線: 昨天 22:45</div>
+              </div>
+            </div>
+            <div class="friend-item">
+              <div class="friend-presence offline"></div>
+              <div class="friend-avatar">S</div>
+              <div class="friend-info">
+                <div class="friend-name">蘇小妹</div>
+                <div class="friend-status">最後上線: 3天前</div>
+              </div>
+            </div>
+            <div class="friend-item">
+              <div class="friend-presence offline"></div>
+              <div class="friend-avatar">Z</div>
+              <div class="friend-info">
+                <div class="friend-name">張大明</div>
+                <div class="friend-status">最後上線: 1週前</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部控制區 -->
+        <div class="bottom-controls">
+          <div class="control-actions">
+            <button class="control-button" id="share-friend-btn">
+              <i class="fas fa-share-alt"></i>
+              <span>分享好友</span>
+            </button>
+          </div>
+
+          <div class="control-actions">
+            <button class="control-button">
+              <i class="fas fa-chevron-up"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 廣告橫幅 -->
+        <div class="ad-banner">
+          <div class="ad-content">
+            <div class="ad-logo">
+              <i class="fas fa-globe"></i>
+              <span class="ad-text"
+                >CUBA WORLD LACKS TO SELL AGENTS QUICKLY</span
+              >
+            </div>
+            <div class="ad-button" id="ad-button">Get Started</div>
+          </div>
+        </div>
+
+        <!-- Yahoo搜尋 -->
+        <div class="yahoo-search">
+          <input type="text" class="search-yahoo" placeholder="Yahoo! 搜尋" />
+          <button class="search-go">→</button>
+        </div>
+      </div>
+
+      <!-- 分享模態窗 -->
+      <div class="share-modal" id="share-modal">
+        <div class="share-container">
+          <div class="share-header">
+            <div class="share-title">分享 Threads 連結</div>
+            <button class="share-close" id="share-close">&times;</button>
+          </div>
+          <div class="share-content">
+            <div class="threads-preview">
+              <div class="threads-logo">
+                <i class="fab fa-instagram"></i>
+              </div>
+              <div class="threads-info">
+                <div class="threads-title">azlife_1224 發表的文章</div>
+                <div class="threads-link">
+                  https://www.threads.net/@azlife_1224/post/DHzvpkfPvXw
+                </div>
+              </div>
+            </div>
+
+            <div class="share-options">
+              <a
+                href="https://www.threads.net/@azlife_1224/post/DHzvpkfPvXw"
+                target="_blank"
+                class="share-option"
+              >
+                <div class="share-icon">
+                  <i class="fab fa-facebook-f"></i>
+                </div>
+                <div class="share-name">Facebook</div>
+              </a>
+              <a
+                href="https://www.threads.net/@azlife_1224/post/DHzvpkfPvXw"
+                target="_blank"
+                class="share-option"
+              >
+                <div class="share-icon">
+                  <i class="fab fa-twitter"></i>
+                </div>
+                <div class="share-name">Twitter</div>
+              </a>
+              <a
+                href="https://www.threads.net/@azlife_1224/post/DHzvpkfPvXw"
+                target="_blank"
+                class="share-option"
+              >
+                <div class="share-icon">
+                  <i class="fab fa-whatsapp"></i>
+                </div>
+                <div class="share-name">WhatsApp</div>
+              </a>
+              <a
+                href="mailto:?subject=分享Threads文章&body=https://www.threads.net/@azlife_1224/post/DHzvpkfPvXw"
+                class="share-option"
+              >
+                <div class="share-icon">
+                  <i class="fas fa-envelope"></i>
+                </div>
+                <div class="share-name">Email</div>
+              </a>
+            </div>
+
+            <div class="share-input-group">
+              <input
+                type="text"
+                class="share-input"
+                value="https://www.threads.net/@azlife_1224/post/DHzvpkfPvXw?xmt=AQGzTSjPgA8HWhCtvVPdmHmYFPS0tyk7huW4Eo34RLg6aQ"
+                readonly
+              />
+              <button class="share-copy" id="copy-btn">複製</button>
+            </div>
+
+            <a
+              href="https://www.threads.net/@azlife_1224/post/DHzvpkfPvXw"
+              target="_blank"
+              class="share-button"
+              id="share-now-btn"
+              >立即前往</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast" id="toast">
+      <span id="toast-message"></span>
+    </div>
+    <script>
+      // 風格切換功能
+      const classicBtn = document.getElementById("classic-btn");
+      const modernBtn = document.getElementById("modern-btn");
+      const container = document.getElementById("yahoo-container");
+
+      classicBtn.addEventListener("click", function () {
+        container.className = "container classic-style";
+        classicBtn.classList.add("active");
+        modernBtn.classList.remove("active");
+        showToast("切換到經典風格 - 2005年的樣子");
+      });
+
+      modernBtn.addEventListener("click", function () {
+        container.className = "container modern-style";
+        modernBtn.classList.add("active");
+        classicBtn.classList.remove("active");
+        showToast("切換到現代風格 - 如果Yahoo!即時通一直存在至今");
+      });
+
+      // 初始化面部表情
+      function updateFaceSVG(mode) {
+        const svg = document.getElementById("face-svg");
+
+        // 先清除現有的眼睛和嘴巴
+        const existingFeatures = svg.querySelectorAll(
+          'path, circle:not([r="17"])'
+        );
+        existingFeatures.forEach((feature) => feature.remove());
+
+        // 根據模式添加新的表情特徵
+        if (mode === "normal") {
+          // 正常表情 (微笑)
+          const eyes = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "g"
+          );
+
+          // 左眼
+          const leftEye = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+          leftEye.setAttribute("cx", "12");
+          leftEye.setAttribute("cy", "13");
+          leftEye.setAttribute("r", "2.5");
+          leftEye.setAttribute("fill", "#663300");
+
+          // 右眼
+          const rightEye = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+          rightEye.setAttribute("cx", "24");
+          rightEye.setAttribute("cy", "13");
+          rightEye.setAttribute("r", "2.5");
+          rightEye.setAttribute("fill", "#663300");
+
+          // 微笑嘴巴
+          const mouth = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          mouth.setAttribute("d", "M9,20 Q18,28 27,20");
+          mouth.setAttribute("stroke", "#663300");
+          mouth.setAttribute("stroke-width", "2");
+          mouth.setAttribute("fill", "none");
+
+          eyes.appendChild(leftEye);
+          eyes.appendChild(rightEye);
+          eyes.appendChild(mouth);
+          svg.appendChild(eyes);
+        } else if (mode === "sleeping") {
+          // 睡覺表情 (閉眼 + ZZZ)
+          // 閉著的左眼
+          const leftEye = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          leftEye.setAttribute("d", "M9,13 Q12,11 15,13");
+          leftEye.setAttribute("stroke", "#663300");
+          leftEye.setAttribute("stroke-width", "2");
+          leftEye.setAttribute("fill", "none");
+
+          // 閉著的右眼
+          const rightEye = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          rightEye.setAttribute("d", "M21,13 Q24,11 27,13");
+          rightEye.setAttribute("stroke", "#663300");
+          rightEye.setAttribute("stroke-width", "2");
+          rightEye.setAttribute("fill", "none");
+
+          // 嘴巴 (輕微張開)
+          const mouth = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          mouth.setAttribute("d", "M14,24 Q18,26 22,24");
+          mouth.setAttribute("stroke", "#663300");
+          mouth.setAttribute("stroke-width", "1.5");
+          mouth.setAttribute("fill", "none");
+
+          // ZZZ 符號
+          const z1 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "text"
+          );
+          z1.setAttribute("x", "26");
+          z1.setAttribute("y", "10");
+          z1.setAttribute("font-size", "8");
+          z1.setAttribute("fill", "#663300");
+          z1.textContent = "Z";
+
+          const z2 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "text"
+          );
+          z2.setAttribute("x", "29");
+          z2.setAttribute("y", "7");
+          z2.setAttribute("font-size", "6");
+          z2.setAttribute("fill", "#663300");
+          z2.textContent = "Z";
+
+          const z3 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "text"
+          );
+          z3.setAttribute("x", "32");
+          z3.setAttribute("y", "4");
+          z3.setAttribute("font-size", "4");
+          z3.setAttribute("fill", "#663300");
+          z3.textContent = "Z";
+
+          svg.appendChild(leftEye);
+          svg.appendChild(rightEye);
+          svg.appendChild(mouth);
+          svg.appendChild(z1);
+          svg.appendChild(z2);
+          svg.appendChild(z3);
+        } else if (mode === "offline") {
+          // 離線表情 (閉眼 + 平嘴)
+          // 閉著的左眼 (X形)
+          const leftEyeX1 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          leftEyeX1.setAttribute("d", "M10,11 L14,15");
+          leftEyeX1.setAttribute("stroke", "#663300");
+          leftEyeX1.setAttribute("stroke-width", "1.5");
+
+          const leftEyeX2 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          leftEyeX2.setAttribute("d", "M14,11 L10,15");
+          leftEyeX2.setAttribute("stroke", "#663300");
+          leftEyeX2.setAttribute("stroke-width", "1.5");
+
+          // 閉著的右眼 (X形)
+          const rightEyeX1 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          rightEyeX1.setAttribute("d", "M22,11 L26,15");
+          rightEyeX1.setAttribute("stroke", "#663300");
+          rightEyeX1.setAttribute("stroke-width", "1.5");
+
+          const rightEyeX2 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          rightEyeX2.setAttribute("d", "M26,11 L22,15");
+          rightEyeX2.setAttribute("stroke", "#663300");
+          rightEyeX2.setAttribute("stroke-width", "1.5");
+
+          // 嘴巴 (平的)
+          const mouth = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          mouth.setAttribute("d", "M12,23 L24,23");
+          mouth.setAttribute("stroke", "#663300");
+          mouth.setAttribute("stroke-width", "2");
+
+          svg.appendChild(leftEyeX1);
+          svg.appendChild(leftEyeX2);
+          svg.appendChild(rightEyeX1);
+          svg.appendChild(rightEyeX2);
+          svg.appendChild(mouth);
+        } else if (mode === "busy") {
+          // 忙碌表情 (皺眉 + 不高興)
+          // 左眼
+          const leftEye = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+          leftEye.setAttribute("cx", "12");
+          leftEye.setAttribute("cy", "14");
+          leftEye.setAttribute("r", "2.5");
+          leftEye.setAttribute("fill", "#663300");
+
+          // 右眼
+          const rightEye = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+          rightEye.setAttribute("cx", "24");
+          rightEye.setAttribute("cy", "14");
+          rightEye.setAttribute("r", "2.5");
+          rightEye.setAttribute("fill", "#663300");
+
+          // 左眉毛 (皺眉)
+          const leftEyebrow = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          leftEyebrow.setAttribute("d", "M8,10 L16,8");
+          leftEyebrow.setAttribute("stroke", "#663300");
+          leftEyebrow.setAttribute("stroke-width", "1.5");
+          leftEyebrow.setAttribute("fill", "none");
+
+          // 右眉毛 (皺眉)
+          const rightEyebrow = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          rightEyebrow.setAttribute("d", "M20,8 L28,10");
+          rightEyebrow.setAttribute("stroke", "#663300");
+          rightEyebrow.setAttribute("stroke-width", "1.5");
+          rightEyebrow.setAttribute("fill", "none");
+
+          // 不高興嘴巴
+          const mouth = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          mouth.setAttribute("d", "M12,26 Q18,22 24,26");
+          mouth.setAttribute("stroke", "#663300");
+          mouth.setAttribute("stroke-width", "2");
+          mouth.setAttribute("fill", "none");
+
+          svg.appendChild(leftEye);
+          svg.appendChild(rightEye);
+          svg.appendChild(leftEyebrow);
+          svg.appendChild(rightEyebrow);
+          svg.appendChild(mouth);
+        } else if (mode === "eating") {
+          // 吃東西的表情
+          // 左眼
+          const leftEye = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+          leftEye.setAttribute("cx", "12");
+          leftEye.setAttribute("cy", "13");
+          leftEye.setAttribute("r", "2.5");
+          leftEye.setAttribute("fill", "#663300");
+
+          // 右眼
+          const rightEye = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+          rightEye.setAttribute("cx", "24");
+          rightEye.setAttribute("cy", "13");
+          rightEye.setAttribute("r", "2.5");
+          rightEye.setAttribute("fill", "#663300");
+
+          // 開口嘴巴
+          const mouth = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+          mouth.setAttribute("cx", "18");
+          mouth.setAttribute("cy", "24");
+          mouth.setAttribute("r", "5");
+          mouth.setAttribute("fill", "#994c00");
+
+          svg.appendChild(leftEye);
+          svg.appendChild(rightEye);
+          svg.appendChild(mouth);
+        }
+
+        // 改變表情的面部顏色
+        const faceCircle = svg.querySelector('circle[r="17"]');
+        if (mode === "offline") {
+          // 灰色臉
+          faceCircle.setAttribute("fill", "url(#faceGradient)");
+        } else {
+          // 黃色臉 - 更新漸變色彩
+          const stops = svg.querySelectorAll("stop");
+          stops[0].setAttribute("style", "stop-color:#ffffc1");
+          stops[1].setAttribute("style", "stop-color:#ffff85");
+          stops[2].setAttribute("style", "stop-color:#ffff4d");
+          faceCircle.setAttribute("stroke", "#f5bc00");
+        }
+      }
+
+      // 當前表情狀態
+      let currentStatus = "offline";
+
+      // 切換表情狀態
+      function changeStatus(status) {
+        currentStatus = status;
+        updateFaceSVG(status);
+
+        // 顯示狀態變更提示
+        let statusText = "";
+        switch (status) {
+          case "normal":
+            statusText = "在線狀態";
+            break;
+          case "sleeping":
+            statusText = "睡覺狀態";
+            break;
+          case "offline":
+            statusText = "離線狀態";
+            break;
+          case "busy":
+            statusText = "請勿打擾";
+            break;
+          case "eating":
+            statusText = "用餐中";
+            break;
+        }
+
+        showToast(`已切換到${statusText}`);
+      }
+
+      // 初始化表情
+      updateFaceSVG("offline");
+
+      // 表情點擊事件
+      const faceContainer = document.getElementById("face-container");
+      faceContainer.addEventListener("click", function () {
+        // 循環切換狀態
+        const states = ["normal", "sleeping", "offline", "busy", "eating"];
+        const currentIndex = states.indexOf(currentStatus);
+        const nextIndex = (currentIndex + 1) % states.length;
+        changeStatus(states[nextIndex]);
+      });
+
+      // 登入按鈕事件
+      const loginBtn = document.getElementById("login-btn");
+      loginBtn.addEventListener("click", function () {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        if (username.trim() === "") {
+          showToast("請輸入帳號");
+          return;
+        }
+
+        showToast("登入中，請稍候...");
+
+        // 模擬登入成功後切換到聊天視窗
+        setTimeout(() => {
+          document.getElementById("login-window").style.display = "none";
+          document.getElementById("chat-window").style.display = "flex";
+          showToast("登入成功！這是一個致敬作品，不會真的連接到Yahoo伺服器");
+
+          // 更新用戶名稱
+          document.querySelector(
+            ".user-name"
+          ).innerHTML = `${username} <div class="user-status-icon"></div>`;
+        }, 1500);
+      });
+
+      // 關閉聊天視窗
+      document
+        .getElementById("close-chat")
+        .addEventListener("click", function () {
+          document.getElementById("login-window").style.display = "block";
+          document.getElementById("chat-window").style.display = "none";
+          showToast("已登出");
+        });
+
+      // 折疊/展開功能
+      const sectionHeaders = document.querySelectorAll(".section-header");
+      sectionHeaders.forEach((header) => {
+        header.addEventListener("click", function () {
+          const toggle = this.querySelector(".section-toggle");
+          const friendList = this.nextElementSibling;
+
+          toggle.classList.toggle("collapsed");
+          friendList.classList.toggle("collapsed");
+        });
+      });
+
+      // 好友點擊事件
+      const friendItems = document.querySelectorAll(".friend-item");
+      friendItems.forEach((item) => {
+        item.addEventListener("click", function () {
+          const friendName = this.querySelector(".friend-name").textContent;
+          showToast(`開始與 ${friendName} 聊天`);
+          openShareModal();
+        });
+      });
+
+      // 分享模態窗功能
+      const shareBtn = document.getElementById("share-btn");
+      const shareFriendBtn = document.getElementById("share-friend-btn");
+      const shareModal = document.getElementById("share-modal");
+      const shareClose = document.getElementById("share-close");
+      const copyBtn = document.getElementById("copy-btn");
+      const shareNowBtn = document.getElementById("share-now-btn");
+
+      function openShareModal() {
+        shareModal.classList.add("active");
+      }
+
+      function closeShareModal() {
+        shareModal.classList.remove("active");
+      }
+
+      shareBtn.addEventListener("click", openShareModal);
+      shareFriendBtn.addEventListener("click", openShareModal);
+      shareClose.addEventListener("click", closeShareModal);
+
+      copyBtn.addEventListener("click", function () {
+        const shareInput = document.querySelector(".share-input");
+        shareInput.select();
+        document.execCommand("copy");
+        showToast("連結已複製到剪貼簿");
+      });
+
+      shareNowBtn.addEventListener("click", function () {
+        showToast("正在前往Threads...");
+        setTimeout(closeShareModal, 1000);
+      });
+
+      // 點擊模態窗外部關閉
+      shareModal.addEventListener("click", function (e) {
+        if (e.target === this) {
+          closeShareModal();
+        }
+      });
+
+      // 經典功能列點擊事件 - 所有按鈕都觸發分享模態窗
+      const classicMenuItems = document.querySelectorAll(".classic-menu-item");
+      classicMenuItems.forEach((item) => {
+        item.addEventListener("click", function () {
+          const menuText = this.textContent;
+          showToast(`點擊了 ${menuText} 選單`);
+          openShareModal();
+        });
+      });
+
+      // 設定按鈕 - 觸發分享模態窗
+      const settingsBtn = document.getElementById("settings-btn");
+      settingsBtn.addEventListener("click", function () {
+        showToast("打開設定選單");
+        openShareModal();
+      });
+
+      // 廣告按鈕 - 觸發分享模態窗
+      const adButton = document.getElementById("ad-button");
+      adButton.addEventListener("click", function () {
+        showToast("感謝您點擊廣告！正在前往...");
+        openShareModal();
+      });
+
+      // Toast 提示訊息
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        const toastMessage = document.getElementById("toast-message");
+
+        toastMessage.textContent = message;
+        toast.classList.add("show");
+
+        setTimeout(() => {
+          toast.classList.remove("show");
+        }, 3000);
+      }
+
+      // 登入畫面彩蛋
+      document
+        .getElementById("logo-egg")
+        .addEventListener("click", function () {
+          // 彩虹旋轉效果
+          this.classList.add("rainbow-effect");
+          this.classList.add("spin-effect");
+
+          document.querySelector("body").classList.add("rainbow-effect");
+
+          showToast("已啟動徽標彩蛋！");
+
+          setTimeout(() => {
+            this.classList.remove("rainbow-effect");
+            this.classList.remove("spin-effect");
+            document.querySelector("body").classList.remove("rainbow-effect");
+          }, 3000);
+        });
+
+      document
+        .getElementById("exclamation-egg")
+        .addEventListener("click", function () {
+          // 彈跳效果
+          this.classList.add("bounce-effect");
+
+          showToast("驚嘆號想跟你玩～");
+
+          setTimeout(() => {
+            this.classList.remove("bounce-effect");
+          }, 1000);
+        });
+
+      document
+        .getElementById("remember-egg")
+        .addEventListener("click", function () {
+          // 變更文字
+          const originalText = this.textContent;
+          this.textContent = "記住我，我是誰？我是猴子請來的逗比～";
+
+          showToast("密碼：其實根本沒人記得住...");
+
+          setTimeout(() => {
+            this.textContent = originalText;
+          }, 3000);
+        });
+
+      document
+        .getElementById("autologin-egg")
+        .addEventListener("click", function () {
+          // 抖動視窗
+          document
+            .getElementById("login-window")
+            .classList.add("bounce-effect");
+
+          showToast("開機自動登入：連電腦都還沒開，急什麼～");
+
+          setTimeout(() => {
+            document
+              .getElementById("login-window")
+              .classList.remove("bounce-effect");
+          }, 1000);
+        });
+
+      document
+        .getElementById("invisible-egg")
+        .addEventListener("click", function () {
+          // 透明效果
+          document.getElementById("login-window").style.opacity = "0.2";
+
+          showToast("隱身模式：連視窗都變透明了！");
+
+          setTimeout(() => {
+            document.getElementById("login-window").style.opacity = "1";
+          }, 2000);
+        });
+
+      document
+        .getElementById("forgot-password-egg")
+        .addEventListener("click", function (e) {
+          e.preventDefault();
+
+          // 忘記密碼彩蛋
+          showToast("忘記密碼：啊不就再註冊一個帳號啊～反正免費的！");
+
+          // 旋轉效果
+          document
+            .getElementById("face-container")
+            .classList.add("spin-effect");
+
+          setTimeout(() => {
+            document
+              .getElementById("face-container")
+              .classList.remove("spin-effect");
+          }, 1000);
+        });
+
+      // 聊天室互動事件
+
+      // 用戶頭像事件
+      const userAvatar = document.querySelector(".user-avatar");
+      userAvatar.addEventListener("click", function () {
+        showToast("點擊編輯個人檔案");
+        openShareModal();
+      });
+
+      // 狀態點擊
+      const userStatusText = document.querySelector(".user-status-text");
+      userStatusText.addEventListener("click", function () {
+        showToast("編輯您的個人狀態訊息");
+        openShareModal();
+      });
+
+      // Yahoo搜尋
+      const yahooSearch = document.querySelector(".search-yahoo");
+      const searchGoBtn = document.querySelector(".search-go");
+
+      searchGoBtn.addEventListener("click", function () {
+        const searchText = yahooSearch.value.trim();
+        if (searchText) {
+          showToast(`Yahoo!搜尋: ${searchText}`);
+          openShareModal();
+        } else {
+          showToast("請輸入搜尋關鍵字");
+        }
+      });
+
+      yahooSearch.addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+          searchGoBtn.click();
+        }
+      });
+
+      // 主要搜尋框
+      const mainSearch = document.querySelector(".search-input");
+      mainSearch.addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+          const searchText = this.value.trim();
+          if (searchText) {
+            showToast(`搜尋: ${searchText}`);
+            openShareModal();
+          }
+        }
+      });
+
+      // 視窗控制按鈕事件
+      const minimizeBtn = document.querySelector(
+        ".chat-title .control-btn:first-child"
+      );
+      minimizeBtn.addEventListener("click", function () {
+        showToast("最小化到工作列");
+      });
+
+      const maximizeBtn = document.querySelector(
+        ".chat-title .control-btn:nth-child(2)"
+      );
+      maximizeBtn.addEventListener("click", function () {
+        document.getElementById("chat-window").classList.toggle("maximized");
+        showToast("切換視窗大小");
+      });
+
+      // 響應式高度調整
+      function adjustHeight() {
+        const chatWindow = document.getElementById("chat-window");
+        const loginWindow = document.getElementById("login-window");
+        const availHeight = document.documentElement.clientHeight - 100;
+        if (availHeight < 600) {
+          // 修改為新的高度600px
+          chatWindow.style.height = `${availHeight}px`;
+          loginWindow.style.height = `${availHeight}px`;
+        } else {
+          chatWindow.style.height = "600px"; // 修改為新的高度530px
+          loginWindow.style.height = "600px"; // 修改為新的高度530px
+        }
+      }
+
+      window.addEventListener("resize", adjustHeight);
+      adjustHeight();
+
+      // 模擬狀態變化和通知
+      function simulateActivity() {
+        // 隨機在線狀態變化
+        setInterval(() => {
+          const presenceIndicators =
+            document.querySelectorAll(".friend-presence");
+          const statuses = ["online", "busy", "away", "offline"];
+
+          const randomFriend = Math.floor(
+            Math.random() * presenceIndicators.length
+          );
+          const randomStatus =
+            statuses[Math.floor(Math.random() * statuses.length)];
+
+          presenceIndicators[
+            randomFriend
+          ].className = `friend-presence ${randomStatus}`;
+        }, 15000);
+
+        // 隨機消息通知
+        const notifications = [
+          "您有新訊息",
+          "有人加您為好友",
+          "Yahoo!即時通已更新",
+          "有人傳送了表情符號給您",
+          "生日提醒：王小明今天生日",
+        ];
+
+        setInterval(() => {
+          if (
+            Math.random() > 0.7 &&
+            document.getElementById("chat-window").style.display === "flex"
+          ) {
+            const randomNotification =
+              notifications[Math.floor(Math.random() * notifications.length)];
+            showToast(randomNotification);
+          }
+        }, 30000);
+      }
+
+      // 登入表單隨機提示
+      const usernameInput = document.getElementById("username");
+      const passwordInput = document.getElementById("password");
+
+      const placeholderUsernames = [
+        "yahoo_lover2005",
+        "cool_guy_taiwan",
+        "star_girl_1990",
+        "yam_123456",
+        "msn_forever",
+      ];
+
+      usernameInput.addEventListener("focus", function () {
+        if (!this.value) {
+          const randomUsername =
+            placeholderUsernames[
+              Math.floor(Math.random() * placeholderUsernames.length)
+            ];
+          this.placeholder = randomUsername;
+        }
+      });
+
+      usernameInput.addEventListener("blur", function () {
+        if (this.value.trim() !== "") {
+          passwordInput.focus();
+        }
+      });
+
+      passwordInput.addEventListener("input", function () {
+        if (this.value.length > 5) {
+          loginBtn.style.opacity = "1";
+          loginBtn.style.boxShadow = "0 3px 8px rgba(142, 87, 175, 0.3)";
+        } else {
+          loginBtn.style.opacity = "0.8";
+          loginBtn.style.boxShadow = "none";
+        }
+      });
+
+      // 啟動模擬活動
+      simulateActivity();
+
+      // 初始歡迎消息
+      setTimeout(() => {
+        showToast("歡迎回到 Yahoo! 奇摩即時通！嘗試點擊各種按鈕體驗");
+      }, 1000);
+
+      // 模擬加載完成效果
+      window.addEventListener("load", function () {
+        document.body.style.opacity = "0";
+        setTimeout(() => {
+          document.body.style.transition = "opacity 0.5s ease";
+          document.body.style.opacity = "1";
+        }, 100);
+      });
+
+      // 強制立即觸發載入效果
+      document.body.style.opacity = "0";
+      setTimeout(() => {
+        document.body.style.transition = "opacity 0.5s ease";
+        document.body.style.opacity = "1";
+      }, 100);
+    </script>
+  </body>
+</html>
