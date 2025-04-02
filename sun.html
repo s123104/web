@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>太陽粒子特效</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            color: #fff;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+            transform: translateY(0);
+            transition: transform 0.5s ease;
+            font-size: 14px;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+        
+        .info-panel.hidden {
+            transform: translateY(calc(100% + 20px));
+        }
+        
+        .info-panel h2 {
+            margin-top: 0;
+            color: #ff9d00;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        
+        .toggle-info {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 100;
+            display: none;
+            backdrop-filter: blur(5px);
+        }
+        
+        .toggle-info.visible {
+            display: block;
+        }
+        
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 1s ease;
+        }
+        
+        .loading-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-text {
+            color: #fff;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .loading-bar-container {
+            width: 80%;
+            max-width: 280px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .loading-bar {
+            height: 100%;
+            width: 0;
+            background-color: #ff9d00;
+            transition: width 0.3s ease;
+        }
+        
+        .controls-hint {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            text-align: center;
+            max-width: 500px;
+            margin: 0 auto;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+        
+        .zoom-controls {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+        
+        .zoom-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 24px;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+        
+        .color-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .color-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin: 5px;
+            border: 2px solid white;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .color-btn:active {
+            transform: scale(0.9);
+        }
+        
+        @media (max-width: 600px) {
+            .info-panel,
+            .controls-hint {
+                font-size: 12px;
+                padding: 10px;
+            }
+            
+            .info-panel h2 {
+                font-size: 16px;
+            }
+            
+            .zoom-btn {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .color-btn {
+                width: 25px;
+                height: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen">
+        <div class="loading-text">準備太陽粒子特效...</div>
+        <div class="loading-bar-container">
+            <div class="loading-bar"></div>
+        </div>
+    </div>
+    
+    <button class="toggle-info">i</button>
+    
+    <div class="info-panel">
+        <h2>太陽粒子特效探索</h2>
+        <p>歡迎來到這個神奇的太陽粒子世界！</p>
+        <p>在手機上：用一根手指拖曳來旋轉視角，用兩根手指縮放。</p>
+        <p>在電腦上：用滑鼠拖曳來旋轉視角，滑鼠滾輪可以縮放。</p>
+        <p>右下角有縮放按鈕，右上角可以調整特效顏色。</p>
+    </div>
+    
+    <div class="controls-hint">
+        拖曳: 旋轉 | 雙指/滾輪: 縮放 | 右側: 縮放按鈕
+    </div>
+    
+    <div class="zoom-controls">
+        <button class="zoom-btn" id="zoom-in">+</button>
+        <button class="zoom-btn" id="zoom-out">−</button>
+    </div>
+    
+    <div class="color-controls">
+        <div class="color-btn" style="background-color: #ff9900;" data-color="orange"></div>
+        <div class="color-btn" style="background-color: #00aaff;" data-color="blue"></div>
+        <div class="color-btn" style="background-color: #ff2d55;" data-color="red"></div>
+    </div>
+    
+    <!-- 確保 Three.js 先正確載入 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // 等待 Three.js 完全載入
+        window.addEventListener('load', function() {
+            // 檢查 THREE 是否正確載入
+            if (typeof THREE === 'undefined') {
+                alert('無法載入 Three.js 庫，請檢查網路連接或重新整理頁面');
+                return;
+            }
+            
+            // 初始化變數
+            let scene, camera, renderer;
+            let sun, sunGlow;
+            let particleSystem;
+            let particleCount = 3000; // 降低預設粒子數量以提高性能
+            let particlePositions, particleVelocities;
+            let mouseDown = false;
+            let lastMousePosition = { x: 0, y: 0 };
+            let sunColor = 0xff9900; // 預設橙色
+            let particleSpeed = 1.0;
+            let particleSize = 1.0;
+            let time = 0; // 用於動畫效果
+            
+            // UI 元素
+            let infoPanel, toggleInfoBtn, controlsHint;
+            let isPanelVisible = true;
+            let isLoading = true;
+            let loadingProgress = 0;
+            let loadingBar;
+            let loadingScreen;
+            
+            // 觸控支援
+            let touchStartCoords = { x: 0, y: 0 };
+            let touchEndCoords = { x: 0, y: 0 };
+            let previousTouchDistance = 0;
+            
+            // 初始化場景
+            function init() {
+                // 設置載入畫面
+                loadingScreen = document.querySelector('.loading-screen');
+                loadingBar = document.querySelector('.loading-bar');
+                
+                // 獲取UI元素
+                infoPanel = document.querySelector('.info-panel');
+                toggleInfoBtn = document.querySelector('.toggle-info');
+                controlsHint = document.querySelector('.controls-hint');
+                
+                // 模擬載入進度
+                simulateLoading();
+                
+                // 創建場景
+                scene = new THREE.Scene();
+                
+                // 創建相機
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.z = 20;
+                
+                // 創建渲染器
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 限制像素比以提高性能
+                document.body.appendChild(renderer.domElement);
+                
+                // 添加環境光
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+                scene.add(ambientLight);
+                
+                // 添加點光源
+                const pointLight = new THREE.PointLight(sunColor, 1.5, 100);
+                pointLight.position.set(0, 0, 0);
+                scene.add(pointLight);
+                
+                // 創建背景星空
+                createStarBackground();
+                
+                // 創建太陽
+                createSun();
+                
+                // 創建粒子系統
+                createParticleSystem();
+                
+                // 添加事件監聽器
+                setupEventListeners();
+                
+                // 開始動畫循環
+                animate();
+            }
+            
+            // 模擬載入進度
+            function simulateLoading() {
+                const loadingInterval = setInterval(() => {
+                    loadingProgress += Math.random() * 10;
+                    if (loadingProgress >= 100) {
+                        loadingProgress = 100;
+                        clearInterval(loadingInterval);
+                        
+                        // 完成載入後，淡出載入畫面
+                        setTimeout(() => {
+                            loadingScreen.classList.add('fade-out');
+                            isLoading = false;
+                            
+                            // 控制提示的淡出
+                            setTimeout(() => {
+                                controlsHint.style.opacity = '0';
+                            }, 5000);
+                        }, 500);
+                    }
+                    loadingBar.style.width = loadingProgress + '%';
+                }, 150);
+            }
+            
+            // 創建背景星空
+            function createStarBackground() {
+                try {
+                    const starGeometry = new THREE.BufferGeometry();
+                    const starMaterial = new THREE.PointsMaterial({
+                        color: 0xffffff,
+                        size: 0.1,
+                        transparent: true
+                    });
+                    
+                    const starCount = 2000;
+                    const starPositions = new Float32Array(starCount * 3);
+                    
+                    for (let i = 0; i < starCount * 3; i += 3) {
+                        starPositions[i] = (Math.random() - 0.5) * 2000;
+                        starPositions[i + 1] = (Math.random() - 0.5) * 2000;
+                        starPositions[i + 2] = (Math.random() - 0.5) * 2000;
+                    }
+                    
+                    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+                    const starField = new THREE.Points(starGeometry, starMaterial);
+                    scene.add(starField);
+                } catch (e) {
+                    console.error("Error creating star background:", e);
+                }
+            }
+            
+            // 創建太陽
+            function createSun() {
+                try {
+                    // 太陽幾何體和材質
+                    const sunGeometry = new THREE.SphereGeometry(3, 32, 32);
+                    const sunMaterial = new THREE.MeshBasicMaterial({
+                        color: sunColor,
+                        transparent: true,
+                        opacity: 1
+                    });
+                    
+                    // 創建太陽網格
+                    sun = new THREE.Mesh(sunGeometry, sunMaterial);
+                    scene.add(sun);
+                    
+                    // 創建太陽光暈
+                    const sunGlowGeometry = new THREE.SphereGeometry(3.2, 32, 32);
+                    const sunGlowMaterial = new THREE.MeshBasicMaterial({
+                        color: sunColor,
+                        transparent: true,
+                        opacity: 0.3
+                    });
+                    
+                    sunGlow = new THREE.Mesh(sunGlowGeometry, sunGlowMaterial);
+                    scene.add(sunGlow);
+                } catch (e) {
+                    console.error("Error creating sun:", e);
+                }
+            }
+            
+            // 創建粒子系統
+            function createParticleSystem() {
+                try {
+                    // 創建粒子幾何體
+                    const particleGeometry = new THREE.BufferGeometry();
+                    
+                    // 粒子屬性
+                    particlePositions = new Float32Array(particleCount * 3);
+                    const particleSizes = new Float32Array(particleCount);
+                    const particleColors = new Float32Array(particleCount * 3);
+                    particleVelocities = new Float32Array(particleCount * 3);
+                    
+                    // 隨機生成粒子
+                    for (let i = 0; i < particleCount; i++) {
+                        const i3 = i * 3;
+                        
+                        // 生成太陽表面的隨機位置
+                        const radius = 3;
+                        const theta = Math.random() * Math.PI * 2;
+                        const phi = Math.acos(2 * Math.random() - 1);
+                        
+                        particlePositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+                        particlePositions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                        particlePositions[i3 + 2] = radius * Math.cos(phi);
+                        
+                        // 設置向外的速度
+                        const velocityFactor = Math.random() * 0.02 + 0.01;
+                        particleVelocities[i3] = particlePositions[i3] * velocityFactor;
+                        particleVelocities[i3 + 1] = particlePositions[i3 + 1] * velocityFactor;
+                        particleVelocities[i3 + 2] = particlePositions[i3 + 2] * velocityFactor;
+                        
+                        // 設置粒子大小
+                        particleSizes[i] = Math.random() * 0.2 + 0.1;
+                        
+                        // 設置顏色 (基於太陽顏色，但略微變化)
+                        const color = new THREE.Color(sunColor);
+                        color.offsetHSL(0, 0, (Math.random() - 0.5) * 0.2);
+                        
+                        particleColors[i3] = color.r;
+                        particleColors[i3 + 1] = color.g;
+                        particleColors[i3 + 2] = color.b;
+                    }
+                    
+                    // 設置粒子屬性
+                    particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+                    particleGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+                    particleGeometry.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
+                    
+                    // 粒子材質
+                    const particleMaterial = new THREE.PointsMaterial({
+                        size: 0.1 * particleSize,
+                        transparent: true,
+                        vertexColors: true,
+                        opacity: 0.8,
+                        blending: THREE.AdditiveBlending
+                    });
+                    
+                    // 創建粒子系統
+                    particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+                    scene.add(particleSystem);
+                } catch (e) {
+                    console.error("Error creating particle system:", e);
+                }
+            }
+            
+            // 更新粒子系統 (移動粒子)
+            function updateParticles() {
+                try {
+                    if (!particleSystem || !particleSystem.geometry) return;
+                    
+                    const positions = particleSystem.geometry.attributes.position.array;
+                    
+                    for (let i = 0; i < particleCount; i++) {
+                        const i3 = i * 3;
+                        
+                        // 檢查粒子是否需要重置
+                        const distanceSquared = 
+                            positions[i3] * positions[i3] + 
+                            positions[i3 + 1] * positions[i3 + 1] + 
+                            positions[i3 + 2] * positions[i3 + 2];
+                        
+                        if (distanceSquared > 500) {
+                            // 重置到太陽表面
+                            const radius = 3;
+                            const theta = Math.random() * Math.PI * 2;
+                            const phi = Math.acos(2 * Math.random() - 1);
+                            
+                            positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+                            positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                            positions[i3 + 2] = radius * Math.cos(phi);
+                            
+                            // 重置速度
+                            const velocityFactor = Math.random() * 0.02 + 0.01;
+                            particleVelocities[i3] = positions[i3] * velocityFactor;
+                            particleVelocities[i3 + 1] = positions[i3 + 1] * velocityFactor;
+                            particleVelocities[i3 + 2] = positions[i3 + 2] * velocityFactor;
+                        } else {
+                            // 更新位置
+                            positions[i3] += particleVelocities[i3] * particleSpeed;
+                            positions[i3 + 1] += particleVelocities[i3 + 1] * particleSpeed;
+                            positions[i3 + 2] += particleVelocities[i3 + 2] * particleSpeed;
+                        }
+                    }
+                    
+                    particleSystem.geometry.attributes.position.needsUpdate = true;
+                } catch (e) {
+                    console.error("Error updating particles:", e);
+                }
+            }
+            
+            // 設置事件監聽器
+            function setupEventListeners() {
+                // 視窗大小變化
+                window.addEventListener('resize', onWindowResize);
+                
+                // 滑鼠事件
+                renderer.domElement.addEventListener('mousedown', onMouseDown);
+                renderer.domElement.addEventListener('mousemove', onMouseMove);
+                renderer.domElement.addEventListener('mouseup', onMouseUp);
+                renderer.domElement.addEventListener('wheel', onMouseWheel);
+                
+                // 觸控事件
+                renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
+                renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
+                renderer.domElement.addEventListener('touchend', onTouchEnd);
+                
+                // UI 事件
+                toggleInfoBtn.addEventListener('click', toggleInfoPanel);
+                
+                // 縮放按鈕
+                document.getElementById('zoom-in').addEventListener('click', zoomIn);
+                document.getElementById('zoom-out').addEventListener('click', zoomOut);
+                
+                // 顏色選擇按鈕
+                document.querySelectorAll('.color-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        changeColor(btn.getAttribute('data-color'));
+                    });
+                });
+            }
+            
+            // 視窗調整大小
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            
+            // 滑鼠事件處理
+            function onMouseDown(event) {
+                event.preventDefault();
+                
+                mouseDown = true;
+                lastMousePosition.x = event.clientX;
+                lastMousePosition.y = event.clientY;
+            }
+            
+            function onMouseMove(event) {
+                if (!mouseDown) return;
+                
+                const deltaX = event.clientX - lastMousePosition.x;
+                const deltaY = event.clientY - lastMousePosition.y;
+                
+                // 旋轉場景
+                scene.rotation.y += deltaX * 0.005;
+                scene.rotation.x += deltaY * 0.005;
+                
+                lastMousePosition.x = event.clientX;
+                lastMousePosition.y = event.clientY;
+            }
+            
+            function onMouseUp() {
+                mouseDown = false;
+            }
+            
+            function onMouseWheel(event) {
+                event.preventDefault();
+                
+                // 縮放相機
+                const zoomSpeed = 0.1;
+                if (event.deltaY > 0) {
+                    camera.position.z = Math.min(50, camera.position.z + zoomSpeed * 5);
+                } else {
+                    camera.position.z = Math.max(5, camera.position.z - zoomSpeed * 5);
+                }
+            }
+            
+            // 觸控事件處理
+            function onTouchStart(event) {
+                event.preventDefault();
+                
+                if (event.touches.length === 1) {
+                    // 單指觸控 - 旋轉
+                    touchStartCoords.x = event.touches[0].pageX;
+                    touchStartCoords.y = event.touches[0].pageY;
+                } else if (event.touches.length === 2) {
+                    // 雙指觸控 - 縮放
+                    const dx = event.touches[0].pageX - event.touches[1].pageX;
+                    const dy = event.touches[0].pageY - event.touches[1].pageY;
+                    previousTouchDistance = Math.sqrt(dx * dx + dy * dy);
+                }
+            }
+            
+            function onTouchMove(event) {
+                event.preventDefault();
+                
+                if (event.touches.length === 1) {
+                    // 單指觸控 - 旋轉
+                    touchEndCoords.x = event.touches[0].pageX;
+                    touchEndCoords.y = event.touches[0].pageY;
+                    
+                    const deltaX = touchEndCoords.x - touchStartCoords.x;
+                    const deltaY = touchEndCoords.y - touchStartCoords.y;
+                    
+                    scene.rotation.y += deltaX * 0.005;
+                    scene.rotation.x += deltaY * 0.005;
+                    
+                    touchStartCoords.x = touchEndCoords.x;
+                    touchStartCoords.y = touchEndCoords.y;
+                } else if (event.touches.length === 2) {
+                    // 雙指觸控 - 縮放
+                    const dx = event.touches[0].pageX - event.touches[1].pageX;
+                    const dy = event.touches[0].pageY - event.touches[1].pageY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    const zoomDelta = (distance - previousTouchDistance) * 0.05;
+                    
+                    // 縮放相機
+                    camera.position.z = Math.max(5, Math.min(50, camera.position.z - zoomDelta));
+                    
+                    previousTouchDistance = distance;
+                }
+            }
+            
+            function onTouchEnd() {
+                // 無需特殊處理
+            }
+            
+            // UI 事件處理
+            function toggleInfoPanel() {
+                isPanelVisible = !isPanelVisible;
+                
+                if (isPanelVisible) {
+                    infoPanel.classList.remove('hidden');
+                    toggleInfoBtn.classList.remove('visible');
+                } else {
+                    infoPanel.classList.add('hidden');
+                    toggleInfoBtn.classList.add('visible');
+                }
+            }
+            
+            // 縮放功能
+            function zoomIn() {
+                camera.position.z = Math.max(5, camera.position.z - 2);
+            }
+            
+            function zoomOut() {
+                camera.position.z = Math.min(50, camera.position.z + 2);
+            }
+            
+            // 顏色切換功能
+            function changeColor(colorName) {
+                let newColor;
+                
+                switch (colorName) {
+                    case 'orange':
+                        newColor = 0xff9900;
+                        break;
+                    case 'blue':
+                        newColor = 0x00aaff;
+                        break;
+                    case 'red':
+                        newColor = 0xff2d55;
+                        break;
+                    default:
+                        newColor = 0xff9900;
+                }
+                
+                try {
+                    // 更新太陽顏色
+                    sun.material.color.setHex(newColor);
+                    sunGlow.material.color.setHex(newColor);
+                    
+                    // 更新點光源顏色
+                    const pointLight = scene.children.find(child => child instanceof THREE.PointLight);
+                    if (pointLight) {
+                        pointLight.color.setHex(newColor);
+                    }
+                    
+                    // 更新粒子顏色
+                    if (particleSystem && particleSystem.geometry) {
+                        const colors = particleSystem.geometry.attributes.color.array;
+                        
+                        for (let i = 0; i < particleCount; i++) {
+                            const i3 = i * 3;
+                            
+                            // 基於太陽顏色，但略微變化
+                            const color = new THREE.Color(newColor);
+                            color.offsetHSL(0, 0, (Math.random() - 0.5) * 0.2);
+                            
+                            colors[i3] = color.r;
+                            colors[i3 + 1] = color.g;
+                            colors[i3 + 2] = color.b;
+                        }
+                        
+                        particleSystem.geometry.attributes.color.needsUpdate = true;
+                    }
+                    
+                    // 保存目前顏色
+                    sunColor = newColor;
+                } catch (e) {
+                    console.error("Error changing color:", e);
+                }
+            }
+            
+            // 動畫循環
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                // 更新時間
+                time += 0.01;
+                
+                // 更新粒子系統
+                updateParticles();
+                
+                // 太陽脈動效果
+                try {
+                    if (sun && sunGlow) {
+                        const pulseScale = 1 + Math.sin(time * 2) * 0.05;
+                        sun.scale.set(pulseScale, pulseScale, pulseScale);
+                        
+                        // 光暈脈動稍微延遲
+                        const glowPulseScale = 1 + Math.sin(time * 2 - 0.2) * 0.1;
+                        sunGlow.scale.set(glowPulseScale, glowPulseScale, glowPulseScale);
+                        
+                        // 調整光暈透明度
+                        sunGlow.material.opacity = 0.3 + Math.sin(time * 2.5) * 0.1;
+                    }
+                } catch (e) {
+                    console.error("Error updating sun pulse:", e);
+                }
+                
+                // 自動緩慢旋轉
+                if (!mouseDown && !isLoading) {
+                    scene.rotation.y += 0.001;
+                    scene.rotation.x = Math.sin(time * 0.2) * 0.1;
+                }
+                
+                // 渲染場景
+                renderer.render(scene, camera);
+            }
+            
+            // 啟動應用
+            init();
+        });
+    </script>
+</body>
+</html>
