@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Silent Mode開關立體陰影效果解析</title>
+  <title>Silent Mode開關完整特效展示</title>
   <style>
     * {
       margin: 0;
@@ -18,174 +18,229 @@
       min-height: 100vh;
       background-color: #1a1a1a;
       font-family: Arial, sans-serif;
-      overflow-x: hidden;
+      overflow: hidden;
+      perspective: 1200px;
     }
 
-    .container {
-      width: 100%;
-      max-width: 1200px;
-      padding: 20px;
-    }
-
-    h1, h2, h3 {
-      color: #eee;
-      margin-bottom: 1rem;
-    }
-
-    p {
-      color: #ccc;
-      margin-bottom: 1.5rem;
-      line-height: 1.6;
-    }
-
-    .demo-section {
-      margin-bottom: 50px;
-    }
-
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 30px;
-      margin: 30px 0;
-    }
-
-    .demo-box {
+    .showcase {
       position: relative;
       width: 100%;
-      height: 200px;
-      background-color: #222;
-      border-radius: 10px;
+      max-width: 1000px;
+      height: 600px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 控制面板 */
+    .control-panel {
+      position: absolute;
+      bottom: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 800px;
+      z-index: 100;
+      padding: 0 20px;
+    }
+
+    .btn {
+      padding: 8px 15px;
+      background: linear-gradient(to bottom, #444 0%, #333 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+      border: 1px solid #555;
+    }
+
+    .btn:hover {
+      background: linear-gradient(to bottom, #555 0%, #444 100%);
+    }
+
+    .btn.active {
+      background: linear-gradient(to bottom, #ff8c00 0%, #e67e00 100%);
+      box-shadow: 0 0 8px rgba(255, 140, 0, 0.5);
+    }
+
+    /* 狀態面板 */
+    .status-panel {
+      position: absolute;
+      top: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    .status-text {
+      display: inline-block;
+      padding: 5px 10px;
+      background-color: rgba(0, 0, 0, 0.5);
+      border-radius: 4px;
+      min-width: 180px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    /* 場景設置 */
+    .scene {
+      position: relative;
+      width: 350px;
+      height: 350px;
       display: flex;
       justify-content: center;
       align-items: center;
-      overflow: hidden;
+      perspective: 1500px;
+      transform-style: preserve-3d;
     }
 
-    /* 基本開關樣式 */
-    .toggle-basic {
+    /* 主舞台旋轉 */
+    .stage {
       position: relative;
-      width: 220px;
-      height: 60px;
-      background-color: #333;
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+      transform-style: preserve-3d;
+      transition: transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
-    /* 1. 使用嵌入式陰影效果 */
-    .toggle-inset {
+    /* 環境光效果 */
+    .ambient-light {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle, 
+        rgba(50, 50, 50, 0.4) 0%, 
+        rgba(0, 0, 0, 0) 70%
+      );
+      z-index: -1;
+      transform: translateZ(-50px);
+      filter: blur(10px);
+      pointer-events: none;
+    }
+
+    /* 主開關容器 */
+    .toggle-container {
       position: relative;
-      width: 220px;
-      height: 60px;
-      background-color: #111;
-      border-radius: 14px;
+      width: 240px;
+      height: 80px;
+      transform-style: preserve-3d;
+      transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 10;
+    }
+
+    /* 金屬外框 */
+    .toggle-frame {
+      position: absolute;
+      width: 240px;
+      height: 80px;
+      background: #111;
+      border-radius: 18px;
       box-shadow: 
-        0 4px 8px rgba(0, 0, 0, 0.5),
-        0 -1px 0 rgba(255, 255, 255, 0.05);
+        0 8px 16px rgba(0, 0, 0, 0.5),
+        0 -1px 2px rgba(255, 255, 255, 0.05);
       overflow: hidden;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
     }
 
-    .toggle-inset::before {
+    /* 內部框架效果 */
+    .toggle-frame::before {
       content: '';
       position: absolute;
-      top: 3px;
-      left: 3px;
-      right: 3px;
-      bottom: 3px;
-      background-color: #2a2a2a;
-      border-radius: 12px;
-      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      bottom: 2px;
+      background: linear-gradient(135deg, #333 0%, #222 100%);
+      border-radius: 16px;
+      z-index: 1;
     }
 
-    /* 2. 多層次陰影示例 */
-    .toggle-layers {
-      position: relative;
+    /* 開關主體 */
+    .toggle-switch {
+      position: absolute;
+      top: 10px;
+      left: 10px;
       width: 220px;
       height: 60px;
-      background-color: #222;
+      background: linear-gradient(to bottom, #2c2c2c 0%, #252525 100%);
       border-radius: 14px;
       box-shadow: 
-        0 6px 10px rgba(0, 0, 0, 0.6),
-        0 2px 2px rgba(0, 0, 0, 0.3);
+        0 1px 2px rgba(0, 0, 0, 0.7) inset,
+        0 1px 0 rgba(255, 255, 255, 0.05);
       overflow: hidden;
+      z-index: 2;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      backface-visibility: hidden;
     }
 
-    .toggle-layers::before {
+    /* 內部玻璃光澤效果 */
+    .toggle-switch::before {
       content: '';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: 1px;
+      height: 2px;
       background: linear-gradient(to right, 
-        rgba(255, 255, 255, 0), 
-        rgba(255, 255, 255, 0.1), 
-        rgba(255, 255, 255, 0));
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        rgba(255, 255, 255, 0) 100%);
+      z-index: 10;
+    }
+
+    /* 內部佈局 */
+    .toggle-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
       z-index: 5;
     }
 
-    /* 3. 內凹效果 */
-    .toggle-concave {
-      position: relative;
-      width: 220px;
-      height: 60px;
-      background-color: #222;
-      border-radius: 14px;
-      overflow: hidden;
+    /* 文字標籤 */
+    .toggle-label {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 400;
+      margin-right: auto;
+      user-select: none;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      transition: all 0.3s ease;
     }
 
-    .toggle-concave::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, 
-        rgba(0, 0, 0, 0.8) 0%, 
-        rgba(0, 0, 0, 0) 50%, 
-        rgba(255, 255, 255, 0.05) 100%);
-      border-radius: 14px;
-    }
-
-    /* 4. 凸出效果 */
-    .toggle-convex {
-      position: relative;
-      width: 220px;
-      height: 60px;
-      background-color: #2a2a2a;
-      border-radius: 14px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-      overflow: hidden;
-    }
-
-    .toggle-convex::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.1) 0%, 
-        rgba(0, 0, 0, 0) 50%, 
-        rgba(0, 0, 0, 0.3) 100%);
-      border-radius: 14px;
-    }
-
-    /* 5. 立體滑塊 */
+    /* 開關軌道 */
     .toggle-track {
       position: relative;
       width: 64px;
       height: 30px;
       background: linear-gradient(to bottom, #1a1a1a 0%, #2a2a2a 100%);
       border-radius: 15px;
+      margin-right: 5px;
       box-shadow: 
         0 1px 3px rgba(0, 0, 0, 0.8) inset,
         0 -1px 1px rgba(255, 255, 255, 0.05) inset;
       overflow: hidden;
     }
 
+    /* 開關滑塊 */
     .toggle-thumb {
       position: absolute;
       top: 4px;
@@ -194,551 +249,959 @@
       height: 22px;
       background: linear-gradient(135deg, #777 0%, #555 100%);
       border-radius: 50%;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       box-shadow: 
         0 2px 4px rgba(0, 0, 0, 0.5),
         0 1px 2px rgba(255, 255, 255, 0.1) inset;
+      z-index: 3;
     }
 
-    /* 6. 金屬質感 */
-    .toggle-metal {
-      position: relative;
-      width: 220px;
-      height: 60px;
-      background: linear-gradient(to bottom, #333 0%, #2a2a2a 100%);
-      border-radius: 14px;
-      box-shadow: 
-        0 4px 8px rgba(0, 0, 0, 0.5),
-        0 -1px 0 rgba(255, 255, 255, 0.05);
-      overflow: hidden;
-    }
-
-    .toggle-metal::after {
+    /* 滑塊金屬高光 */
+    .toggle-thumb::after {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(to right, 
-        rgba(255, 255, 255, 0), 
-        rgba(255, 255, 255, 0.1), 
-        rgba(255, 255, 255, 0));
+      top: 3px;
+      left: 3px;
+      width: 6px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      filter: blur(1px);
     }
 
-    /* 7. 動態光影效果 */
-    .toggle-dynamic {
-      position: relative;
-      width: 220px;
-      height: 60px;
-      background-color: #2a2a2a;
-      border-radius: 14px;
-      overflow: hidden;
-      transition: all 0.3s ease;
-    }
-
-    .light-source {
+    /* 開關背景高亮效果 */
+    .toggle-highlight {
       position: absolute;
-      width: 100px;
-      height: 100px;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, 
+        rgba(255, 140, 0, 0), 
+        rgba(255, 140, 0, 0.15));
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      right: 0;
+      z-index: 1;
+    }
+
+    /* 橙色光暈效果 */
+    .toggle-glow {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
       background: radial-gradient(
         circle, 
-        rgba(255, 255, 255, 0.1) 0%, 
-        rgba(255, 255, 255, 0) 70%
+        rgba(255, 140, 0, 0.8) 0%, 
+        rgba(255, 140, 0, 0) 70%
       );
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 10;
+      right: 0;
       opacity: 0;
-      transition: opacity 0.3s ease;
+      filter: blur(5px);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 2;
     }
 
-    .toggle-dynamic:hover .light-source {
-      opacity: 1;
-    }
-
-    /* 8. 完整版的開關 */
-    .toggle-complete {
-      position: relative;
-      width: 220px;
-      height: 60px;
-      background-color: #111;
-      border-radius: 14px;
-      overflow: hidden;
-      cursor: pointer;
+    /* 開關背面 - 空白版本 */
+    .toggle-back {
+      position: absolute;
+      width: 240px;
+      height: 80px;
+      background: #111;
+      border-radius: 18px;
       box-shadow: 
-        0 6px 12px rgba(0, 0, 0, 0.6),
-        0 -1px 0 rgba(255, 255, 255, 0.05);
+        0 8px 16px rgba(0, 0, 0, 0.5),
+        0 -1px 2px rgba(255, 255, 255, 0.05);
+      transform-style: preserve-3d;
+      transform: rotateY(180deg);
+      backface-visibility: hidden;
     }
 
-    .toggle-inner {
+    .toggle-back::before {
+      content: '';
       position: absolute;
       top: 2px;
       left: 2px;
       right: 2px;
       bottom: 2px;
-      background: linear-gradient(to bottom, #2a2a2a 0%, #222 100%);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      padding: 0 15px;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+      background: #222;
+      border-radius: 16px;
     }
 
-    .toggle-label {
-      color: #fff;
-      font-size: 18px;
-      margin-right: auto;
-    }
-
-    .toggle-complete .toggle-track {
-      position: relative;
-      width: 64px;
-      height: 30px;
-      margin-right: 5px;
-    }
-
-    .toggle-complete .toggle-thumb {
+    /* 背面內部深色部分 */
+    .toggle-back-inner {
       position: absolute;
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .toggle-complete.active .toggle-thumb {
-      right: 38px;
-    }
-
-    .toggle-glow {
-      position: absolute;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: radial-gradient(
-        circle, 
-        rgba(255, 140, 0, 0.7) 0%, 
-        rgba(255, 140, 0, 0) 70%
-      );
-      right: 3px;
-      opacity: 0;
-      filter: blur(4px);
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .toggle-complete.active .toggle-glow {
-      opacity: 1;
-      right: 37px;
-    }
-
-    /* 按鈕 */
-    .btn {
-      padding: 10px 20px;
-      background-color: #555;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-right: 10px;
-      transition: background-color 0.3s ease;
-    }
-
-    .btn:hover {
-      background-color: #666;
-    }
-
-    /* 說明性質的文字 */
-    .explanation {
-      background-color: #222;
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-
-    .code-block {
-      background-color: #333;
-      border-radius: 5px;
-      padding: 15px;
-      margin: 10px 0;
-      overflow-x: auto;
-      color: #eee;
-      font-family: 'Courier New', monospace;
-    }
-
-    /* 3D翻轉示範 */
-    .transform-demo {
-      perspective: 1000px;
-      margin: 50px auto;
+      top: 10px;
+      left: 10px;
       width: 220px;
       height: 60px;
+      background: #111;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
     }
 
-    .transform-toggle {
+    /* 背面高光效果 */
+    .toggle-back-inner::before {
+      content: '';
+      position: absolute;
+      top: 15px;
+      left: 10%;
+      width: 80%;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 2;
+    }
+
+    /* 啟用狀態樣式 */
+    .toggle-switch.active .toggle-thumb {
+      right: 38px;
+      background: linear-gradient(135deg, #888 0%, #666 100%);
+      box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.5),
+        0 1px 2px rgba(255, 255, 255, 0.2) inset;
+    }
+
+    .toggle-switch.active .toggle-highlight {
       width: 100%;
-      height: 100%;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .transform-toggle.flip-x {
+    .toggle-switch.active .toggle-glow {
+      opacity: 1;
+      right: 35px;
+    }
+
+    /* 陰影效果 */
+    .shadow {
+      position: absolute;
+      width: 240px;
+      height: 25px;
+      background: radial-gradient(
+        ellipse at center, 
+        rgba(0, 0, 0, 0.5) 0%, 
+        rgba(0, 0, 0, 0) 70%
+      );
+      bottom: -40px;
+      border-radius: 50%;
+      filter: blur(7px);
+      z-index: 0;
+      transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transform-style: preserve-3d;
+      transform: translateZ(-10px);
+    }
+
+    /* 指針樣式 */
+    .pointer {
+      position: absolute;
+      width: 35px;
+      height: 35px;
+      pointer-events: none;
+      z-index: 100;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
+      transition: opacity 0.2s ease;
+      opacity: 0;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 2L17 12L7 22" fill="none" stroke="%23fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+      background-repeat: no-repeat;
+      background-position: center;
+      transform: rotate(-45deg);
+      transition: transform 0.3s ease, opacity 0.2s ease;
+    }
+
+    /* 3D翻轉效果類 */
+    .toggle-container.flip-x {
       transform: rotateX(180deg);
     }
 
-    .transform-toggle.flip-y {
+    .toggle-container.flip-y {
       transform: rotateY(180deg);
     }
 
-    .transform-toggle.flip-xy {
+    .toggle-container.flip-xy {
       transform: rotate3d(1, 1, 0, 180deg);
     }
 
-    .transform-face {
+    /* 舞台旋轉類 */
+    .stage.rotate-left {
+      transform: rotateY(-30deg);
+    }
+
+    .stage.rotate-right {
+      transform: rotateY(30deg);
+    }
+
+    .stage.rotate-up {
+      transform: rotateX(30deg);
+    }
+
+    .stage.rotate-down {
+      transform: rotateX(-30deg);
+    }
+
+    /* 陰影變換效果 */
+    .toggle-container.flip-x .shadow,
+    .toggle-container.flip-y .shadow,
+    .toggle-container.flip-xy .shadow {
+      opacity: 0.2;
+      transform: scale(0.8) translateZ(-20px);
+      filter: blur(10px);
+    }
+
+    /* 浮動動畫 */
+    @keyframes float {
+      0% {
+        transform: translateY(0px) translateZ(0px);
+      }
+      50% {
+        transform: translateY(-10px) translateZ(10px);
+      }
+      100% {
+        transform: translateY(0px) translateZ(0px);
+      }
+    }
+
+    .float-animation {
+      animation: float 4s ease-in-out infinite;
+    }
+
+    /* 環繞動畫 */
+    @keyframes orbit {
+      0% {
+        transform: rotateY(0deg) translateZ(30px);
+      }
+      100% {
+        transform: rotateY(360deg) translateZ(30px);
+      }
+    }
+
+    .orbit-animation {
+      animation: orbit 8s linear infinite;
+    }
+
+    /* 反光元素 */
+    .reflections {
       position: absolute;
       width: 100%;
       height: 100%;
-      backface-visibility: hidden;
-      border-radius: 14px;
+      pointer-events: none;
+      z-index: 20;
     }
 
-    .transform-front {
-      background: linear-gradient(to bottom, #2a2a2a 0%, #222 100%);
-      box-shadow: 
-        0 4px 8px rgba(0, 0, 0, 0.5),
-        0 -1px 0 rgba(255, 255, 255, 0.05);
-      display: flex;
-      align-items: center;
-      padding: 0 15px;
-      color: #fff;
-    }
-
-    .transform-back {
-      background: #111;
-      transform: rotateY(180deg);
-      box-shadow: 
-        0 4px 8px rgba(0, 0, 0, 0.5),
-        0 -1px 0 rgba(255, 255, 255, 0.05);
-    }
-
-    .transform-shadow {
+    .reflection {
       position: absolute;
-      width: 220px;
-      height: 20px;
-      background: radial-gradient(
-        ellipse at center, 
-        rgba(0, 0, 0, 0.4) 0%, 
-        rgba(0, 0, 0, 0) 70%
-      );
-      bottom: -25px;
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 50%;
-      filter: blur(5px);
-      z-index: -1;
-      transition: opacity 0.6s ease;
+      filter: blur(3px);
+      transition: all 0.5s ease;
     }
 
-    .transform-toggle.flip-x .transform-shadow,
-    .transform-toggle.flip-y .transform-shadow,
-    .transform-toggle.flip-xy .transform-shadow {
-      opacity: 0.3;
+    #reflection1 {
+      top: 20%;
+      left: 10%;
+      width: 50px;
+      height: 20px;
+    }
+
+    #reflection2 {
+      bottom: 30%;
+      right: 15%;
+      width: 30px;
+      height: 40px;
+    }
+
+    /* 光源跟隨效果 */
+    .light-follower {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(
+        circle, 
+        rgba(255, 255, 255, 0.03) 0%, 
+        rgba(255, 255, 255, 0) 70%
+      );
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 5;
+      transition: opacity 0.3s ease;
+      opacity: 0;
+    }
+
+    /* 粒子效果 */
+    .particles {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 30;
+    }
+
+    .particle {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: rgba(255, 140, 0, 0.6);
+      border-radius: 50%;
+      filter: blur(1px);
+      opacity: 0;
+      transition: all 0.3s ease;
     }
 
     /* 響應式調整 */
     @media (max-width: 768px) {
-      .gallery {
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      .control-panel {
+        flex-direction: column;
+        bottom: 10px;
       }
       
-      .demo-box {
-        height: 160px;
+      .status-panel {
+        top: 10px;
       }
       
-      .toggle-basic, 
-      .toggle-inset, 
-      .toggle-layers,
-      .toggle-concave,
-      .toggle-convex,
-      .toggle-metal,
-      .toggle-dynamic,
-      .toggle-complete {
+      .btn {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+      
+      .toggle-container {
         transform: scale(0.8);
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Silent Mode開關立體陰影效果解析</h1>
-    
-    <div class="explanation">
-      <p>這個精緻的「Silent Mode」開關使用了多種高級CSS和3D變換技術，創造出驚人的立體感和真實的陰影效果。讓我們一步步分析這些技術是如何實現的。</p>
+  <div class="showcase">
+    <div class="status-panel">
+      <div class="status-text" id="statusToggle">Toggle: 未啟用</div>
+      <div class="status-text" id="statusFlip">翻轉: 無</div>
+      <div class="status-text" id="statusView">視角: 正面</div>
     </div>
 
-    <div class="demo-section">
-      <h2>1. 基本陰影與深度層次</h2>
-      <p>立體效果的核心是通過多層次的陰影來創造深度感。就像是在黑色絨布上放了一個精緻的小盒子，盒子的邊緣有反光，而內部有陰影。</p>
+    <div class="scene">
+      <div class="ambient-light"></div>
+      <div class="light-follower" id="lightFollower"></div>
       
-      <div class="gallery">
-        <div class="demo-box">
-          <div class="toggle-basic"></div>
-        </div>
-        <div class="demo-box">
-          <div class="toggle-inset"></div>
-        </div>
-        <div class="demo-box">
-          <div class="toggle-layers"></div>
-        </div>
-      </div>
-      
-      <div class="code-block">
-/* 多層次陰影示例 */
-.toggle-switch {
-  position: relative;
-  background-color: #222;
-  border-radius: 14px;
-  box-shadow: 
-    0 6px 10px rgba(0, 0, 0, 0.6),  /* 外部投影 */
-    0 2px 2px rgba(0, 0, 0, 0.3);   /* 次級投影 */
-  overflow: hidden;
-}
-
-/* 頂部高光模擬金屬邊緣 */
-.toggle-switch::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(to right, 
-    rgba(255, 255, 255, 0), 
-    rgba(255, 255, 255, 0.1), 
-    rgba(255, 255, 255, 0));
-}
-      </div>
-    </div>
-
-    <div class="demo-section">
-      <h2>2. 凹凸表面效果</h2>
-      <p>要創造出UI元素的凹凸感，我們使用漸變色和巧妙的陰影。就像一塊金屬被壓出了凹槽或凸起的部分。</p>
-      
-      <div class="gallery">
-        <div class="demo-box">
-          <div class="toggle-concave"></div>
-        </div>
-        <div class="demo-box">
-          <div class="toggle-convex"></div>
-        </div>
-        <div class="demo-box">
-          <div class="toggle-track">
-            <div class="toggle-thumb"></div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="code-block">
-/* 內凹效果 - 邊緣亮，中間暗 */
-.toggle-concave::before {
-  content: '';
-  position: absolute;
-  background: linear-gradient(135deg, 
-    rgba(0, 0, 0, 0.8) 0%, 
-    rgba(0, 0, 0, 0) 50%, 
-    rgba(255, 255, 255, 0.05) 100%);
-  border-radius: 14px;
-}
-
-/* 凸出效果 - 中間亮，邊緣暗 */
-.toggle-convex::before {
-  content: '';
-  position: absolute;
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.1) 0%, 
-    rgba(0, 0, 0, 0) 50%, 
-    rgba(0, 0, 0, 0.3) 100%);
-  border-radius: 14px;
-}
-      </div>
-    </div>
-
-    <div class="demo-section">
-      <h2>3. 金屬質感</h2>
-      <p>金屬質感是通過精細的漸變和局部的高光實現的。就像一個精心打磨的金屬表面，在不同角度有不同的反光效果。</p>
-      
-      <div class="gallery">
-        <div class="demo-box">
-          <div class="toggle-metal"></div>
-        </div>
-        <div class="demo-box">
-          <div class="toggle-dynamic">
-            <div class="light-source"></div>
-          </div>
-        </div>
-        <div class="demo-box">
-          <div class="toggle-complete" id="toggleComplete">
-            <div class="toggle-inner">
-              <span class="toggle-label">Silent mode</span>
-              <div class="toggle-track">
-                <div class="toggle-thumb"></div>
-                <div class="toggle-glow"></div>
+      <div class="stage" id="stage">
+        <div class="toggle-container" id="toggleContainer">
+          <div class="toggle-frame">
+            <div class="toggle-switch" id="toggleSwitch">
+              <div class="toggle-inner">
+                <span class="toggle-label">Silent mode</span>
+                <div class="toggle-track">
+                  <div class="toggle-highlight"></div>
+                  <div class="toggle-thumb"></div>
+                  <div class="toggle-glow"></div>
+                </div>
               </div>
             </div>
           </div>
+          
+          <div class="toggle-back">
+            <div class="toggle-back-inner"></div>
+          </div>
+          
+          <div class="shadow"></div>
+        </div>
+        
+        <div class="reflections">
+          <div class="reflection" id="reflection1"></div>
+          <div class="reflection" id="reflection2"></div>
         </div>
       </div>
       
-      <div class="code-block">
-/* 金屬質感 */
-.toggle-metal {
-  background: linear-gradient(to bottom, #333 0%, #2a2a2a 100%);
-  box-shadow: 
-    0 4px 8px rgba(0, 0, 0, 0.5),
-    0 -1px 0 rgba(255, 255, 255, 0.05);
-}
-
-/* 頂部金屬質感高光 */
-.toggle-metal::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(to right, 
-    rgba(255, 255, 255, 0), 
-    rgba(255, 255, 255, 0.1), 
-    rgba(255, 255, 255, 0));
-}
-      </div>
-    </div>
-
-    <div class="demo-section">
-      <h2>4. 3D 翻轉動畫</h2>
-      <p>用CSS 3D變換實現的翻轉效果能讓UI元素呈現出真實的立體感。這就像翻轉一個實體卡片一樣自然。</p>
-      
-      <div class="transform-demo">
-        <div class="transform-toggle" id="transformToggle">
-          <div class="transform-face transform-front">Silent mode</div>
-          <div class="transform-face transform-back"></div>
-        </div>
-        <div class="transform-shadow"></div>
-      </div>
-      
-      <div style="text-align: center; margin-top: 20px;">
-        <button class="btn" id="flipX">X軸翻轉</button>
-        <button class="btn" id="flipY">Y軸翻轉</button>
-        <button class="btn" id="flipXY">斜向翻轉</button>
-        <button class="btn" id="resetFlip">重置</button>
-      </div>
-      
-      <div class="code-block">
-/* 3D翻轉基本設置 */
-.parent-container {
-  perspective: 1000px; /* 提供3D透視效果 */
-}
-
-.toggle-container {
-  transform-style: preserve-3d; /* 保持3D效果 */
-  transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-/* X軸翻轉 */
-.toggle-container.flip-x {
-  transform: rotateX(180deg);
-}
-
-/* Y軸翻轉 */
-.toggle-container.flip-y {
-  transform: rotateY(180deg);
-}
-
-/* 背面設置 */
-.toggle-back {
-  position: absolute;
-  backface-visibility: hidden; /* 隱藏元素的背面 */
-  transform: rotateY(180deg);
-}
-      </div>
+      <div class="particles" id="particles"></div>
     </div>
     
-    <div class="demo-section">
-      <h2>5. 陰影翻轉效果</h2>
-      <p>當元素翻轉時，陰影也需要相應變化，這會增強整體的3D效果。想象一下，當你翻轉一個實物時，它的陰影會如何變化。</p>
-      
-      <div class="explanation">
-        <p>實現陰影翻轉的關鍵技術點：</p>
-        <ol>
-          <li>使用絕對定位的外部陰影元素</li>
-          <li>翻轉時調整陰影的大小、模糊度和透明度</li>
-          <li>使用相同的動畫曲線確保陰影和主體同步變化</li>
-        </ol>
-        
-        <div class="code-block">
-/* 陰影元素 */
-.shadow {
-  position: absolute;
-  width: 220px;
-  height: 20px;
-  background: radial-gradient(
-    ellipse at center, 
-    rgba(0, 0, 0, 0.4) 0%, 
-    rgba(0, 0, 0, 0) 70%
-  );
-  bottom: -25px;
-  border-radius: 50%;
-  filter: blur(5px);
-  transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-/* 翻轉時的陰影變化 */
-.toggle-container.flip-x .shadow,
-.toggle-container.flip-y .shadow {
-  opacity: 0.2;
-  transform: scale(0.8);
-  filter: blur(8px);
-}
-        </div>
-      </div>
+    <div class="pointer" id="pointer"></div>
+    
+    <div class="control-panel">
+      <button class="btn" id="toggleBtn">開關切換</button>
+      <button class="btn" id="flipXBtn">X軸翻轉</button>
+      <button class="btn" id="flipYBtn">Y軸翻轉</button>
+      <button class="btn" id="flipXYBtn">斜向翻轉</button>
+      <button class="btn" id="rotateBtnLeft">視角向左</button>
+      <button class="btn" id="rotateBtnRight">視角向右</button>
+      <button class="btn" id="rotateBtnUp">視角向上</button>
+      <button class="btn" id="rotateBtnDown">視角向下</button>
+      <button class="btn" id="floatBtn">浮動效果</button>
+      <button class="btn" id="orbitBtn">環繞效果</button>
+      <button class="btn" id="resetBtn">全部重置</button>
     </div>
   </div>
 
   <script>
-    // 完整版開關切換
-    const toggleComplete = document.getElementById('toggleComplete');
-    toggleComplete.addEventListener('click', function() {
-      this.classList.toggle('active');
-    });
-
-    // 3D翻轉示範
-    const transformToggle = document.getElementById('transformToggle');
-    const flipXBtn = document.getElementById('flipX');
-    const flipYBtn = document.getElementById('flipY');
-    const flipXYBtn = document.getElementById('flipXY');
-    const resetFlipBtn = document.getElementById('resetFlip');
-
-    flipXBtn.addEventListener('click', function() {
-      transformToggle.className = 'transform-toggle flip-x';
-    });
-
-    flipYBtn.addEventListener('click', function() {
-      transformToggle.className = 'transform-toggle flip-y';
-    });
-
-    flipXYBtn.addEventListener('click', function() {
-      transformToggle.className = 'transform-toggle flip-xy';
-    });
-
-    resetFlipBtn.addEventListener('click', function() {
-      transformToggle.className = 'transform-toggle';
-    });
-
-    // 動態光源效果
-    const toggleDynamic = document.querySelector('.toggle-dynamic');
-    const lightSource = document.querySelector('.light-source');
-
-    toggleDynamic.addEventListener('mousemove', function(e) {
-      const rect = this.getBoundingClientRect();
-      const x = e.clientX - rect.left - 50;
-      const y = e.clientY - rect.top - 50;
+    // 獲取DOM元素
+    const toggleContainer = document.getElementById('toggleContainer');
+    const toggleSwitch = document.getElementById('toggleSwitch');
+    const pointer = document.getElementById('pointer');
+    const scene = document.querySelector('.scene');
+    const stage = document.getElementById('stage');
+    const shadow = document.querySelector('.shadow');
+    const lightFollower = document.getElementById('lightFollower');
+    const particles = document.getElementById('particles');
+    const reflections = document.querySelectorAll('.reflection');
+    
+    // 狀態顯示
+    const statusToggle = document.getElementById('statusToggle');
+    const statusFlip = document.getElementById('statusFlip');
+    const statusView = document.getElementById('statusView');
+    
+    // 控制按鈕
+    const toggleBtn = document.getElementById('toggleBtn');
+    const flipXBtn = document.getElementById('flipXBtn');
+    const flipYBtn = document.getElementById('flipYBtn');
+    const flipXYBtn = document.getElementById('flipXYBtn');
+    const rotateBtnLeft = document.getElementById('rotateBtnLeft');
+    const rotateBtnRight = document.getElementById('rotateBtnRight');
+    const rotateBtnUp = document.getElementById('rotateBtnUp');
+    const rotateBtnDown = document.getElementById('rotateBtnDown');
+    const floatBtn = document.getElementById('floatBtn');
+    const orbitBtn = document.getElementById('orbitBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    
+    // 設置狀態變量
+    let isAnimating = false;
+    let isFlipping = false;
+    let currentFlip = 'none';
+    let currentRotation = 'front';
+    let isFloating = false;
+    let isOrbiting = false;
+    
+    // 創建粒子
+    function createParticles() {
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.top = `${Math.random() * 100}%`;
+        particle.style.left = `${Math.random() * 100}%`;
+        particles.appendChild(particle);
+      }
+    }
+    createParticles();
+    
+    // 指針移動邏輯
+    scene.addEventListener('mousemove', (e) => {
+      if (isFlipping) return;
       
-      lightSource.style.left = `${x}px`;
-      lightSource.style.top = `${y}px`;
+      const rect = scene.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      // 更新指針位置
+      pointer.style.left = `${x - 17.5}px`;
+      pointer.style.top = `${y - 17.5}px`;
+      
+      // 更新光源跟隨位置
+      lightFollower.style.left = `${x - 150}px`;
+      lightFollower.style.top = `${y - 150}px`;
+      
+      // 判斷指針指向方向
+      if (currentFlip === 'none') {
+        const toggleRect = toggleSwitch.getBoundingClientRect();
+        const thumbElement = toggleSwitch.querySelector('.toggle-thumb');
+        const thumbRect = thumbElement.getBoundingClientRect();
+        const thumbCenterX = thumbRect.left + thumbRect.width / 2 - rect.left;
+        
+        // 根據滑鼠位置與滑塊位置關係，調整指針方向
+        if (toggleSwitch.classList.contains('active')) {
+          pointer.style.transform = x < thumbCenterX ? 'rotate(135deg)' : 'rotate(-45deg)';
+        } else {
+          pointer.style.transform = x > thumbCenterX ? 'rotate(-45deg)' : 'rotate(135deg)';
+        }
+      }
+      
+      // 根據滑鼠移動更新反光位置
+      reflections.forEach(reflection => {
+        const moveX = (x - rect.width / 2) * 0.02;
+        const moveY = (y - rect.height / 2) * 0.02;
+        reflection.style.transform = `translate(${moveX}px, ${moveY}px)`;
+      });
     });
+    
+    // 指針顯示邏輯
+    scene.addEventListener('mouseenter', () => {
+      pointer.style.opacity = '1';
+      lightFollower.style.opacity = '1';
+      
+      // 滑鼠進入時的微動效果
+      if (!isAnimating && !isFlipping) {
+        const thumb = toggleSwitch.querySelector('.toggle-thumb');
+        thumb.style.transition = 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        thumb.style.transform = 'scale(1.1)';
+        
+        setTimeout(() => {
+          thumb.style.transform = 'scale(1)';
+          thumb.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        }, 150);
+      }
+    });
+    
+    scene.addEventListener('mouseleave', () => {
+      pointer.style.opacity = '0';
+      lightFollower.style.opacity = '0';
+    });
+    
+    // 開關切換邏輯
+    function toggleAction() {
+      if (isAnimating || isFlipping) return;
+      
+      isAnimating = true;
+      toggleSwitch.classList.toggle('active');
+      
+      // 切換按鈕狀態
+      toggleBtn.classList.toggle('active');
+      
+      // 點擊時的動畫效果
+      toggleSwitch.style.transform = 'scale(0.97)';
+      
+      setTimeout(() => {
+        toggleSwitch.style.transform = 'scale(1)';
+      }, 150);
+      
+      // 更新狀態文字
+      statusToggle.textContent = toggleSwitch.classList.contains('active') ? 
+        'Toggle: 已啟用' : 'Toggle: 未啟用';
+      statusToggle.style.color = toggleSwitch.classList.contains('active') ? 
+        '#ff8c00' : '#aaa';
+      
+      // 粒子效果
+      if (toggleSwitch.classList.contains('active')) {
+        animateParticles();
+      }
+      
+      // 觸控震動效果（如果支持）
+      if (navigator.vibrate) {
+        navigator.vibrate(15);
+      }
+      
+      // 動畫完成後重置狀態
+      setTimeout(() => {
+        isAnimating = false;
+      }, 400);
+    }
+    
+    // 粒子動畫
+    function animateParticles() {
+      const particles = document.querySelectorAll('.particle');
+      const thumbElement = toggleSwitch.querySelector('.toggle-thumb');
+      const thumbRect = thumbElement.getBoundingClientRect();
+      const sceneRect = scene.getBoundingClientRect();
+      
+      // 獲取滑塊相對於場景的位置
+      const startX = thumbRect.left - sceneRect.left + thumbRect.width / 2;
+      const startY = thumbRect.top - sceneRect.top + thumbRect.height / 2;
+      
+      particles.forEach((particle, index) => {
+        // 設置粒子初始位置
+        particle.style.left = `${startX}px`;
+        particle.style.top = `${startY}px`;
+        particle.style.opacity = '1';
+        
+        // 設置粒子動畫
+        setTimeout(() => {
+          const angle = Math.random() * Math.PI * 2;
+          const distance = 30 + Math.random() * 50;
+          const duration = 1 + Math.random() * 2;
+          
+          particle.style.transition = `all ${duration}s ease-out`;
+          particle.style.left = `${startX + Math.cos(angle) * distance}px`;
+          particle.style.top = `${startY + Math.sin(angle) * distance}px`;
+          particle.style.opacity = '0';
+        }, index * 50);
+      });
+    }
+    
+    // 按鈕事件監聽器
+    toggleSwitch.addEventListener('click', toggleAction);
+    toggleBtn.addEventListener('click', toggleAction);
+    
+    // X軸翻轉
+    flipXBtn.addEventListener('click', () => {
+      if (isAnimating || isFlipping) return;
+      isFlipping = true;
+      
+      // 清除所有翻轉類
+      toggleContainer.classList.remove('flip-y', 'flip-xy');
+      flipYBtn.classList.remove('active');
+      flipXYBtn.classList.remove('active');
+      
+      // 切換X軸翻轉
+      toggleContainer.classList.toggle('flip-x');
+      flipXBtn.classList.toggle('active');
+      
+      // 更新狀態
+      if (toggleContainer.classList.contains('flip-x')) {
+        currentFlip = 'x';
+        statusFlip.textContent = '翻轉: X軸';
+      } else {
+        currentFlip = 'none';
+        statusFlip.textContent = '翻轉: 無';
+      }
+      
+      setTimeout(() => {
+        isFlipping = false;
+      }, 600);
+    });
+    
+    // Y軸翻轉
+    flipYBtn.addEventListener('click', () => {
+      if (isAnimating || isFlipping) return;
+      isFlipping = true;
+      
+      // 清除所有翻轉類
+      toggleContainer.classList.remove('flip-x', 'flip-xy');
+      flipXBtn.classList.remove('active');
+      flipXYBtn.classList.remove('active');
+      
+      // 切換Y軸翻轉
+      toggleContainer.classList.toggle('flip-y');
+      flipYBtn.classList.toggle('active');
+      
+      // 更新狀態
+      if (toggleContainer.classList.contains('flip-y')) {
+        currentFlip = 'y';
+        statusFlip.textContent = '翻轉: Y軸';
+      } else {
+        currentFlip = 'none';
+        statusFlip.textContent = '翻轉: 無';
+      }
+      
+      setTimeout(() => {
+        isFlipping = false;
+      }, 600);
+    });
+    
+    // 斜向翻轉
+    flipXYBtn.addEventListener('click', () => {
+      if (isAnimating || isFlipping) return;
+      isFlipping = true;
+      
+      // 清除所有翻轉類
+      toggleContainer.classList.remove('flip-x', 'flip-y');
+      flipXBtn.classList.remove('active');
+      flipYBtn.classList.remove('active');
+      
+      // 切換斜向翻轉
+      toggleContainer.classList.toggle('flip-xy');
+      flipXYBtn.classList.toggle('active');
+      
+      // 更新狀態
+      if (toggleContainer.classList.contains('flip-xy')) {
+        currentFlip = 'xy';
+        statusFlip.textContent = '翻轉: 斜向';
+      } else {
+        currentFlip = 'none';
+        statusFlip.textContent = '翻轉: 無';
+      }
+      
+      setTimeout(() => {
+        isFlipping = false;
+      }, 600);
+    });
+    
+    // 視角控制 - 向左
+    rotateBtnLeft.addEventListener('click', () => {
+      // 清除所有旋轉類
+      stage.classList.remove('rotate-right', 'rotate-up', 'rotate-down');
+      rotateBtnRight.classList.remove('active');
+      rotateBtnUp.classList.remove('active');
+      rotateBtnDown.classList.remove('active');
+      
+      // 切換左旋轉
+      stage.classList.toggle('rotate-left');
+      rotateBtnLeft.classList.toggle('active');
+      
+      // 更新狀態
+      if (stage.classList.contains('rotate-left')) {
+        currentRotation = 'left';
+        statusView.textContent = '視角: 左側';
+      } else {
+        currentRotation = 'front';
+        statusView.textContent = '視角: 正面';
+      }
+    });
+    
+    // 視角控制 - 向右
+    rotateBtnRight.addEventListener('click', () => {
+      // 清除所有旋轉類
+      stage.classList.remove('rotate-left', 'rotate-up', 'rotate-down');
+      rotateBtnLeft.classList.remove('active');
+      rotateBtnUp.classList.remove('active');
+      rotateBtnDown.classList.remove('active');
+      
+      // 切換右旋轉
+      stage.classList.toggle('rotate-right');
+      rotateBtnRight.classList.toggle('active');
+      
+      // 更新狀態
+      if (stage.classList.contains('rotate-right')) {
+        currentRotation = 'right';
+        statusView.textContent = '視角: 右側';
+      } else {
+        currentRotation = 'front';
+        statusView.textContent = '視角: 正面';
+      }
+    });
+    
+    // 視角控制 - 向上
+    rotateBtnUp.addEventListener('click', () => {
+      // 清除所有旋轉類
+      stage.classList.remove('rotate-left', 'rotate-right', 'rotate-down');
+      rotateBtnLeft.classList.remove('active');
+      rotateBtnRight.classList.remove('active');
+      rotateBtnDown.classList.remove('active');
+      
+      // 切換上旋轉
+      stage.classList.toggle('rotate-up');
+      rotateBtnUp.classList.toggle('active');
+      
+      // 更新狀態
+      if (stage.classList.contains('rotate-up')) {
+        currentRotation = 'up';
+        statusView.textContent = '視角: 上方';
+      } else {
+        currentRotation = 'front';
+        statusView.textContent = '視角: 正面';
+      }
+    });
+    
+    // 視角控制 - 向下
+    rotateBtnDown.addEventListener('click', () => {
+      // 清除所有旋轉類
+      stage.classList.remove('rotate-left', 'rotate-right', 'rotate-up');
+      rotateBtnLeft.classList.remove('active');
+      rotateBtnRight.classList.remove('active');
+      rotateBtnUp.classList.remove('active');
+      
+      // 切換下旋轉
+      stage.classList.toggle('rotate-down');
+      rotateBtnDown.classList.toggle('active');
+      
+      // 更新狀態
+      if (stage.classList.contains('rotate-down')) {
+        currentRotation = 'down';
+        statusView.textContent = '視角: 下方';
+      } else {
+        currentRotation = 'front';
+        statusView.textContent = '視角: 正面';
+      }
+    });
+    
+    // 浮動效果
+    floatBtn.addEventListener('click', () => {
+      // 停止環繞動畫
+      if (isOrbiting) {
+        toggleContainer.classList.remove('orbit-animation');
+        orbitBtn.classList.remove('active');
+        isOrbiting = false;
+      }
+      
+      // 切換浮動效果
+      toggleContainer.classList.toggle('float-animation');
+      floatBtn.classList.toggle('active');
+      isFloating = !isFloating;
+    });
+    
+    // 環繞效果
+    orbitBtn.addEventListener('click', () => {
+      // 停止浮動動畫
+      if (isFloating) {
+        toggleContainer.classList.remove('float-animation');
+        floatBtn.classList.remove('active');
+        isFloating = false;
+      }
+      
+      // 切換環繞效果
+      toggleContainer.classList.toggle('orbit-animation');
+      orbitBtn.classList.toggle('active');
+      isOrbiting = !isOrbiting;
+    });
+    
+    // 重置全部
+    resetBtn.addEventListener('click', () => {
+      // 停止所有動畫
+      isAnimating = true;
+      isFlipping = true;
+      
+      // 重置翻轉狀態
+      toggleContainer.classList.remove('flip-x', 'flip-y', 'flip-xy');
+      flipXBtn.classList.remove('active');
+      flipYBtn.classList.remove('active');
+      flipXYBtn.classList.remove('active');
+      currentFlip = 'none';
+      statusFlip.textContent = '翻轉: 無';
+      
+      // 重置旋轉狀態
+      stage.classList.remove('rotate-left', 'rotate-right', 'rotate-up', 'rotate-down');
+      rotateBtnLeft.classList.remove('active');
+      rotateBtnRight.classList.remove('active');
+      rotateBtnUp.classList.remove('active');
+      rotateBtnDown.classList.remove('active');
+      currentRotation = 'front';
+      statusView.textContent = '視角: 正面';
+      
+      // 重置動畫效果
+      toggleContainer.classList.remove('float-animation', 'orbit-animation');
+      floatBtn.classList.remove('active');
+      orbitBtn.classList.remove('active');
+      isFloating = false;
+      isOrbiting = false;
+      
+      // 重置開關狀態
+      if (toggleSwitch.classList.contains('active')) {
+        setTimeout(() => {
+          toggleSwitch.classList.remove('active');
+          toggleBtn.classList.remove('active');
+          statusToggle.textContent = 'Toggle: 未啟用';
+          statusToggle.style.color = '#aaa';
+        }, 300);
+      }
+      
+      // 動畫完成後重置狀態
+      setTimeout(() => {
+        isAnimating = false;
+        isFlipping = false;
+      }, 600);
+    });
+    
+    // 鍵盤操作
+    document.addEventListener('keydown', (e) => {
+      if (isAnimating && e.key !== 'r') return;
+      
+      switch (e.key) {
+        case ' ':
+          // 空格鍵切換開關
+          toggleAction();
+          break;
+        case 'x':
+          // X鍵切換X軸翻轉
+          flipXBtn.click();
+          break;
+        case 'y':
+          // Y鍵切換Y軸翻轉
+          flipYBtn.click();
+          break;
+        case 'z':
+          // Z鍵切換斜向翻轉
+          flipXYBtn.click();
+          break;
+        case 'ArrowLeft':
+          // 左箭頭切換左視角
+          rotateBtnLeft.click();
+          break;
+        case 'ArrowRight':
+          // 右箭頭切換右視角
+          rotateBtnRight.click();
+          break;
+        case 'ArrowUp':
+          // 上箭頭切換上視角
+          rotateBtnUp.click();
+          break;
+        case 'ArrowDown':
+          // 下箭頭切換下視角
+          rotateBtnDown.click();
+          break;
+        case 'f':
+          // F鍵切換浮動效果
+          floatBtn.click();
+          break;
+        case 'o':
+          // O鍵切換環繞效果
+          orbitBtn.click();
+          break;
+        case 'r':
+          // R鍵重置全部
+          resetBtn.click();
+          break;
+      }
+    });
+    
+    // 滑鼠移入時顯示陰影效果
+    scene.addEventListener('mouseenter', () => {
+      if (currentFlip === 'none') {
+        shadow.style.opacity = '1';
+      }
+    });
+    
+    // 滑鼠移出時淡化陰影（除非正在進行特效）
+    scene.addEventListener('mouseleave', () => {
+      if (currentFlip === 'none' && !isFloating && !isOrbiting) {
+        shadow.style.opacity = '0.7';
+      }
+    });
+    
+    // 模擬光線變化
+    let lightAnimationFrame;
+    function animateLight() {
+      const time = Date.now() * 0.001;
+      const ambient = document.querySelector('.ambient-light');
+      
+      // 緩慢移動環境光
+      ambient.style.left = `${Math.sin(time * 0.5) * 50}px`;
+      ambient.style.top = `${Math.cos(time * 0.5) * 50}px`;
+      
+      // 緩慢變化反光強度
+      reflections.forEach((reflection, index) => {
+        reflection.style.opacity = 0.05 + Math.sin(time + index) * 0.03;
+      });
+      
+      lightAnimationFrame = requestAnimationFrame(animateLight);
+    }
+    animateLight();
+    
+    // 清理動畫
+    window.addEventListener('beforeunload', () => {
+      cancelAnimationFrame(lightAnimationFrame);
+    });
+    
+    // 初始設置
+    pointer.style.opacity = '0';
+    
+    // 自動展示（可選）
+    function autoDemo() {
+      setTimeout(() => {
+        // 啟動開關
+        toggleBtn.click();
+        
+        setTimeout(() => {
+          // X軸翻轉
+          flipXBtn.click();
+          
+          setTimeout(() => {
+            // 重置翻轉
+            flipXBtn.click();
+            
+            setTimeout(() => {
+              // Y軸翻轉
+              flipYBtn.click();
+              
+              setTimeout(() => {
+                // 重置翻轉
+                flipYBtn.click();
+                
+                setTimeout(() => {
+                  // 啟動浮動效果
+                  floatBtn.click();
+                  
+                  setTimeout(() => {
+                    // 關閉浮動，啟動環繞
+                    floatBtn.click();
+                    orbitBtn.click();
+                    
+                    setTimeout(() => {
+                      // 重置全部
+                      resetBtn.click();
+                      
+                      // 循環展示
+                      //autoDemo();
+                    }, 4000);
+                  }, 4000);
+                }, 2000);
+              }, 2000);
+            }, 2000);
+          }, 2000);
+        }, 2000);
+      }, 2000);
+    }
+    
+    // 如果需要自動展示，取消下面的註釋
+    // autoDemo();
   </script>
 </body>
 </html>
