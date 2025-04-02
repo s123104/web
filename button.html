@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>完美還原Silent Mode開關效果</title>
+  <title>翻轉動畫效果的Silent Mode開關</title>
   <style>
     * {
       margin: 0;
@@ -19,6 +19,7 @@
       background-color: #1a1a1a;
       font-family: Arial, sans-serif;
       overflow: hidden;
+      perspective: 1200px;
     }
 
     .scene {
@@ -29,13 +30,16 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      perspective: 1000px;
     }
 
-    /* 主開關容器 */
+    /* 主開關容器 - 添加3D效果 */
     .toggle-container {
       position: relative;
       width: 220px;
       height: 70px;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
     }
 
     /* 開關元素 */
@@ -51,6 +55,8 @@
         0 1px 2px rgba(0, 0, 0, 0.6) inset;
       cursor: pointer;
       transition: transform 0.2s ease;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
     }
 
     /* 內部佈局 */
@@ -160,6 +166,31 @@
       z-index: 5;
     }
 
+    /* 開關背面 */
+    .toggle-switch-back {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 220px;
+      height: 60px;
+      background-color: #222;
+      border-radius: 14px;
+      box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.4),
+        0 1px 2px rgba(0, 0, 0, 0.6) inset;
+      transform: rotateY(180deg);
+      backface-visibility: hidden;
+    }
+
+    /* 翻轉動畫類 */
+    .toggle-container.flip-x {
+      transform: rotateX(180deg);
+    }
+
+    .toggle-container.flip-y {
+      transform: rotateY(180deg);
+    }
+
     /* 指針樣式 */
     .pointer {
       position: absolute;
@@ -177,16 +208,6 @@
       transition: transform 0.3s ease, opacity 0.2s ease;
     }
 
-    /* 空容器 (用於第二個例子) */
-    .toggle-switch.empty {
-      background-color: #222;
-    }
-
-    .toggle-switch.empty .toggle-label,
-    .toggle-switch.empty .toggle-track {
-      display: none;
-    }
-
     /* 陰影效果 */
     .shadow {
       position: absolute;
@@ -201,12 +222,35 @@
       border-radius: 50%;
       filter: blur(5px);
       z-index: -1;
+      transition: all 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+
+    /* 控制按鈕 */
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .control-btn {
+      padding: 8px 12px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .control-btn:hover {
+      background-color: #555;
     }
   </style>
 </head>
 <body>
   <div class="scene">
-    <div class="toggle-container">
+    <div class="toggle-container" id="toggleContainer">
       <div class="toggle-switch" id="toggleSwitch">
         <div class="toggle-inner">
           <span class="toggle-label">Silent mode</span>
@@ -217,37 +261,37 @@
           </div>
         </div>
       </div>
+      <div class="toggle-switch-back"></div>
       <div class="shadow"></div>
     </div>
     <div class="pointer" id="pointer"></div>
+    
+    <div class="controls">
+      <button class="control-btn" id="flipX">Flip X</button>
+      <button class="control-btn" id="flipY">Flip Y</button>
+      <button class="control-btn" id="resetFlip">Reset</button>
+    </div>
   </div>
 
   <script>
     // 獲取DOM元素
+    const toggleContainer = document.getElementById('toggleContainer');
     const toggleSwitch = document.getElementById('toggleSwitch');
     const pointer = document.getElementById('pointer');
     const scene = document.querySelector('.scene');
+    const flipXBtn = document.getElementById('flipX');
+    const flipYBtn = document.getElementById('flipY');
+    const resetFlipBtn = document.getElementById('resetFlip');
+    const shadow = document.querySelector('.shadow');
     
     // 設置狀態變量
     let isAnimating = false;
-    
-    // 第二個開關元素（全黑的那個，僅在需要時解除註釋）
-    /*
-    const emptyToggle = document.createElement('div');
-    emptyToggle.className = 'toggle-container';
-    emptyToggle.style.position = 'absolute';
-    emptyToggle.style.top = '60%';
-    emptyToggle.innerHTML = `
-      <div class="toggle-switch empty">
-        <div class="toggle-inner"></div>
-      </div>
-      <div class="shadow"></div>
-    `;
-    scene.appendChild(emptyToggle);
-    */
+    let isFlipping = false;
     
     // 指針移動邏輯
     scene.addEventListener('mousemove', (e) => {
+      if (isFlipping) return; // 翻轉時不更新指針
+      
       const rect = scene.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -272,10 +316,12 @@
     
     // 指針顯示邏輯
     scene.addEventListener('mouseenter', () => {
-      pointer.style.opacity = '1';
+      if (!isFlipping) {
+        pointer.style.opacity = '1';
+      }
       
       // 滑鼠進入時的微動效果
-      if (!isAnimating) {
+      if (!isAnimating && !isFlipping) {
         const thumb = toggleSwitch.querySelector('.toggle-thumb');
         thumb.style.transition = 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
         thumb.style.transform = 'scale(1.1)';
@@ -293,7 +339,7 @@
     
     // 開關點擊邏輯
     toggleSwitch.addEventListener('click', () => {
-      if (isAnimating) return;
+      if (isAnimating || isFlipping) return;
       
       isAnimating = true;
       toggleSwitch.classList.toggle('active');
@@ -306,33 +352,108 @@
     
     // 加入按下反饋效果
     toggleSwitch.addEventListener('mousedown', () => {
-      toggleSwitch.style.transform = 'scale(0.98)';
+      if (!isFlipping) {
+        toggleSwitch.style.transform = 'scale(0.98)';
+      }
     });
     
     window.addEventListener('mouseup', () => {
-      toggleSwitch.style.transform = 'scale(1)';
+      if (!isFlipping) {
+        toggleSwitch.style.transform = 'scale(1)';
+      }
     });
     
-    // 狀態展示函數 - 僅用於演示，可以移除
-    function cycleDemoState() {
+    // 翻轉動畫控制
+    flipXBtn.addEventListener('click', () => {
+      if (isFlipping) return;
+      isFlipping = true;
+      pointer.style.opacity = '0';
+      
+      // 添加X軸翻轉類
+      toggleContainer.classList.add('flip-x');
+      shadow.style.opacity = '0';
+      
+      // 翻轉完成後重置標誌
       setTimeout(() => {
-        if (!toggleSwitch.classList.contains('active')) {
-          toggleSwitch.click();
-        }
+        isFlipping = false;
+      }, 600);
+    });
+    
+    flipYBtn.addEventListener('click', () => {
+      if (isFlipping) return;
+      isFlipping = true;
+      pointer.style.opacity = '0';
+      
+      // 添加Y軸翻轉類
+      toggleContainer.classList.add('flip-y');
+      shadow.style.opacity = '0';
+      
+      // 翻轉完成後重置標誌
+      setTimeout(() => {
+        isFlipping = false;
+      }, 600);
+    });
+    
+    resetFlipBtn.addEventListener('click', () => {
+      if (isFlipping) return;
+      isFlipping = true;
+      
+      // 移除所有翻轉類
+      toggleContainer.classList.remove('flip-x', 'flip-y');
+      shadow.style.opacity = '1';
+      
+      // 翻轉完成後重置標誌
+      setTimeout(() => {
+        isFlipping = false;
+      }, 600);
+    });
+    
+    // 自動翻轉演示
+    function autoDemoFlip() {
+      setTimeout(() => {
+        flipXBtn.click();
         
         setTimeout(() => {
-          if (toggleSwitch.classList.contains('active')) {
-            toggleSwitch.click();
-          }
+          resetFlipBtn.click();
           
-          // 再次循環
-          cycleDemoState();
-        }, 3000);
-      }, 3000);
+          setTimeout(() => {
+            flipYBtn.click();
+            
+            setTimeout(() => {
+              resetFlipBtn.click();
+              
+              // 循環演示
+              autoDemoFlip();
+            }, 2000);
+          }, 2000);
+        }, 2000);
+      }, 2000);
     }
     
-    // 如果需要自動循環展示，取消下面的註解
-    // cycleDemoState();
+    // 如果需要自動演示，可以取消下面註釋
+    // autoDemoFlip();
+    
+    // 鍵盤控制
+    document.addEventListener('keydown', (e) => {
+      if (isFlipping) return;
+      
+      switch(e.key) {
+        case 'x':
+          flipXBtn.click();
+          break;
+        case 'y':
+          flipYBtn.click();
+          break;
+        case 'r':
+          resetFlipBtn.click();
+          break;
+        case ' ':
+          if (!isAnimating && !isFlipping) {
+            toggleSwitch.click();
+          }
+          break;
+      }
+    });
   </script>
 </body>
 </html>
