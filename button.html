@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>完美還原Silent Mode開關效果</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #1a1a1a;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    .scene {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      height: 400px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 主開關容器 */
+    .toggle-container {
+      position: relative;
+      width: 220px;
+      height: 70px;
+    }
+
+    /* 開關元素 */
+    .toggle-switch {
+      position: relative;
+      width: 220px;
+      height: 60px;
+      background-color: #2d2d2d;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.4),
+        0 1px 2px rgba(0, 0, 0, 0.6) inset;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    /* 內部佈局 */
+    .toggle-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+    }
+
+    /* 文字標籤 */
+    .toggle-label {
+      color: #fff;
+      font-size: 18px;
+      font-weight: 400;
+      margin-right: auto;
+      user-select: none;
+    }
+
+    /* 開關軌道 */
+    .toggle-track {
+      position: relative;
+      width: 60px;
+      height: 26px;
+      background-color: #222;
+      border-radius: 13px;
+      margin-right: 5px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) inset;
+      overflow: hidden;
+    }
+
+    /* 開關滑塊 */
+    .toggle-thumb {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      width: 20px;
+      height: 20px;
+      background-color: #666;
+      border-radius: 50%;
+      transition: all 0.3s cubic-bezier(0.3, 0.7, 0.4, 1.5);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      z-index: 3;
+    }
+
+    /* 高亮效果 */
+    .toggle-highlight {
+      position: absolute;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, 
+        rgba(255, 150, 0, 0), 
+        rgba(255, 150, 0, 0.1));
+      transition: all 0.3s cubic-bezier(0.3, 0.7, 0.4, 1);
+      right: 0;
+      z-index: 1;
+    }
+
+    /* 橙色光暈效果 */
+    .toggle-glow {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle, 
+        rgba(255, 140, 0, 0.7) 0%, 
+        rgba(255, 140, 0, 0) 70%
+      );
+      right: 0;
+      opacity: 0;
+      filter: blur(4px);
+      transition: all 0.3s cubic-bezier(0.3, 0.7, 0.4, 1);
+      z-index: 2;
+    }
+
+    /* 啟用狀態樣式 */
+    .toggle-switch.active .toggle-thumb {
+      right: 37px;
+    }
+
+    .toggle-switch.active .toggle-highlight {
+      width: 100%;
+    }
+
+    .toggle-switch.active .toggle-glow {
+      opacity: 1;
+      right: 34px;
+    }
+
+    /* 模擬光澤效果 */
+    .toggle-switch::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 10%;
+      width: 80%;
+      height: 1px;
+      background: linear-gradient(
+        to right, 
+        rgba(255, 255, 255, 0), 
+        rgba(255, 255, 255, 0.05), 
+        rgba(255, 255, 255, 0)
+      );
+      z-index: 5;
+    }
+
+    /* 指針樣式 */
+    .pointer {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      pointer-events: none;
+      z-index: 100;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+      transition: opacity 0.2s ease;
+      opacity: 0;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 2L17 12L7 22" fill="none" stroke="%23fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+      background-repeat: no-repeat;
+      background-position: center;
+      transform: rotate(-45deg);
+      transition: transform 0.3s ease, opacity 0.2s ease;
+    }
+
+    /* 空容器 (用於第二個例子) */
+    .toggle-switch.empty {
+      background-color: #222;
+    }
+
+    .toggle-switch.empty .toggle-label,
+    .toggle-switch.empty .toggle-track {
+      display: none;
+    }
+
+    /* 陰影效果 */
+    .shadow {
+      position: absolute;
+      width: 200px;
+      height: 15px;
+      background: radial-gradient(
+        ellipse at center, 
+        rgba(0, 0, 0, 0.3) 0%, 
+        rgba(0, 0, 0, 0) 70%
+      );
+      bottom: -20px;
+      border-radius: 50%;
+      filter: blur(5px);
+      z-index: -1;
+    }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <div class="toggle-container">
+      <div class="toggle-switch" id="toggleSwitch">
+        <div class="toggle-inner">
+          <span class="toggle-label">Silent mode</span>
+          <div class="toggle-track">
+            <div class="toggle-highlight"></div>
+            <div class="toggle-thumb"></div>
+            <div class="toggle-glow"></div>
+          </div>
+        </div>
+      </div>
+      <div class="shadow"></div>
+    </div>
+    <div class="pointer" id="pointer"></div>
+  </div>
+
+  <script>
+    // 獲取DOM元素
+    const toggleSwitch = document.getElementById('toggleSwitch');
+    const pointer = document.getElementById('pointer');
+    const scene = document.querySelector('.scene');
+    
+    // 設置狀態變量
+    let isAnimating = false;
+    
+    // 第二個開關元素（全黑的那個，僅在需要時解除註釋）
+    /*
+    const emptyToggle = document.createElement('div');
+    emptyToggle.className = 'toggle-container';
+    emptyToggle.style.position = 'absolute';
+    emptyToggle.style.top = '60%';
+    emptyToggle.innerHTML = `
+      <div class="toggle-switch empty">
+        <div class="toggle-inner"></div>
+      </div>
+      <div class="shadow"></div>
+    `;
+    scene.appendChild(emptyToggle);
+    */
+    
+    // 指針移動邏輯
+    scene.addEventListener('mousemove', (e) => {
+      const rect = scene.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      // 更新指針位置
+      pointer.style.left = `${x - 16}px`;
+      pointer.style.top = `${y - 16}px`;
+      
+      // 判斷指針指向方向
+      const toggleRect = toggleSwitch.getBoundingClientRect();
+      const thumbElement = toggleSwitch.querySelector('.toggle-thumb');
+      const thumbRect = thumbElement.getBoundingClientRect();
+      const thumbCenterX = thumbRect.left + thumbRect.width / 2 - rect.left;
+      
+      // 根據滑鼠位置與滑塊位置關係，調整指針方向
+      if (toggleSwitch.classList.contains('active')) {
+        pointer.style.transform = x < thumbCenterX ? 'rotate(135deg)' : 'rotate(-45deg)';
+      } else {
+        pointer.style.transform = x > thumbCenterX ? 'rotate(-45deg)' : 'rotate(135deg)';
+      }
+    });
+    
+    // 指針顯示邏輯
+    scene.addEventListener('mouseenter', () => {
+      pointer.style.opacity = '1';
+      
+      // 滑鼠進入時的微動效果
+      if (!isAnimating) {
+        const thumb = toggleSwitch.querySelector('.toggle-thumb');
+        thumb.style.transition = 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        thumb.style.transform = 'scale(1.1)';
+        
+        setTimeout(() => {
+          thumb.style.transform = 'scale(1)';
+          thumb.style.transition = 'all 0.3s cubic-bezier(0.3, 0.7, 0.4, 1.5)';
+        }, 150);
+      }
+    });
+    
+    scene.addEventListener('mouseleave', () => {
+      pointer.style.opacity = '0';
+    });
+    
+    // 開關點擊邏輯
+    toggleSwitch.addEventListener('click', () => {
+      if (isAnimating) return;
+      
+      isAnimating = true;
+      toggleSwitch.classList.toggle('active');
+      
+      // 動畫完成後重置狀態
+      setTimeout(() => {
+        isAnimating = false;
+      }, 400);
+    });
+    
+    // 加入按下反饋效果
+    toggleSwitch.addEventListener('mousedown', () => {
+      toggleSwitch.style.transform = 'scale(0.98)';
+    });
+    
+    window.addEventListener('mouseup', () => {
+      toggleSwitch.style.transform = 'scale(1)';
+    });
+    
+    // 狀態展示函數 - 僅用於演示，可以移除
+    function cycleDemoState() {
+      setTimeout(() => {
+        if (!toggleSwitch.classList.contains('active')) {
+          toggleSwitch.click();
+        }
+        
+        setTimeout(() => {
+          if (toggleSwitch.classList.contains('active')) {
+            toggleSwitch.click();
+          }
+          
+          // 再次循環
+          cycleDemoState();
+        }, 3000);
+      }, 3000);
+    }
+    
+    // 如果需要自動循環展示，取消下面的註解
+    // cycleDemoState();
+  </script>
+</body>
+</html>
