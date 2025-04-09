@@ -1,517 +1,750 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Arduino 光控防盜警報器 - 從零開始教學</title>
     <style>
-        /* --- 全局與基本樣式 --- */
-        :root {
-            --primary-color: #007bff; /* 主題藍色 */
-            --secondary-color: #6c757d; /* 次要灰色 */
-            --light-bg: #f8f9fa; /* 淺背景色 */
-            --dark-text: #343a40; /* 深色文字 */
-            --light-text: #ffffff; /* 淺色文字 */
-            --code-bg: #e9ecef; /* 程式碼區塊背景 */
-            --border-color: #dee2e6; /* 邊框顏色 */
-            --success-color: #28a745; /* 成功綠色 */
-            --warning-color: #ffc107; /* 警告黃色 */
-            --danger-color: #dc3545; /* 危險紅色 */
-            --info-color: #17a2b8; /* 資訊青色 */
-            --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.08); /* Slightly softer shadow */
-        }
+      /* --- 全局與基本樣式 --- */
+      :root {
+        --primary-color: #007bff; /* 主題藍色 */
+        --secondary-color: #6c757d; /* 次要灰色 */
+        --light-bg: #f8f9fa; /* 淺背景色 */
+        --dark-text: #343a40; /* 深色文字 */
+        --light-text: #ffffff; /* 淺色文字 */
+        --code-bg: #e9ecef; /* 程式碼區塊背景 */
+        --border-color: #dee2e6; /* 邊框顏色 */
+        --success-color: #28a745; /* 成功綠色 */
+        --warning-color: #ffc107; /* 警告黃色 */
+        --danger-color: #dc3545; /* 危險紅色 */
+        --info-color: #17a2b8; /* 資訊青色 */
+        --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.08); /* Slightly softer shadow */
+      }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; /* System fonts */
-            background-color: var(--light-bg);
-            color: var(--dark-text);
-            line-height: 1.7;
-            font-size: 16px;
-            -webkit-font-smoothing: antialiased; /* Smoother fonts on WebKit */
-            -moz-osx-font-smoothing: grayscale;
-        }
+      html {
+        /* Smooth scrolling */
+        scroll-behavior: smooth;
+      }
 
-        .container {
-            max-width: 960px; /* Slightly narrower for better readability */
-            margin: 20px auto;
-            padding: 0 15px; /* Add padding for small screens */
-        }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, "Noto Sans TC", sans-serif,
+          "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* System fonts + Noto Sans TC */
+        background-color: var(--light-bg);
+        color: var(--dark-text);
+        line-height: 1.7;
+        font-size: 16px;
+        -webkit-font-smoothing: antialiased; /* Smoother fonts on WebKit */
+        -moz-osx-font-smoothing: grayscale;
+      }
 
-        h1, h2, h3 {
-            color: var(--primary-color);
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-        h1 { font-size: 2.2em; text-align: center; margin-bottom: 30px; }
-        h2 { font-size: 1.7em; border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; margin-top: 40px;}
-        h3 { font-size: 1.3em; color: #333; margin-top: 25px; }
+      .container {
+        max-width: 960px; /* Slightly narrower for better readability */
+        margin: 20px auto;
+        padding: 0 15px; /* Add padding for small screens */
+      }
 
-        p {
-            margin-bottom: 15px;
-        }
+      h1,
+      h2,
+      h3 {
+        color: var(--primary-color);
+        margin-bottom: 15px;
+        font-weight: 600;
+      }
+      h1 {
+        font-size: 2.2em;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      h2 {
+        font-size: 1.7em;
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 8px;
+        margin-top: 40px;
+      }
+      h3 {
+        font-size: 1.3em;
+        color: #333;
+        margin-top: 25px;
+      }
 
-        a {
-            color: var(--primary-color);
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-        a:hover {
-            color: #0056b3;
-            text-decoration: underline;
-        }
-        a.material-link {
-            font-weight: bold;
-        }
-        a.material-link:hover {
-             text-decoration: underline wavy var(--primary-color);
-        }
+      p {
+        margin-bottom: 15px;
+      }
 
-        /* --- 卡片/區塊樣式 --- */
-        .card {
-            background-color: var(--light-text);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px; /* Consistent padding */
-            margin-bottom: 30px;
-            box-shadow: var(--card-shadow);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        /* Subtle hover effect */
-        /* .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-        } */
+      a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.3s ease;
+      }
+      a:hover {
+        color: #0056b3;
+        text-decoration: underline;
+      }
+      a.material-link {
+        font-weight: bold;
+      }
+      a.material-link:hover {
+        text-decoration: underline wavy var(--primary-color);
+      }
 
-        /* --- 導覽列 --- */
-        nav {
-            background-color: var(--primary-color);
-            padding: 8px 0; /* Slightly reduced padding */
-            margin-bottom: 30px;
-            border-radius: 5px;
-            box-shadow: var(--card-shadow);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+      /* --- 卡片/區塊樣式 --- */
+      .card {
+        background-color: var(--light-text);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px; /* Consistent padding */
+        margin-bottom: 30px;
+        box-shadow: var(--card-shadow);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      /* --- 導覽列 --- */
+      nav {
+        background-color: var(--primary-color);
+        padding: 8px 0; /* Slightly reduced padding */
+        margin-bottom: 30px;
+        border-radius: 5px;
+        box-shadow: var(--card-shadow);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+      nav .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 0 auto;
+      }
+      nav a {
+        color: var(--light-text);
+        margin: 5px 10px; /* Adjusted spacing */
+        font-size: 1em;
+        font-weight: 500;
+        text-decoration: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+      }
+      nav a:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        text-decoration: none;
+        color: var(--light-text);
+        transform: scale(1.05);
+      }
+
+      /* --- 材料清單表格 --- */
+      .table-container {
+        /* Add container for horizontal scroll on mobile */
+        overflow-x: auto;
+        margin-top: 20px;
+      }
+      table {
+        width: 100%;
+        min-width: 500px; /* Ensure minimum width for table content */
+        border-collapse: collapse;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        border-radius: 5px;
+      }
+      th,
+      td {
+        border: 1px solid var(--border-color);
+        padding: 10px 12px; /* Adjusted padding */
+        text-align: left;
+        vertical-align: middle;
+        font-size: 0.95em; /* Slightly smaller table font */
+      }
+      th {
+        background-color: var(--primary-color);
+        color: var(--light-text);
+        font-weight: 600;
+      }
+      tr:nth-child(even) {
+        background-color: #f8f9fa;
+      }
+      tr:hover {
+        background-color: #eef; /* Lighter hover */
+      }
+      td:first-child {
+        font-weight: 500;
+      }
+
+      /* --- 程式碼區塊 --- */
+      .code-block-wrapper {
+        position: relative;
+        margin: 20px 0;
+      }
+      pre {
+        background-color: var(--code-bg);
+        color: #212529;
+        padding: 25px 15px 15px 15px; /* Adjusted padding */
+        border-radius: 5px;
+        overflow-x: auto;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo,
+          Courier, monospace; /* Monospace font stack */
+        font-size: 0.9em; /* Slightly smaller code font */
+        line-height: 1.6;
+        border: 1px solid var(--border-color);
+        white-space: pre;
+      }
+      /* Syntax Highlighting (keep as is) */
+      pre .keyword {
+        color: #007bff;
+        font-weight: bold;
+      }
+      pre .comment {
+        color: #6c757d;
+        font-style: italic;
+      }
+      pre .literal {
+        color: #dc3545;
+      }
+      pre .type {
+        color: #17a2b8;
+      }
+      pre .function {
+        color: #fd7e14;
+      }
+      pre .variable {
+        color: #28a745;
+      }
+
+      /* --- 複製按鈕 --- */
+      .copy-button {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background-color: var(--secondary-color);
+        color: var(--light-text);
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85em;
+        transition: all 0.2s ease;
+        opacity: 0.6;
+      }
+      .code-block-wrapper:hover .copy-button {
+        opacity: 1;
+      }
+      .copy-button:hover {
+        background-color: #5a6268;
+      }
+      .copy-button:active {
+        transform: scale(0.95);
+      }
+      .copy-button.copied {
+        background-color: var(--success-color);
+        transform: scale(1);
+      }
+
+      /* --- 清單樣式 --- */
+      ul,
+      ol {
+        padding-left: 25px; /* Adjusted indent */
+        margin-bottom: 15px;
+      }
+      li {
+        margin-bottom: 8px;
+      }
+      ul li::marker {
+        color: var(--primary-color);
+        content: "• "; /* Simple bullet */
+      }
+
+      /* --- Simplified CSS Circuit Diagram --- */
+      .circuit-diagram-simplified {
+        background-color: #f0f0f0;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        padding: 15px;
+        margin-top: 20px;
+        font-size: 0.95em;
+      }
+      .circuit-diagram-simplified h4 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: var(--primary-color);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 5px;
+        font-size: 1.1em;
+      }
+      .circuit-diagram-simplified .connection-group {
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+      }
+      .circuit-diagram-simplified p {
+        margin-bottom: 5px;
+        line-height: 1.5;
+      }
+      .circuit-diagram-simplified .component-label {
+        font-weight: bold;
+        color: var(--dark-text);
+      }
+      .circuit-diagram-simplified .pin-label {
+        font-weight: bold;
+        color: var(--danger-color);
+        background-color: #ffebee;
+        padding: 1px 4px;
+        border-radius: 3px;
+      }
+      .circuit-diagram-simplified .power-label {
+        font-weight: bold;
+        color: var(--success-color);
+        background-color: #e8f5e9;
+        padding: 1px 4px;
+        border-radius: 3px;
+      }
+      .circuit-diagram-simplified .gnd-label {
+        font-weight: bold;
+        color: #555;
+        background-color: #eee;
+        padding: 1px 4px;
+        border-radius: 3px;
+      }
+      .circuit-diagram-simplified .arrow {
+        margin: 0 4px;
+        color: var(--secondary-color);
+      }
+
+      /* --- Mermaid Flowchart Styling --- */
+      .mermaid {
+        text-align: center; /* Center the diagram */
+        margin: 25px 0;
+        background-color: #f0f0f0; /* Match circuit bg */
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid var(--border-color);
+        overflow-x: auto; /* Add scroll for very wide diagrams on mobile */
+      }
+
+      /* --- 頁尾 --- */
+      footer {
+        text-align: center;
+        margin-top: 50px;
+        padding: 20px;
+        background-color: #e9ecef;
+        color: var(--secondary-color);
+        font-size: 0.9em;
+        border-top: 1px solid var(--border-color);
+      }
+
+      /* --- 響應式設計 --- */
+      @media (max-width: 768px) {
+        h1 {
+          font-size: 1.8em;
+        }
+        h2 {
+          font-size: 1.4em;
+        }
+        h3 {
+          font-size: 1.15em;
         }
         nav .container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-wrap: wrap;
-            margin: 0 auto;
+          justify-content: space-around;
         }
         nav a {
-            color: var(--light-text);
-            margin: 5px 10px; /* Adjusted spacing */
-            font-size: 1em;
-            font-weight: 500;
-            text-decoration: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            transition: background-color 0.3s ease, transform 0.2s ease;
+          margin: 5px;
+          font-size: 0.95em;
+          padding: 6px 8px;
         }
-        nav a:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-            text-decoration: none;
-            color: var(--light-text);
-            transform: scale(1.05);
-        }
-
-        /* --- 材料清單表格 --- */
-        .table-container { /* Add container for horizontal scroll on mobile */
-            overflow-x: auto;
-            margin-top: 20px;
-        }
-        table {
-            width: 100%;
-            min-width: 500px; /* Ensure minimum width for table content */
-            border-collapse: collapse;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            overflow: hidden;
-            border-radius: 5px;
-        }
-        th, td {
-            border: 1px solid var(--border-color);
-            padding: 10px 12px; /* Adjusted padding */
-            text-align: left;
-            vertical-align: middle;
-            font-size: 0.95em; /* Slightly smaller table font */
-        }
-        th {
-            background-color: var(--primary-color);
-            color: var(--light-text);
-            font-weight: 600;
-        }
-        tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-        tr:hover {
-            background-color: #eef; /* Lighter hover */
-        }
-        td:first-child {
-             font-weight: 500;
-        }
-
-        /* --- 程式碼區塊 --- */
-        .code-block-wrapper {
-            position: relative;
-            margin: 20px 0;
+        .card {
+          padding: 15px;
         }
         pre {
-            background-color: var(--code-bg);
-            color: #212529;
-            padding: 25px 15px 15px 15px; /* Adjusted padding */
-            border-radius: 5px;
-            overflow-x: auto;
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; /* Monospace font stack */
-            font-size: 0.9em; /* Slightly smaller code font */
-            line-height: 1.6;
-            border: 1px solid var(--border-color);
-            white-space: pre;
+          font-size: 0.85em;
+          padding: 20px 10px 10px 10px;
         }
-        /* Syntax Highlighting (keep as is) */
-        pre .keyword { color: #007bff; font-weight: bold; }
-        pre .comment { color: #6c757d; font-style: italic; }
-        pre .literal { color: #dc3545; }
-        pre .type { color: #17a2b8; }
-        pre .function { color: #fd7e14; }
-        pre .variable { color: #28a745; }
-
-        /* --- 複製按鈕 --- */
         .copy-button {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background-color: var(--secondary-color);
-            color: var(--light-text);
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85em;
-            transition: all 0.2s ease;
-            opacity: 0.6;
+          padding: 4px 8px;
+          font-size: 0.8em;
         }
-        .code-block-wrapper:hover .copy-button {
-            opacity: 1;
-        }
-        .copy-button:hover {
-            background-color: #5a6268;
-        }
-        .copy-button:active {
-             transform: scale(0.95);
-        }
-        .copy-button.copied {
-            background-color: var(--success-color);
-            transform: scale(1);
-        }
-
-        /* --- 清單樣式 --- */
-        ul, ol {
-            padding-left: 25px; /* Adjusted indent */
-            margin-bottom: 15px;
-        }
-        li {
-            margin-bottom: 8px;
-        }
-        ul li::marker {
-            color: var(--primary-color);
-            content: "• "; /* Simple bullet */
-        }
-        ol {
-           /* list-style-type: decimal-leading-zero; */ /* Keep default decimal */
-        }
-
-        /* --- Simplified CSS Circuit Diagram --- */
-        .circuit-diagram-simplified {
-            background-color: #f0f0f0;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            padding: 15px;
-            margin-top: 20px;
-            font-size: 0.95em;
-        }
-        .circuit-diagram-simplified h4 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: var(--primary-color);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 5px;
-            font-size: 1.1em;
-        }
-        .circuit-diagram-simplified .connection-group {
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-        }
-        /* Don't add border to the last group */
-        /* .circuit-diagram-simplified .connection-group:not(:last-child) {
-             border-bottom: 1px dashed var(--secondary-color);
-        } */
-        .circuit-diagram-simplified p {
-            margin-bottom: 5px;
-            line-height: 1.5;
-        }
-        .circuit-diagram-simplified .component-label { font-weight: bold; color: var(--dark-text); }
-        .circuit-diagram-simplified .pin-label { font-weight: bold; color: var(--danger-color); background-color: #ffebee; padding: 1px 4px; border-radius: 3px;}
-        .circuit-diagram-simplified .power-label { font-weight: bold; color: var(--success-color); background-color: #e8f5e9; padding: 1px 4px; border-radius: 3px;}
-        .circuit-diagram-simplified .gnd-label { font-weight: bold; color: #555; background-color: #eee; padding: 1px 4px; border-radius: 3px;}
-        .circuit-diagram-simplified .arrow { margin: 0 4px; color: var(--secondary-color); }
-
-
-        /* --- Mermaid Flowchart Styling --- */
-        /* Basic Mermaid container */
-        .mermaid {
-            text-align: center; /* Center the diagram */
-            margin: 25px 0;
-            background-color: #f0f0f0; /* Match circuit bg */
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid var(--border-color);
-        }
-        /* You can add more specific Mermaid theme overrides here if needed */
-
-
-        /* --- 頁尾 --- */
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            padding: 20px;
-            background-color: #e9ecef;
-            color: var(--secondary-color);
-            font-size: 0.9em;
-            border-top: 1px solid var(--border-color);
-        }
-
-        /* --- 響應式設計 --- */
-        @media (max-width: 768px) {
-            h1 { font-size: 1.8em; }
-            h2 { font-size: 1.4em; }
-            h3 { font-size: 1.15em; }
-            nav .container { justify-content: space-around; }
-            nav a { margin: 5px; font-size: 0.95em; padding: 6px 8px;}
-            .card { padding: 15px; }
-            pre { font-size: 0.85em; padding: 20px 10px 10px 10px;}
-            .copy-button { padding: 4px 8px; font-size: 0.8em; }
-        }
-        /* @media (max-width: 480px) { */
-             /* Further adjustments if needed for very small screens */
-        /* } */
-
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!-- 頁首標題 -->
     <div class="container">
-        <h1>✨ Arduino 光控防盜警報器 - 從零開始教學 ✨</h1>
+      <h1>✨ Arduino 光控防盜警報器 - 從零開始教學 ✨</h1>
     </div>
 
     <!-- 導覽列 -->
     <nav>
-        <div class="container">
-            <a href="#intro">專案介紹</a>
-            <a href="#getting-started">準備工作</a>
-            <a href="#materials">材料清單</a>
-            <a href="#circuit">電路組裝</a>
-            <a href="#code">程式碼詳解</a>
-            <a href="#flowchart">運作流程</a>
-            <a href="#test">測試除錯</a>
-        </div>
+      <div class="container">
+        <a href="#intro">專案介紹</a>
+        <a href="#getting-started">準備工作</a>
+        <a href="#materials">材料清單</a>
+        <a href="#circuit">電路組裝</a>
+        <a href="#code">程式碼詳解</a>
+        <a href="#flowchart">運作流程</a>
+        <a href="#test">測試除錯</a>
+      </div>
     </nav>
 
     <div class="container">
-        <!-- 專案介紹 -->
-        <section id="intro" class="card">
-            <h2>🚀 專案介紹：打造你的第一個智慧保全！</h2>
+      <!-- 專案介紹 -->
+      <section id="intro" class="card">
+        <h2>🚀 專案介紹：打造你的第一個智慧保全！</h2>
+        <p>
+          歡迎來到 Arduino
+          的奇妙世界！在這個教學中，我們將一步步帶你使用常見的電子元件，打造一個簡易但有效的「光控防盜警報器」。
+          這個系統的原理很簡單：利用光敏電阻偵測環境光線變化，當有異常光線（例如，原本黑暗的抽屜被打開照到光）時，系統就會觸發
+          LED 燈閃爍並讓蜂鳴器發出聲響，達到警示效果。
+        </p>
+        <p>這個專案非常適合 Arduino 初學者，可以讓你熟悉：</p>
+        <ul>
+          <li>Arduino 基本程式結構</li>
+          <li>數位訊號輸出 (控制 LED 和蜂鳴器)</li>
+          <li>類比訊號讀取 (讀取光敏電阻數值)</li>
+          <li>基本的電路連接</li>
+        </ul>
+        <p>準備好了嗎？讓我們開始動手做吧！💪</p>
+      </section>
+
+      <!-- 準備工作 -->
+      <section id="getting-started" class="card">
+        <h2>🛠️ 準備工作：軟硬體設定</h2>
+        <h3>1. 認識 Arduino 主控板</h3>
+        <p>
+          Arduino
+          是一塊開源的微控制器板，你可以把它想像成一個迷你電腦，可以透過寫程式來控制連接到它的各種電子元件（感測器、馬達、燈光等）。最常見的入門板是
+          Arduino UNO。
+        </p>
+        <p>簡單來說，它是實現你各種電子創意想法的好幫手！</p>
+
+        <h3>2. 安裝 Arduino IDE (整合開發環境)</h3>
+        <p>
+          我們需要在電腦上安裝 Arduino IDE 這個軟體來編寫、上傳程式碼到 Arduino
+          板子上。
+        </p>
+        <ol>
+          <li>
+            前往 Arduino 官方網站下載頁面：<a
+              href="https://www.arduino.cc/en/software"
+              target="_blank"
+              rel="noopener noreferrer"
+              >https://www.arduino.cc/en/software</a
+            >
+          </li>
+          <li>
+            根據你的作業系統 (Windows, macOS, Linux) 下載最新版本的 IDE 安裝檔。
+          </li>
+          <li>
+            下載完成後，執行安裝檔，依照指示一步步完成安裝。(通常點下一步到底就可以了)
+          </li>
+          <li>
+            安裝過程中若跳出安裝驅動程式的提示，請點選「安裝」或「允許」。
+          </li>
+        </ol>
+
+        <h3>3. 連接 Arduino 並設定 IDE</h3>
+        <ol>
+          <li>拿出你的 Arduino 板和 USB 連接線。</li>
+          <li>
+            使用 USB 線將 Arduino 板連接到電腦的 USB
+            連接埠。你會看到板子上的電源指示燈亮起。
+          </li>
+          <li>打開剛剛安裝好的 Arduino IDE 軟體。</li>
+          <li>
+            點擊頂部選單列的「工具 (Tools)」→「開發板
+            (Board)」，在選單中找到並選擇你使用的 Arduino 型號（例如： "Arduino
+            UNO" 或 "Arduino Mega 2560" 等）。
+          </li>
+          <li>
+            接著點擊「工具 (Tools)」→「序列埠 (Port)」，選擇 Arduino
+            連接到的那個 COM 埠（Windows）或 /dev/tty...
+            (Mac/Linux)。通常只有一個選項會標示 Arduino
+            的名稱，如果有多個，可以先拔掉 Arduino
+            線再看哪個選項消失，重新插上後選擇那個新出現的。
+          </li>
+        </ol>
+        <p>✅ 設定完成！現在你的電腦已經準備好跟 Arduino 板溝通了。</p>
+      </section>
+
+      <!-- 材料清單 -->
+      <section id="materials" class="card">
+        <h2>🛒 材料清單 (點擊名稱查看圖片)</h2>
+        <p>
+          以下是製作這個專案所需的電子元件，點擊材料名稱可以在 Google
+          圖片中搜尋它的樣子：
+        </p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>材料名稱</th>
+                <th>數量</th>
+                <th>功能說明</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <a
+                    href="https://www.google.com/search?tbm=isch&q=Arduino+UNO"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="material-link"
+                    >Arduino UNO (或相容板)</a
+                  >
+                </td>
+                <td>1</td>
+                <td>專案的大腦，負責執行程式碼。</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://www.google.com/search?tbm=isch&q=Photoresistor+LDR"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="material-link"
+                    >光敏電阻 (LDR)</a
+                  >
+                </td>
+                <td>1</td>
+                <td>偵測環境光線強度，像眼睛一樣。</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://www.google.com/search?tbm=isch&q=10k+ohm+resistor"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="material-link"
+                    >10kΩ 電阻</a
+                  >
+                </td>
+                <td>1</td>
+                <td>搭配光敏電阻使用，穩定讀值。(顏色通常是 棕-黑-橘-金)</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://www.google.com/search?tbm=isch&q=LED+diode"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="material-link"
+                    >LED (發光二極體)</a
+                  >
+                </td>
+                <td>1</td>
+                <td>視覺警示燈，會發光。(長腳是正極)</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://www.google.com/search?tbm=isch&q=220+ohm+resistor"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="material-link"
+                    >220Ω 電阻</a
+                  >
+                </td>
+                <td>1</td>
+                <td>保護 LED 不被燒毀。(顏色通常是 紅-紅-棕-金)</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://www.google.com/search?tbm=isch&q=Active+Buzzer"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="material-link"
+                    >有源蜂鳴器</a
+                  >
+                </td>
+                <td>1</td>
+                <td>聲音警示器，通電就會叫。(注意正負極)</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://www.google.com/search?tbm=isch&q=Breadboard"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="material-link"
+                    >麵包板</a
+                  >
+                </td>
+                <td>1</td>
+                <td>免焊接的實驗板，方便插拔元件。</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://www.google.com/search?tbm=isch&q=Dupont+wire+male+to+male"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="material-link"
+                    >杜邦線 (公對公)</a
+                  >
+                </td>
+                <td>約 7-10 條</td>
+                <td>連接麵包板和 Arduino 的彩色電線。</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://www.google.com/search?tbm=isch&q=USB+cable+type+A+to+B"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="material-link"
+                    >USB 連接線 (A對B型)</a
+                  >
+                </td>
+                <td>1</td>
+                <td>連接 Arduino 與電腦，用於上傳程式和供電。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 電路組裝 -->
+      <section id="circuit" class="card">
+        <h2>🔌 電路組裝：連接你的元件</h2>
+        <p>
+          請依照以下文字說明和簡化示意圖，將元件連接到麵包板和
+          Arduino。**文字說明是主要依據。**
+        </p>
+        <div class="circuit-diagram-simplified">
+          <div class="connection-group">
+            <h4>1. 光敏電阻 (LDR) 分壓電路</h4>
             <p>
-                歡迎來到 Arduino 的奇妙世界！在這個教學中，我們將一步步帶你使用常見的電子元件，打造一個簡易但有效的「光控防盜警報器」。
-                這個系統的原理很簡單：利用光敏電阻偵測環境光線變化，當有異常光線（例如，原本黑暗的抽屜被打開照到光）時，系統就會觸發 LED 燈閃爍並讓蜂鳴器發出聲響，達到警示效果。
+              <span class="power-label">Arduino 5V</span>
+              <span class="arrow">→</span>
+              <span class="component-label">10kΩ 電阻</span>
+              <span class="arrow">→</span> (連接點 A)
+              <span class="arrow">→</span>
+              <span class="component-label">光敏電阻 (LDR)</span>
+              <span class="arrow">→</span>
+              <span class="gnd-label">Arduino GND</span>
             </p>
             <p>
-                這個專案非常適合 Arduino 初學者，可以讓你熟悉：
+              (連接點 A) <span class="arrow">→</span>
+              <span class="pin-label">Arduino A0</span>
             </p>
+            <small
+              >(註：連接點 A 指的是 10kΩ 電阻和 LDR
+              在麵包板上相連的那一排。)</small
+            >
+          </div>
+          <div class="connection-group">
+            <h4>2. LED 電路</h4>
+            <p>
+              <span class="pin-label">Arduino D2</span>
+              <span class="arrow">→</span>
+              <span class="component-label">220Ω 電阻</span>
+              <span class="arrow">→</span>
+              <span class="component-label">LED (長腳/正極 +)</span>
+            </p>
+            <p>
+              <span class="component-label">LED (短腳/負極 -)</span>
+              <span class="arrow">→</span>
+              <span class="gnd-label">Arduino GND</span>
+            </p>
+          </div>
+          <div class="connection-group">
+            <h4>3. 蜂鳴器電路</h4>
+            <p>
+              <span class="pin-label">Arduino D3</span>
+              <span class="arrow">→</span>
+              <span class="component-label">蜂鳴器 (正極 +)</span>
+            </p>
+            <p>
+              <span class="component-label">蜂鳴器 (負極 -)</span>
+              <span class="arrow">→</span>
+              <span class="gnd-label">Arduino GND</span>
+            </p>
+          </div>
+          <small
+            ><strong>重要：</strong
+            >所有元件需要共用接地(GND)。請確保所有需要接到 GND 的線都連接到
+            Arduino 板上的任一個 GND 腳位。</small
+          >
+        </div>
+
+        <h3>文字接線詳細步驟：</h3>
+        <ol>
+          <li>
+            <strong>連接光敏電阻 (LDR)：</strong>
             <ul>
-                <li>Arduino 基本程式結構</li>
-                <li>數位訊號輸出 (控制 LED 和蜂鳴器)</li>
-                <li>類比訊號讀取 (讀取光敏電阻數值)</li>
-                <li>基本的電路連接</li>
+              <li>
+                從 Arduino
+                <span class="power-label">5V</span> 接一條線到麵包板電源排(+)。
+              </li>
+              <li>
+                從 Arduino
+                <span class="gnd-label">GND</span> 接一條線到麵包板接地排(-)。
+              </li>
+              <li>
+                將 10kΩ 電阻一腳插入電源排(+)，另一腳插入麵包板某一行 (例如第 10
+                行)。
+              </li>
+              <li>
+                將 LDR 一腳插入與 10kΩ 電阻相同的行 (第 10
+                行)，另一腳插入旁邊的行 (例如第 11 行)。
+              </li>
+              <li>從 LDR 的第二隻腳那一行 (第 11 行) 接一條線到接地排(-)。</li>
+              <li>
+                **關鍵：** 從 10kΩ 和 LDR 相連的那一行 (第 10 行) 接一條線到
+                Arduino <span class="pin-label">A0</span>。
+              </li>
             </ul>
-            <p>準備好了嗎？讓我們開始動手做吧！💪</p>
-        </section>
+          </li>
+          <li>
+            <strong>連接 LED：</strong>
+            <ul>
+              <li>
+                從 Arduino
+                <span class="pin-label">D2</span> 接一條線到麵包板某一行 (例如第
+                20 行)。
+              </li>
+              <li>
+                將 220Ω 電阻一腳插入 D2 線所在的行 (第 20
+                行)，另一腳插入旁邊的行 (例如第 21 行)。
+              </li>
+              <li>
+                將 LED 長腳(+) 插入與 220Ω 電阻相同的行 (第 21 行)，短腳(-)
+                插入旁邊的行 (例如第 22 行)。
+              </li>
+              <li>從 LED 短腳(-) 那一行 (第 22 行) 接一條線到接地排(-)。</li>
+            </ul>
+          </li>
+          <li>
+            <strong>連接蜂鳴器：</strong>
+            <ul>
+              <li>
+                從 Arduino
+                <span class="pin-label">D3</span> 接一條線到蜂鳴器的正極(+)。
+              </li>
+              <li>從蜂鳴器的負極(-) 接一條線到接地排(-)。</li>
+            </ul>
+          </li>
+          <li>
+            <strong>檢查：</strong> 仔細確認 5V, GND, A0, D2, D3
+            都連接正確，沒有短路。
+          </li>
+        </ol>
+      </section>
 
-        <!-- 準備工作 (Keep as is) -->
-        <section id="getting-started" class="card">
-            <h2>🛠️ 準備工作：軟硬體設定</h2>
-            <h3>1. 認識 Arduino 主控板</h3>
-            <p>
-                Arduino 是一塊開源的微控制器板，你可以把它想像成一個迷你電腦，可以透過寫程式來控制連接到它的各種電子元件（感測器、馬達、燈光等）。最常見的入門板是 Arduino UNO。
-            </p>
-             <p>簡單來說，它是實現你各種電子創意想法的好幫手！</p>
-
-            <h3>2. 安裝 Arduino IDE (整合開發環境)</h3>
-            <p>
-                我們需要在電腦上安裝 Arduino IDE 這個軟體來編寫、上傳程式碼到 Arduino 板子上。
-            </p>
-            <ol>
-                <li>前往 Arduino 官方網站下載頁面：<a href="https://www.arduino.cc/en/software" target="_blank" rel="noopener noreferrer">https://www.arduino.cc/en/software</a></li>
-                <li>根據你的作業系統 (Windows, macOS, Linux) 下載最新版本的 IDE 安裝檔。</li>
-                <li>下載完成後，執行安裝檔，依照指示一步步完成安裝。(通常點下一步到底就可以了)</li>
-                <li>安裝過程中若跳出安裝驅動程式的提示，請點選「安裝」或「允許」。</li>
-            </ol>
-
-            <h3>3. 連接 Arduino 並設定 IDE</h3>
-            <ol>
-                <li>拿出你的 Arduino 板和 USB 連接線。</li>
-                <li>使用 USB 線將 Arduino 板連接到電腦的 USB 連接埠。你會看到板子上的電源指示燈亮起。</li>
-                <li>打開剛剛安裝好的 Arduino IDE 軟體。</li>
-                <li>
-                    點擊頂部選單列的「工具 (Tools)」→「開發板 (Board)」，在選單中找到並選擇你使用的 Arduino 型號（例如： "Arduino UNO" 或 "Arduino Mega 2560" 等）。
-                </li>
-                <li>
-                    接著點擊「工具 (Tools)」→「序列埠 (Port)」，選擇 Arduino 連接到的那個 COM 埠（Windows）或 /dev/tty... (Mac/Linux)。通常只有一個選項會標示 Arduino 的名稱，如果有多個，可以先拔掉 Arduino 線再看哪個選項消失，重新插上後選擇那個新出現的。
-                </li>
-            </ol>
-            <p>✅ 設定完成！現在你的電腦已經準備好跟 Arduino 板溝通了。</p>
-        </section>
-
-        <!-- 材料清單 (Keep as is, with scroll container) -->
-        <section id="materials" class="card">
-            <h2>🛒 材料清單 (點擊名稱查看圖片)</h2>
-            <p>以下是製作這個專案所需的電子元件，點擊材料名稱可以在 Google 圖片中搜尋它的樣子：</p>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>材料名稱</th>
-                            <th>數量</th>
-                            <th>功能說明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><a href="https://www.google.com/search?tbm=isch&q=Arduino+UNO" target="_blank" rel="noopener noreferrer" class="material-link">Arduino UNO (或相容板)</a></td>
-                            <td>1</td>
-                            <td>專案的大腦，負責執行程式碼。</td>
-                        </tr>
-                        <tr>
-                            <td><a href="https://www.google.com/search?tbm=isch&q=Photoresistor+LDR" target="_blank" rel="noopener noreferrer" class="material-link">光敏電阻 (LDR)</a></td>
-                            <td>1</td>
-                            <td>偵測環境光線強度，像眼睛一樣。</td>
-                        </tr>
-                        <tr>
-                            <td><a href="https://www.google.com/search?tbm=isch&q=10k+ohm+resistor" target="_blank" rel="noopener noreferrer" class="material-link">10kΩ 電阻</a></td>
-                            <td>1</td>
-                            <td>搭配光敏電阻使用，穩定讀值。(顏色通常是 棕-黑-橘-金)</td>
-                        </tr>
-                        <tr>
-                            <td><a href="https://www.google.com/search?tbm=isch&q=LED+diode" target="_blank" rel="noopener noreferrer" class="material-link">LED (發光二極體)</a></td>
-                            <td>1</td>
-                            <td>視覺警示燈，會發光。(長腳是正極)</td>
-                        </tr>
-                        <tr>
-                            <td><a href="https://www.google.com/search?tbm=isch&q=220+ohm+resistor" target="_blank" rel="noopener noreferrer" class="material-link">220Ω 電阻</a></td>
-                            <td>1</td>
-                            <td>保護 LED 不被燒毀。(顏色通常是 紅-紅-棕-金)</td>
-                        </tr>
-                         <tr>
-                            <td><a href="https://www.google.com/search?tbm=isch&q=Active+Buzzer" target="_blank" rel="noopener noreferrer" class="material-link">有源蜂鳴器</a></td>
-                            <td>1</td>
-                            <td>聲音警示器，通電就會叫。(注意正負極)</td>
-                        </tr>
-                        <tr>
-                            <td><a href="https://www.google.com/search?tbm=isch&q=Breadboard" target="_blank" rel="noopener noreferrer" class="material-link">麵包板</a></td>
-                            <td>1</td>
-                            <td>免焊接的實驗板，方便插拔元件。</td>
-                        </tr>
-                        <tr>
-                            <td><a href="https://www.google.com/search?tbm=isch&q=Dupont+wire+male+to+male" target="_blank" rel="noopener noreferrer" class="material-link">杜邦線 (公對公)</a></td>
-                            <td>約 7-10 條</td>
-                            <td>連接麵包板和 Arduino 的彩色電線。</td>
-                        </tr>
-                         <tr>
-                            <td><a href="https://www.google.com/search?tbm=isch&q=USB+cable+type+A+to+B" target="_blank" rel="noopener noreferrer" class="material-link">USB 連接線 (A對B型)</a></td>
-                            <td>1</td>
-                            <td>連接 Arduino 與電腦，用於上傳程式和供電。</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- 電路組裝 (Simplified CSS Diagram + Text) -->
-        <section id="circuit" class="card">
-            <h2>🔌 電路組裝：連接你的元件</h2>
-            <p>
-                請依照以下文字說明和簡化示意圖，將元件連接到麵包板和 Arduino。**文字說明是主要依據。**
-            </p>
-            <div class="circuit-diagram-simplified">
-                <div class="connection-group">
-                    <h4>1. 光敏電阻 (LDR) 分壓電路</h4>
-                    <p><span class="power-label">Arduino 5V</span> <span class="arrow">→</span> <span class="component-label">10kΩ 電阻</span> <span class="arrow">→</span> (連接點 A) <span class="arrow">→</span> <span class="component-label">光敏電阻 (LDR)</span> <span class="arrow">→</span> <span class="gnd-label">Arduino GND</span></p>
-                    <p>(連接點 A) <span class="arrow">→</span> <span class="pin-label">Arduino A0</span></p>
-                    <small>(註：連接點 A 指的是 10kΩ 電阻和 LDR 在麵包板上相連的那一排。)</small>
-                </div>
-                 <div class="connection-group">
-                    <h4>2. LED 電路</h4>
-                    <p><span class="pin-label">Arduino D2</span> <span class="arrow">→</span> <span class="component-label">220Ω 電阻</span> <span class="arrow">→</span> <span class="component-label">LED (長腳/正極 +)</span></p>
-                    <p><span class="component-label">LED (短腳/負極 -)</span> <span class="arrow">→</span> <span class="gnd-label">Arduino GND</span></p>
-                 </div>
-                  <div class="connection-group">
-                    <h4>3. 蜂鳴器電路</h4>
-                    <p><span class="pin-label">Arduino D3</span> <span class="arrow">→</span> <span class="component-label">蜂鳴器 (正極 +)</span></p>
-                     <p><span class="component-label">蜂鳴器 (負極 -)</span> <span class="arrow">→</span> <span class="gnd-label">Arduino GND</span></p>
-                 </div>
-                 <small><strong>重要：</strong>所有元件需要共用接地(GND)。請確保所有需要接到 GND 的線都連接到 Arduino 板上的任一個 GND 腳位。</small>
-            </div>
-
-            <h3>文字接線詳細步驟：</h3>
-            <ol>
-                <li>
-                    <strong>連接光敏電阻 (LDR)：</strong>
-                    <ul>
-                        <li>從 Arduino <span class="power-label">5V</span> 接一條線到麵包板電源排(+)。</li>
-                        <li>從 Arduino <span class="gnd-label">GND</span> 接一條線到麵包板接地排(-)。</li>
-                        <li>將 10kΩ 電阻一腳插入電源排(+)，另一腳插入麵包板某一行 (例如第 10 行)。</li>
-                        <li>將 LDR 一腳插入與 10kΩ 電阻相同的行 (第 10 行)，另一腳插入旁邊的行 (例如第 11 行)。</li>
-                        <li>從 LDR 的第二隻腳那一行 (第 11 行) 接一條線到接地排(-)。</li>
-                        <li>**關鍵：** 從 10kΩ 和 LDR 相連的那一行 (第 10 行) 接一條線到 Arduino <span class="pin-label">A0</span>。</li>
-                    </ul>
-                </li>
-                <li>
-                    <strong>連接 LED：</strong>
-                    <ul>
-                        <li>從 Arduino <span class="pin-label">D2</span> 接一條線到麵包板某一行 (例如第 20 行)。</li>
-                        <li>將 220Ω 電阻一腳插入 D2 線所在的行 (第 20 行)，另一腳插入旁邊的行 (例如第 21 行)。</li>
-                        <li>將 LED 長腳(+) 插入與 220Ω 電阻相同的行 (第 21 行)，短腳(-) 插入旁邊的行 (例如第 22 行)。</li>
-                        <li>從 LED 短腳(-) 那一行 (第 22 行) 接一條線到接地排(-)。</li>
-                    </ul>
-                </li>
-                <li>
-                    <strong>連接蜂鳴器：</strong>
-                    <ul>
-                         <li>從 Arduino <span class="pin-label">D3</span> 接一條線到蜂鳴器的正極(+)。</li>
-                         <li>從蜂鳴器的負極(-) 接一條線到接地排(-)。</li>
-                    </ul>
-                </li>
-                <li>
-                    <strong>檢查：</strong> 仔細確認 5V, GND, A0, D2, D3 都連接正確，沒有短路。
-                </li>
-            </ol>
-        </section>
-
-        <!-- 程式碼詳解 (Keep as is) -->
-        <section id="code" class="card">
-            <h2>💻 程式碼詳解：賦予系統靈魂</h2>
-            <p>
-                電路連接好後，我們需要編寫程式碼告訴 Arduino 如何運作。打開 Arduino IDE，將以下程式碼完整複製貼上：
-            </p>
-            <div class="code-block-wrapper">
-                <pre id="arduinoCode"><code class="language-cpp">
+      <!-- 程式碼詳解 -->
+      <section id="code" class="card">
+        <h2>💻 程式碼詳解：賦予系統靈魂</h2>
+        <p>
+          電路連接好後，我們需要編寫程式碼告訴 Arduino 如何運作。打開 Arduino
+          IDE，將以下程式碼完整複製貼上：
+        </p>
+        <div class="code-block-wrapper">
+          <pre id="arduinoCode"><code class="language-cpp">
 <span class="comment">// 定義腳位常量，方便修改和閱讀</span>
 <span class="keyword">const</span> <span class="type">int</span> <span class="variable">ldrPin</span> = A0;     <span class="comment">// 光敏電阻連接到類比腳位 A0</span>
 <span class="keyword">const</span> <span class="type">int</span> <span class="variable">ledPin</span> = 2;      <span class="comment">// LED 連接到數位腳位 D2</span>
@@ -582,215 +815,348 @@
   <span class="function">delay</span>(200); <span class="comment">// 延遲 200 毫秒 (0.2秒)</span>
 }
                 </code></pre>
-                <button class="copy-button" onclick="copyCode('arduinoCode')">複製程式碼</button>
-            </div>
+          <button class="copy-button" onclick="copyCode('arduinoCode')">
+            複製程式碼
+          </button>
+        </div>
 
-            <h3>程式碼說明：</h3>
+        <h3>程式碼說明：</h3>
+        <ul>
+          <li>
+            <strong>常量定義 (<code>const int</code>)：</strong> 使用 `const
+            int` 定義腳位名稱和閾值。`const`
+            表示這個值在程式執行中不會改變，有助於程式碼維護和可讀性。
+          </li>
+          <li>
+            <strong><code>setup()</code> 函數：</strong>
+            初始化設定區塊。只執行一次。
             <ul>
-                 <li><strong>常量定義 (<code>const int</code>)：</strong> 使用 `const int` 定義腳位名稱和閾值。`const` 表示這個值在程式執行中不會改變，有助於程式碼維護和可讀性。</li>
-                <li><strong><code>setup()</code> 函數：</strong> 初始化設定區塊。只執行一次。
-                    <ul>
-                        <li><code>Serial.begin(9600);</code>：啟動序列通訊，鮑率設為 9600。這是 Arduino 與電腦溝通的速率。</li>
-                        <li><code>pinMode(腳位, 模式);</code>：設定腳位的功能。`OUTPUT` 表示這個腳位用來輸出訊號（控制 LED/蜂鳴器），`INPUT`（預設）表示用來讀取訊號（讀取感測器）。</li>
-                        <li><code>digitalWrite(腳位, 狀態);</code>：將數位腳位設為高電位 (`HIGH`, 通常代表 5V 或開啟) 或低電位 (`LOW`, 通常代表 0V 或關閉)。</li>
-                    </ul>
-                 </li>
-                <li><strong><code>loop()</code> 函數：</strong> 主循環區塊，會不斷重複執行。
-                    <ul>
-                        <li><code>analogRead(類比腳位);</code>：讀取指定類比腳位 (A0-A5) 的電壓，回傳一個 0 到 1023 之間的整數。</li>
-                        <li><code>Serial.print() / Serial.println();</code>：將括號內的內容透過 USB 線傳送到電腦，顯示在序列埠監控視窗上。`println` 會自動換行。</li>
-                        <li><code>if (條件) { ... } else { ... }</code>：標準的條件判斷。如果 `if` 後面的條件為真，執行第一個 `{}` 內的程式碼；否則，執行 `else` 後面 `{}` 內的程式碼。</li>
-                         <li><code>delay(毫秒);</code>：讓程式暫停指定的毫秒數。</li>
-                    </ul>
-                </li>
+              <li>
+                <code>Serial.begin(9600);</code>：啟動序列通訊，鮑率設為
+                9600。這是 Arduino 與電腦溝通的速率。
+              </li>
+              <li>
+                <code>pinMode(腳位, 模式);</code>：設定腳位的功能。`OUTPUT`
+                表示這個腳位用來輸出訊號（控制
+                LED/蜂鳴器），`INPUT`（預設）表示用來讀取訊號（讀取感測器）。
+              </li>
+              <li>
+                <code>digitalWrite(腳位, 狀態);</code>：將數位腳位設為高電位
+                (`HIGH`, 通常代表 5V 或開啟) 或低電位 (`LOW`, 通常代表 0V
+                或關閉)。
+              </li>
             </ul>
-             <h3>⚠️ 最重要的一步：調整閾值 (Threshold)</h3>
-             <p>
-                 `lightThreshold` 的值 (程式碼中預設為 400) 直接決定了警報的靈敏度。**你必須根據你的實際環境進行調整！**
-             </p>
-             <ol>
-                 <li>將程式碼上傳到 Arduino。</li>
-                 <li>點擊 Arduino IDE 右上角的放大鏡圖示 🔍，打開「序列埠監控視窗 (Serial Monitor)」。</li>
-                 <li>確認監控視窗右下角的鮑率 (Baud rate) 是否設定為 `9600`。</li>
-                 <li>觀察在 **正常黑暗** (你希望警報不響) 的狀態下，視窗中輸出的 `光線感測值` 大約是多少？(例如 750)</li>
-                 <li>再觀察在 **有光線照射** (你希望警報響起) 的狀態下，`光線感測值` 又是多少？(例如 150)</li>
-                 <li>選擇一個介於這兩個數值 **中間** 的數作為你的 `lightThreshold`。在上面的例子中，介於 150 和 750 之間，可以選 300、400 或 500 試試看。</li>
-                 <li>回到程式碼，修改 `int lightThreshold = 400;` 這一行的數值，改成你選擇的新閾值。</li>
-                 <li>點擊「上傳」按鈕，將修改後的程式碼重新燒錄到 Arduino。</li>
-                 <li>重複測試，直到警報在你想要的光線條件下觸發。</li>
-             </ol>
-        </section>
-
-        <!-- Mermaid Flowchart Section -->
-        <section id="flowchart" class="card">
-             <h2>📊 系統運作流程 (Mermaid 圖)</h2>
-             <p>以下是這個光控警報系統的運作流程圖，使用 Mermaid JS 繪製：</p>
-             <!-- Mermaid Diagram Definition -->
-             <div class="mermaid">
-graph TD;
-    A[程式開始 Setup] --> B(初始化腳位和序列埠);
-    B --> C{重複執行 Loop};
-    C --> D[讀取 A0 光線值];
-    D --> E{光線值 < 閾值?};
-    E -- Yes --> F[開啟 LED (D2=HIGH)];
-    F --> G[開啟蜂鳴器 (D3=HIGH)];
-    E -- No --> H[關閉 LED (D2=LOW)];
-    H --> I[關閉蜂鳴器 (D3=LOW)];
-    G --> J(延遲 Delay);
-    I --> J;
-    J --> C;
-             </div>
-              <small style="display: block; text-align: center; margin-top: 10px;">(圖表由 Mermaid JS 生成)</small>
-        </section>
-
-        <!-- 測試與除錯 (Keep as is) -->
-        <section id="test" class="card">
-            <h2>🔬 測試與除錯：讓系統跑起來！</h2>
-            <ol>
-                <li><strong>最終檢查：</strong> 再次確認電路接線是否完全正確，特別是 5V 和 GND。</li>
-                <li><strong>上傳程式：</strong> 確保已選對開發板和序列埠，點擊 Arduino IDE 工具列上的 "→" (上傳) 按鈕。等待下方狀態列顯示「上傳完成」。</li>
-                <li><strong>打開監控：</strong> 點擊 IDE 右上角的放大鏡圖示 🔍，打開「序列埠監控視窗」，確認鮑率為 9600。你應該能看到持續輸出的 `光線感測值: xxx`。</li>
-                <li><strong>遮光測試：</strong> 用手完全遮住光敏電阻，或將其置於黑暗環境。觀察序列埠數值是否變大（根據我們的接法），LED 和蜂鳴器是否**熄滅**。</li>
-                <li><strong>照光測試：</strong> 移開手，或用手電筒、手機燈光照射光敏電阻。觀察序列埠數值是否變小，LED 和蜂鳴器是否**啟動**。</li>
-                <li><strong>閾值微調：</strong> 如果觸發時機不符合預期（太敏感或太遲鈍），重複前面「調整閾值」的步驟，修改 `lightThreshold` 並重新上傳程式碼，直到滿意為止。</li>
-            </ol>
-            <h3>🤔 遇到問題怎麼辦？(Troubleshooting)</h3>
+          </li>
+          <li>
+            <strong><code>loop()</code> 函數：</strong>
+            主循環區塊，會不斷重複執行。
             <ul>
-                <li><strong>🚫 無法上傳/上傳錯誤？</strong>
-                    <ul>
-                        <li>檢查 IDE 的「工具」選單，是否選對了「開發板」和「序列埠」？</li>
-                        <li>USB 線是否連接牢固？換個 USB 孔試試？</li>
-                        <li>是否有其他程式佔用了序列埠（例如某些驅動程式或監控軟體）？嘗試關閉它們或重啟電腦。</li>
-                        <li>程式碼是否有語法錯誤？檢查 IDE 下方的錯誤訊息提示。</li>
-                    </ul>
-                </li>
-                <li><strong>📉 序列埠沒反應/亂碼？</strong>
-                    <ul>
-                        <li>檢查程式碼裡是否有 `Serial.begin(9600);`？</li>
-                        <li>監控視窗右下角的鮑率是否也設定為 `9600`？</li>
-                        <li>嘗試重新插拔 USB 線或重啟 IDE。</li>
-                    </ul>
-                </li>
-                <li><strong>💡 LED 不亮？</strong>
-                    <ul>
-                        <li>LED 長短腳（正負極）是否接反了？</li>
-                        <li>220Ω 限流電阻是否連接正確，並且接在 LED 正極之前？</li>
-                        <li>連接到 D2 的杜邦線是否插好？</li>
-                        <li>LED 的負極是否確實連接到 GND？</li>
-                        <li>試著將 LED 直接接到 5V 和 GND (透過限流電阻) 看看 LED 本身是否正常。</li>
-                    </ul>
-                </li>
-                <li><strong>🔊 蜂鳴器不響？</strong>
-                    <ul>
-                        <li>有源蜂鳴器的正負極是否接反？（通常有標示）</li>
-                        <li>連接到 D3 的杜邦線是否插好？</li>
-                        <li>蜂鳴器的負極是否確實連接到 GND？</li>
-                        <li>試著將有源蜂鳴器直接接到 5V 和 GND 看看它是否正常。</li>
-                        <li>(如果是無源蜂鳴器，需要用 `tone()` 函數)</li>
-                    </ul>
-                </li>
-                <li><strong>❓ 感測值異常 (一直為 0 或 1023 或不變)？</strong>
-                    <ul>
-                        <li>檢查 A0、5V、GND 的接線是否正確且牢固？杜邦線有沒有插到底？</li>
-                        <li>麵包板上的連接是否可靠？（有時麵包板孔位會鬆動）</li>
-                        <li>光敏電阻或 10kΩ 電阻是否損壞？</li>
-                    </ul>
-                </li>
-                 <li><strong>⏰ 警報觸發時機不對？</strong>
-                    <ul>
-                        <li>這是最常見的問題！**請回到上面「調整閾值」的步驟，耐心觀察數值並修改 `lightThreshold`。** 這是設定靈敏度的關鍵。</li>
-                    </ul>
-                </li>
+              <li>
+                <code>analogRead(類比腳位);</code>：讀取指定類比腳位 (A0-A5)
+                的電壓，回傳一個 0 到 1023 之間的整數。
+              </li>
+              <li>
+                <code>Serial.print() / Serial.println();</code
+                >：將括號內的內容透過 USB
+                線傳送到電腦，顯示在序列埠監控視窗上。`println` 會自動換行。
+              </li>
+              <li>
+                <code>if (條件) { ... } else { ... }</code
+                >：標準的條件判斷。如果 `if` 後面的條件為真，執行第一個 `{}`
+                內的程式碼；否則，執行 `else` 後面 `{}` 內的程式碼。
+              </li>
+              <li><code>delay(毫秒);</code>：讓程式暫停指定的毫秒數。</li>
             </ul>
-            <p>除錯是學習過程的一部分，遇到問題時，仔細檢查接線和程式碼，並利用序列埠監控視窗觀察數據，通常都能找到解決方法！</p>
-        </section>
+          </li>
+        </ul>
+        <h3>⚠️ 最重要的一步：調整閾值 (Threshold)</h3>
+        <p>
+          `lightThreshold` 的值 (程式碼中預設為 400)
+          直接決定了警報的靈敏度。**你必須根據你的實際環境進行調整！**
+        </p>
+        <ol>
+          <li>將程式碼上傳到 Arduino。</li>
+          <li>
+            點擊 Arduino IDE 右上角的放大鏡圖示 🔍，打開「序列埠監控視窗 (Serial
+            Monitor)」。
+          </li>
+          <li>確認監控視窗右下角的鮑率 (Baud rate) 是否設定為 `9600`。</li>
+          <li>
+            觀察在 **正常黑暗** (你希望警報不響) 的狀態下，視窗中輸出的
+            `光線感測值` 大約是多少？(例如 750)
+          </li>
+          <li>
+            再觀察在 **有光線照射** (你希望警報響起) 的狀態下，`光線感測值`
+            又是多少？(例如 150)
+          </li>
+          <li>
+            選擇一個介於這兩個數值 **中間** 的數作為你的
+            `lightThreshold`。在上面的例子中，介於 150 和 750 之間，可以選
+            300、400 或 500 試試看。
+          </li>
+          <li>
+            回到程式碼，修改 `int lightThreshold = 400;`
+            這一行的數值，改成你選擇的新閾值。
+          </li>
+          <li>點擊「上傳」按鈕，將修改後的程式碼重新燒錄到 Arduino。</li>
+          <li>重複測試，直到警報在你想要的光線條件下觸發。</li>
+        </ol>
+      </section>
 
-        <!-- 結語 (Keep as is) -->
-        <section class="card">
-            <h2>🎉 恭喜！你完成了你的光控警報器！</h2>
-            <p>
-                你已經成功地從零開始，組裝電路、編寫程式，並完成了一個可以實際運作的 Arduino 專案！希望你從中體驗到了動手做的樂趣和成就感。
-            </p>
-            <p>
-                這個專案只是冰山一角，你可以繼續探索和挑戰：
-            </p>
+      <!-- Mermaid Flowchart Section (Corrected) -->
+      <section id="flowchart" class="card">
+        <h2>📊 系統運作流程 (Mermaid 圖)</h2>
+        <p>以下是這個光控警報系統的運作流程圖，使用 Mermaid JS 繪製：</p>
+        <!-- Mermaid Diagram Definition (Corrected Node E text) -->
+        <div class="mermaid">
+            graph TD;
+            A[程式開始 Setup] --> B(初始化腳位和序列埠);
+            B --> C{重複執行 Loop};
+        
+            %% 定義 Loop 內部的節點和流程
+            subgraph Loop Cycle
+                direction LR  %% subgraph 內部可以設為左右流向，比較符合判斷分支
+                D[讀取 A0 光線值] --> E{"光線值 < 閾值?"};
+                E -- Yes --> F[開啟 LED (D2=HIGH)];
+                F --> G[開啟蜂鳴器 (D3=HIGH)];
+                E -- No --> H[關閉 LED (D2=LOW)];
+                H --> I[關閉蜂鳴器 (D3=LOW)];
+            end
+        
+            %% 定義 Loop 的入口和出口連接
+            C --> D;    %% 從 C 進入 Loop (連接到 D)
+            G --> J(延遲 Delay); %% 從 Yes 分支出來連接到 J
+            I --> J;    %% 從 No 分支出來連接到 J
+            J --> C;    %% 從 J 回到 Loop 的起點 C
+        </div>
+        <small style="display: block; text-align: center; margin-top: 10px"
+          >(圖表由 Mermaid JS 生成)</small
+        >
+      </section>
+
+      <!-- 測試與除錯 -->
+      <section id="test" class="card">
+        <h2>🔬 測試與除錯：讓系統跑起來！</h2>
+        <ol>
+          <li>
+            <strong>最終檢查：</strong> 再次確認電路接線是否完全正確，特別是 5V
+            和 GND。
+          </li>
+          <li>
+            <strong>上傳程式：</strong> 確保已選對開發板和序列埠，點擊 Arduino
+            IDE 工具列上的 "→" (上傳) 按鈕。等待下方狀態列顯示「上傳完成」。
+          </li>
+          <li>
+            <strong>打開監控：</strong> 點擊 IDE 右上角的放大鏡圖示
+            🔍，打開「序列埠監控視窗」，確認鮑率為 9600。你應該能看到持續輸出的
+            `光線感測值: xxx`。
+          </li>
+          <li>
+            <strong>遮光測試：</strong>
+            用手完全遮住光敏電阻，或將其置於黑暗環境。觀察序列埠數值是否變大（根據我們的接法），LED
+            和蜂鳴器是否**熄滅**。
+          </li>
+          <li>
+            <strong>照光測試：</strong>
+            移開手，或用手電筒、手機燈光照射光敏電阻。觀察序列埠數值是否變小，LED
+            和蜂鳴器是否**啟動**。
+          </li>
+          <li>
+            <strong>閾值微調：</strong>
+            如果觸發時機不符合預期（太敏感或太遲鈍），重複前面「調整閾值」的步驟，修改
+            `lightThreshold` 並重新上傳程式碼，直到滿意為止。
+          </li>
+        </ol>
+        <h3>🤔 遇到問題怎麼辦？(Troubleshooting)</h3>
+        <ul>
+          <li>
+            <strong>🚫 無法上傳/上傳錯誤？</strong>
             <ul>
-                <li><strong>進階警報：</strong> 讓 LED 不只是亮，而是閃爍（在 `if` 區塊中使用 `delay()` 和 `digitalWrite()` 交替 HIGH/LOW）。讓蜂鳴器發出不同的音調或節奏（需要使用 `tone()` 和 `noTone()`）。</li>
-                <li><strong>延遲觸發/持續時間：</strong> 偵測到光線後，等待幾秒才觸發警報；或者警報觸發後，持續響一段時間才停止。</li>
-                <li><strong>加入開關：</strong> 添加一個按鈕或開關，用來啟用/停用警報系統。</li>
-                <li><strong>結合其他感測器：</strong> 加入 PIR 人體紅外線感測器，變成偵測到"人"靠近且"有光線"時才觸發，增加防盜的準確性。</li>
-                <li><strong>網路功能：</strong> 使用 ESP8266 或 ESP32 等具有 Wi-Fi 功能的板子，在觸發警報時發送通知到你的手機！</li>
+              <li>
+                檢查 IDE 的「工具」選單，是否選對了「開發板」和「序列埠」？
+              </li>
+              <li>USB 線是否連接牢固？換個 USB 孔試試？</li>
+              <li>
+                是否有其他程式佔用了序列埠（例如某些驅動程式或監控軟體）？嘗試關閉它們或重啟電腦。
+              </li>
+              <li>程式碼是否有語法錯誤？檢查 IDE 下方的錯誤訊息提示。</li>
             </ul>
-            <p>🚀 Arduino 的世界充滿無限可能，繼續學習，保持好奇，創造更多有趣的作品吧！</p>
-        </section>
+          </li>
+          <li>
+            <strong>📉 序列埠沒反應/亂碼？</strong>
+            <ul>
+              <li>檢查程式碼裡是否有 `Serial.begin(9600);`？</li>
+              <li>監控視窗右下角的鮑率是否也設定為 `9600`？</li>
+              <li>嘗試重新插拔 USB 線或重啟 IDE。</li>
+            </ul>
+          </li>
+          <li>
+            <strong>💡 LED 不亮？</strong>
+            <ul>
+              <li>LED 長短腳（正負極）是否接反了？</li>
+              <li>220Ω 限流電阻是否連接正確，並且接在 LED 正極之前？</li>
+              <li>連接到 D2 的杜邦線是否插好？</li>
+              <li>LED 的負極是否確實連接到 GND？</li>
+              <li>
+                試著將 LED 直接接到 5V 和 GND (透過限流電阻) 看看 LED
+                本身是否正常。
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>🔊 蜂鳴器不響？</strong>
+            <ul>
+              <li>有源蜂鳴器的正負極是否接反？（通常有標示）</li>
+              <li>連接到 D3 的杜邦線是否插好？</li>
+              <li>蜂鳴器的負極是否確實連接到 GND？</li>
+              <li>試著將有源蜂鳴器直接接到 5V 和 GND 看看它是否正常。</li>
+              <li>(如果是無源蜂鳴器，需要用 `tone()` 函數)</li>
+            </ul>
+          </li>
+          <li>
+            <strong>❓ 感測值異常 (一直為 0 或 1023 或不變)？</strong>
+            <ul>
+              <li>
+                檢查 A0、5V、GND 的接線是否正確且牢固？杜邦線有沒有插到底？
+              </li>
+              <li>麵包板上的連接是否可靠？（有時麵包板孔位會鬆動）</li>
+              <li>光敏電阻或 10kΩ 電阻是否損壞？</li>
+            </ul>
+          </li>
+          <li>
+            <strong>⏰ 警報觸發時機不對？</strong>
+            <ul>
+              <li>
+                這是最常見的問題！**請回到上面「調整閾值」的步驟，耐心觀察數值並修改
+                `lightThreshold`。** 這是設定靈敏度的關鍵。
+              </li>
+            </ul>
+          </li>
+        </ul>
+        <p>
+          除錯是學習過程的一部分，遇到問題時，仔細檢查接線和程式碼，並利用序列埠監控視窗觀察數據，通常都能找到解決方法！
+        </p>
+      </section>
 
+      <!-- 結語 -->
+      <section class="card">
+        <h2>🎉 恭喜！你完成了你的光控警報器！</h2>
+        <p>
+          你已經成功地從零開始，組裝電路、編寫程式，並完成了一個可以實際運作的
+          Arduino 專案！希望你從中體驗到了動手做的樂趣和成就感。
+        </p>
+        <p>這個專案只是冰山一角，你可以繼續探索和挑戰：</p>
+        <ul>
+          <li>
+            <strong>進階警報：</strong> 讓 LED 不只是亮，而是閃爍（在 `if`
+            區塊中使用 `delay()` 和 `digitalWrite()` 交替
+            HIGH/LOW）。讓蜂鳴器發出不同的音調或節奏（需要使用 `tone()` 和
+            `noTone()`）。
+          </li>
+          <li>
+            <strong>延遲觸發/持續時間：</strong>
+            偵測到光線後，等待幾秒才觸發警報；或者警報觸發後，持續響一段時間才停止。
+          </li>
+          <li>
+            <strong>加入開關：</strong>
+            添加一個按鈕或開關，用來啟用/停用警報系統。
+          </li>
+          <li>
+            <strong>結合其他感測器：</strong> 加入 PIR
+            人體紅外線感測器，變成偵測到"人"靠近且"有光線"時才觸發，增加防盜的準確性。
+          </li>
+          <li>
+            <strong>網路功能：</strong> 使用 ESP8266 或 ESP32 等具有 Wi-Fi
+            功能的板子，在觸發警報時發送通知到你的手機！
+          </li>
+        </ul>
+        <p>
+          🚀 Arduino
+          的世界充滿無限可能，繼續學習，保持好奇，創造更多有趣的作品吧！
+        </p>
+      </section>
     </div>
 
     <!-- 頁尾 -->
     <footer>
-        <div class="container">
-            <p>© 2024 Arduino 學習專案 | Designed with ❤️ | Happy Making!</p>
-        </div>
+      <div class="container">
+        <p>© 2024 Arduino 學習專案 | Designed with ❤️ | Happy Making!</p>
+      </div>
     </footer>
 
     <!-- Mermaid JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
-        // Initialize Mermaid
-        mermaid.initialize({ startOnLoad: true });
+      // Initialize Mermaid
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "base",
+        themeVariables: {
+          primaryColor: "#f0f0f0", // Match background
+          primaryTextColor: "#333",
+          lineColor: "#6c757d", // Secondary color for lines
+          textColor: "#343a40", // Dark text
+          fontSize: "14px", // Adjust font size if needed
+        },
+      });
     </script>
 
-    <!-- JavaScript for Copy Button (Keep as is) -->
+    <!-- JavaScript for Copy Button -->
     <script>
-        function copyCode(elementId) {
-            const codeElement = document.getElementById(elementId);
-            const codeContentElement = codeElement.querySelector('code');
-            const codeToCopy = codeContentElement.innerText || codeContentElement.textContent;
-            const copyButton = codeElement.closest('.code-block-wrapper').querySelector('.copy-button');
+      function copyCode(elementId) {
+        const codeElement = document.getElementById(elementId);
+        const codeContentElement = codeElement.querySelector("code");
+        const codeToCopy =
+          codeContentElement.innerText || codeContentElement.textContent;
+        const copyButton = codeElement
+          .closest(".code-block-wrapper")
+          .querySelector(".copy-button");
 
-            if (!navigator.clipboard) {
-                try {
-                    const textArea = document.createElement("textarea");
-                    textArea.value = codeToCopy;
-                    textArea.style.position = "fixed";
-                    textArea.style.opacity = "0";
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    copyButton.textContent = '已複製!';
-                    copyButton.classList.add('copied');
-                    setTimeout(() => {
-                        copyButton.textContent = '複製程式碼';
-                        copyButton.classList.remove('copied');
-                    }, 2000);
-                } catch (err) {
-                     console.error('Fallback: 無法複製程式碼: ', err);
-                     copyButton.textContent = '複製失敗';
-                      setTimeout(() => {
-                        copyButton.textContent = '複製程式碼';
-                    }, 2000);
-                }
-                return;
-            }
-
-            navigator.clipboard.writeText(codeToCopy).then(() => {
-                copyButton.textContent = '已複製!';
-                copyButton.classList.add('copied');
-                setTimeout(() => {
-                    copyButton.textContent = '複製程式碼';
-                    copyButton.classList.remove('copied');
-                }, 2000);
-            }).catch(err => {
-                console.error('無法複製程式碼: ', err);
-                copyButton.textContent = '複製失敗';
-                 setTimeout(() => {
-                    copyButton.textContent = '複製程式碼';
-                }, 2000);
-            });
+        if (!navigator.clipboard) {
+          try {
+            const textArea = document.createElement("textarea");
+            textArea.value = codeToCopy;
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+            copyButton.textContent = "已複製!";
+            copyButton.classList.add("copied");
+            setTimeout(() => {
+              copyButton.textContent = "複製程式碼";
+              copyButton.classList.remove("copied");
+            }, 2000);
+          } catch (err) {
+            console.error("Fallback: 無法複製程式碼: ", err);
+            copyButton.textContent = "複製失敗";
+            setTimeout(() => {
+              copyButton.textContent = "複製程式碼";
+            }, 2000);
+          }
+          return;
         }
-    </script>
 
-</body>
+        navigator.clipboard
+          .writeText(codeToCopy)
+          .then(() => {
+            copyButton.textContent = "已複製!";
+            copyButton.classList.add("copied");
+            setTimeout(() => {
+              copyButton.textContent = "複製程式碼";
+              copyButton.classList.remove("copied");
+            }, 2000);
+          })
+          .catch((err) => {
+            console.error("無法複製程式碼: ", err);
+            copyButton.textContent = "複製失敗";
+            setTimeout(() => {
+              copyButton.textContent = "複製程式碼";
+            }, 2000);
+          });
+      }
+    </script>
+  </body>
 </html>
