@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>超級精美輪盤抽籤機</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Microsoft JhengHei", Arial, sans-serif;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        overflow-x: hidden;
+        background: linear-gradient(135deg, #f9f7fe 0%, #e2d1f9 100%);
+        color: #4a4a4a;
+      }
+
+      .container {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem;
+        max-width: 1000px;
+        width: 100%;
+      }
+
+      .title {
+        font-size: 2.5rem;
+        color: #6a3093;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+        text-align: center;
+        position: relative;
+      }
+
+      .title span {
+        display: inline-block;
+      }
+
+      .setup-container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 800px;
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        transition: all 0.5s ease;
+      }
+
+      .input-group {
+        margin-bottom: 1.5rem;
+      }
+
+      label {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+        display: block;
+        color: #6a3093;
+        font-weight: bold;
+      }
+
+      textarea,
+      input {
+        width: 100%;
+        padding: 0.8rem;
+        border: 2px solid #e2d1f9;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s;
+      }
+
+      textarea:focus,
+      input:focus {
+        outline: none;
+        border-color: #6a3093;
+        box-shadow: 0 0 10px rgba(106, 48, 147, 0.2);
+      }
+
+      textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .btn {
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 50px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);
+        color: white;
+      }
+
+      .btn-secondary {
+        background: white;
+        color: #6a3093;
+        border: 2px solid #6a3093;
+      }
+
+      .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .game-container {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: 800px;
+      }
+
+      .wheel-container {
+        position: relative;
+        width: 400px;
+        height: 400px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 2rem 0;
+      }
+
+      .wheel {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.2),
+          0 0 60px rgba(106, 48, 147, 0.2);
+        transition: box-shadow 0.3s;
+        transform-origin: center;
+      }
+
+      .wheel-section {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 50%;
+        height: 50%;
+        transform-origin: 0% 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .wheel-section span {
+        position: absolute;
+        left: 100%;
+        transform: rotate(90deg) translateX(-35px) translateY(-50px);
+        transform-origin: 0% 0%;
+        font-weight: bold;
+        color: white;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        width: 120px;
+        text-align: center;
+        pointer-events: none;
+        font-size: 0.9rem;
+      }
+
+      .wheel-center {
+        position: absolute;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: white;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+        overflow: hidden;
+      }
+
+      .wheel-center::before {
+        content: "";
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);
+      }
+
+      .wheel-center::after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 4px solid transparent;
+        border-top-color: #6a3093;
+        animation: rotate 2s linear infinite;
+        opacity: 0;
+      }
+
+      @keyframes rotate {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* 裝飾元素 */
+      .wheel-decoration {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);
+        z-index: 1;
+        opacity: 0.7;
+        border-radius: 50%;
+        box-shadow: 0 0 15px rgba(106, 48, 147, 0.5);
+      }
+
+      .wheel-decoration.top-left {
+        top: -15px;
+        left: -15px;
+      }
+
+      .wheel-decoration.top-right {
+        top: -15px;
+        right: -15px;
+      }
+
+      .wheel-decoration.bottom-left {
+        bottom: -15px;
+        left: -15px;
+      }
+
+      .wheel-decoration.bottom-right {
+        bottom: -15px;
+        right: -15px;
+      }
+
+      .wheel-pointer {
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 30px;
+        height: 50px;
+        background: linear-gradient(135deg, #fc466b 0%, #ff8086 100%);
+        clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        z-index: 10;
+        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      .wheel-pointer::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 10px;
+        height: 10px;
+        background: white;
+        border-radius: 50%;
+      }
+
+      .controls {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        width: 100%;
+      }
+
+      .result-container {
+        min-height: 100px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+        transition: all 0.5s ease;
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      .result-title {
+        font-size: 1.5rem;
+        color: #6a3093;
+        margin-bottom: 1rem;
+        font-weight: bold;
+      }
+
+      .winner {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #6a3093;
+        margin-bottom: 0.5rem;
+        text-align: center;
+      }
+
+      .prize {
+        font-size: 1.5rem;
+        color: #6a3093;
+        text-align: center;
+      }
+
+      .participants-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-top: 1rem;
+        max-width: 600px;
+      }
+
+      .participant-item {
+        background: white;
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        font-size: 0.9rem;
+        color: #6a3093;
+        transition: all 0.3s;
+      }
+
+      .participant-item.winner {
+        background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);
+        color: white;
+        transform: scale(1.1);
+      }
+
+      .confetti {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background-color: #f00;
+        opacity: 0;
+        z-index: 999;
+      }
+
+      .firework {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        transform: translate(-50%, -50%);
+        z-index: 999;
+      }
+
+      .loading-animation {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .loading-dot {
+        width: 20px;
+        height: 20px;
+        margin: 0 5px;
+        border-radius: 50%;
+        background: #6a3093;
+        opacity: 0;
+      }
+
+      /* 浮動圖案 */
+      .floating-item {
+        position: absolute;
+        opacity: 0;
+        border-radius: 50%;
+        z-index: -1;
+      }
+
+      /* 觸發效果 */
+      .glitter {
+        position: absolute;
+        width: 5px;
+        height: 5px;
+        background: white;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 999;
+      }
+
+      .back-to-setup {
+        margin-top: 1rem;
+      }
+
+      /* 螢幕適配 */
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+
+        .title {
+          font-size: 1.8rem;
+        }
+
+        .setup-container,
+        .game-container {
+          padding: 1rem;
+        }
+
+        .wheel-container {
+          width: 300px;
+          height: 300px;
+        }
+
+        .wheel-section span {
+          transform: rotate(90deg) translateX(-20px) translateY(-40px);
+          font-size: 0.7rem;
+        }
+
+        .button-group {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="title">✨ 超級精美輪盤抽籤機 ✨</h1>
+
+      <!-- 設置面板 -->
+      <div class="setup-container" id="setupContainer">
+        <div class="input-group">
+          <label for="participants">參與者名單 (每行一個名字)</label>
+          <textarea
+            id="participants"
+            placeholder="小明&#10;小華&#10;小強"
+          ></textarea>
+        </div>
+
+        <div class="input-group">
+          <label for="prizes">獎品清單 (每行一個獎品)</label>
+          <textarea
+            id="prizes"
+            placeholder="iPhone 15&#10;AirPods Pro&#10;星巴克禮券"
+          ></textarea>
+        </div>
+
+        <div class="button-group">
+          <button id="startGame" class="btn btn-primary">開始抽獎</button>
+          <button id="randomData" class="btn btn-secondary">
+            產生隨機資料
+          </button>
+        </div>
+      </div>
+
+      <!-- 遊戲面板 -->
+      <div class="game-container" id="gameContainer">
+        <div class="participants-list" id="participantsList"></div>
+
+        <div class="wheel-container">
+          <div class="wheel-pointer"></div>
+          <div class="wheel" id="wheel"></div>
+          <div class="wheel-center"></div>
+          <div class="loading-animation" id="loadingAnimation">
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+          </div>
+          <!-- 增加裝飾元素 -->
+          <div class="wheel-decoration top-left"></div>
+          <div class="wheel-decoration top-right"></div>
+          <div class="wheel-decoration bottom-left"></div>
+          <div class="wheel-decoration bottom-right"></div>
+        </div>
+
+        <div class="controls">
+          <button id="spinWheel" class="btn btn-primary">開始抽獎</button>
+          <button id="backToSetup" class="btn btn-secondary back-to-setup">
+            返回設定
+          </button>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+          <div class="result-title">🎉 抽獎結果 🎉</div>
+          <div class="winner" id="winnerName"></div>
+          <div class="prize" id="winnerPrize"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // DOM 元素會在 DOMContentLoaded 後初始化
+      let setupContainer,
+        gameContainer,
+        participantsInput,
+        prizesInput,
+        startGameBtn,
+        randomDataBtn,
+        spinWheelBtn,
+        backToSetupBtn,
+        wheel,
+        participantsList,
+        resultContainer,
+        winnerNameEl,
+        winnerPrizeEl,
+        loadingAnimation;
+
+      // 等待 DOM 加載完成後再初始化元素引用
+      document.addEventListener("DOMContentLoaded", () => {
+        setupContainer = document.getElementById("setupContainer");
+        gameContainer = document.getElementById("gameContainer");
+        participantsInput = document.getElementById("participants");
+        prizesInput = document.getElementById("prizes");
+        startGameBtn = document.getElementById("startGame");
+        randomDataBtn = document.getElementById("randomData");
+        spinWheelBtn = document.getElementById("spinWheel");
+        backToSetupBtn = document.getElementById("backToSetup");
+        wheel = document.getElementById("wheel");
+        participantsList = document.getElementById("participantsList");
+        resultContainer = document.getElementById("resultContainer");
+        winnerNameEl = document.getElementById("winnerName");
+        winnerPrizeEl = document.getElementById("winnerPrize");
+        loadingAnimation = document.getElementById("loadingAnimation");
+
+        // 初始化事件監聽器
+        initEventListeners();
+      });
+
+      // 全局變數
+      let participants = [];
+      let prizes = [];
+      let colors = [
+        "#FF6B6B",
+        "#4ECDC4",
+        "#FF9A76",
+        "#F7DB4F",
+        "#45B7D1",
+        "#9B5DE5",
+        "#F2994A",
+        "#67C587",
+        "#E868A2",
+        "#8A7CEA",
+        "#6EDCD9",
+        "#FFC478",
+        "#FF7C93",
+        "#6BA3FF",
+        "#9EE09E",
+        "#F9C846",
+      ];
+      let isSpinning = false;
+      let wheelSections = [];
+      let currentWinner = null;
+      let currentPrize = null;
+
+      // 增加新的特效選項
+      const animationEffects = {
+        colors: colors,
+        durations: {
+          slow: 8000,
+          normal: 5000,
+          fast: 3000,
+        },
+        easings: {
+          elastic: "easeOutElastic(1, .5)",
+          bounce: "easeOutBounce",
+          smooth: "easeOutQuint",
+          sharp: "easeOutExpo",
+        },
+        intensities: {
+          low: 0.5,
+          medium: 1,
+          high: 1.5,
+        },
+      };
+
+      // 頁面加載時的動畫效果
+      document.addEventListener("DOMContentLoaded", () => {
+        try {
+          // 標題動畫
+          const titleEl = document.querySelector(".title");
+          if (titleEl) {
+            const titleChars = titleEl.textContent.split("");
+            titleEl.textContent = "";
+
+            titleChars.forEach((char, i) => {
+              const span = document.createElement("span");
+              span.textContent = char === " " ? "\u00A0" : char;
+              span.style.opacity = "0";
+              span.style.transform = "translateY(20px)";
+              titleEl.appendChild(span);
+            });
+
+            anime({
+              targets: ".title span",
+              opacity: 1,
+              translateY: 0,
+              delay: anime.stagger(50),
+              easing: "easeOutQuad",
+              duration: 800,
+            });
+          }
+
+          // 創建浮動裝飾
+          createFloatingElements();
+
+          // 裝飾元素動畫
+          animateDecorations();
+
+          // 設置表單動畫
+          anime({
+            targets: ".setup-container",
+            opacity: [0, 1],
+            translateY: [50, 0],
+            easing: "easeOutQuad",
+            duration: 1000,
+            delay: 500,
+          });
+        } catch (error) {
+          console.error("初始化動畫錯誤:", error);
+        }
+      });
+
+      // 裝飾元素動畫
+      function animateDecorations() {
+        try {
+          // 輪盤四角裝飾動畫
+          anime({
+            targets: ".wheel-decoration",
+            scale: [0, 1],
+            opacity: [0, 0.7],
+            duration: 1000,
+            delay: anime.stagger(200),
+            easing: "easeOutElastic(1, .5)",
+            complete: function () {
+              // 持續的呼吸效果
+              anime({
+                targets: ".wheel-decoration",
+                scale: [1, 1.2, 1],
+                opacity: [0.7, 1, 0.7],
+                duration: 3000,
+                easing: "easeInOutQuad",
+                loop: true,
+              });
+            },
+          });
+        } catch (error) {
+          console.error("裝飾元素動畫錯誤:", error);
+        }
+      }
+
+      // 創建浮動裝飾元素
+      function createFloatingElements() {
+        try {
+          const container = document.querySelector(".container");
+          if (!container) {
+            console.error("找不到容器元素");
+            return;
+          }
+
+          const decorCount = 15;
+
+          for (let i = 0; i < decorCount; i++) {
+            const decor = document.createElement("div");
+            decor.className = "floating-item";
+
+            // 隨機大小
+            const size = anime.random(10, 40);
+            decor.style.width = `${size}px`;
+            decor.style.height = `${size}px`;
+
+            // 隨機顏色
+            decor.style.background =
+              colors[Math.floor(Math.random() * colors.length)];
+
+            // 隨機初始位置
+            decor.style.left = `${anime.random(0, 100)}%`;
+            decor.style.top = `${anime.random(-20, 100)}%`;
+
+            // 隨機形狀
+            if (Math.random() > 0.5) {
+              const borderRadius = [
+                `${anime.random(10, 50)}%`,
+                `${anime.random(10, 50)}%`,
+                `${anime.random(10, 50)}%`,
+                `${anime.random(10, 50)}%`,
+              ].join(" ");
+              decor.style.borderRadius = borderRadius;
+            }
+
+            container.appendChild(decor);
+
+            // 漂浮動畫
+            anime({
+              targets: decor,
+              opacity: [0, 0.7],
+              delay: anime.random(0, 1000),
+              duration: 1000,
+              easing: "easeOutQuad",
+              complete: function () {
+                anime({
+                  targets: decor,
+                  translateX: () => anime.random(-50, 50) + "px",
+                  translateY: () => anime.random(-50, 50) + "px",
+                  rotate: () => anime.random(-360, 360),
+                  opacity: () => anime.random(0.3, 0.7),
+                  easing: "easeInOutQuad",
+                  duration: () => anime.random(5000, 10000),
+                  direction: "alternate",
+                  loop: true,
+                });
+              },
+            });
+          }
+        } catch (error) {
+          console.error("創建浮動元素錯誤:", error);
+        }
+      }
+
+      // 產生閃光效果
+      function createGlitter(event) {
+        try {
+          const glitterCount = 10;
+
+          for (let i = 0; i < glitterCount; i++) {
+            const glitter = document.createElement("div");
+            glitter.className = "glitter";
+
+            // 設置初始位置在滑鼠位置
+            glitter.style.left = `${event.clientX}px`;
+            glitter.style.top = `${event.clientY}px`;
+
+            // 添加到容器
+            document.body.appendChild(glitter);
+
+            // 漂浮動畫
+            anime({
+              targets: glitter,
+              translateX: () => anime.random(-50, 50),
+              translateY: () => anime.random(-50, 50),
+              scale: [1, 0],
+              opacity: [1, 0],
+              easing: "easeOutExpo",
+              duration: 1000,
+              complete: function () {
+                if (glitter.parentNode) {
+                  document.body.removeChild(glitter);
+                }
+              },
+            });
+          }
+        } catch (error) {
+          console.error("創建閃光效果錯誤:", error);
+        }
+      }
+
+      // 事件監聽 - 滑鼠移動時產生閃光
+      document.addEventListener("DOMContentLoaded", () => {
+        const container = document.querySelector(".container");
+        if (container) {
+          container.addEventListener("mousemove", function (e) {
+            if (Math.random() > 0.9) {
+              createGlitter(e);
+            }
+          });
+        }
+      });
+
+      // 初始化事件監聽器
+      function initEventListeners() {
+        if (randomDataBtn) {
+          randomDataBtn.addEventListener("click", generateRandomData);
+        }
+
+        if (startGameBtn) {
+          startGameBtn.addEventListener("click", startGame);
+        }
+
+        if (backToSetupBtn) {
+          backToSetupBtn.addEventListener("click", switchToSetup);
+        }
+
+        if (spinWheelBtn) {
+          spinWheelBtn.addEventListener("click", spinWheel);
+        }
+      }
+
+      // 隨機資料生成
+      function generateRandomData() {
+        if (!participantsInput || !prizesInput) return;
+
+        const randomNames = [
+          "小明",
+          "小華",
+          "小強",
+          "小美",
+          "小芳",
+          "大雄",
+          "靜香",
+          "胖虎",
+          "小夫",
+          "哆啦A夢",
+          "阿翰",
+          "阿美",
+          "小龍",
+          "小琳",
+          "小傑",
+          "佳佳",
+          "小婷",
+          "小威",
+          "小玲",
+          "阿凱",
+        ];
+
+        const randomPrizes = [
+          "iPhone 15",
+          "AirPods Pro",
+          "星巴克禮券",
+          "電影票兩張",
+          "巧克力禮盒",
+          "精美筆記本",
+          "藍牙喇叭",
+          "USB 充電器",
+          "午餐折價券",
+          "精美馬克杯",
+          "書籍禮券",
+          "健身房體驗券",
+        ];
+
+        // 隨機選取一些名字
+        const selectedNames = [];
+        const nameCount = Math.floor(Math.random() * 10) + 5; // 5-15 人
+
+        for (let i = 0; i < nameCount; i++) {
+          const randomIndex = Math.floor(Math.random() * randomNames.length);
+          if (!selectedNames.includes(randomNames[randomIndex])) {
+            selectedNames.push(randomNames[randomIndex]);
+          }
+        }
+
+        // 隨機選取一些獎品
+        const selectedPrizes = [];
+        const prizeCount = Math.floor(Math.random() * 5) + 3; // 3-8 個獎品
+
+        for (let i = 0; i < prizeCount; i++) {
+          const randomIndex = Math.floor(Math.random() * randomPrizes.length);
+          if (!selectedPrizes.includes(randomPrizes[randomIndex])) {
+            selectedPrizes.push(randomPrizes[randomIndex]);
+          }
+        }
+
+        participantsInput.value = selectedNames.join("\n");
+        prizesInput.value = selectedPrizes.join("\n");
+
+        // 動畫效果
+        anime({
+          targets: [participantsInput, prizesInput],
+          backgroundColor: [
+            { value: "#e2f3ff", duration: 300 },
+            { value: "#fff", duration: 500 },
+          ],
+          easing: "easeInOutQuad",
+        });
+      }
+
+      // 開始遊戲
+      function startGame() {
+        if (!participantsInput || !prizesInput) return;
+
+        // 獲取參與者和獎品資料
+        participants = participantsInput.value
+          .split("\n")
+          .filter((name) => name.trim() !== "");
+        prizes = prizesInput.value
+          .split("\n")
+          .filter((prize) => prize.trim() !== "");
+
+        // 驗證資料
+        if (participants.length === 0) {
+          shakeElement(participantsInput);
+          return;
+        }
+
+        if (prizes.length === 0) {
+          shakeElement(prizesInput);
+          return;
+        }
+
+        // 切換到遊戲畫面
+        switchToGame();
+      }
+
+      // 震動錯誤效果
+      function shakeElement(element) {
+        anime({
+          targets: element,
+          translateX: [
+            { value: 10, duration: 100 },
+            { value: -10, duration: 100 },
+            { value: 10, duration: 100 },
+            { value: -10, duration: 100 },
+            { value: 10, duration: 100 },
+            { value: 0, duration: 100 },
+          ],
+          backgroundColor: [
+            { value: "#ffeeee", duration: 300 },
+            { value: "#fff", duration: 500 },
+          ],
+          easing: "easeInOutQuad",
+        });
+      }
+
+      // 切換到遊戲畫面
+      function switchToGame() {
+        // 淡出設定畫面
+        anime({
+          targets: setupContainer,
+          opacity: 0,
+          translateY: -50,
+          easing: "easeInOutQuad",
+          duration: 500,
+          complete: function () {
+            setupContainer.style.display = "none";
+            gameContainer.style.display = "flex";
+
+            // 淡入遊戲畫面
+            anime({
+              targets: gameContainer,
+              opacity: [0, 1],
+              translateY: [50, 0],
+              easing: "easeOutQuad",
+              duration: 800,
+            });
+
+            // 創建輪盤
+            createWheel();
+
+            // 創建參與者列表
+            createParticipantsList();
+          },
+        });
+      }
+
+      // 切換回設定畫面
+      function switchToSetup() {
+        // 淡出遊戲畫面
+        anime({
+          targets: gameContainer,
+          opacity: 0,
+          translateY: 50,
+          easing: "easeInOutQuad",
+          duration: 500,
+          complete: function () {
+            gameContainer.style.display = "none";
+            setupContainer.style.display = "flex";
+
+            // 淡入設定畫面
+            anime({
+              targets: setupContainer,
+              opacity: [0, 1],
+              translateY: [0, 0],
+              easing: "easeOutQuad",
+              duration: 800,
+            });
+
+            // 重置結果容器
+            resetResultContainer();
+
+            // 清空輪盤
+            wheel.innerHTML = "";
+          },
+        });
+      }
+
+      // 創建參與者列表
+      function createParticipantsList() {
+        participantsList.innerHTML = "";
+
+        participants.forEach((participant) => {
+          const item = document.createElement("div");
+          item.className = "participant-item";
+          item.textContent = participant;
+          item.dataset.name = participant;
+          participantsList.appendChild(item);
+        });
+
+        // 動畫效果
+        anime({
+          targets: ".participant-item",
+          translateY: [20, 0],
+          opacity: [0, 1],
+          delay: anime.stagger(50),
+          easing: "easeOutQuad",
+        });
+      }
+
+      // 創建輪盤
+      function createWheel() {
+        wheel.innerHTML = "";
+        wheelSections = [];
+
+        // 使用最小的長度，確保每個人機率一樣
+        const itemCount = participants.length;
+        const anglePerSection = 360 / itemCount;
+
+        // 創建輪盤區塊
+        participants.forEach((name, index) => {
+          const section = document.createElement("div");
+          section.className = "wheel-section";
+          section.dataset.name = name;
+
+          // 設定旋轉角度
+          section.style.transform = `rotate(${index * anglePerSection}deg)`;
+
+          // 設定背景顏色
+          section.style.background = colors[index % colors.length];
+
+          // 設定文字
+          const text = document.createElement("span");
+
+          // 如果名字太長，縮短顯示
+          let displayName = name;
+          if (name.length > 6) {
+            displayName = name.substring(0, 6) + "...";
+          }
+
+          text.textContent = displayName;
+          section.appendChild(text);
+
+          // 添加到輪盤
+          wheel.appendChild(section);
+          wheelSections.push(section);
+        });
+
+        // 輪盤創建完成後的動畫
+        anime({
+          targets: wheel,
+          rotate: [0, 360],
+          scale: [0.5, 1],
+          opacity: [0, 1],
+          duration: 1500,
+          easing: "easeOutElastic(1, .5)",
+        });
+
+        // 圓心加載動畫
+        anime({
+          targets: ".wheel-center::after",
+          opacity: [0, 1, 0],
+          duration: 2000,
+          easing: "easeInOutQuad",
+        });
+      }
+
+      // 重置結果容器
+      function resetResultContainer() {
+        resultContainer.style.opacity = "0";
+        resultContainer.style.transform = "translateY(20px)";
+        winnerNameEl.textContent = "";
+        winnerPrizeEl.textContent = "";
+
+        // 重置參與者列表樣式
+        const items = document.querySelectorAll(".participant-item");
+        items.forEach((item) => {
+          item.classList.remove("winner");
+        });
+
+        // 重置當前獲獎者
+        currentWinner = null;
+        currentPrize = null;
+      }
+
+      // 轉動輪盤
+      function spinWheel() {
+        try {
+          if (isSpinning || !wheel || !spinWheelBtn) return;
+
+          // 重置結果
+          resetResultContainer();
+
+          // 設置狀態
+          isSpinning = true;
+          spinWheelBtn.disabled = true;
+          spinWheelBtn.textContent = "抽獎中...";
+
+          // 顯示加載動畫
+          showLoadingAnimation();
+
+          // 產生隨機抽獎結果
+          const randomWinnerIndex = Math.floor(
+            Math.random() * participants.length
+          );
+          currentWinner = participants[randomWinnerIndex];
+
+          // 隨機選擇一個獎品
+          const randomPrizeIndex = Math.floor(Math.random() * prizes.length);
+          currentPrize = prizes[randomPrizeIndex];
+
+          // 計算旋轉角度
+          const finalSectionIndex = randomWinnerIndex;
+          const sectionAngle = 360 / participants.length;
+
+          // 旋轉次數 (5-10 圈) + 最終區塊位置
+          const spins = (Math.floor(Math.random() * 5) + 5) * 360;
+
+          // 最終角度
+          // 需要讓指針指向的區塊在頂部，所以要加上一個偏移
+          const finalAngle =
+            spins + (360 - finalSectionIndex * sectionAngle) - sectionAngle / 2;
+
+          // 開始旋轉前的準備動畫
+          anime({
+            targets: wheel,
+            rotate: "5deg",
+            duration: 200,
+            easing: "easeInOutQuad",
+            complete: function () {
+              // 主旋轉動畫
+              anime({
+                targets: wheel,
+                rotate: finalAngle,
+                duration: 5000,
+                easing: "easeOutQuint",
+                update: function (anim) {
+                  try {
+                    if (!wheel) return;
+
+                    // 根據動畫進度設置輪盤的視覺效果
+                    const progress = Math.min(anim.progress, 60) / 60;
+                    const blurValue = 20 + 40 * progress;
+                    wheel.style.boxShadow = `0 0 ${blurValue}px rgba(0, 0, 0, 0.2), 0 0 ${
+                      blurValue * 3
+                    }px rgba(106, 48, 147, 0.2)`;
+
+                    // 旋轉時中心的動畫
+                    const centerAfter = document.querySelector(
+                      ".wheel-center::after"
+                    );
+                    if (centerAfter) {
+                      centerAfter.style.opacity =
+                        anim.progress < 80 ? "1" : "0";
+                    }
+                  } catch (error) {
+                    console.error("更新旋轉動畫錯誤:", error);
+                  }
+                },
+                complete: function () {
+                  setTimeout(() => {
+                    try {
+                      // 顯示結果
+                      showResult();
+
+                      // 重置狀態
+                      if (spinWheelBtn) {
+                        spinWheelBtn.disabled = false;
+                        spinWheelBtn.textContent = "再抽一次";
+                      }
+                      isSpinning = false;
+
+                      // 重置輪盤陰影
+                      if (wheel) {
+                        wheel.style.boxShadow =
+                          "0 0 20px rgba(0, 0, 0, 0.2), 0 0 60px rgba(106, 48, 147, 0.2)";
+                      }
+                    } catch (error) {
+                      console.error("完成旋轉動畫錯誤:", error);
+                      isSpinning = false;
+                      if (spinWheelBtn) {
+                        spinWheelBtn.disabled = false;
+                        spinWheelBtn.textContent = "再抽一次";
+                      }
+                    }
+                  }, 500);
+                },
+              });
+            },
+          });
+        } catch (error) {
+          console.error("旋轉輪盤錯誤:", error);
+          isSpinning = false;
+          if (spinWheelBtn) {
+            spinWheelBtn.disabled = false;
+          }
+        }
+      }
+
+      // 顯示加載動畫
+      function showLoadingAnimation() {
+        // 顯示加載動畫
+        loadingAnimation.style.opacity = "1";
+
+        // 加載點動畫
+        anime({
+          targets: ".loading-dot",
+          opacity: [0, 1, 0],
+          scale: [0.5, 1, 0.5],
+          delay: anime.stagger(200),
+          loop: true,
+          duration: 1000,
+          easing: "easeInOutQuad",
+        });
+      }
+
+      // 隱藏加載動畫
+      function hideLoadingAnimation() {
+        try {
+          if (loadingAnimation) {
+            // 淡出加載動畫
+            anime({
+              targets: loadingAnimation,
+              opacity: 0,
+              duration: 500,
+              easing: "easeOutQuad",
+              complete: function () {
+                // 停止加載點動畫
+                anime.remove(".loading-dot");
+              },
+            });
+          }
+        } catch (error) {
+          console.error("隱藏加載動畫錯誤:", error);
+        }
+      }
+
+      // 顯示抽獎結果
+      function showResult() {
+        try {
+          // 隱藏加載動畫
+          hideLoadingAnimation();
+
+          // 高亮獲獎者
+          const participantItems =
+            document.querySelectorAll(".participant-item");
+          if (participantItems.length > 0) {
+            participantItems.forEach((item) => {
+              if (item.dataset.name === currentWinner) {
+                item.classList.add("winner");
+
+                // 動畫強調
+                anime({
+                  targets: item,
+                  scale: [1, 1.2, 1],
+                  duration: 1000,
+                  easing: "easeInOutElastic(1, .5)",
+                });
+              }
+            });
+          }
+
+          // 設置結果文字
+          if (winnerNameEl) winnerNameEl.textContent = currentWinner || "";
+          if (winnerPrizeEl)
+            winnerPrizeEl.textContent = currentPrize
+              ? `獲得：${currentPrize}`
+              : "";
+
+          // 顯示結果容器
+          if (resultContainer) {
+            anime({
+              targets: resultContainer,
+              opacity: 1,
+              translateY: 0,
+              duration: 800,
+              easing: "easeOutQuad",
+            });
+          }
+
+          // 創建慶祝動畫
+          createCelebrationEffects();
+        } catch (error) {
+          console.error("顯示結果錯誤:", error);
+        }
+      }
+
+      // 創建慶祝效果
+      function createCelebrationEffects() {
+        try {
+          // 創建彩色碎屑
+          createConfetti();
+
+          // 創建煙火效果
+          createFireworks();
+
+          // 創建喜悅波紋
+          createJoyRipple();
+        } catch (error) {
+          console.error("創建慶祝效果錯誤:", error);
+        }
+      }
+
+      // 創建彩色碎屑
+      function createConfetti() {
+        try {
+          const confettiCount = 100;
+          const container = document.querySelector(".container");
+
+          if (!container) {
+            console.error("找不到容器元素");
+            return;
+          }
+
+          for (let i = 0; i < confettiCount; i++) {
+            const confetti = document.createElement("div");
+            confetti.className = "confetti";
+
+            // 隨機顏色
+            confetti.style.backgroundColor =
+              colors[Math.floor(Math.random() * colors.length)];
+
+            // 隨機形狀
+            const shapes = ["circle", "square", "triangle"];
+            const shape = shapes[Math.floor(Math.random() * shapes.length)];
+
+            if (shape === "circle") {
+              confetti.style.borderRadius = "50%";
+            } else if (shape === "triangle") {
+              confetti.style.width = "0";
+              confetti.style.height = "0";
+              confetti.style.backgroundColor = "transparent";
+              confetti.style.borderLeft = "5px solid transparent";
+              confetti.style.borderRight = "5px solid transparent";
+              confetti.style.borderBottom = `10px solid ${
+                colors[Math.floor(Math.random() * colors.length)]
+              }`;
+            }
+
+            // 設定隨機初始位置
+            confetti.style.left = `${Math.random() * 100}%`;
+            confetti.style.top = `0`;
+
+            container.appendChild(confetti);
+
+            // 動畫設定
+            anime({
+              targets: confetti,
+              translateX: () =>
+                anime.random(-window.innerWidth / 2, window.innerWidth / 2),
+              translateY: () => anime.random(100, window.innerHeight),
+              rotate: () => anime.random(0, 360),
+              opacity: [
+                { value: 0, duration: 0 },
+                { value: 1, duration: 100 },
+                { value: 1, duration: 1000 },
+                { value: 0, duration: 500 },
+              ],
+              scale: [
+                { value: 0, duration: 0 },
+                { value: 1, duration: 100 },
+                { value: anime.random(1, 1.5), duration: 500 },
+                { value: 0, duration: 500 },
+              ],
+              easing: "easeOutQuart",
+              duration: () => anime.random(1500, 3000),
+              delay: () => anime.random(0, 500),
+              complete: function () {
+                if (confetti.parentNode) {
+                  container.removeChild(confetti);
+                }
+              },
+            });
+          }
+        } catch (error) {
+          console.error("創建彩色碎屑錯誤:", error);
+        }
+      }
+
+      // 創建煙火效果
+      function createFireworks() {
+        try {
+          const fireworkCount = 5;
+          const container = document.querySelector(".container");
+
+          if (!container) {
+            console.error("找不到容器元素");
+            return;
+          }
+
+          for (let i = 0; i < fireworkCount; i++) {
+            // 創建煙火中心點
+            const firework = document.createElement("div");
+            firework.className = "firework";
+
+            // 設定隨機位置
+            firework.style.left = `${anime.random(20, 80)}%`;
+            firework.style.top = `${anime.random(20, 60)}%`;
+
+            container.appendChild(firework);
+
+            // 創建煙火粒子
+            const particleCount = 30;
+            const particles = [];
+
+            for (let j = 0; j < particleCount; j++) {
+              const particle = document.createElement("div");
+              particle.className = "confetti";
+
+              // 設置樣式
+              particle.style.position = "absolute";
+              particle.style.width = "5px";
+              particle.style.height = "5px";
+              particle.style.borderRadius = "50%";
+              particle.style.backgroundColor =
+                colors[Math.floor(Math.random() * colors.length)];
+
+              // 獲取煙火位置
+              const rect = firework.getBoundingClientRect();
+              const containerRect = container.getBoundingClientRect();
+
+              // 相對於容器的位置
+              const left = rect.left - containerRect.left;
+              const top = rect.top - containerRect.top;
+
+              particle.style.left = `${left}px`;
+              particle.style.top = `${top}px`;
+
+              container.appendChild(particle);
+              particles.push(particle);
+
+              // 煙火動畫
+              const angle = (j / particleCount) * 360;
+              const radius = anime.random(50, 150);
+
+              anime({
+                targets: particle,
+                translateX: Math.cos((angle * Math.PI) / 180) * radius,
+                translateY: Math.sin((angle * Math.PI) / 180) * radius,
+                scale: [
+                  { value: 0, duration: 0 },
+                  { value: 1, duration: 500 },
+                  { value: 0, duration: 700 },
+                ],
+                opacity: [
+                  { value: 0, duration: 0 },
+                  { value: 1, duration: 200 },
+                  { value: 0, duration: 1000 },
+                ],
+                easing: "easeOutExpo",
+                duration: 1500,
+                delay: 500 + anime.random(0, 500),
+                complete: function () {
+                  if (particle.parentNode) {
+                    container.removeChild(particle);
+                  }
+                },
+              });
+            }
+
+            // 煙火中心點閃光
+            anime({
+              targets: firework,
+              scale: [
+                { value: 0, duration: 0 },
+                { value: 3, duration: 500 },
+                { value: 0, duration: 500 },
+              ],
+              opacity: [
+                { value: 1, duration: 0 },
+                { value: 0, duration: 1000 },
+              ],
+              backgroundColor: "#FFF",
+              easing: "easeOutExpo",
+              duration: 1000,
+              complete: function () {
+                if (firework.parentNode) {
+                  container.removeChild(firework);
+                }
+              },
+            });
+          }
+        } catch (error) {
+          console.error("創建煙火效果錯誤:", error);
+        }
+      }
+
+      // 創建喜悅波紋
+      function createJoyRipple() {
+        try {
+          const rippleCount = 3;
+          const wheelContainer = document.querySelector(".wheel-container");
+
+          if (!wheelContainer) {
+            console.error("找不到輪盤容器元素");
+            return;
+          }
+
+          for (let i = 0; i < rippleCount; i++) {
+            // 創建波紋元素
+            const ripple = document.createElement("div");
+            ripple.style.position = "absolute";
+            ripple.style.width = "10px";
+            ripple.style.height = "10px";
+            ripple.style.borderRadius = "50%";
+            ripple.style.border =
+              "3px solid " + colors[Math.floor(Math.random() * colors.length)];
+            ripple.style.left = "50%";
+            ripple.style.top = "50%";
+            ripple.style.transform = "translate(-50%, -50%)";
+            ripple.style.opacity = "0";
+            ripple.style.zIndex = "999";
+
+            wheelContainer.appendChild(ripple);
+
+            // 波紋動畫
+            anime({
+              targets: ripple,
+              width: [10, 300],
+              height: [10, 300],
+              opacity: [0, 0.5, 0],
+              easing: "easeOutExpo",
+              duration: 2000,
+              delay: 500 * i,
+              complete: function () {
+                if (ripple.parentNode) {
+                  wheelContainer.removeChild(ripple);
+                }
+              },
+            });
+          }
+        } catch (error) {
+          console.error("創建喜悅波紋錯誤:", error);
+        }
+      }
+    </script>
+  </body>
+</html>
