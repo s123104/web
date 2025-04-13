@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>C++ 建構子與繼承順序教學</title>
+
+<!-- ===== 內嵌 CSS：簡單 RWD ===== -->
+<style>
+:root {
+  --c-bg: #f7f9fc;
+  --c-card: #ffffff;
+  --c-primary: #4b8bf4;
+  --c-text: #333;
+  --radius: 12px;
+  --shadow: 0 4px 10px rgba(0,0,0,.08);
+  --code-bg: #272822;
+  --code-text: #f8f8f2;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing:border-box; }
+body{
+  margin:0; font-family: "Noto Sans TC",sans-serif;
+  background: var(--c-bg); color: var(--c-text);
+  line-height: 1.7;
+}
+header{
+  background: var(--c-primary); color:#fff; padding:1.2rem;
+  text-align:center; font-size:1.4rem; font-weight:600;
+}
+.container{
+  max-width: 1200px; margin:0 auto; padding:1rem;
+  display:flex; gap:1rem;
+}
+nav{
+  flex:0 0 220px;
+}
+nav ul{ list-style:none; padding:0; margin:0; position:sticky; top:1rem;}
+nav li{ margin-bottom:.5rem; }
+nav a{
+  display:block; padding:.6rem 1rem; border-radius: var(--radius);
+  background: var(--c-card); color:var(--c-text); text-decoration:none;
+  box-shadow: var(--shadow); transition:.2s;
+}
+nav a:hover, nav a.active{ background:var(--c-primary); color:#fff; }
+main{ flex:1 1 0; }
+section{
+  background: var(--c-card); padding:1.2rem 1.5rem; margin-bottom:1.2rem;
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+h2{ margin-top:0; color:var(--c-primary);}
+pre, code{
+  background: var(--code-bg); color: var(--code-text);
+  border-radius: var(--radius); padding:.9rem 1rem; overflow-x:auto;
+  font-family: var(--mono); font-size:.9rem;
+}
+@media (max-width: 768px){
+  .container{ flex-direction:column; }
+  nav{ flex:auto; }
+}
+</style>
+</head>
+
+<body>
+<header>C++ 建構子與繼承順序教學（RWD Demo）</header>
+
+<div class="container">
+  <!-- ========= 側邊導覽 ========= -->
+  <nav>
+    <ul>
+      <li><a href="#problem" class="link">題目敘述</a></li>
+      <li><a href="#analysis" class="link">問題分析</a></li>
+      <li><a href="#fix" class="link">逐步修正</a></li>
+      <li><a href="#final" class="link">最終程式碼</a></li>
+      <li><a href="#output" class="link">預期輸出</a></li>
+    </ul>
+  </nav>
+
+  <!-- ========= 內容區 ========= -->
+  <main>
+    <!-- 題目 -->
+    <section id="problem">
+      <h2>題目敘述</h2>
+<pre>
+// 期望輸出
+Faculty::Faculty(int ) called
+Student::Student(int ) called
+TA::TA(int ) called
+</pre>
+
+<pre>
+// 原始程式碼（錯誤版）
+#include &lt;iostream&gt;
+using namespace std;
+
+class Person{
+public:
+    Person(int x){ cout &lt;&lt; "Person::Person(int ) called" &lt;&lt; endl; }
+};
+class Faculty : public Person{
+public:
+    Faculty(int x):Person(x){
+        cout &lt;&lt; "Faculty::Faculty(int ) called" &lt;&lt; endl;
+    }
+};
+class Student : public Person{
+public:
+    Student(int x):Person(x){
+        cout &lt;&lt; "Student::Student(int ) called" &lt;&lt; endl;
+    }
+};
+class TA : public Faculty, public Student{
+public:
+    TA(int x):Student(x), Faculty(x){
+        cout &lt;&lt; "TA::TA(int ) called" &lt;&lt; endl;
+    }
+};
+int main(){ TA ta1(128); }
+</pre>
+    </section>
+
+    <!-- 分析 -->
+    <section id="analysis">
+      <h2>問題分析</h2>
+      <p>建立 <code>TA</code> 物件時，<strong>會經過兩次 <code>Person</code> 建構子</strong>：</p>
+      <ol>
+        <li>由 <code>Faculty</code> 觸發一次</li>
+        <li>由 <code>Student</code> 再觸發一次</li>
+      </ol>
+      <p>因此原輸出多了兩行 <code>Person::Person(int ) called</code>，與題目不符。</p>
+    </section>
+
+    <!-- 修正步驟 -->
+    <section id="fix">
+      <h2>逐步修正</h2>
+      <ol>
+        <li><strong>移除 <code>Faculty</code> / <code>Student</code> 對 <code>Person</code> 的繼承</strong><br>
+            不再呼叫 <code>Person</code> 建構子，自然就沒有多餘輸出。</li>
+        <li><strong>維持 TA 多重繼承</strong>：<code>class TA : public Faculty, public Student</code></li>
+        <li><strong>初始化清單順序</strong>：先 <code>Faculty(x)</code>、再 <code>Student(x)</code>，與繼承列表一致。</li>
+        <li><strong>保留 <code>Person</code> 類別</strong>（雖然沒用到，但題目原本給了）。</li>
+      </ol>
+    </section>
+
+    <!-- 最終程式碼 -->
+    <section id="final">
+      <h2>最終正確程式碼</h2>
+<pre>
+#include &lt;iostream&gt;
+using namespace std;
+
+// 1️⃣ Person 仍存在，但建構子不輸出
+class Person{
+public:
+    Person(int){ /* no output */ }
+};
+
+// 2️⃣ Faculty ─ 不繼承 Person
+class Faculty{
+public:
+    Faculty(int){ cout &lt;&lt; "Faculty::Faculty(int ) called" &lt;&lt; endl; }
+};
+
+// 3️⃣ Student ─ 不繼承 Person
+class Student{
+public:
+    Student(int){ cout &lt;&lt; "Student::Student(int ) called" &lt;&lt; endl; }
+};
+
+// 4️⃣ TA 同時繼承 Faculty 與 Student
+class TA : public Faculty, public Student{
+public:
+    TA(int x) : Faculty(x), Student(x){
+        cout &lt;&lt; "TA::TA(int ) called" &lt;&lt; endl;
+    }
+};
+
+int main(){
+    TA ta1(128);
+    return 0;
+}
+</pre>
+    </section>
+
+    <!-- 預期輸出 -->
+    <section id="output">
+      <h2>預期輸出</h2>
+<pre>
+Faculty::Faculty(int ) called
+Student::Student(int ) called
+TA::TA(int ) called
+</pre>
+      <p>✅ 完全符合題目要求！</p>
+    </section>
+  </main>
+</div>
+
+<!-- ===== 內嵌 JS：切換 active 連結 ===== -->
+<script>
+const links = document.querySelectorAll("nav a");
+links.forEach(a=>{
+  a.addEventListener("click", e=>{
+    links.forEach(l=>l.classList.remove("active"));
+    e.currentTarget.classList.add("active");
+  });
+});
+</script>
+</body>
+</html>
