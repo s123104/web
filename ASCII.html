@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII圖像轉換器</title>
+
+    <!-- ====== CSS ====== -->
+    <style>
+        :root{
+            --primary-color:#3498db;--primary-dark:#2980b9;
+            --secondary-color:#f39c12;--secondary-dark:#e67e22;
+            --text-color:#333;--light-bg:#f5f7fa;--dark-bg:#34495e;
+            --white:#ffffff;--border-radius:8px;--box-shadow:0 4px 6px rgba(0,0,0,.1);
+        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'PingFang TC','Heiti TC','Microsoft JhengHei',sans-serif}
+        body{background:var(--light-bg);color:var(--text-color);line-height:1.6}
+        .container{max-width:1200px;margin:0 auto;padding:2rem}
+        header{text-align:center;margin-bottom:2rem;padding:1rem;background:linear-gradient(135deg,var(--primary-color),var(--primary-dark));color:var(--white);border-radius:var(--border-radius);box-shadow:var(--box-shadow)}
+        h1{font-size:2.5rem;margin-bottom:.5rem}
+        p.subtitle{font-size:1.2rem;opacity:.9}
+
+        .main-content{display:flex;flex-direction:column;gap:2rem}
+        @media(min-width:768px){.main-content{flex-direction:row}}
+        .upload-section,.result-section{flex:1;background:var(--white);padding:2rem;border-radius:var(--border-radius);box-shadow:var(--box-shadow)}
+        .result-section{display:flex;flex-direction:column}
+        h2{font-size:1.5rem;margin-bottom:1.5rem;color:var(--primary-dark);border-bottom:2px solid var(--secondary-color);padding-bottom:.5rem}
+
+        .upload-area{border:2px dashed var(--primary-color);border-radius:var(--border-radius);padding:2rem;text-align:center;margin-bottom:1.5rem;transition:.3s;cursor:pointer}
+        .upload-area:hover,.upload-area.dragover{background:rgba(52,152,219,.1);border-color:var(--primary-dark)}
+        .upload-area i{font-size:3rem;color:var(--primary-color);margin-bottom:1rem;display:block}
+        .upload-area p{margin-bottom:1rem}
+        .file-input{display:none}
+
+        .btn{display:inline-block;padding:.8rem 1.5rem;background:var(--primary-color);color:var(--white);border:none;border-radius:var(--border-radius);cursor:pointer;font-size:1rem;font-weight:bold;transition:.3s;text-align:center}
+        .btn:hover{background:var(--primary-dark);transform:translateY(-2px)}
+        .btn-secondary{background:var(--secondary-color)}
+        .btn-secondary:hover{background:var(--secondary-dark)}
+
+        .options-panel{margin-top:1.5rem}
+        .option-group{margin-bottom:1rem}
+        .option-group label{display:block;margin-bottom:.5rem;font-weight:bold}
+        .range-slider{width:100%;margin-bottom:.5rem}
+        .checkbox-option{display:flex;align-items:center;gap:.5rem}
+        .preview-container{text-align:center;margin-bottom:1.5rem}
+        #imagePreview{max-width:100%;max-height:300px;border-radius:var(--border-radius);box-shadow:var(--box-shadow);display:none}
+        #asciiOutput{font-family:monospace;white-space:pre;overflow:auto;background:#000;color:var(--white);padding:1rem;border-radius:var(--border-radius);flex-grow:1;min-height:400px;max-height:600px;font-size:10px;line-height:1;margin-bottom:1rem;text-align:center}
+        #asciiOutput.color-mode span{display:inline-block}
+
+        .controls{display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap}
+        .loading{display:none;text-align:center;margin:2rem 0}
+        .spinner{border:4px solid rgba(0,0,0,.1);border-left-color:var(--primary-color);border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 1rem}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .footer{text-align:center;margin-top:2rem;padding:1rem;color:var(--text-color);border-top:1px solid rgba(0,0,0,.1)}
+
+        /* Color picker */
+        .color-picker{display:flex;gap:1rem;margin-bottom:1rem}
+        .color-option{display:flex;flex-direction:column;align-items:center;gap:.5rem}
+        .color-preview{width:30px;height:30px;border-radius:50%;border:2px solid #ccc;cursor:pointer}
+
+        /* Tooltip */
+        .tooltip{position:relative;display:inline-block;margin-left:.5rem;cursor:help}
+        .tooltip-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--primary-color);color:#fff;font-size:12px;font-weight:bold}
+        .tooltip-text{visibility:hidden;width:200px;background:var(--dark-bg);color:#fff;text-align:center;border-radius:var(--border-radius);padding:.5rem;position:absolute;z-index:1;bottom:125%;left:50%;margin-left:-100px;opacity:0;transition:opacity .3s;font-size:.8rem}
+        .tooltip:hover .tooltip-text{visibility:visible;opacity:1}
+
+        /* Responsive */
+        @media(max-width:767px){
+            .container{padding:1rem}
+            h1{font-size:1.8rem}
+            .upload-section,.result-section{padding:1.5rem}
+            .controls{flex-direction:column}
+            .btn{width:100%}
+            #asciiOutput{font-size:5px}
+        }
+    </style>
+
+    <!-- FontAwesome icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="container">
+    <!-- ====== HEADER ====== -->
+    <header>
+        <h1>ASCII圖像轉換器</h1>
+        <p class="subtitle">將您的照片轉成超屌 ASCII 藝術</p>
+    </header>
+
+    <!-- ====== MAIN ====== -->
+    <div class="main-content">
+        <!-- ====== UPLOAD ====== -->
+        <section class="upload-section">
+            <h2>上傳圖片</h2>
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>點這裡或直接拖進來</p>
+                <p class="small">支援 JPG / PNG / GIF</p>
+                <input type="file" id="fileInput" class="file-input" accept="image/*">
+            </div>
+
+            <div class="preview-container">
+                <img id="imagePreview" alt="預覽">
+            </div>
+
+            <!-- ====== OPTIONS ====== -->
+            <div class="options-panel">
+                <h2>轉換選項</h2>
+
+                <!-- 解析度 -->
+                <div class="option-group">
+                    <label for="resolution">解析度
+                        <div class="tooltip"><span class="tooltip-icon">?</span>
+                            <span class="tooltip-text">數值越高畫質越細，但會比較慢</span>
+                        </div>
+                    </label>
+                    <input type="range" id="resolution" class="range-slider" min="0.1" max="1" step="0.1" value="0.4">
+                    <div class="range-labels"><span>低</span><span style="float:right">高</span></div>
+                </div>
+
+                <!-- 對比度 -->
+                <div class="option-group">
+                    <label for="contrast">對比度
+                        <div class="tooltip"><span class="tooltip-icon">?</span>
+                            <span class="tooltip-text">拉高讓黑白更分明</span>
+                        </div>
+                    </label>
+                    <input type="range" id="contrast" class="range-slider" min="0" max="2" step="0.1" value="1">
+                    <div class="range-labels"><span>低</span><span style="float:right">高</span></div>
+                </div>
+
+                <!-- 字符集 -->
+                <div class="option-group">
+                    <label for="charset">字符集
+                        <div class="tooltip"><span class="tooltip-icon">?</span>
+                            <span class="tooltip-text">決定用哪些符號排圖</span>
+                        </div>
+                    </label>
+                    <select id="charset">
+                        <option value="standard">標準 (@#$%&*+=-:. )</option>
+                        <option value="detailed">詳細 (@%#*+=-:. )</option>
+                        <option value="block">方塊 (█▓▒░ )</option>
+                        <option value="chinese">中文 (龍虎鳳凰…)</option>
+                        <option value="custom">自訂</option>
+                    </select>
+                </div>
+
+                <!-- 自訂字符 -->
+                <div class="option-group" id="customCharsetGroup" style="display:none">
+                    <label for="customCharset">自訂字符
+                        <div class="tooltip"><span class="tooltip-icon">?</span>
+                            <span class="tooltip-text">深→淺 排列，例如 @%#*+=-:. </span>
+                        </div>
+                    </label>
+                    <input type="text" id="customCharset" placeholder="例如: @%#*+=-:. ">
+                </div>
+
+                <!-- 輸出模式 -->
+                <div class="option-group">
+                    <label>輸出模式</label>
+                    <div class="checkbox-option">
+                        <input type="radio" name="outputMode" id="modeMono" value="mono" checked>
+                        <label for="modeMono">單色</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="radio" name="outputMode" id="modeColor" value="color">
+                        <label for="modeColor">彩色</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="radio" name="outputMode" id="modeTwoColor" value="twocolor">
+                        <label for="modeTwoColor">雙色</label>
+                    </div>
+                </div>
+
+                <!-- 顏色選擇 (單色背景/文字) -->
+                <div class="option-group">
+                    <label>顏色選項</label>
+                    <div class="color-picker">
+                        <div class="color-option">
+                            <span>背景</span>
+                            <div class="color-preview" id="bgColorPreview" style="background:#34495e"></div>
+                            <input type="color" id="bgColor" value="#34495e" hidden>
+                        </div>
+                        <div class="color-option">
+                            <span>文字</span>
+                            <div class="color-preview" id="textColorPreview" style="background:#ffffff"></div>
+                            <input type="color" id="textColor" value="#ffffff" hidden>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 雙色模式用顏色 -->
+                <div class="option-group" id="color1Option" style="display:none">
+                    <label>前景色</label>
+                    <div class="color-picker">
+                        <div class="color-option">
+                            <div class="color-preview" id="color1Preview" style="background:#ffffff"></div>
+                            <input type="color" id="color1" value="#ffffff" hidden>
+                        </div>
+                    </div>
+                </div>
+                <div class="option-group" id="color2Option" style="display:none">
+                    <label>高亮色</label>
+                    <div class="color-picker">
+                        <div class="color-option">
+                            <div class="color-preview" id="color2Preview" style="background:#f39c12"></div>
+                            <input type="color" id="color2" value="#f39c12" hidden>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 進階選項 -->
+                <div class="option-group">
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="invertColors">
+                        <label for="invertColors">反轉顏色</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="useBlocks">
+                        <label for="useBlocks">強制方塊字元</label>
+                    </div>
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="enhanceContrast">
+                        <label for="enhanceContrast">增強對比</label>
+                    </div>
+                </div>
+
+                <!-- 轉換按鈕 -->
+                <button id="convertBtn" class="btn btn-primary" disabled>轉換圖像</button>
+            </div>
+        </section>
+
+        <!-- ====== RESULT ====== -->
+        <section class="result-section">
+            <h2>ASCII藝術結果</h2>
+            <div id="asciiOutput">ASCII輸出會顯示在這裡...</div>
+
+            <div class="controls">
+                <button id="downloadBtn" class="btn" disabled>下載</button>
+                <button id="copyBtn" class="btn btn-secondary" disabled>複製</button>
+                <button id="fontSizeIncreaseBtn" class="btn">放大字體</button>
+                <button id="fontSizeDecreaseBtn" class="btn">縮小字體</button>
+            </div>
+
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p>處理中，別急啦...</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- ====== FOOTER ====== -->
+    <div class="footer">
+        <p>© 2025 ASCII圖像轉換器 | 用現代瀏覽器不會雷 😎</p>
+    </div>
+</div>
+
+<!-- ====== JS ====== -->
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+
+    /* ====== 抓元素 ====== */
+    const fileInput=document.getElementById('fileInput'),
+          uploadArea=document.getElementById('uploadArea'),
+          imagePreview=document.getElementById('imagePreview'),
+          asciiOutput=document.getElementById('asciiOutput'),
+          convertBtn=document.getElementById('convertBtn'),
+          downloadBtn=document.getElementById('downloadBtn'),
+          copyBtn=document.getElementById('copyBtn'),
+          fontUp=document.getElementById('fontSizeIncreaseBtn'),
+          fontDown=document.getElementById('fontSizeDecreaseBtn'),
+          loading=document.getElementById('loadingIndicator'),
+          charsetSelect=document.getElementById('charset'),
+          customCharsetGroup=document.getElementById('customCharsetGroup'),
+          customCharset=document.getElementById('customCharset'),
+          invertColors=document.getElementById('invertColors'),
+          bgColorPreview=document.getElementById('bgColorPreview'),
+          textColorPreview=document.getElementById('textColorPreview'),
+          bgColor=document.getElementById('bgColor'),
+          textColor=document.getElementById('textColor'),
+          color1Preview=document.getElementById('color1Preview'),
+          color2Preview=document.getElementById('color2Preview'),
+          color1=document.getElementById('color1'),
+          color2=document.getElementById('color2');
+
+    /* ====== 字符集 ====== */
+    const charsets={
+        standard:'@#$%&*+=-:. ',
+        detailed:'@%#*+=-:. ',
+        block:'█▓▒░ ',
+        chinese:'龍虎鳳凰山水晴雨風雲天地人馬牛羊花鳥魚蟲日月星辰金木水火土一二三四五六七八九十'
+    };
+
+    /* ====== 上傳拖曳 ====== */
+    uploadArea.addEventListener('click',()=>fileInput.click());
+    uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.classList.add('dragover');});
+    uploadArea.addEventListener('dragleave',()=>uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop',e=>{
+        e.preventDefault();uploadArea.classList.remove('dragover');
+        if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change',e=>{if(e.target.files[0]) handleFile(e.target.files[0]);});
+
+    /* ====== 字符集切換 ====== */
+    charsetSelect.addEventListener('change',()=>{customCharsetGroup.style.display=charsetSelect.value==='custom'?'block':'none';});
+
+    /* ====== 輸出模式切換 ====== */
+    document.querySelectorAll('input[name="outputMode"]').forEach(r=>{
+        r.addEventListener('change',()=>{
+            const mode=r.value;
+            document.getElementById('color1Option').style.display=(mode==='twocolor')?'block':'none';
+            document.getElementById('color2Option').style.display=(mode==='twocolor')?'block':'none';
+            asciiOutput.classList.toggle('color-mode',mode!=='mono');
+        });
+    });
+
+    /* ====== 顏色選擇點擊 ====== */
+    bgColorPreview.addEventListener('click',()=>bgColor.click());
+    textColorPreview.addEventListener('click',()=>textColor.click());
+    color1Preview.addEventListener('click',()=>color1.click());
+    color2Preview.addEventListener('click',()=>color2.click());
+
+    /* ====== 顏色變更 ====== */
+    bgColor.addEventListener('change',()=>{bgColorPreview.style.background=bgColor.value;asciiOutput.style.background=bgColor.value;});
+    textColor.addEventListener('change',()=>{textColorPreview.style.background=textColor.value;asciiOutput.style.color=textColor.value;});
+    color1.addEventListener('change',()=>color1Preview.style.background=color1.value);
+    color2.addEventListener('change',()=>color2Preview.style.background=color2.value);
+
+    /* ====== 字體大小調整 ====== */
+    fontUp.addEventListener('click',()=>{const size=parseInt(getComputedStyle(asciiOutput).fontSize);asciiOutput.style.fontSize=(size+1)+'px';});
+    fontDown.addEventListener('click',()=>{const size=parseInt(getComputedStyle(asciiOutput).fontSize);if(size>5) asciiOutput.style.fontSize=(size-1)+'px';});
+
+    /* ====== 轉換按鈕 ====== */
+    convertBtn.addEventListener('click',convertToAscii);
+
+    /* ====== 下載 ====== */
+    downloadBtn.addEventListener('click',()=>{
+        const mode=document.querySelector('input[name="outputMode"]:checked').value;
+        if(mode==='mono'){
+            const blob=new Blob([asciiOutput.textContent],{type:'text/plain'});
+            triggerDownload(blob,'ascii_art.txt');
+        }else{
+            const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ASCII Art</title>
+<style>body{margin:0;padding:10px;background:${bgColor.value}}pre{margin:0;font-family:monospace;line-height:1;font-size:10px}.ascii-art{text-align:center}</style>
+</head><body><div class="ascii-art">${asciiOutput.innerHTML}</div></body></html>`;
+            triggerDownload(new Blob([html],{type:'text/html'}),'ascii_art.html');
+        }
+    });
+
+    /* ====== 複製 ====== */
+    copyBtn.addEventListener('click',()=>{
+        const mode=document.querySelector('input[name="outputMode"]:checked').value;
+        let txt=mode==='mono'?asciiOutput.textContent:asciiOutput.innerText.replace(/<br>/g,'\n');
+        navigator.clipboard.writeText(txt).then(()=>{
+            const old=copyBtn.textContent;copyBtn.textContent='已複製!';setTimeout(()=>copyBtn.textContent=old,2000);
+        }).catch(err=>console.error('複製失敗:',err));
+    });
+
+    /* ====== 處理檔案 ====== */
+    function handleFile(file){
+        if(!file.type.match('image.*')) return alert('拜託給張圖片好嗎');
+        const reader=new FileReader();
+        reader.onload=e=>{imagePreview.src=e.target.result;imagePreview.style.display='block';convertBtn.disabled=false;};
+        reader.readAsDataURL(file);
+    }
+
+    /* ====== 轉換 ====== */
+    function convertToAscii(){
+        const resolution=parseFloat(document.getElementById('resolution').value),
+              contrast=parseFloat(document.getElementById('contrast').value),
+              charset=(charsetSelect.value==='custom'?(customCharset.value||'@#$%&*+=-:. '):charsets[charsetSelect.value]);
+
+        if(!imagePreview.src) return alert('先上傳圖片啦');
+        loading.style.display='block';asciiOutput.textContent='處理中...';
+
+        setTimeout(()=>{
+            const img=new Image();
+            img.onload=()=>{
+                const ascii=img2ascii(img,resolution,contrast,charset,invertColors.checked);
+                asciiOutput.innerHTML=(document.querySelector('input[name="outputMode"]:checked').value==='mono')?ascii.replace(/</g,'&lt;') : ascii;
+                downloadBtn.disabled=false;copyBtn.disabled=false;loading.style.display='none';
+            };
+            img.src=imagePreview.src;
+        },100);
+    }
+
+    /* ====== 圖像轉 ASCII ====== */
+    function img2ascii(img,resolution,contrast,charset,invert){
+        const mode=document.querySelector('input[name="outputMode"]:checked').value,
+              useBlocks=document.getElementById('useBlocks').checked,
+              enhance=document.getElementById('enhanceContrast').checked;
+
+        const bg=bgColor.value,txt=textColor.value,c1=color1.value,c2=color2.value;
+        if(useBlocks) charset='█▓▒░ ';
+
+        /* 建 canvas 縮圖 */
+        const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+        let w=Math.floor(img.width*resolution),h=Math.floor(img.height*resolution);
+        const ar=img.width/img.height,maxW=(innerWidth<768?60:150);
+        if(w>maxW){w=maxW;h=Math.floor(w/ar);} h=Math.floor(h*0.5);
+        canvas.width=w;canvas.height=h;ctx.drawImage(img,0,0,w,h);
+
+        const data=ctx.getImageData(0,0,w,h).data,chars=charset.split('');
+        let art='',idx,bright;
+
+        /* 彩色模式 */
+        if(mode!=='mono'){
+            art+=`<div style="background:${bg}">`;
+            for(let y=0;y<h;y++){
+                for(let x=0;x<w;x++){
+                    idx=(y*w+x)*4;
+                    const r=data[idx],g=data[idx+1],b=data[idx+2];
+                    bright=(r+g+b)/3;
+                    if(enhance){bright=((bright/255)-.5)*(contrast*1.5)+.5;bright=Math.max(0,Math.min(1,bright))*255;}
+                    else{bright=((bright/255-.5)*contrast+.5)*255;}
+                    if(invert) bright=255-bright;
+                    const ci=Math.floor(bright/255*(chars.length-1)),ch=chars[ci];
+
+                    if(mode==='color'){
+                        const color=`rgb(${r},${g},${b})`;
+                        const bgc=bright<128?bg:`rgba(${r*.3},${g*.3},${b*.3},1)`;
+                        art+=`<span style="color:${color};background:${bgc}">${ch}</span>`;
+                    }else{ // twocolor
+                        const n=bright/255;
+                        if(n>.7)      art+=`<span style="color:${c2}">${ch}</span>`;
+                        else if(n>.2) art+=`<span style="color:${c1}">${ch}</span>`;
+                        else          art+=`<span style="color:${txt}">${ch}</span>`;
+                    }
+                }
+                art+='<br>';
+            }
+            art+='</div>';
+        }
+        /* 單色 */
+        else{
+            for(let y=0;y<h;y++){
+                for(let x=0;x<w;x++){
+                    idx=(y*w+x)*4;
+                    bright=(data[idx]+data[idx+1]+data[idx+2])/3;
+                    if(enhance){bright=((bright/255)-.5)*(contrast*1.5)+.5;bright=Math.max(0,Math.min(1,bright))*255;}
+                    else{bright=((bright/255-.5)*contrast+.5)*255;}
+                    if(invert) bright=255-bright;
+                    art+=chars[Math.floor(bright/255*(chars.length-1))];
+                }
+                art+='\n';
+            }
+        }
+        return art;
+    }
+
+    /* ====== 下載工具 ====== */
+    function triggerDownload(blob,filename){
+        const url=URL.createObjectURL(blob),a=document.createElement('a');
+        a.href=url;a.download=filename;document.body.appendChild(a);a.click();
+        a.remove();URL.revokeObjectURL(url);
+    }
+});
+</script>
+</body>
+</html>
