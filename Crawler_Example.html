@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HTML Prompt Simplifier - 爬蟲範例生成器</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📄</text></svg>"
+    />
+    <style>
+      :root {
+        --primary-color: #4fc3f7;
+        --secondary-color: #03a9f4;
+        --background-color: #e1f5fe;
+        --text-color: #01579b;
+        --shadow-color: rgba(1, 87, 155, 0.1);
+        --active-button-background: #0288d1;
+        --active-button-text-color: white;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Roboto", sans-serif;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+      .container {
+        background-color: white;
+        border-radius: 24px;
+        box-shadow: 0 20px 40px var(--shadow-color);
+        padding: 40px;
+        width: 95%;
+        max-width: 1200px;
+        animation: fadeIn 0.5s ease-out;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 30px;
+      }
+      .logo {
+        font-size: 3em;
+        margin-right: 20px;
+        color: var(--primary-color);
+        animation: float 3s ease-in-out infinite;
+      }
+      h1 {
+        color: var(--secondary-color);
+        font-size: 2.5em;
+        margin: 0;
+        text-shadow: 2px 2px 4px var(--shadow-color);
+      }
+      .button-group {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+      .button-group button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px var(--shadow-color);
+        margin: 0 10px;
+        outline: none;
+      }
+      .button-group button.active {
+        background-color: var(--active-button-background);
+        color: var(--active-button-text-color);
+        box-shadow: 0 6px 12px var(--shadow-color);
+        transform: scale(1.05);
+      }
+      .input-output {
+        display: flex;
+        gap: 30px;
+        height: 60vh;
+      }
+      .column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+      textarea {
+        width: 100%;
+        height: 100%;
+        padding: 20px;
+        border: 2px solid var(--primary-color);
+        border-radius: 12px;
+        font-size: 16px;
+        resize: none;
+        transition: all 0.3s ease;
+        box-shadow: inset 0 2px 4px var(--shadow-color);
+      }
+      textarea:focus {
+        outline: none;
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 3px rgba(3, 169, 244, 0.2);
+      }
+      .count-display {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        font-size: 1.2em;
+        font-weight: bold;
+        color: var(--text-color);
+      }
+      .copy-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: var(--secondary-color);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 50px;
+        opacity: 0;
+        transition: all 0.3s ease;
+        transform: translateY(-20px);
+        box-shadow: 0 4px 6px var(--shadow-color);
+      }
+      .show-notification {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+      @media (max-width: 768px) {
+        .input-output {
+          flex-direction: column;
+          height: auto;
+        }
+        textarea {
+          height: 200px;
+        }
+      }
+    </style>
+    <!-- 引入 js-beautify 庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-html.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <span class="logo">📄</span>
+        <h1>HTML Prompt Simplifier</h1>
+      </div>
+      <div class="button-group">
+        <button id="generalBtn" class="active">通用模式</button>
+        <button id="htmlBtn">HTML 模式</button>
+      </div>
+      <div class="input-output">
+        <div class="column">
+          <textarea
+            id="input"
+            placeholder="在此貼上您的 HTML 內容..."
+          ></textarea>
+          <div
+            class="button-group"
+            style="justify-content: flex-start; margin-top: 10px"
+          >
+            <button id="pasteBtn">
+              貼上內容（<span id="pasteCount">０</span>）
+            </button>
+            <button id="clearBtn">清除</button>
+          </div>
+          <div class="count-display">
+            總行數: <span id="inputLineCount">０</span><br />
+            總字數: <span id="inputWordCount">０</span>
+          </div>
+        </div>
+        <div class="column">
+          <textarea
+            id="output"
+            readonly
+            placeholder="解析後的內容將顯示在這裡..."
+          ></textarea>
+          <div
+            class="button-group"
+            style="justify-content: flex-start; margin-top: 10px"
+          >
+            <button id="copyBtn">複製解析後的內容</button>
+          </div>
+          <div class="count-display">
+            總行數: <span id="outputLineCount">０</span><br />
+            總字數: <span id="outputWordCount">０</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="copyNotification" class="copy-notification">複製成功！</div>
+
+    <script>
+      const input = document.getElementById("input");
+      const output = document.getElementById("output");
+      const copyBtn = document.getElementById("copyBtn");
+      const pasteBtn = document.getElementById("pasteBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const copyNotification = document.getElementById("copyNotification");
+      const pasteCount = document.getElementById("pasteCount");
+      const inputLineCount = document.getElementById("inputLineCount");
+      const inputWordCount = document.getElementById("inputWordCount");
+      const outputLineCount = document.getElementById("outputLineCount");
+      const outputWordCount = document.getElementById("outputWordCount");
+      const modeButtons = document.querySelectorAll(".button-group button");
+      let pasteTimes = 0;
+      let pastedTextSet = new Set();
+      // 預設模式：通用模式
+      let selectedMode = "general";
+
+      /**
+       * 清洗元素屬性
+       * @param {HTMLElement} element
+       * @param {string} mode - "general" 或 "html"
+       */
+      function cleanAttributes(element, mode = "general") {
+        const allowedAttributes = [
+          "id",
+          "class",
+          "href",
+          "src",
+          "alt",
+          "title",
+        ];
+        // 從後往前移除屬性，避免 index 混亂
+        for (let i = element.attributes.length - 1; i >= 0; i--) {
+          const attr = element.attributes[i];
+          // 移除所有 aria-* 屬性
+          if (attr.name.startsWith("aria-")) {
+            element.removeAttribute(attr.name);
+          } else if (mode === "general") {
+            if (!allowedAttributes.includes(attr.name)) {
+              element.removeAttribute(attr.name);
+            }
+          } else if (mode === "html") {
+            // HTML 模式保留 data-* 屬性
+            if (
+              !allowedAttributes.includes(attr.name) &&
+              !attr.name.startsWith("data-")
+            ) {
+              element.removeAttribute(attr.name);
+            }
+          }
+        }
+      }
+
+      /**
+       * 取得元素的 class 字串（如果存在）
+       * @param {HTMLElement} element
+       * @returns {string} class 字串
+       */
+      function getClassString(element) {
+        if (!element.className) return "";
+        if (typeof element.className === "string") {
+          return element.className;
+        } else if (element.className.baseVal) {
+          return element.className.baseVal;
+        }
+        return "";
+      }
+
+      /**
+       * 遞迴處理元素，移除重複並清洗屬性
+       * @param {HTMLElement} element
+       * @param {string} mode - "general" 或 "html"
+       */
+      function processElement(element, mode) {
+        const children = Array.from(element.children);
+        const seen = new Map();
+
+        children.forEach((child) => {
+          cleanAttributes(child, mode);
+
+          // 生成元素識別符：tagName + id + sorted class + 簡短內部內容
+          let identifier = child.tagName.toLowerCase();
+          if (child.id) identifier += `#${child.id}`;
+
+          // 使用輔助函數取得 class 字串
+          let classStr = getClassString(child);
+          if (classStr) {
+            const classes = classStr.split(/\s+/).sort().join(".");
+            identifier += `.${classes}`;
+          }
+
+          // 取得元素的部分內部內容作為識別用
+          let textSnippet = child.innerHTML
+            .replace(/\s+/g, " ")
+            .trim()
+            .substring(0, 30);
+          identifier += `|${textSnippet}`;
+
+          if (seen.has(identifier)) {
+            const entry = seen.get(identifier);
+            entry.count += 1;
+            element.removeChild(child);
+
+            if (entry.count === 2) {
+              // 插入註釋標示重複次數
+              const comment = document.createComment(
+                `這個元素重複 ${entry.count - 1} 次`
+              );
+              element.insertBefore(
+                document.createTextNode("\n"),
+                entry.element.nextSibling
+              );
+              element.insertBefore(comment, entry.element.nextSibling);
+              element.insertBefore(
+                document.createTextNode("\n"),
+                entry.element.nextSibling
+              );
+              entry.comment = comment;
+            } else if (entry.count > 2 && entry.comment) {
+              entry.comment.textContent = `這個元素重複 ${entry.count - 1} 次`;
+            }
+          } else {
+            seen.set(identifier, { count: 1, element: child, comment: null });
+            processElement(child, mode);
+          }
+        });
+      }
+
+      /**
+       * 解析並簡化 HTML 字串，返回格式化後的結果
+       * @param {string} html - 原始 HTML 字符串
+       * @param {string} mode - "general" 或 "html"
+       * @returns {string} 簡化後的 HTML 字符串
+       */
+      function simplifyHTML(html, mode = "general") {
+        try {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+
+          // 遞迴處理 body 的元素
+          processElement(doc.body, mode);
+          let simplifiedHTML = doc.body.innerHTML;
+
+          // 使用 js-beautify 格式化 HTML
+          simplifiedHTML = html_beautify(simplifiedHTML, {
+            indent_size: 2,
+            space_in_empty_paren: true,
+            wrap_line_length: 0,
+            end_with_newline: true,
+          });
+
+          return simplifiedHTML;
+        } catch (error) {
+          console.error("解析錯誤：", error);
+          return "解析失敗，檢查您的 HTML 格式是否正確。";
+        }
+      }
+
+      /**
+       * 解析輸入的 HTML 並顯示結果
+       */
+      function parseHTML() {
+        const inputHTML = input.value;
+        if (!inputHTML.trim()) {
+          output.value = "";
+          outputLineCount.textContent = "０";
+          outputWordCount.textContent = "０";
+          return;
+        }
+        const simplified = simplifyHTML(inputHTML, selectedMode);
+        output.value = simplified;
+        outputLineCount.textContent = simplified
+          ? simplified.split("\n").length
+          : 0;
+
+        // 計算字數（不包括 HTML 註釋）
+        const textWithoutComments = simplified.replace(/<!--[\s\S]*?-->/g, "");
+        const wordCount = textWithoutComments
+          ? textWithoutComments.replace(/\s+/g, " ").trim().split(" ").length
+          : 0;
+        outputWordCount.textContent = wordCount;
+      }
+
+      /**
+       * 更新輸入區域的行數與字數
+       */
+      function updateInputCounts() {
+        inputLineCount.textContent = input.value
+          ? input.value.split("\n").length
+          : 0;
+        inputWordCount.textContent = input.value
+          ? input.value.replace(/\s+/g, " ").trim().split(" ").length
+          : 0;
+      }
+
+      // 模式切換按鈕處理（不含功能性按鈕）
+      modeButtons.forEach((button) => {
+        // 排除貼上、複製、清除按鈕
+        if (
+          button.id !== "copyBtn" &&
+          button.id !== "pasteBtn" &&
+          button.id !== "clearBtn"
+        ) {
+          button.addEventListener("click", () => {
+            // 移除前一個 active 狀態
+            document.querySelectorAll(".button-group button").forEach((btn) => {
+              btn.classList.remove("active");
+            });
+            button.classList.add("active");
+            // 根據按鈕選擇模式
+            selectedMode = button.id === "htmlBtn" ? "html" : "general";
+            parseHTML();
+          });
+        }
+      });
+
+      // 自動解析輸入內容
+      input.addEventListener("input", () => {
+        updateInputCounts();
+        parseHTML();
+      });
+
+      // 複製解析結果
+      copyBtn.addEventListener("click", function () {
+        output.select();
+        document.execCommand("copy");
+        copyNotification.classList.add("show-notification");
+        setTimeout(() => {
+          copyNotification.classList.remove("show-notification");
+        }, 1000);
+      });
+
+      // 貼上剪貼簿內容
+      pasteBtn.addEventListener("click", async function () {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (!pastedTextSet.has(text)) {
+            input.value += text;
+            pastedTextSet.add(text);
+            pasteTimes++;
+            pasteCount.textContent = pasteTimes;
+            updateInputCounts();
+            parseHTML();
+          }
+        } catch (err) {
+          console.error("無法讀取剪貼簿:", err);
+        }
+      });
+
+      // 清除輸入與輸出
+      clearBtn.addEventListener("click", function () {
+        input.value = "";
+        output.value = "";
+        pastedTextSet.clear();
+        pasteTimes = 0;
+        pasteCount.textContent = pasteTimes;
+        inputLineCount.textContent = 0;
+        inputWordCount.textContent = 0;
+        outputLineCount.textContent = 0;
+        outputWordCount.textContent = 0;
+      });
+
+      // 初始化行數和解析
+      updateInputCounts();
+      parseHTML();
+    </script>
+  </body>
+</html>
