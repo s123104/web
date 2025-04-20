@@ -1,27 +1,105 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <title>Office Error Analyzer – 前端強化版</title>
+  <meta charset="UTF-8">
+  <title>Office Error Analyzer – 強化版</title>
+  <!-- Markmap for MindMap -->
   <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.15.0/dist/browser/index.min.js"></script>
   <style>
-    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue";margin:0;background:#f9fafb;color:#333}
-    header{background:#1e293b;color:#fff;padding:1rem;font-weight:700}
-    main{max-width:960px;margin:auto;padding:1.5rem}
-    textarea,input,button{font:inherit}
-    textarea{width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:4px;resize:vertical}
-    input[type=text]{width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:4px}
-    .row{display:flex;gap:.5rem;margin:.5rem 0;flex-wrap:wrap}
-    button{cursor:pointer;border:none;padding:.6rem 1rem;border-radius:4px;font-weight:600}
-    button.primary{background:#2563eb;color:#fff}
-    button.outline{background:#fff;border:1px solid #2563eb;color:#2563eb}
-    #mindmap-wrap{border:1px solid #cbd5e1;border-radius:6px;margin-top:1rem;min-height:500px;overflow:hidden;background:#fff}
-    label{display:block;font-size:.9rem;color:#475569;margin-top:.75rem}
-    pre{background:#e2e8f0;padding:1rem;border-radius:6px;overflow:auto;white-space:pre-wrap}
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue";
+      margin: 0;
+      background: #f9fafb;
+      color: #333;
+    }
+    header {
+      background: #1e293b;
+      color: #fff;
+      padding: 1rem;
+      font-weight: 700;
+    }
+    main {
+      max-width: 960px;
+      margin: auto;
+      padding: 1.5rem;
+    }
+    label {
+      display: block;
+      font-size: .9rem;
+      color: #475569;
+      margin-top: .75rem;
+    }
+    textarea, input, button {
+      font: inherit;
+    }
+    textarea {
+      width: 100%;
+      padding: .5rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      resize: vertical;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: .5rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+    }
+    .row {
+      display: flex;
+      gap: .5rem;
+      margin: .5rem 0;
+      flex-wrap: wrap;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      padding: .6rem 1rem;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    button.primary {
+      background: #2563eb;
+      color: #fff;
+    }
+    button.outline {
+      background: #fff;
+      border: 1px solid #2563eb;
+      color: #2563eb;
+    }
+    details {
+      margin-top: .5rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: .5rem;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+    pre {
+      background: #e2e8f0;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    #mindmap-wrap {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      margin-top: 1rem;
+      min-height: 500px;
+      overflow: hidden;
+      background: #fff;
+    }
+    svg {
+      width: 100%;
+      height: 100%;
+    }
   </style>
 </head>
 <body>
-  <header>📝 辦公室錯誤分析（強化貼 JSON）</header>
+  <header>📝 辦公室錯誤分析（前端強化版）</header>
   <main>
     <label for="error">輸入錯誤事件（單行）</label>
     <textarea id="error" rows="2" placeholder="例：發票大寫數字開錯，客戶要求重開"></textarea>
@@ -33,41 +111,45 @@
 
     <details>
       <summary>🔐 API 設定 (可選)</summary>
-      <label>Provider (gpt / grok)</label>
+      <label for="provider">Provider (gpt / grok)</label>
       <input type="text" id="provider" placeholder="gpt" value="gpt">
-      <label>API Key</label>
+      <label for="apikey">API Key</label>
       <input type="text" id="apikey" placeholder="sk-..." />
     </details>
 
     <h3>📤 LLM Prompt</h3>
-    <pre id="promptArea">(點「產生 Prompt」會在這出現)</pre>
+    <pre id="promptArea">(點「產生 Prompt」後出現)</pre>
 
-    <h3>📥 貼回 JSON（可多行）</h3>
-    <label for="jsonInput">把 ChatGPT/Grok 回傳的整段 JSON（可包含 ```code```）貼在這：</label>
-    <textarea id="jsonInput" rows="6" placeholder="貼上回傳 JSON，包含多行⋯⋯"></textarea>
+    <h3>📥 貼回 JSON（可多行／夾雜 ```code```）</h3>
+    <label for="jsonInput">把 ChatGPT/Grok 回傳的 JSON 貼在這：</label>
+    <textarea id="jsonInput" rows="6" placeholder="貼上多行 JSON…"></textarea>
     <button class="primary" id="btn-render">渲染思維導圖</button>
 
     <h3>🗺️ MindMap</h3>
     <div id="mindmap-wrap">
-      <svg id="mindmap" style="width:100%;height:100%"></svg>
+      <svg id="mindmap"></svg>
     </div>
   </main>
 
   <script>
-    const $ = (s) => document.querySelector(s)
-    const splitBullets = (txt) =>
-      txt.split(/[，,、；;．。.]/).filter(Boolean).map(t => '- '+t.trim()).join('\n')
+    // 簡化選取
+    const $ = s => document.querySelector(s);
 
+    // 切分成 Markmap 子彈
+    const splitBullets = txt =>
+      txt.split(/[，,、；;．。.]/).filter(Boolean)
+         .map(t => '- ' + t.trim()).join('\n');
+
+    // 建 Prompt
     function buildPrompt(sentence) {
       return `你是辦公室流程 QA 專家。\n` +
-             `根據以下「錯誤描述」，回傳此 JSON：\n` +
-             `{\n  "reason": "...",\n  "consequence": "...",\n` +
-             `  "mitigation": "...",\n  "stakeholders": "...",\n` +
-             `  "bestFix": "..." \n}\n` +
-             `僅輸出 JSON，不要多餘文字。\n` +
-             `錯誤描述：「${sentence}」`
+        `根據「${sentence}」，回傳 JSON：\n` +
+        `{\n  "reason":"…",\n  "consequence":"…",\n` +
+        `  "mitigation":"…",\n  "stakeholders":"…",\n` +
+        `  "bestFix":"…" \n}\n僅輸出 JSON，不要多餘文字。`;
     }
 
+    // 畫 MindMap
     function renderMindMap(sentence, obj) {
       const md = `# ${sentence}
 ## 原因
@@ -79,100 +161,120 @@ ${splitBullets(obj.mitigation)}
 ## 關聯人員
 ${splitBullets(obj.stakeholders)}
 ## 最優解
-- ${obj.bestFix}`
-      $('#mindmap').innerHTML = ''
-      window.markmap.Markmap.create('#mindmap', null, md)
-      localStorage.setItem('lastError', JSON.stringify({ sentence, obj }))
+- ${obj.bestFix}`;
+      $('#mindmap').innerHTML = '';
+      window.markmap.Markmap.create('#mindmap', null, md);
+      localStorage.setItem('lastError', JSON.stringify({ sentence, obj }));
     }
 
-    // 產生 prompt
+    // 產生 Prompt
     $('#btn-prompt').onclick = () => {
-      const s = $('#error').value.trim()
-      if (!s) return alert('先填錯誤描述啦！')
-      $('#promptArea').textContent = buildPrompt(s)
-    }
+      const s = $('#error').value.trim();
+      if (!s) return alert('先填錯誤描述啦！');
+      $('#promptArea').textContent = buildPrompt(s);
+    };
 
-    // 渲染貼回的 JSON
+    // 強化貼 JSON & 解析
     $('#btn-render').onclick = () => {
-      let raw = $('#jsonInput').value.trim()
-      if (!raw) return alert('先貼 JSON 再按這！')
-      // 自動去除 ```code``` 區塊
-      raw = raw.replace(/```(?:json)?/g,'').replace(/```/g,'').trim()
+      let raw = $('#jsonInput').value || '';
+      raw = raw.trim();
+      if (!raw) return alert('先貼 JSON 再按這！');
+
+      // 1. 去掉任何 ```code``` 區塊
+      raw = raw.replace(/```[\s\S]*?```/g, '').trim();
+      // 2. 拔出 {…} 之間
+      const first = raw.indexOf('{'),
+            last  = raw.lastIndexOf('}');
+      if (first !== -1 && last > first) raw = raw.substring(first, last + 1);
+      // 3. 移除尾部分號或多餘空白
+      raw = raw.replace(/[;, \t\r\n]+$/g, '');
+      // 4. 去 BOM
+      raw = raw.replace(/^\uFEFF/, '');
+
       try {
-        const obj = JSON.parse(raw)
-        renderMindMap($('#error').value.trim(), obj)
+        const obj = JSON.parse(raw);
+        renderMindMap($('#error').value.trim(), obj);
+        // 顯示乾淨 JSON
+        $('#jsonInput').value = JSON.stringify(obj, null, 2);
       } catch (e) {
-        console.error(e)
-        alert('JSON 解析失敗！確認是不是多了奇怪標點或 code fence？')
+        console.error(e);
+        alert('JSON 解析失敗！再檢查一次格式或多貼幾回？');
       }
-    }
+    };
 
-    // API 直連
+    // 呼叫 LLM API
     async function callLLM(sentence, provider, key) {
-      if (!key) throw new Error('API Key 不可空！')
-      if (provider==='gpt') {
+      if (!key) throw new Error('API Key 不可空！');
+      if (provider === 'gpt') {
         const body = {
-          model:'gpt-4o-mini',
-          messages:[
-            {role:'system',content:'你是辦公室流程 QA 專家，輸出 JSON。'},
-            {role:'user',content:sentence}
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: '你是辦公室流程 QA 專家，輸出 JSON。' },
+            { role: 'user', content: sentence }
           ],
-          response_format:{type:'json_object'}
-        }
-        const res = await fetch('https://api.openai.com/v1/chat/completions',{
-          method:'POST',
-          headers:{'Content-Type':'application/json', Authorization:`Bearer ${key}`},
-          body:JSON.stringify(body)
-        })
-        const j = await res.json()
-        return JSON.parse(j.choices[0].message.content)
-      } else if (provider==='grok') {
+          response_format: { type: 'json_object' }
+        };
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${key}`
+          },
+          body: JSON.stringify(body)
+        });
+        const j = await res.json();
+        return JSON.parse(j.choices[0].message.content);
+      } else if (provider === 'grok') {
         const body = {
-          model:'grok-1',
-          messages:[
-            {role:'system',content:'你是辦公室流程 QA 專家，輸出 JSON。'},
-            {role:'user',content:sentence}
+          model: 'grok-1',
+          messages: [
+            { role: 'system', content: '你是辦公室流程 QA 專家，輸出 JSON。' },
+            { role: 'user', content: sentence }
           ]
-        }
-        const res = await fetch('https://api.grok.com/v1/chat/completions',{
-          method:'POST',
-          headers:{'Content-Type':'application/json', Authorization:`Bearer ${key}`},
-          body:JSON.stringify(body)
-        })
-        const j = await res.json()
-        return JSON.parse(j.choices[0].message.content)
+        };
+        const res = await fetch('https://api.grok.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${key}`
+          },
+          body: JSON.stringify(body)
+        });
+        const j = await res.json();
+        return JSON.parse(j.choices[0].message.content);
       } else {
-        throw new Error('不支援的 provider')
+        throw new Error('不支援的 provider');
       }
     }
 
+    // API 直連觸發
     $('#btn-api').onclick = async () => {
-      const s = $('#error').value.trim()
-      if (!s) return alert('先填錯誤描述啦！')
-      const p = $('#provider').value.trim()
-      const k = $('#apikey').value.trim()
-      $('#promptArea').textContent = '⏳ 分析中…'
+      const s = $('#error').value.trim();
+      if (!s) return alert('先填錯誤描述啦！');
+      const p = $('#provider').value.trim();
+      const k = $('#apikey').value.trim();
+      $('#promptArea').textContent = '⏳ 分析中…';
       try {
-        const obj = await callLLM(s,p,k)
-        $('#promptArea').textContent = JSON.stringify(obj,null,2)
-        $('#jsonInput').value = JSON.stringify(obj,null,2)
-        renderMindMap(s,obj)
+        const obj = await callLLM(s, p, k);
+        $('#promptArea').textContent = JSON.stringify(obj, null, 2);
+        $('#jsonInput').value   = JSON.stringify(obj, null, 2);
+        renderMindMap(s, obj);
       } catch (err) {
-        console.error(err)
-        alert('LLM 呼叫失敗，CORS 或 Key 有問題？')
+        console.error(err);
+        alert('LLM 呼叫失敗，CORS 或 Key 有問題？');
       }
-    }
+    };
 
-    // 預載上次
-    window.addEventListener('DOMContentLoaded',()=>{
-      const last = localStorage.getItem('lastError')
+    // 載入上次紀錄
+    window.addEventListener('DOMContentLoaded', () => {
+      const last = localStorage.getItem('lastError');
       if (last) {
-        const {sentence,obj} = JSON.parse(last)
-        $('#error').value = sentence
-        $('#jsonInput').value = JSON.stringify(obj,null,2)
-        renderMindMap(sentence,obj)
+        const { sentence, obj } = JSON.parse(last);
+        $('#error').value     = sentence;
+        $('#jsonInput').value = JSON.stringify(obj, null, 2);
+        renderMindMap(sentence, obj);
       }
-    })
+    });
   </script>
 </body>
 </html>
