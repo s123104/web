@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>Office Error Analyzer – Front‑End Only</title>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.15.0/dist/browser/index.min.js"></script>
+  <style>
+    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue";margin:0;background:#f9fafb;color:#333}
+    header{background:#1e293b;color:#fff;padding:1rem;font-weight:700}
+    main{max-width:960px;margin:auto;padding:1.5rem}
+    textarea,input,button{font:inherit}
+    textarea{width:100%;height:5rem;padding:.5rem;resize:vertical;border:1px solid #cbd5e1;border-radius:4px}
+    input[type=text]{width:100%;padding:.4rem;border:1px solid #cbd5e1;border-radius:4px}
+    .row{display:flex;gap:.5rem;margin:.5rem 0}
+    button{cursor:pointer;border:none;padding:.6rem 1rem;border-radius:4px;font-weight:600}
+    button.primary{background:#2563eb;color:#fff}
+    button.outline{background:#fff;border:1px solid #2563eb;color:#2563eb}
+    #mindmap-wrap{border:1px solid #cbd5e1;border-radius:6px;margin-top:1rem;min-height:500px;overflow:hidden;background:#fff}
+    pre{background:#e2e8f0;padding:1rem;border-radius:6px;overflow:auto}
+    label{font-size:.85rem;color:#475569;font-weight:600}
+  </style>
+</head>
+<body>
+  <header>📝 辦公室錯誤分析（前端版）</header>
+  <main>
+    <label for="error">輸入錯誤事件（單行）</label>
+    <textarea id="error" placeholder="例：發票大寫數字開錯，客戶要求重開"></textarea>
+
+    <div class="row">
+      <button class="primary" id="btn-api">API 直接分析</button>
+      <button class="outline" id="btn-prompt">產生 Prompt (手動)</button>
+      <button class="outline" id="btn-paste">貼回 LLM JSON → 畫圖</button>
+    </div>
+
+    <details>
+      <summary>🔐 API 設定 (可選)</summary>
+      <label>Provider (gpt / grok)</label>
+      <input type="text" id="provider" placeholder="gpt" value="gpt">
+      <label>API Key</label>
+      <input type="text" id="apikey" placeholder="sk-..." />
+    </details>
+
+    <h3>📤 LLM Prompt / 📥 回傳 JSON</h3>
+    <pre id="promptArea">(這裡會產生 prompt 或貼回 JSON)</pre>
+
+    <h3>🗺️ MindMap</h3>
+    <div id="mindmap-wrap">
+      <svg id="mindmap" style="width:100%;height:100%"></svg>
+    </div>
+  </main>
+
+  <script>
+    /* ---------- 小工具 ---------- */
+    const $ = (q) => document.querySelector(q)
+    const splitBullets = (txt) =>
+      txt.split(/[，,、；;．。.]/).filter(Boolean).map((t) => `- ${t.trim()}`).join('\n')
+
+    /* ---------- Prompt 模板 ---------- */
+    function buildPrompt(sentence) {
+      return `你是辦公室流程 QA 專家。\n根據以下「錯誤描述」，回傳此 JSON：\n{\n  "reason": "...",\n  "consequence": "...",\n  "mitigation": "...",\n  "stakeholders": "...",\n  "bestFix": "..." \n}\n僅輸出 JSON，不要加註解。\n錯誤描述：「${sentence}」`
+    }
+
+    /* ---------- Markdown -> Markmap ---------- */
+    let mm // markmap instance
+    function renderMindMap(sentence, obj) {
+      const md = `# ${sentence}
+## 原因
+${splitBullets(obj.reason)}
+## 後果
+${splitBullets(obj.consequence)}
+## 改善方案
+${splitBullets(obj.mitigation)}
+## 關聯人員
+${splitBullets(obj.stakeholders)}
+## 最優解
+- ${obj.bestFix}
+`
+      // remove old svg
+      $('#mindmap').innerHTML = ''
+      mm = window.markmap.Markmap.create('#mindmap', null, md)
+      /* 本地紀錄 */
+      localStorage.setItem('lastError', JSON.stringify({ sentence, obj }))
+    }
+
+    /* ---------- 手動流程 ---------- */
+    $('#btn-prompt').onclick = () => {
+      const sentence = $('#error').value.trim()
+      if (!sentence) return alert('先填錯誤啦！')
+      const prompt = buildPrompt(sentence)
+      $('#promptArea').textContent = prompt
+    }
+
+    $('#btn-paste').onclick = () => {
+      const raw = prompt('貼上 GPT/Grok 回傳的 JSON：')
+      if (!raw) return
+      try {
+        const obj = JSON.parse(raw)
+        renderMindMap($('#error').value.trim(), obj)
+        $('#promptArea').textContent = raw
+      } catch (e) {
+        alert('JSON 解析失敗，確認格式！')
+      }
+    }
+
+    /* ---------- API 直連 ---------- */
+    async function callLLM(sentence, provider, key) {
+      if (provider === 'gpt') {
+        const body = {
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: '你是辦公室流程 QA 專家，輸出 JSON。' },
+            { role: 'user', content: sentence }
+          ],
+          response_format: { type: 'json_object' }
+        }
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${key}`
+          },
+          body: JSON.stringify(body)
+        })
+        const data = await res.json()
+        return JSON.parse(data.choices[0].message.content)
+      } else if (provider === 'grok') {
+        const body = {
+          model: 'grok-1',
+          messages: [
+            { role: 'system', content: '你是辦公室流程 QA 專家，輸出 JSON。' },
+            { role: 'user', content: sentence }
+          ]
+        }
+        const res = await fetch('https://api.grok.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${key}`
+          },
+          body: JSON.stringify(body)
+        })
+        const data = await res.json()
+        return JSON.parse(data.choices[0].message.content)
+      } else {
+        throw new Error('Unknown provider')
+      }
+    }
+
+    $('#btn-api').onclick = async () => {
+      const sentence = $('#error').value.trim()
+      if (!sentence) return alert('先填錯誤啦！')
+      const provider = $('#provider').value.trim() || 'gpt'
+      const key = $('#apikey').value.trim()
+      if (!key) return alert('請填 API Key！')
+      $('#promptArea').textContent = '⏳ LLM 分析中…'
+      try {
+        const obj = await callLLM(sentence, provider, key)
+        $('#promptArea').textContent = JSON.stringify(obj, null, 2)
+        renderMindMap(sentence, obj)
+      } catch (err) {
+        console.error(err)
+        alert('呼叫 LLM 失敗！瀏覽器 CORS or Key 錯？')
+      }
+    }
+
+    /* ---------- 讀取上次 ---------- */
+    window.addEventListener('DOMContentLoaded', () => {
+      const last = localStorage.getItem('lastError')
+      if (last) {
+        const { sentence, obj } = JSON.parse(last)
+        $('#error').value = sentence
+        renderMindMap(sentence, obj)
+      }
+    })
+  </script>
+</body>
+</html>
