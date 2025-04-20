@@ -2,17 +2,16 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>Office Error Analyzer – 最終強化版</title>
-  <!-- Markmap 用來畫思維導圖 -->
-  <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.15.0/dist/browser/index.min.js"></script>
+  <title>Office Error Analyzer – 模態窗版</title>
+  <!-- 改用 markmap-view CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.15.0/dist/browser/index.min.js"></script>
   <style>
     body {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue";
       margin: 0; background: #f9fafb; color: #333;
     }
     header {
-      background: #1e293b; color: #fff;
-      padding: 1rem; font-weight: 700;
+      background: #1e293b; color: #fff; padding: 1rem; font-weight: 700;
     }
     main {
       max-width: 960px; margin: auto; padding: 1.5rem;
@@ -56,17 +55,33 @@
       background: #e2e8f0; padding: 1rem; border-radius: 6px;
       overflow: auto; white-space: pre-wrap;
     }
-    #mindmap-wrap {
-      border: 1px solid #cbd5e1; border-radius: 6px;
-      margin-top: 1rem; min-height: 500px; overflow: hidden; background: #fff;
+
+    /* 模態窗樣式 */
+    .modal {
+      display: none; /* 預設隱藏 */
+      position: fixed; z-index: 1000;
+      left: 0; top: 0; width: 100%; height: 100%;
+      overflow: auto; background-color: rgba(0,0,0,0.5);
     }
-    svg {
+    .modal-content {
+      background: #fff; margin: 3% auto;
+      padding: 1rem; border-radius: 6px;
+      width: 90%; max-width: 800px;
+      height: 80%; overflow: hidden;
+      position: relative;
+    }
+    .close {
+      position: absolute; top: 0.5rem; right: 1rem;
+      font-size: 2rem; font-weight: bold; color: #555;
+      cursor: pointer;
+    }
+    #mindmap {
       width: 100%; height: 100%;
     }
   </style>
 </head>
 <body>
-  <header>📝 辦公室錯誤分析（最終強化版）</header>
+  <header>📝 辦公室錯誤分析（模態窗版）</header>
   <main>
     <label for="error">輸入錯誤事件（單行）</label>
     <textarea id="error" rows="2" placeholder="例：發票大寫數字開錯，客戶要求重開"></textarea>
@@ -91,15 +106,17 @@
     <label for="jsonInput">把 ChatGPT/Grok 回傳的 JSON 貼在這：</label>
     <textarea id="jsonInput" rows="6" placeholder="貼上多行 JSON…"></textarea>
     <button class="primary" id="btn-render">渲染思維導圖</button>
-
-    <h3>🗺️ MindMap</h3>
-    <div id="mindmap-wrap">
-      <svg id="mindmap"></svg>
-    </div>
   </main>
 
+  <!-- 模態窗 -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="modalClose">&times;</span>
+      <svg id="mindmap"></svg>
+    </div>
+  </div>
+
   <script>
-    // 簡化選取
     const $ = s => document.querySelector(s);
 
     // 切分標點成 Markdown 子彈
@@ -107,7 +124,7 @@
       txt.split(/[，,、；;．。.]/).filter(Boolean)
          .map(t => '- ' + t.trim()).join('\n');
 
-    // 建 Prompt
+    // 建 LLM Prompt
     function buildPrompt(sentence) {
       return `你是辦公室流程 QA 專家。\n` +
              `根據「${sentence}」，回傳 JSON：\n` +
@@ -117,7 +134,16 @@
              `僅輸出 JSON，不要多餘文字。`;
     }
 
-    // 畫 MindMap
+    // 顯示 & 開啟模態窗
+    function openModal() {
+      $('#modal').style.display = 'block';
+    }
+    // 關閉模態窗
+    function closeModal() {
+      $('#modal').style.display = 'none';
+    }
+
+    // 渲染思維導圖到 #mindmap 裡，並開啟模態窗
     function renderMindMap(sentence, obj) {
       const md = `# ${sentence}
 ## 原因
@@ -131,8 +157,10 @@ ${splitBullets(obj.stakeholders)}
 ## 最優解
 - ${obj.bestFix}`;
       $('#mindmap').innerHTML = '';
+      // markmap-view 全域物件
       window.markmap.Markmap.create('#mindmap', null, md);
       localStorage.setItem('lastError', JSON.stringify({ sentence, obj }));
+      openModal();
     }
 
     // 產生 Prompt
@@ -148,7 +176,7 @@ ${splitBullets(obj.stakeholders)}
       raw = raw.trim();
       if (!raw) return alert('先貼 JSON 再按這！');
 
-      // 🔥 清理雜訊
+      // 清理雜訊
       raw = raw.replace(/```[\s\S]*?```/g, '').trim();
       const first = raw.indexOf('{'), last = raw.lastIndexOf('}');
       if (first !== -1 && last > first) raw = raw.substring(first, last + 1);
@@ -157,14 +185,14 @@ ${splitBullets(obj.stakeholders)}
       try {
         const obj = JSON.parse(raw);
         renderMindMap($('#error').value.trim(), obj);
+        // 同步填回乾淨 JSON
         $('#jsonInput').value = JSON.stringify(obj, null, 2);
       } catch (e) {
         console.log('— Cleaned JSON to parse —\n', raw);
         console.error('🔥 JSON parse error →', e);
         alert(
           `JSON 解析失敗：${e.message}\n\n` +
-          `清理後內容（前200字）：\n` +
-          `${raw.substring(0,200)}${raw.length>200?'…':''}`
+          `清理後內容（前200字）：\n${raw.substring(0,200)}${raw.length>200?'…':''}`
         );
       }
     };
@@ -214,7 +242,7 @@ ${splitBullets(obj.stakeholders)}
       }
     }
 
-    // API 直連
+    // API 直連觸發
     $('#btn-api').onclick = async () => {
       const s = $('#error').value.trim();
       if (!s) return alert('先填錯誤描述啦！');
@@ -230,6 +258,13 @@ ${splitBullets(obj.stakeholders)}
         console.error(err);
         alert('LLM 呼叫失敗，CORS 或 Key 有問題？');
       }
+    };
+
+    // 關閉模態窗按鈕
+    $('#modalClose').onclick = closeModal;
+    // 點背景也關
+    window.onclick = e => {
+      if (e.target.id === 'modal') closeModal();
     };
 
     // 載入上次紀錄
