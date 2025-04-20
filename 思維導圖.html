@@ -1,282 +1,1236 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="UTF-8">
-  <title>Office Error Analyzer – 模態窗版</title>
-  <!-- 改用 markmap-view CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.15.0/dist/browser/index.min.js"></script>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue";
-      margin: 0; background: #f9fafb; color: #333;
-    }
-    header {
-      background: #1e293b; color: #fff; padding: 1rem; font-weight: 700;
-    }
-    main {
-      max-width: 960px; margin: auto; padding: 1.5rem;
-    }
-    label {
-      display: block; font-size: .9rem; color: #475569; margin-top: .75rem;
-    }
-    textarea, input, button {
-      font: inherit;
-    }
-    textarea {
-      width: 100%; padding: .5rem;
-      border: 1px solid #cbd5e1; border-radius: 4px;
-      resize: vertical;
-    }
-    input[type="text"] {
-      width: 100%; padding: .5rem;
-      border: 1px solid #cbd5e1; border-radius: 4px;
-    }
-    .row {
-      display: flex; gap: .5rem; margin: .5rem 0; flex-wrap: wrap;
-    }
-    button {
-      cursor: pointer; border: none;
-      padding: .6rem 1rem; border-radius: 4px; font-weight: 600;
-    }
-    button.primary {
-      background: #2563eb; color: #fff;
-    }
-    button.outline {
-      background: #fff; border: 1px solid #2563eb; color: #2563eb;
-    }
-    details {
-      margin-top: .5rem; border: 1px solid #cbd5e1;
-      border-radius: 4px; padding: .5rem;
-    }
-    summary {
-      cursor: pointer; font-weight: 600;
-    }
-    pre {
-      background: #e2e8f0; padding: 1rem; border-radius: 6px;
-      overflow: auto; white-space: pre-wrap;
-    }
-
-    /* 模態窗樣式 */
-    .modal {
-      display: none; /* 預設隱藏 */
-      position: fixed; z-index: 1000;
-      left: 0; top: 0; width: 100%; height: 100%;
-      overflow: auto; background-color: rgba(0,0,0,0.5);
-    }
-    .modal-content {
-      background: #fff; margin: 3% auto;
-      padding: 1rem; border-radius: 6px;
-      width: 90%; max-width: 800px;
-      height: 80%; overflow: hidden;
-      position: relative;
-    }
-    .close {
-      position: absolute; top: 0.5rem; right: 1rem;
-      font-size: 2rem; font-weight: bold; color: #555;
-      cursor: pointer;
-    }
-    #mindmap {
-      width: 100%; height: 100%;
-    }
-  </style>
-</head>
-<body>
-  <header>📝 辦公室錯誤分析（模態窗版）</header>
-  <main>
-    <label for="error">輸入錯誤事件（單行）</label>
-    <textarea id="error" rows="2" placeholder="例：發票大寫數字開錯，客戶要求重開"></textarea>
-
-    <div class="row">
-      <button class="primary" id="btn-api">API 直接分析</button>
-      <button class="outline" id="btn-prompt">產生 Prompt (手動去 LLM 貼)</button>
-    </div>
-
-    <details>
-      <summary>🔐 API 設定 (可選)</summary>
-      <label for="provider">Provider (gpt / grok)</label>
-      <input type="text" id="provider" placeholder="gpt" value="gpt">
-      <label for="apikey">API Key</label>
-      <input type="text" id="apikey" placeholder="sk-...">
-    </details>
-
-    <h3>📤 LLM Prompt</h3>
-    <pre id="promptArea">(點「產生 Prompt」後顯示)</pre>
-
-    <h3>📥 貼回 JSON（可多行／夾雜 ```code```）</h3>
-    <label for="jsonInput">把 ChatGPT/Grok 回傳的 JSON 貼在這：</label>
-    <textarea id="jsonInput" rows="6" placeholder="貼上多行 JSON…"></textarea>
-    <button class="primary" id="btn-render">渲染思維導圖</button>
-  </main>
-
-  <!-- 模態窗 -->
-  <div id="modal" class="modal">
-    <div class="modal-content">
-      <span class="close" id="modalClose">&times;</span>
-      <svg id="mindmap"></svg>
-    </div>
-  </div>
-
-  <script>
-    const $ = s => document.querySelector(s);
-
-    // 切分標點成 Markdown 子彈
-    const splitBullets = txt =>
-      txt.split(/[，,、；;．。.]/).filter(Boolean)
-         .map(t => '- ' + t.trim()).join('\n');
-
-    // 建 LLM Prompt
-    function buildPrompt(sentence) {
-      return `你是辦公室流程 QA 專家。\n` +
-             `根據「${sentence}」，回傳 JSON：\n` +
-             `{\n  "reason":"…",\n  "consequence":"…",\n` +
-             `  "mitigation":"…",\n  "stakeholders":"…",\n` +
-             `  "bestFix":"…" \n}\n` +
-             `僅輸出 JSON，不要多餘文字。`;
-    }
-
-    // 顯示 & 開啟模態窗
-    function openModal() {
-      $('#modal').style.display = 'block';
-    }
-    // 關閉模態窗
-    function closeModal() {
-      $('#modal').style.display = 'none';
-    }
-
-    // 渲染思維導圖到 #mindmap 裡，並開啟模態窗
-    function renderMindMap(sentence, obj) {
-      const md = `# ${sentence}
-## 原因
-${splitBullets(obj.reason)}
-## 後果
-${splitBullets(obj.consequence)}
-## 改善方案
-${splitBullets(obj.mitigation)}
-## 關聯人員
-${splitBullets(obj.stakeholders)}
-## 最優解
-- ${obj.bestFix}`;
-      $('#mindmap').innerHTML = '';
-      // markmap-view 全域物件
-      window.markmap.Markmap.create('#mindmap', null, md);
-      localStorage.setItem('lastError', JSON.stringify({ sentence, obj }));
-      openModal();
-    }
-
-    // 產生 Prompt
-    $('#btn-prompt').onclick = () => {
-      const s = $('#error').value.trim();
-      if (!s) return alert('先填錯誤描述啦！');
-      $('#promptArea').textContent = buildPrompt(s);
-    };
-
-    // 貼 JSON 並解析
-    $('#btn-render').onclick = () => {
-      let raw = $('#jsonInput').value || '';
-      raw = raw.trim();
-      if (!raw) return alert('先貼 JSON 再按這！');
-
-      // 清理雜訊
-      raw = raw.replace(/```[\s\S]*?```/g, '').trim();
-      const first = raw.indexOf('{'), last = raw.lastIndexOf('}');
-      if (first !== -1 && last > first) raw = raw.substring(first, last + 1);
-      raw = raw.replace(/[;, \t\r\n]+$/g, '').replace(/^\uFEFF/, '');
-
-      try {
-        const obj = JSON.parse(raw);
-        renderMindMap($('#error').value.trim(), obj);
-        // 同步填回乾淨 JSON
-        $('#jsonInput').value = JSON.stringify(obj, null, 2);
-      } catch (e) {
-        console.log('— Cleaned JSON to parse —\n', raw);
-        console.error('🔥 JSON parse error →', e);
-        alert(
-          `JSON 解析失敗：${e.message}\n\n` +
-          `清理後內容（前200字）：\n${raw.substring(0,200)}${raw.length>200?'…':''}`
-        );
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>工作錯誤分析與反省系統</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+      :root {
+        --primary-color: #7367f0;
+        --secondary-color: #00cfe8;
+        --success-color: #28c76f;
+        --danger-color: #ea5455;
+        --warning-color: #ff9f43;
+        --info-color: #00d4ff;
+        --bg-color: #f8f7fa;
+        --card-bg: #ffffff;
+        --border-color: #ebe9f1;
+        --text-color: #6e6b7b;
+        --heading-color: #5e5873;
+        --purple-color: #9333ea;
       }
-    };
 
-    // 呼叫 LLM API
-    async function callLLM(sentence, provider, key) {
-      if (!key) throw new Error('API Key 不可空！');
-      if (provider === 'gpt') {
-        const body = {
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: '你是辦公室流程 QA 專家，輸出 JSON。' },
-            { role: 'user', content: sentence }
-          ],
-          response_format: { type: 'json_object' }
-        };
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${key}`
-          },
-          body: JSON.stringify(body)
-        });
-        const j = await res.json();
-        return JSON.parse(j.choices[0].message.content);
-      } else if (provider === 'grok') {
-        const body = {
-          model: 'grok-1',
-          messages: [
-            { role: 'system', content: '你是辦公室流程 QA 專家，輸出 JSON。' },
-            { role: 'user', content: sentence }
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      html,
+      body {
+        height: 100%;
+        width: 100%;
+        overflow-x: hidden;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+      }
+
+      header {
+        text-align: center;
+        padding: 1.5rem 1rem;
+        background: linear-gradient(135deg, #796df3, #7266f0);
+        color: white;
+        border-radius: 0.5rem;
+        margin: 0.5rem auto 1rem;
+        max-width: calc(100% - 1rem);
+      }
+
+      header h1 {
+        font-size: clamp(1.2rem, 4vw, 2rem);
+        margin-bottom: 0.5rem;
+        position: relative;
+        display: inline-block;
+      }
+
+      header h1::after {
+        content: "";
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+        height: 3px;
+        background-color: rgba(255, 255, 255, 0.6);
+        border-radius: 3px;
+      }
+
+      header p {
+        font-size: clamp(0.8rem, 2vw, 1rem);
+        max-width: 800px;
+        margin: 1rem auto 0;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 0.5rem;
+        position: relative;
+      }
+
+      .card {
+        background-color: var(--card-bg);
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 24px 0 rgba(34, 41, 47, 0.1);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+      }
+
+      /* 標籤頁切換樣式 */
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        background-color: #f8f7fa;
+        padding: 0.25rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+        border-bottom: 1px solid var(--border-color);
+        gap: 0.25rem;
+      }
+
+      .tab {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: var(--text-color);
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border-radius: 0.25rem;
+        position: relative;
+        overflow: hidden;
+        flex: 1 0 auto;
+        justify-content: center;
+        min-width: min-content;
+      }
+
+      .tab::before {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: var(--primary-color);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+      }
+
+      .tab.active {
+        color: var(--primary-color);
+        background-color: rgba(115, 103, 240, 0.08);
+      }
+
+      .tab.active::before {
+        transform: scaleX(1);
+      }
+
+      .tab:hover:not(.active) {
+        background-color: rgba(115, 103, 240, 0.04);
+      }
+
+      .tab .step {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: #e9e7fd;
+        color: var(--primary-color);
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .tab.active .step {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .tab-content {
+        display: none;
+        padding: 1rem;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      /* 表單樣式 */
+      h2,
+      h3 {
+        color: var(--heading-color);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: clamp(1rem, 3vw, 1.25rem);
+      }
+
+      p {
+        margin-bottom: 1rem;
+        line-height: 1.6;
+        font-size: clamp(0.85rem, 2vw, 1rem);
+      }
+
+      /* 思維導圖區域 - 核心優化部分 */
+      .mind-map-container {
+        width: 100%;
+        height: 70vh; /* 使用視窗高度的百分比 */
+        min-height: 300px; /* 確保最小高度 */
+        position: relative;
+        margin-top: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        background-color: #f8f7fa;
+        touch-action: none; /* 防止瀏覽器默認觸控行為 */
+      }
+
+      #mindmap {
+        width: 100%;
+        height: 100%;
+        touch-action: none; /* 確保子元素也不會有瀏覽器默認觸控行為 */
+      }
+
+      /* 確保SVG元素填滿容器 */
+      #mindmap svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .controls {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        z-index: 10;
+      }
+
+      .control-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .control-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+      }
+
+      /* 思維導圖樣式 */
+      svg .link {
+        fill: none;
+        stroke: #ccc;
+        stroke-width: 1.5px;
+      }
+
+      svg .node circle {
+        cursor: pointer;
+        stroke-width: 1.5px;
+        stroke: white;
+      }
+
+      svg .node text {
+        cursor: pointer;
+      }
+
+      svg .error-category { fill: #00cfe8; }
+      svg .correct-process { fill: #00c58a; }
+      svg .error-cause { fill: #ea5455; }
+      svg .error-consequence { fill: #ff9f43; }
+      svg .error-improvement { fill: #28c76f; }
+      svg .error-personnel { fill: #7367f0; }
+      svg .error-solution { fill: #00cfe8; }
+      svg .prevention-measures { fill: #9333ea; }
+
+      /* 工具欄樣式 */
+      .error-toolbar {
+        position: fixed;
+        z-index: 90;
+      }
+
+      .toolbar-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: var(--text-color);
+      }
+
+      .toolbar-btn:hover {
+        background-color: var(--primary-color);
+        color: white;
+        transform: translateY(-2px);
+      }
+
+      .toolbar-btn i {
+        margin-bottom: 0.25rem;
+      }
+
+      /* 移動設備提示訊息 */
+      .mobile-mindmap-message {
+        display: none;
+        background-color: rgba(115, 103, 240, 0.1);
+        border-radius: 0.25rem;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+      }
+
+      /* 圖例樣式 */
+      #legendContainer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background-color: white;
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        flex: 1 0 auto;
+        min-width: fit-content;
+      }
+
+      .legend-color {
+        min-width: 12px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      /* 提示框 */
+      .tooltip {
+        position: absolute;
+        padding: 8px 12px;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        max-width: 250px;
+        z-index: 1000;
+        pointer-events: none;
+      }
+
+      /* 媒體查詢 - 響應式設計 */
+      /* 超小螢幕 (≤480px) */
+      @media (max-width: 480px) {
+        header {
+          padding: 1rem 0.5rem;
+        }
+        
+        header h1::after {
+          width: 60%;
+        }
+        
+        .tab {
+          padding: 0.4rem 0.25rem;
+          font-size: 0.85rem;
+        }
+        
+        .tab .text {
+          display: none;
+        }
+        
+        .tab .step {
+          width: 20px;
+          height: 20px;
+          font-size: 0.7rem;
+          margin: 0;
+        }
+        
+        .tab-content {
+          padding: 0.75rem 0.5rem;
+        }
+        
+        .mind-map-container {
+          height: 60vh;
+          min-height: 250px;
+        }
+        
+        svg .node circle {
+          r: 6;
+        }
+        
+        svg .node text {
+          font-size: 10px;
+        }
+        
+        .control-btn {
+          width: 36px;
+          height: 36px;
+        }
+        
+        .error-toolbar {
+          bottom: 10px;
+          left: 0;
+          right: 0;
+          top: auto;
+          transform: none;
+          flex-direction: row;
+          justify-content: center;
+        }
+        
+        .toolbar-btn {
+          width: 42px;
+          height: 42px;
+          padding: 0.3rem;
+        }
+        
+        .toolbar-btn i {
+          font-size: 1rem;
+          margin-bottom: 0.1rem;
+        }
+        
+        .toolbar-btn span {
+          font-size: 0.6rem;
+        }
+        
+        .legend-item {
+          flex: 1 0 45%;
+          font-size: 0.7rem;
+        }
+        
+        .mobile-mindmap-message {
+          display: flex;
+          font-size: 0.7rem;
+          padding: 0.5rem;
+        }
+      }
+
+      /* 小平板 (481–768px) */
+      @media (min-width: 481px) and (max-width: 768px) {
+        .tabs {
+          flex-wrap: wrap;
+        }
+        
+        .tab {
+          flex: 1 0 45%;
+        }
+        
+        .mind-map-container {
+          height: 65vh;
+        }
+        
+        .error-toolbar {
+          bottom: 15px;
+          left: 0;
+          right: 0;
+          top: auto;
+          transform: none;
+          flex-direction: row;
+          justify-content: center;
+        }
+        
+        .toolbar-btn {
+          width: 50px;
+          height: 50px;
+        }
+        
+        .mobile-mindmap-message {
+          display: flex;
+        }
+        
+        .legend-item {
+          flex: 1 0 30%;
+        }
+        
+        svg .node text {
+          font-size: 11px;
+        }
+      }
+
+      /* 中型裝置 (769–1024px) */
+      @media (min-width: 769px) and (max-width: 1024px) {
+        .mind-map-container {
+          height: 65vh;
+        }
+        
+        .error-toolbar {
+          right: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          flex-direction: column;
+        }
+        
+        .toolbar-btn {
+          width: 50px;
+          height: 50px;
+        }
+        
+        .toolbar-btn span {
+          font-size: 0.7rem;
+        }
+      }
+
+      /* 大型裝置 (≥1025px) */
+      @media (min-width: 1025px) {
+        .mind-map-container {
+          height: 70vh;
+        }
+        
+        .error-toolbar {
+          right: 20px;
+          top: 50%;
+          transform: translateY(-50%);
+          flex-direction: column;
+        }
+        
+        .toolbar-btn {
+          width: 60px;
+          height: 60px;
+          margin-bottom: 0.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>工作錯誤分析與反省系統</h1>
+      <p>
+        記錄錯誤，深度分析原因，提供改進方案和解決對策，避免同類問題再次發生
+      </p>
+    </header>
+
+    <!-- 右側工具欄 -->
+    <div class="error-toolbar">
+      <div class="toolbar-btn" data-type="發票錯誤">
+        <i class="fas fa-receipt"></i>
+        <span>發票錯誤</span>
+      </div>
+      <div class="toolbar-btn" data-type="會議缺席">
+        <i class="fas fa-users"></i>
+        <span>會議缺席</span>
+      </div>
+      <div class="toolbar-btn" data-type="郵件錯誤">
+        <i class="fas fa-envelope"></i>
+        <span>郵件錯誤</span>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" data-tab="input">
+            <span class="step">1</span>
+            <i class="fas fa-pencil-alt"></i>
+            <span class="text">輸入錯誤</span>
+          </button>
+          <button class="tab" data-tab="prompt">
+            <span class="step">2</span>
+            <i class="fas fa-magic"></i>
+            <span class="text">生成提示詞</span>
+          </button>
+          <button class="tab" data-tab="result">
+            <span class="step">3</span>
+            <i class="fas fa-clipboard-check"></i>
+            <span class="text">分析結果</span>
+          </button>
+          <button class="tab" data-tab="visualization">
+            <span class="step">4</span>
+            <i class="fas fa-project-diagram"></i>
+            <span class="text">思維導圖</span>
+          </button>
+        </div>
+
+        <div id="inputTab" class="tab-content">
+          <!-- 輸入頁面內容 -->
+        </div>
+
+        <div id="promptTab" class="tab-content">
+          <!-- 提示詞頁面內容 -->
+        </div>
+
+        <div id="resultTab" class="tab-content">
+          <!-- 結果頁面內容 -->
+        </div>
+
+        <div id="visualizationTab" class="tab-content active">
+          <h2><i class="fas fa-project-diagram"></i> 錯誤分析思維導圖</h2>
+
+          <div class="mobile-mindmap-message" id="mobileMessage">
+            <i class="fas fa-hand-pointer"></i>
+            <span>可左右滑動查看完整思維導圖，雙指縮放查看細節</span>
+          </div>
+
+          <div class="mind-map-container">
+            <div id="mindmap"></div>
+
+            <div class="controls">
+              <button class="control-btn" id="zoomInBtn" title="放大">
+                <i class="fas fa-search-plus"></i>
+              </button>
+              <button class="control-btn" id="zoomOutBtn" title="縮小">
+                <i class="fas fa-search-minus"></i>
+              </button>
+              <button class="control-btn" id="resetViewBtn" title="重置視圖">
+                <i class="fas fa-home"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="legendContainer">
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #00cfe8"></span>
+              <span>錯誤類別</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #00c58a"></span>
+              <span>正確流程</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #ea5455"></span>
+              <span>原因</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #ff9f43"></span>
+              <span>後果</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #28c76f"></span>
+              <span>改善方案</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #7367f0"></span>
+              <span>關聯人員</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #00cfe8"></span>
+              <span>最優解</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #9333ea"></span>
+              <span>防範措施</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 全局變量
+      let errorEvents = [];
+      let analysisResult = null;
+      let zoomLevel = 1;
+      let dragOffsetX = 0;
+      let dragOffsetY = 0;
+      let transform = d3.zoomIdentity;
+      let isDragging = false;
+
+      // DOM元素
+      const tabs = document.querySelectorAll(".tab");
+      const tabContents = document.querySelectorAll(".tab-content");
+      const mindmapContainer = document.getElementById("mindmap");
+      const zoomInBtn = document.getElementById("zoomInBtn");
+      const zoomOutBtn = document.getElementById("zoomOutBtn");
+      const resetViewBtn = document.getElementById("resetViewBtn");
+      const mobileMessage = document.getElementById("mobileMessage");
+
+      // 響應式功能初始化
+      function initializeResponsiveFeatures() {
+        // 檢查是否是移動設備
+        const isMobileDevice = window.innerWidth <= 768;
+        const isTabletDevice = window.innerWidth > 768 && window.innerWidth <= 1024;
+
+        // 設置設備類型標記
+        document.body.classList.toggle("is-mobile", isMobileDevice);
+        document.body.classList.toggle("is-tablet", isTabletDevice);
+
+        // 移動設備特定處理
+        if (isMobileDevice) {
+          // 顯示移動設備提示訊息
+          if (mobileMessage) {
+            mobileMessage.style.display = "flex";
+          }
+
+          // 標籤樣式調整
+          document.querySelectorAll(".tab .text").forEach((text) => {
+            text.style.display = "none";
+          });
+
+          // 修改右側工具欄位置
+          const toolbar = document.querySelector(".error-toolbar");
+          if (toolbar) {
+            toolbar.style.position = "fixed";
+            toolbar.style.bottom = "20px";
+            toolbar.style.top = "auto";
+            toolbar.style.transform = "none";
+            toolbar.style.left = "0";
+            toolbar.style.right = "0";
+            toolbar.style.flexDirection = "row";
+            toolbar.style.justifyContent = "center";
+          }
+
+          // 調整思維導圖容器高度
+          const mindMapContainer = document.querySelector(".mind-map-container");
+          if (mindMapContainer) {
+            mindMapContainer.style.height = "60vh";
+          }
+        } else {
+          // 非移動設備處理
+          if (mobileMessage) {
+            mobileMessage.style.display = "none";
+          }
+
+          // 恢復標籤頁文字顯示
+          document.querySelectorAll(".tab .text").forEach((text) => {
+            text.style.display = "inline";
+          });
+
+          // 恢復右側工具欄定位
+          const toolbar = document.querySelector(".error-toolbar");
+          if (toolbar) {
+            toolbar.style.position = "fixed";
+            toolbar.style.right = isTabletDevice ? "15px" : "20px";
+            toolbar.style.top = "50%";
+            toolbar.style.transform = "translateY(-50%)";
+            toolbar.style.bottom = "auto";
+            toolbar.style.left = "auto";
+            toolbar.style.flexDirection = "column";
+            toolbar.style.justifyContent = "flex-start";
+          }
+
+          // 調整思維導圖容器高度
+          const mindMapContainer = document.querySelector(".mind-map-container");
+          if (mindMapContainer) {
+            mindMapContainer.style.height = isTabletDevice ? "65vh" : "70vh";
+          }
+        }
+      }
+
+      // 初始化
+      window.addEventListener("load", function () {
+        initializeResponsiveFeatures();
+        addTouchGestureSupport();
+        
+        // 演示用的數據，實際上會由API獲取
+        const demoData = {
+          errorAnalysis: [
+            {
+              id: "1",
+              title: "會議缺席錯誤",
+              category: "時間管理",
+              description: "錯過重要會議，造成團隊溝通不良",
+              correctProcess: [
+                {id: "1.1", text: "提前10分鐘進入會議室"},
+                {id: "1.2", text: "設置日曆提醒"}
+              ],
+              causes: [
+                {id: "1.3", text: "忘記查看日程表"},
+                {id: "1.4", text: "同時處理多項工作"}
+              ],
+              consequences: [
+                {id: "1.5", text: "團隊缺乏關鍵信息"},
+                {id: "1.6", text: "延誤專案進度"}
+              ],
+              improvements: [
+                {id: "1.7", text: "使用多重日曆提醒"},
+                {id: "1.8", text: "建立會議優先級系統"}
+              ],
+              personnel: [
+                {id: "1.9", text: "專案經理"},
+                {id: "1.10", text: "團隊成員"}
+              ],
+              optimalSolution: {id: "1.11", text: "向團隊道歉並主動瞭解會議內容"},
+              preventionMeasures: [
+                {id: "1.12", text: "在手機和電腦上設置提醒"},
+                {id: "1.13", text: "建立個人時間管理系統"}
+              ]
+            }
           ]
         };
-        const res = await fetch('https://api.grok.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${key}`
-          },
-          body: JSON.stringify(body)
+        
+        // 使用演示數據渲染思維導圖
+        analysisResult = demoData;
+        renderMindmap(demoData);
+      });
+
+      // 窗口大小變化時自動適應
+      window.addEventListener("resize", function() {
+        initializeResponsiveFeatures();
+        if (analysisResult) {
+          renderMindmap(analysisResult);
+        }
+      });
+
+      // 添加觸控手勢支持
+      function addTouchGestureSupport() {
+        const mindmap = document.getElementById("mindmap");
+        if (!mindmap) return;
+
+        let touchStartX, touchStartY;
+        let initialTransform = null;
+        let initialDistance = 0;
+        let initialZoom = 1;
+
+        // 單指拖動
+        mindmap.addEventListener("touchstart", function (e) {
+          if (e.touches.length === 1) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            initialTransform = {...transform};
+            isDragging = true;
+            e.preventDefault();
+          } else if (e.touches.length === 2) {
+            // 雙指縮放
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            initialDistance = Math.sqrt(dx * dx + dy * dy);
+            initialZoom = zoomLevel;
+            e.preventDefault();
+          }
+        }, { passive: false });
+
+        mindmap.addEventListener("touchmove", function (e) {
+          if (isDragging && e.touches.length === 1) {
+            const dx = e.touches[0].clientX - touchStartX;
+            const dy = e.touches[0].clientY - touchStartY;
+            
+            // 更新拖拽位置
+            dragOffsetX = initialTransform.x + dx / zoomLevel;
+            dragOffsetY = initialTransform.y + dy / zoomLevel;
+            
+            updateMindmapTransform();
+            e.preventDefault();
+          } else if (e.touches.length === 2) {
+            // 雙指縮放計算
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // 計算縮放比例
+            const scale = distance / initialDistance;
+            zoomLevel = Math.min(Math.max(initialZoom * scale, 0.3), 3); // 限制縮放範圍
+            
+            // 計算縮放中心點
+            const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            
+            updateMindmapTransform();
+            e.preventDefault();
+          }
+        }, { passive: false });
+
+        mindmap.addEventListener("touchend", function (e) {
+          isDragging = false;
         });
-        const j = await res.json();
-        return JSON.parse(j.choices[0].message.content);
-      } else {
-        throw new Error('不支援的 provider');
+        
+        // 禁用瀏覽器默認的縮放行為
+        document.addEventListener('gesturestart', function(e) {
+          e.preventDefault();
+        }, { passive: false });
+        
+        document.addEventListener('gesturechange', function(e) {
+          e.preventDefault();
+        }, { passive: false });
       }
-    }
 
-    // API 直連觸發
-    $('#btn-api').onclick = async () => {
-      const s = $('#error').value.trim();
-      if (!s) return alert('先填錯誤描述啦！');
-      const p = $('#provider').value.trim();
-      const k = $('#apikey').value.trim();
-      $('#promptArea').textContent = '⏳ 分析中…';
-      try {
-        const obj = await callLLM(s, p, k);
-        $('#promptArea').textContent = JSON.stringify(obj, null, 2);
-        $('#jsonInput').value   = JSON.stringify(obj, null, 2);
-        renderMindMap(s, obj);
-      } catch (err) {
-        console.error(err);
-        alert('LLM 呼叫失敗，CORS 或 Key 有問題？');
+      // 更新思維導圖變換
+      function updateMindmapTransform() {
+        try {
+          const svg = d3.select("#mindmap svg");
+          if (!svg.empty()) {
+            const g = svg.select("g");
+            
+            if (!g.empty()) {
+              transform = d3.zoomIdentity
+                .translate(dragOffsetX, dragOffsetY)
+                .scale(zoomLevel);
+              g.attr("transform", transform);
+            }
+          }
+        } catch (error) {
+          console.warn("思維導圖變換更新錯誤:", error);
+        }
       }
-    };
 
-    // 關閉模態窗按鈕
-    $('#modalClose').onclick = closeModal;
-    // 點背景也關
-    window.onclick = e => {
-      if (e.target.id === 'modal') closeModal();
-    };
-
-    // 載入上次紀錄
-    window.addEventListener('DOMContentLoaded', () => {
-      const last = localStorage.getItem('lastError');
-      if (last) {
-        const { sentence, obj } = JSON.parse(last);
-        $('#error').value     = sentence;
-        $('#jsonInput').value = JSON.stringify(obj, null, 2);
-        renderMindMap(sentence, obj);
+      // 思維導圖控制按鈕
+      if (zoomInBtn) {
+        zoomInBtn.addEventListener("click", function() {
+          zoomLevel = Math.min(3, zoomLevel * 1.2); // 限制最大縮放
+          updateMindmapTransform();
+        });
       }
-    });
-  </script>
-</body>
+
+      if (zoomOutBtn) {
+        zoomOutBtn.addEventListener("click", function() {
+          zoomLevel = Math.max(0.3, zoomLevel * 0.8); // 限制最小縮放
+          updateMindmapTransform();
+        });
+      }
+
+      if (resetViewBtn) {
+        resetViewBtn.addEventListener("click", function() {
+          zoomLevel = 1;
+          dragOffsetX = 0;
+          dragOffsetY = 0;
+          transform = d3.zoomIdentity;
+          if (analysisResult) {
+            renderMindmap(analysisResult);
+          }
+        });
+      }
+
+      // 切換到指定標籤頁
+      function activateTab(tabId) {
+        tabs.forEach(function(t) {
+          t.classList.remove("active");
+        });
+        
+        tabContents.forEach(function(content) {
+          content.classList.remove("active");
+        });
+
+        const tabElement = document.querySelector(`[data-tab="${tabId}"]`);
+        if (tabElement) {
+          tabElement.classList.add("active");
+        }
+
+        const contentElement = document.getElementById(`${tabId}Tab`);
+        if (contentElement) {
+          contentElement.classList.add("active");
+        }
+
+        if (tabId === "visualization" && analysisResult) {
+          renderMindmap(analysisResult);
+        }
+      }
+
+      // 標籤頁點擊事件
+      tabs.forEach(function(tab) {
+        tab.addEventListener("click", function() {
+          const tabId = this.getAttribute("data-tab");
+          activateTab(tabId);
+        });
+      });
+
+      // 渲染思維導圖
+      function renderMindmap(data, isMobileRender = false) {
+        if (!data || !data.errorAnalysis || !Array.isArray(data.errorAnalysis) || data.errorAnalysis.length === 0) {
+          const mindmapEl = document.getElementById("mindmap");
+          if (mindmapEl) {
+            mindmapEl.innerHTML = `
+              <div style="display:flex;height:100%;align-items:center;justify-content:center;flex-direction:column;color:#666;">
+                <i class="fas fa-exclamation-circle" style="font-size:3rem;color:#ccc;margin-bottom:1rem;"></i>
+                <p>無法顯示思維導圖，請確保已有分析數據</p>
+              </div>
+            `;
+          }
+          return;
+        }
+
+        // 清空思維導圖容器
+        const mindmapContainer = document.getElementById("mindmap");
+        if (!mindmapContainer) return;
+        mindmapContainer.innerHTML = "";
+
+        // 檢測設備類型
+        const isMobileDevice = window.innerWidth <= 768 || isMobileRender;
+        const isTabletDevice = window.innerWidth > 768 && window.innerWidth <= 1024;
+
+        try {
+          // 創建SVG元素
+          const svg = d3.select("#mindmap")
+            .append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .call(d3.zoom().on("zoom", function(event) {
+              transform = event.transform;
+              g.attr("transform", transform);
+              zoomLevel = transform.k;
+              dragOffsetX = transform.x;
+              dragOffsetY = transform.y;
+            }));
+
+          const g = svg.append("g");
+
+          // 添加說明提示
+          if (isMobileDevice) {
+            svg.append("text")
+              .attr("x", 20)
+              .attr("y", 30)
+              .text("提示: 用兩指縮放查看更多內容")
+              .style("font-size", "12px")
+              .style("fill", "#7367f0")
+              .style("font-style", "italic");
+          }
+
+          // 設置邊距和尺寸
+          const margin = isMobileDevice 
+            ? { top: 70, right: 20, bottom: 20, left: 20 }
+            : { top: 50, right: 100, bottom: 30, left: 50 };
+          
+          const width = mindmapContainer.clientWidth - margin.left - margin.right;
+          const height = mindmapContainer.clientHeight - margin.top - margin.bottom;
+
+          // 處理每個錯誤分析
+          data.errorAnalysis.forEach(function(error, index) {
+            // 確保數據的有效性
+            if (!error) return;
+            
+            // 創建樹狀結構
+            const rootData = {
+              name: error.title || "未命名錯誤",
+              type: "root",
+              children: []
+            };
+            
+            // 添加子節點
+            if (error.correctProcess && error.correctProcess.length) {
+              rootData.children.push({
+                name: "正確流程",
+                type: "correct-process",
+                children: error.correctProcess.map(item => ({
+                  name: item.text,
+                  type: "correct-process-item"
+                }))
+              });
+            }
+            
+            if (error.causes && error.causes.length) {
+              rootData.children.push({
+                name: "錯誤原因",
+                type: "error-cause",
+                children: error.causes.map(item => ({
+                  name: item.text,
+                  type: "error-cause-item"
+                }))
+              });
+            }
+            
+            if (error.consequences && error.consequences.length) {
+              rootData.children.push({
+                name: "可能後果",
+                type: "error-consequence",
+                children: error.consequences.map(item => ({
+                  name: item.text,
+                  type: "error-consequence-item"
+                }))
+              });
+            }
+            
+            if (error.improvements && error.improvements.length) {
+              rootData.children.push({
+                name: "改善方案",
+                type: "error-improvement",
+                children: error.improvements.map(item => ({
+                  name: item.text,
+                  type: "error-improvement-item"
+                }))
+              });
+            }
+            
+            if (error.personnel && error.personnel.length) {
+              rootData.children.push({
+                name: "關聯人員",
+                type: "error-personnel",
+                children: error.personnel.map(item => ({
+                  name: item.text,
+                  type: "error-personnel-item"
+                }))
+              });
+            }
+            
+            if (error.optimalSolution) {
+              rootData.children.push({
+                name: "最優解決方案",
+                type: "error-solution",
+                children: [{
+                  name: error.optimalSolution.text,
+                  type: "error-solution-item"
+                }]
+              });
+            }
+            
+            if (error.preventionMeasures && error.preventionMeasures.length) {
+              rootData.children.push({
+                name: "防範措施",
+                type: "prevention-measures",
+                children: error.preventionMeasures.map(item => ({
+                  name: item.text,
+                  type: "prevention-measures-item"
+                }))
+              });
+            }
+            
+            // 垂直偏移以處理多個錯誤分析
+            const yOffset = index * (isMobileDevice ? 250 : 350);
+            
+            // 創建樹狀布局
+            const treeLayout = d3.tree()
+              .size([height, isMobileDevice ? width * 1.5 : width * 1.2]);
+            
+            // 處理層次結構
+            const rootNode = d3.hierarchy(rootData);
+            treeLayout(rootNode);
+            
+            // 為節點添加ID
+            let nodeId = 0;
+            rootNode.descendants().forEach(node => {
+              node.id = `node-${index}-${nodeId++}`;
+            });
+            
+            // 繪製連線
+            const linkGroup = g.append("g")
+              .attr("class", "links")
+              .attr("transform", `translate(${margin.left},${margin.top + yOffset})`);
+              
+            linkGroup.selectAll("path")
+              .data(rootNode.links())
+              .enter()
+              .append("path")
+              .attr("class", "link")
+              .attr("d", d => {
+                return `M${d.source.y},${d.source.x}
+                        C${(d.source.y + d.target.y) / 2},${d.source.x}
+                        ${(d.source.y + d.target.y) / 2},${d.target.x}
+                        ${d.target.y},${d.target.x}`;
+              });
+            
+            // 繪製節點
+            const nodeGroup = g.append("g")
+              .attr("class", "nodes")
+              .attr("transform", `translate(${margin.left},${margin.top + yOffset})`);
+              
+            const nodes = nodeGroup.selectAll("g")
+              .data(rootNode.descendants())
+              .enter()
+              .append("g")
+              .attr("id", d => d.id)
+              .attr("class", "node")
+              .attr("transform", d => `translate(${d.y},${d.x})`);
+            
+            // 添加節點圓圈
+            nodes.append("circle")
+              .attr("r", isMobileDevice ? 6 : 8)
+              .attr("class", d => {
+                // 根據節點類型設置顏色類
+                return d.data.type;
+              });
+            
+            // 添加節點文本
+            nodes.append("text")
+              .attr("dy", d => d.children ? -12 : 4)
+              .attr("dx", d => d.children ? 0 : 12)
+              .attr("text-anchor", d => d.children ? "middle" : "start")
+              .text(d => {
+                const text = d.data.name;
+                // 根據設備類型截斷文本
+                const maxLength = isMobileDevice ? 12 : 20;
+                return text.length > maxLength ? text.substring(0, maxLength - 3) + "..." : text;
+              })
+              .style("fill", "#333")
+              .style("font-weight", d => d.depth <= 1 ? "bold" : "normal")
+              .style("font-size", d => {
+                if (isMobileDevice) {
+                  return d.depth === 0 ? "12px" : "10px";
+                }
+                return d.depth === 0 ? "14px" : "12px";
+              })
+              .on("mouseover", function(event, d) {
+                // 顯示完整文本提示
+                if (d.data.name.length > (isMobileDevice ? 12 : 20)) {
+                  const tooltip = document.createElement("div");
+                  tooltip.className = "tooltip";
+                  tooltip.textContent = d.data.name;
+                  tooltip.style.left = event.pageX + 10 + "px";
+                  tooltip.style.top = event.pageY + 10 + "px";
+                  document.body.appendChild(tooltip);
+                }
+              })
+              .on("mousemove", function(event) {
+                // 移動提示框跟隨滑鼠
+                const tooltip = document.querySelector(".tooltip");
+                if (tooltip) {
+                  tooltip.style.left = event.pageX + 10 + "px";
+                  tooltip.style.top = event.pageY + 10 + "px";
+                }
+              })
+              .on("mouseout", function() {
+                // 移除提示框
+                const tooltip = document.querySelector(".tooltip");
+                if (tooltip) {
+                  tooltip.remove();
+                }
+              });
+          });
+          
+          // 設置SVG大小以容納所有錯誤分析
+          const analysisCount = data.errorAnalysis.length;
+          const itemHeight = isMobileDevice ? 300 : 400;
+          const svgHeight = Math.max(600, analysisCount * itemHeight + 100);
+          
+          // 初始縮放調整
+          setTimeout(function() {
+            // 根據設備類型調整初始縮放
+            const initialScale = isMobileDevice ? 0.6 : 0.8;
+            const initialX = isMobileDevice ? 20 : 50;
+            transform = d3.zoomIdentity
+              .scale(initialScale)
+              .translate(initialX, 30);
+            g.attr("transform", transform);
+            zoomLevel = initialScale;
+            dragOffsetX = initialX;
+            dragOffsetY = 30;
+          }, 100);
+          
+        } catch (error) {
+          console.error("思維導圖渲染錯誤:", error);
+          mindmapContainer.innerHTML = `
+            <div style="display:flex;height:100%;align-items:center;justify-content:center;flex-direction:column;color:#e74c3c;">
+              <i class="fas fa-exclamation-triangle" style="font-size:3rem;margin-bottom:1rem;"></i>
+              <p>思維導圖渲染失敗，請重新整理頁面</p>
+              <small style="margin-top:0.5rem;color:#666;">${error.message}</small>
+            </div>
+          `;
+        }
+      }
+    </script>
+  </body>
 </html>
