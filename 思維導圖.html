@@ -2,11 +2,17 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>工作錯誤分析與反省系統</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+      integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
@@ -25,22 +31,19 @@
         --purple-color: #9333ea;
       }
 
-      *,
-      *::before,
-      *::after {
+      * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       }
 
-      html,
       body {
-        height: 100%;
-        width: 100%;
-        overflow-x: hidden;
         background-color: var(--bg-color);
         color: var(--text-color);
+        overflow-x: hidden;
+        height: 100%;
+        width: 100%;
       }
 
       header {
@@ -54,7 +57,7 @@
       }
 
       header h1 {
-        font-size: clamp(1.2rem, 4vw, 2rem);
+        font-size: clamp(1.5rem, 5vw, 2rem);
         margin-bottom: 0.5rem;
         position: relative;
         display: inline-block;
@@ -63,7 +66,7 @@
       header h1::after {
         content: "";
         position: absolute;
-        bottom: -8px;
+        bottom: -10px;
         left: 50%;
         transform: translateX(-50%);
         width: 80%;
@@ -73,7 +76,7 @@
       }
 
       header p {
-        font-size: clamp(0.8rem, 2vw, 1rem);
+        font-size: clamp(0.85rem, 2vw, 1rem);
         max-width: 800px;
         margin: 1rem auto 0;
         line-height: 1.6;
@@ -82,8 +85,7 @@
       .container {
         max-width: 1200px;
         margin: 0 auto;
-        padding: 0 0.5rem;
-        position: relative;
+        padding: 0 1rem;
       }
 
       .card {
@@ -100,7 +102,7 @@
         display: flex;
         flex-wrap: wrap;
         background-color: #f8f7fa;
-        padding: 0.25rem;
+        padding: 0.5rem;
         border-radius: 0.5rem 0.5rem 0 0;
         border-bottom: 1px solid var(--border-color);
         gap: 0.25rem;
@@ -110,7 +112,7 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.5rem;
+        padding: 0.75rem 1.5rem;
         border: none;
         background: none;
         cursor: pointer;
@@ -120,9 +122,9 @@
         border-radius: 0.25rem;
         position: relative;
         overflow: hidden;
-        flex: 1 0 auto;
+        flex: 1;
         justify-content: center;
-        min-width: min-content;
+        white-space: nowrap;
       }
 
       .tab::before {
@@ -161,6 +163,7 @@
         color: var(--primary-color);
         font-size: 0.8rem;
         font-weight: 600;
+        margin-right: 0.5rem;
       }
 
       .tab.active .step {
@@ -170,7 +173,7 @@
 
       .tab-content {
         display: none;
-        padding: 1rem;
+        padding: 1.5rem;
       }
 
       .tab-content.active {
@@ -185,20 +188,20 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        font-size: clamp(1rem, 3vw, 1.25rem);
+        font-size: clamp(1.1rem, 3vw, 1.3rem);
       }
 
       p {
         margin-bottom: 1rem;
         line-height: 1.6;
-        font-size: clamp(0.85rem, 2vw, 1rem);
+        font-size: clamp(0.9rem, 2vw, 1rem);
       }
 
-      /* 思維導圖區域 - 核心優化部分 */
+      /* 思維導圖區域 - 核心響應式優化 */
       .mind-map-container {
         width: 100%;
         height: 70vh; /* 使用視窗高度的百分比 */
-        min-height: 300px; /* 確保最小高度 */
+        min-height: 450px; /* 確保最小高度 */
         position: relative;
         margin-top: 1rem;
         border: 1px solid var(--border-color);
@@ -211,109 +214,94 @@
       #mindmap {
         width: 100%;
         height: 100%;
+        overflow: hidden;
         touch-action: none; /* 確保子元素也不會有瀏覽器默認觸控行為 */
       }
 
-      /* 確保SVG元素填滿容器 */
+      /* 確保SVG元素填滿容器並適當處理觸控事件 */
       #mindmap svg {
         width: 100%;
         height: 100%;
         display: block;
+        touch-action: none;
       }
 
+      /* 改進控制按鈕樣式 */
       .controls {
         position: absolute;
         bottom: 20px;
         right: 20px;
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.75rem;
         z-index: 10;
       }
 
       .control-btn {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background-color: white;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        width: 44px;
+        height: 44px;
+        border-radius: 50%; /* 確保完全圓形 */
+        background-color: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        padding: 0;
+      }
+
+      .control-btn i {
+        font-size: 1.2rem;
+        color: var(--primary-color);
       }
 
       .control-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        background-color: var(--primary-color);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(115, 103, 240, 0.3);
       }
 
-      /* 思維導圖樣式 */
-      svg .link {
-        fill: none;
-        stroke: #ccc;
-        stroke-width: 1.5px;
+      .control-btn:hover i {
+        color: white;
       }
 
-      svg .node circle {
-        cursor: pointer;
-        stroke-width: 1.5px;
-        stroke: white;
-      }
-
-      svg .node text {
-        cursor: pointer;
-      }
-
-      svg .error-category { fill: #00cfe8; }
-      svg .correct-process { fill: #00c58a; }
-      svg .error-cause { fill: #ea5455; }
-      svg .error-consequence { fill: #ff9f43; }
-      svg .error-improvement { fill: #28c76f; }
-      svg .error-personnel { fill: #7367f0; }
-      svg .error-solution { fill: #00cfe8; }
-      svg .prevention-measures { fill: #9333ea; }
-
-      /* 工具欄樣式 */
-      .error-toolbar {
-        position: fixed;
-        z-index: 90;
-      }
-
-      .toolbar-btn {
+      /* 視圖選擇器 */
+      .view-selector {
+        position: absolute;
+        top: 20px;
+        left: 20px;
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
         background-color: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        z-index: 10;
+      }
+
+      .view-option {
+        padding: 8px 12px;
+        font-size: 0.9rem;
         cursor: pointer;
         transition: all 0.2s ease;
         color: var(--text-color);
+        background-color: white;
+        border: none;
+        border-right: 1px solid #f0f0f0;
       }
 
-      .toolbar-btn:hover {
+      .view-option:last-child {
+        border-right: none;
+      }
+
+      .view-option.active {
         background-color: var(--primary-color);
         color: white;
-        transform: translateY(-2px);
       }
 
-      .toolbar-btn i {
-        margin-bottom: 0.25rem;
-      }
-
-      /* 移動設備提示訊息 */
-      .mobile-mindmap-message {
-        display: none;
-        background-color: rgba(115, 103, 240, 0.1);
-        border-radius: 0.25rem;
-        padding: 0.75rem;
-        margin-bottom: 1rem;
-        align-items: center;
-        gap: 0.5rem;
-        color: var(--primary-color);
-        font-size: 0.85rem;
+      .view-option:hover:not(.active) {
+        background-color: #f8f7fa;
       }
 
       /* 圖例樣式 */
@@ -345,7 +333,6 @@
         flex-shrink: 0;
       }
 
-      /* 提示框 */
       .tooltip {
         position: absolute;
         padding: 8px 12px;
@@ -356,176 +343,473 @@
         max-width: 250px;
         z-index: 1000;
         pointer-events: none;
+        white-space: normal;
       }
 
-      /* 媒體查詢 - 響應式設計 */
-      /* 超小螢幕 (≤480px) */
+      .mobile-mindmap-message {
+        display: none;
+        background-color: rgba(115, 103, 240, 0.1);
+        border-radius: 0.25rem;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+      }
+
+      /* 思維導圖樣式 */
+      svg .link {
+        fill: none;
+        stroke: #ccc;
+        stroke-width: 1.5px;
+      }
+
+      svg .node circle {
+        cursor: pointer;
+        stroke-width: 1.5px;
+        stroke: white;
+      }
+
+      svg .node text {
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      /* 節點顏色類別 */
+      svg .root {
+        fill: var(--primary-color);
+      }
+      svg .problem-analysis {
+        fill: var(--info-color);
+      }
+      svg .solution-analysis {
+        fill: var(--warning-color);
+      }
+      svg .error-category {
+        fill: #00cfe8;
+      }
+      svg .correct-process,
+      svg .correct-process-item {
+        fill: #00c58a;
+      }
+      svg .error-cause,
+      svg .error-cause-item {
+        fill: #ea5455;
+      }
+      svg .error-consequence,
+      svg .error-consequence-item {
+        fill: #ff9f43;
+      }
+      svg .error-improvement,
+      svg .error-improvement-item {
+        fill: #28c76f;
+      }
+      svg .error-personnel,
+      svg .error-personnel-item {
+        fill: #7367f0;
+      }
+      svg .error-solution,
+      svg .error-solution-item {
+        fill: #00cfe8;
+      }
+      svg .prevention-measures,
+      svg .prevention-measures-item {
+        fill: #9333ea;
+      }
+
+      /* 底部導航欄 */
+      .bottom-nav {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        padding: 10px 0;
+      }
+
+      .bottom-nav .nav-items {
+        display: flex;
+        justify-content: space-around;
+      }
+
+      .bottom-nav .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 0.8rem;
+        color: var(--text-color);
+      }
+
+      .bottom-nav .nav-item i {
+        font-size: 1.2rem;
+        margin-bottom: 5px;
+      }
+
+      /* 輸入錯誤部分樣式 */
+      .input-group {
+        margin-bottom: 1rem;
+      }
+
+      textarea,
+      select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
+        font-size: 1rem;
+        color: var(--text-color);
+        background-color: white;
+        transition: border-color 0.2s ease;
+        resize: vertical;
+      }
+
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(115, 103, 240, 0.25);
+      }
+
+      button {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 0.25rem;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      button:hover {
+        box-shadow: 0 8px 25px -8px rgba(115, 103, 240, 0.5);
+        transform: translateY(-2px);
+      }
+
+      button.secondary {
+        background-color: rgba(115, 103, 240, 0.1);
+        color: var(--primary-color);
+      }
+
+      button.secondary:hover {
+        background-color: rgba(115, 103, 240, 0.2);
+      }
+
+      .copy-btn {
+        margin-bottom: 1rem;
+      }
+
+      /* 快速輸入區域 */
+      .quick-input {
+        background-color: rgba(115, 103, 240, 0.05);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+        position: relative;
+      }
+
+      .section-divider {
+        display: flex;
+        align-items: center;
+        margin: 1.5rem 0;
+        color: var(--text-color);
+      }
+
+      .section-divider::before,
+      .section-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background-color: var(--border-color);
+      }
+
+      .section-divider span {
+        padding: 0 1rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      /* 場景按鈕 */
+      .scenarios-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .scenario-btn {
+        background-color: white;
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        padding: 0.75rem;
+        text-align: left;
+        transition: all 0.2s ease;
+        height: 100%;
+        display: flex;
+        align-items: center;
+      }
+
+      .scenario-btn:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 3px 10px 0 rgba(34, 41, 47, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .scenario-btn i {
+        color: var(--primary-color);
+        margin-right: 0.5rem;
+        font-size: 1rem;
+      }
+
+      /* 錯誤列表 */
+      .error-items-container {
+        margin-top: 1rem;
+      }
+
+      .error-item {
+        background-color: white;
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        position: relative;
+        transition: all 0.2s ease;
+      }
+
+      .error-item:hover {
+        box-shadow: 0 4px 18px 0 rgba(34, 41, 47, 0.1);
+      }
+
+      .error-item h4 {
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+        color: var(--heading-color);
+        padding-right: 30px;
+      }
+
+      .error-item h4 small {
+        font-weight: normal;
+        color: var(--text-color);
+        margin-left: 0.5rem;
+        font-size: 0.85rem;
+      }
+
+      .error-item p {
+        margin-bottom: 0;
+        font-size: 0.9rem;
+      }
+
+      .delete-btn {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        background: none;
+        color: #ea5455;
+        font-size: 0.85rem;
+        padding: 0.25rem;
+        border-radius: 0.25rem;
+      }
+
+      .delete-btn:hover {
+        background-color: rgba(234, 84, 85, 0.1);
+        transform: none;
+        box-shadow: none;
+      }
+
+      /* 提示詞輸出 */
+      #promptOutput {
+        background-color: #f8f7fa;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
+        margin-bottom: 1rem;
+        white-space: pre-wrap;
+        font-family: monospace;
+        height: 300px;
+        overflow-y: auto;
+        color: #5e5873;
+      }
+
+      /* JSON輸出 */
+      #jsonOutput {
+        background-color: #f8f7fa;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
+        white-space: pre-wrap;
+        font-family: monospace;
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 1rem;
+      }
+
+      /* 響應式樣式 - 超小螢幕 (≤480px) */
       @media (max-width: 480px) {
         header {
           padding: 1rem 0.5rem;
+          margin-bottom: 1rem;
         }
-        
+
+        header h1 {
+          font-size: 1.5rem;
+        }
+
         header h1::after {
           width: 60%;
+          bottom: -8px;
         }
-        
-        .tab {
-          padding: 0.4rem 0.25rem;
+
+        header p {
           font-size: 0.85rem;
         }
-        
-        .tab .text {
-          display: none;
-        }
-        
-        .tab .step {
-          width: 20px;
-          height: 20px;
-          font-size: 0.7rem;
-          margin: 0;
-        }
-        
-        .tab-content {
-          padding: 0.75rem 0.5rem;
-        }
-        
-        .mind-map-container {
-          height: 60vh;
-          min-height: 250px;
-        }
-        
-        svg .node circle {
-          r: 6;
-        }
-        
-        svg .node text {
-          font-size: 10px;
-        }
-        
-        .control-btn {
-          width: 36px;
-          height: 36px;
-        }
-        
-        .error-toolbar {
-          bottom: 10px;
-          left: 0;
-          right: 0;
-          top: auto;
-          transform: none;
-          flex-direction: row;
-          justify-content: center;
-        }
-        
-        .toolbar-btn {
-          width: 42px;
-          height: 42px;
-          padding: 0.3rem;
-        }
-        
-        .toolbar-btn i {
-          font-size: 1rem;
-          margin-bottom: 0.1rem;
-        }
-        
-        .toolbar-btn span {
-          font-size: 0.6rem;
-        }
-        
-        .legend-item {
-          flex: 1 0 45%;
-          font-size: 0.7rem;
-        }
-        
-        .mobile-mindmap-message {
-          display: flex;
-          font-size: 0.7rem;
-          padding: 0.5rem;
-        }
-      }
 
-      /* 小平板 (481–768px) */
-      @media (min-width: 481px) and (max-width: 768px) {
+        .tab-content {
+          padding: 1rem 0.5rem;
+        }
+
         .tabs {
           flex-wrap: wrap;
         }
-        
+
         .tab {
-          flex: 1 0 45%;
+          flex: 1 0 40%;
+          padding: 0.5rem;
+          font-size: 0.85rem;
         }
-        
+
+        .tab .text {
+          display: none;
+        }
+
+        .tab .step {
+          width: 22px;
+          height: 22px;
+          margin-right: 0;
+        }
+
         .mind-map-container {
-          height: 65vh;
+          height: 60vh;
+          min-height: 350px;
         }
-        
-        .error-toolbar {
-          bottom: 15px;
-          left: 0;
-          right: 0;
-          top: auto;
-          transform: none;
-          flex-direction: row;
-          justify-content: center;
+
+        #mindmap {
+          height: 100%;
         }
-        
-        .toolbar-btn {
-          width: 50px;
-          height: 50px;
+
+        svg .node circle {
+          r: 5;
         }
-        
+
+        svg .node text {
+          font-size: 10px;
+        }
+
+        .control-btn {
+          width: 40px;
+          height: 40px;
+        }
+
+        .control-btn i {
+          font-size: 1rem;
+        }
+
+        .view-selector {
+          top: 10px;
+          left: 10px;
+        }
+
+        .view-option {
+          padding: 6px 8px;
+          font-size: 0.8rem;
+        }
+
         .mobile-mindmap-message {
           display: flex;
+          font-size: 0.75rem;
+          padding: 0.5rem;
         }
-        
+
+        .card {
+          margin-right: 0;
+        }
+
+        .bottom-nav {
+          display: block;
+        }
+
+        /* 為底部導航欄留出空間 */
+        body {
+          padding-bottom: 60px;
+        }
+
+        #legendContainer {
+          gap: 0.35rem;
+        }
+
         .legend-item {
-          flex: 1 0 30%;
-        }
-        
-        svg .node text {
-          font-size: 11px;
+          font-size: 0.7rem;
+          flex: 1 0 45%;
         }
       }
 
-      /* 中型裝置 (769–1024px) */
+      /* 響應式樣式 - 小平板 (481–768px) */
+      @media (min-width: 481px) and (max-width: 768px) {
+        .card {
+          margin-right: 0;
+        }
+
+        .tabs {
+          flex-wrap: wrap;
+        }
+
+        .tab {
+          flex: 1 0 45%;
+          padding: 0.5rem;
+        }
+
+        .tab .text {
+          display: none;
+        }
+
+        .mind-map-container {
+          height: 65vh;
+          min-height: 400px;
+        }
+
+        .mobile-mindmap-message {
+          display: flex;
+        }
+
+        svg .node text {
+          font-size: 11px;
+        }
+
+        .bottom-nav {
+          display: block;
+        }
+
+        body {
+          padding-bottom: 60px;
+        }
+      }
+
+      /* 響應式樣式 - 中型裝置 (769–1024px) */
       @media (min-width: 769px) and (max-width: 1024px) {
         .mind-map-container {
           height: 65vh;
         }
-        
-        .error-toolbar {
-          right: 15px;
-          top: 50%;
-          transform: translateY(-50%);
-          flex-direction: column;
-        }
-        
-        .toolbar-btn {
-          width: 50px;
-          height: 50px;
-        }
-        
-        .toolbar-btn span {
-          font-size: 0.7rem;
-        }
-      }
 
-      /* 大型裝置 (≥1025px) */
-      @media (min-width: 1025px) {
-        .mind-map-container {
-          height: 70vh;
-        }
-        
-        .error-toolbar {
-          right: 20px;
-          top: 50%;
-          transform: translateY(-50%);
-          flex-direction: column;
-        }
-        
-        .toolbar-btn {
-          width: 60px;
-          height: 60px;
-          margin-bottom: 0.5rem;
+        .scenarios-container {
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
         }
       }
     </style>
@@ -538,26 +822,10 @@
       </p>
     </header>
 
-    <!-- 右側工具欄 -->
-    <div class="error-toolbar">
-      <div class="toolbar-btn" data-type="發票錯誤">
-        <i class="fas fa-receipt"></i>
-        <span>發票錯誤</span>
-      </div>
-      <div class="toolbar-btn" data-type="會議缺席">
-        <i class="fas fa-users"></i>
-        <span>會議缺席</span>
-      </div>
-      <div class="toolbar-btn" data-type="郵件錯誤">
-        <i class="fas fa-envelope"></i>
-        <span>郵件錯誤</span>
-      </div>
-    </div>
-
     <div class="container">
       <div class="card">
         <div class="tabs">
-          <button class="tab active" data-tab="input">
+          <button class="tab" data-tab="input">
             <span class="step">1</span>
             <i class="fas fa-pencil-alt"></i>
             <span class="text">輸入錯誤</span>
@@ -572,7 +840,7 @@
             <i class="fas fa-clipboard-check"></i>
             <span class="text">分析結果</span>
           </button>
-          <button class="tab" data-tab="visualization">
+          <button class="tab active" data-tab="visualization">
             <span class="step">4</span>
             <i class="fas fa-project-diagram"></i>
             <span class="text">思維導圖</span>
@@ -580,15 +848,119 @@
         </div>
 
         <div id="inputTab" class="tab-content">
-          <!-- 輸入頁面內容 -->
+          <div class="quick-input">
+            <h3><i class="fas fa-bolt"></i> 快速輸入</h3>
+            <p>簡單描述您遇到的工作錯誤，我們將深入分析原因、影響與解決方案</p>
+
+            <div class="section-divider">
+              <span>常見錯誤場景</span>
+            </div>
+
+            <div class="scenarios-container">
+              <button
+                class="scenario-btn"
+                data-scenario="忘了確認客戶簽名就寄出合約"
+              >
+                <i class="fas fa-file-signature"></i> <span>合約簽名遺漏</span>
+              </button>
+              <button
+                class="scenario-btn"
+                data-scenario="因計算錯誤導致產品報價過低，公司虧損"
+              >
+                <i class="fas fa-calculator"></i> <span>報價計算錯誤</span>
+              </button>
+              <button
+                class="scenario-btn"
+                data-scenario="未仔細核對發票金額導致稅務問題"
+              >
+                <i class="fas fa-receipt"></i> <span>發票錯誤</span>
+              </button>
+              <button
+                class="scenario-btn"
+                data-scenario="錯過重要會議，造成團隊溝通不良"
+              >
+                <i class="fas fa-calendar-times"></i> <span>會議缺席</span>
+              </button>
+              <button
+                class="scenario-btn"
+                data-scenario="回覆客戶郵件時抄送了錯誤的人員"
+              >
+                <i class="fas fa-envelope"></i> <span>郵件發送錯誤</span>
+              </button>
+            </div>
+
+            <div class="input-group">
+              <textarea
+                id="quickErrorInput"
+                rows="3"
+                placeholder="輸入一句話描述錯誤（例如：忘了確認客戶簽名就送出了合約）"
+              ></textarea>
+            </div>
+
+            <div class="input-group">
+              <select id="errorCategory">
+                <option value="文書處理">文書處理錯誤</option>
+                <option value="溝通協調">溝通協調錯誤</option>
+                <option value="資料輸入">資料輸入錯誤</option>
+                <option value="計算錯誤">計算錯誤</option>
+                <option value="程序遺漏">程序遺漏</option>
+                <option value="時間管理">時間管理問題</option>
+                <option value="判斷失誤">判斷失誤</option>
+                <option value="客戶服務">客戶服務問題</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+
+            <button id="addQuickErrorBtn" class="secondary">
+              <i class="fas fa-plus"></i> 新增錯誤事件
+            </button>
+          </div>
+
+          <div id="errorList">
+            <h3><i class="fas fa-list-ul"></i> 已輸入的錯誤事件</h3>
+            <div id="errorItems" class="error-items-container">
+              <div class="empty-state">
+                <i class="fas fa-clipboard-list"></i>
+                <p>
+                  尚未添加任何錯誤事件，請在上方輸入框中描述您遇到的錯誤或選擇常見場景
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div id="promptTab" class="tab-content">
-          <!-- 提示詞頁面內容 -->
+          <h2><i class="fas fa-magic"></i> AI分析提示詞</h2>
+          <p>
+            以下是根據您輸入的錯誤事件生成的提示詞，複製並提交給AI助手進行分析：
+          </p>
+
+          <div id="promptOutput"></div>
+
+          <button id="copyPromptBtn" class="copy-btn">
+            <i class="fas fa-copy"></i> 複製提示詞
+          </button>
+          <p>
+            將以上提示詞提交給AI助手（GPT、Claude或Grok）後，將JSON回應複製到步驟3中
+          </p>
         </div>
 
         <div id="resultTab" class="tab-content">
-          <!-- 結果頁面內容 -->
+          <h2><i class="fas fa-clipboard-check"></i> AI分析結果</h2>
+          <p>請將從AI助手獲得的JSON格式分析結果粘貼到下方：</p>
+
+          <textarea
+            id="aiResponse"
+            rows="8"
+            placeholder="在這裡粘貼AI助手的JSON回應..."
+          ></textarea>
+
+          <button id="processResponseBtn">
+            <i class="fas fa-cogs"></i> 處理分析結果
+          </button>
+          <div id="loading" class="loading"></div>
+
+          <div id="jsonOutput" style="display: none"></div>
         </div>
 
         <div id="visualizationTab" class="tab-content active">
@@ -600,6 +972,16 @@
           </div>
 
           <div class="mind-map-container">
+            <div class="view-selector">
+              <button class="view-option active" data-view="radial">
+                輻射圖
+              </button>
+              <button class="view-option" data-view="hierarchical">
+                層次圖
+              </button>
+              <button class="view-option" data-view="horizontal">水平圖</button>
+            </div>
+
             <div id="mindmap"></div>
 
             <div class="controls">
@@ -617,38 +999,80 @@
 
           <div id="legendContainer">
             <div class="legend-item">
-              <span class="legend-color" style="background-color: #00cfe8"></span>
+              <span
+                class="legend-color"
+                style="background-color: #00cfe8"
+              ></span>
               <span>錯誤類別</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background-color: #00c58a"></span>
+              <span
+                class="legend-color"
+                style="background-color: #00c58a"
+              ></span>
               <span>正確流程</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background-color: #ea5455"></span>
+              <span
+                class="legend-color"
+                style="background-color: #ea5455"
+              ></span>
               <span>原因</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background-color: #ff9f43"></span>
+              <span
+                class="legend-color"
+                style="background-color: #ff9f43"
+              ></span>
               <span>後果</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background-color: #28c76f"></span>
+              <span
+                class="legend-color"
+                style="background-color: #28c76f"
+              ></span>
               <span>改善方案</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background-color: #7367f0"></span>
+              <span
+                class="legend-color"
+                style="background-color: #7367f0"
+              ></span>
               <span>關聯人員</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background-color: #00cfe8"></span>
+              <span
+                class="legend-color"
+                style="background-color: #00cfe8"
+              ></span>
               <span>最優解</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background-color: #9333ea"></span>
+              <span
+                class="legend-color"
+                style="background-color: #9333ea"
+              ></span>
               <span>防範措施</span>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 移動設備底部導航欄 -->
+    <div class="bottom-nav">
+      <div class="nav-items">
+        <div class="nav-item">
+          <i class="fas fa-file-alt"></i>
+          <span>錯誤紀錄</span>
+        </div>
+        <div class="nav-item">
+          <i class="fas fa-users"></i>
+          <span>合作成員</span>
+        </div>
+        <div class="nav-item">
+          <i class="fas fa-envelope"></i>
+          <span>郵件報告</span>
         </div>
       </div>
     </div>
@@ -661,22 +1085,101 @@
       let dragOffsetX = 0;
       let dragOffsetY = 0;
       let transform = d3.zoomIdentity;
+      let touchStartX, touchStartY;
       let isDragging = false;
+      let currentView = "radial"; // 默認為輻射圖
 
       // DOM元素
       const tabs = document.querySelectorAll(".tab");
       const tabContents = document.querySelectorAll(".tab-content");
+      const quickErrorInput = document.getElementById("quickErrorInput");
+      const errorCategory = document.getElementById("errorCategory");
+      const addQuickErrorBtn = document.getElementById("addQuickErrorBtn");
+      const errorItems = document.getElementById("errorItems");
+      const promptOutput = document.getElementById("promptOutput");
+      const copyPromptBtn = document.getElementById("copyPromptBtn");
+      const aiResponse = document.getElementById("aiResponse");
+      const processResponseBtn = document.getElementById("processResponseBtn");
+      const jsonOutput = document.getElementById("jsonOutput");
+      const loading = document.getElementById("loading");
       const mindmapContainer = document.getElementById("mindmap");
       const zoomInBtn = document.getElementById("zoomInBtn");
       const zoomOutBtn = document.getElementById("zoomOutBtn");
       const resetViewBtn = document.getElementById("resetViewBtn");
       const mobileMessage = document.getElementById("mobileMessage");
+      const viewOptions = document.querySelectorAll(".view-option");
+
+      // 視圖選擇器事件綁定
+      viewOptions.forEach((option) => {
+        option.addEventListener("click", function () {
+          // 更新活動狀態
+          viewOptions.forEach((opt) => opt.classList.remove("active"));
+          this.classList.add("active");
+
+          // 更新當前視圖類型
+          currentView = this.getAttribute("data-view");
+
+          // 重新渲染思維導圖
+          if (analysisResult) {
+            renderMindmap(analysisResult);
+          }
+        });
+      });
+
+      // 禁用iOS Safari上的雙擊縮放
+      document.addEventListener(
+        "gesturestart",
+        function (e) {
+          e.preventDefault();
+        },
+        { passive: false }
+      );
+
+      document.addEventListener(
+        "gesturechange",
+        function (e) {
+          e.preventDefault();
+        },
+        { passive: false }
+      );
+
+      // 自動選擇最佳視圖類型
+      function selectBestViewType() {
+        const container = document.querySelector(".mind-map-container");
+        if (!container) return;
+
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        const ratio = width / height;
+
+        // 根據容器寬高比選擇最佳視圖
+        if (width < 500) {
+          // 窄屏設備，使用水平樹狀圖
+          currentView = "horizontal";
+        } else if (ratio < 1) {
+          // 高大於寬，使用垂直層次圖
+          currentView = "hierarchical";
+        } else {
+          // 寬大於高，使用輻射圖
+          currentView = "radial";
+        }
+
+        // 更新視圖選擇器
+        viewOptions.forEach((opt) => {
+          if (opt.getAttribute("data-view") === currentView) {
+            opt.classList.add("active");
+          } else {
+            opt.classList.remove("active");
+          }
+        });
+      }
 
       // 響應式功能初始化
       function initializeResponsiveFeatures() {
         // 檢查是否是移動設備
         const isMobileDevice = window.innerWidth <= 768;
-        const isTabletDevice = window.innerWidth > 768 && window.innerWidth <= 1024;
+        const isTabletDevice =
+          window.innerWidth > 768 && window.innerWidth <= 1024;
 
         // 設置設備類型標記
         document.body.classList.toggle("is-mobile", isMobileDevice);
@@ -693,25 +1196,6 @@
           document.querySelectorAll(".tab .text").forEach((text) => {
             text.style.display = "none";
           });
-
-          // 修改右側工具欄位置
-          const toolbar = document.querySelector(".error-toolbar");
-          if (toolbar) {
-            toolbar.style.position = "fixed";
-            toolbar.style.bottom = "20px";
-            toolbar.style.top = "auto";
-            toolbar.style.transform = "none";
-            toolbar.style.left = "0";
-            toolbar.style.right = "0";
-            toolbar.style.flexDirection = "row";
-            toolbar.style.justifyContent = "center";
-          }
-
-          // 調整思維導圖容器高度
-          const mindMapContainer = document.querySelector(".mind-map-container");
-          if (mindMapContainer) {
-            mindMapContainer.style.height = "60vh";
-          }
         } else {
           // 非移動設備處理
           if (mobileMessage) {
@@ -722,166 +1206,281 @@
           document.querySelectorAll(".tab .text").forEach((text) => {
             text.style.display = "inline";
           });
-
-          // 恢復右側工具欄定位
-          const toolbar = document.querySelector(".error-toolbar");
-          if (toolbar) {
-            toolbar.style.position = "fixed";
-            toolbar.style.right = isTabletDevice ? "15px" : "20px";
-            toolbar.style.top = "50%";
-            toolbar.style.transform = "translateY(-50%)";
-            toolbar.style.bottom = "auto";
-            toolbar.style.left = "auto";
-            toolbar.style.flexDirection = "column";
-            toolbar.style.justifyContent = "flex-start";
-          }
-
-          // 調整思維導圖容器高度
-          const mindMapContainer = document.querySelector(".mind-map-container");
-          if (mindMapContainer) {
-            mindMapContainer.style.height = isTabletDevice ? "65vh" : "70vh";
-          }
         }
+
+        // 調整思維導圖容器高度
+        const container = document.querySelector(".mind-map-container");
+        if (container) {
+          container.style.height = isMobileDevice
+            ? "60vh"
+            : isTabletDevice
+            ? "65vh"
+            : "70vh";
+        }
+
+        // 選擇最佳視圖類型
+        selectBestViewType();
       }
 
       // 初始化
       window.addEventListener("load", function () {
         initializeResponsiveFeatures();
         addTouchGestureSupport();
-        
-        // 演示用的數據，實際上會由API獲取
-        const demoData = {
-          errorAnalysis: [
-            {
-              id: "1",
-              title: "會議缺席錯誤",
-              category: "時間管理",
-              description: "錯過重要會議，造成團隊溝通不良",
-              correctProcess: [
-                {id: "1.1", text: "提前10分鐘進入會議室"},
-                {id: "1.2", text: "設置日曆提醒"}
-              ],
-              causes: [
-                {id: "1.3", text: "忘記查看日程表"},
-                {id: "1.4", text: "同時處理多項工作"}
-              ],
-              consequences: [
-                {id: "1.5", text: "團隊缺乏關鍵信息"},
-                {id: "1.6", text: "延誤專案進度"}
-              ],
-              improvements: [
-                {id: "1.7", text: "使用多重日曆提醒"},
-                {id: "1.8", text: "建立會議優先級系統"}
-              ],
-              personnel: [
-                {id: "1.9", text: "專案經理"},
-                {id: "1.10", text: "團隊成員"}
-              ],
-              optimalSolution: {id: "1.11", text: "向團隊道歉並主動瞭解會議內容"},
-              preventionMeasures: [
-                {id: "1.12", text: "在手機和電腦上設置提醒"},
-                {id: "1.13", text: "建立個人時間管理系統"}
-              ]
-            }
-          ]
-        };
-        
-        // 使用演示數據渲染思維導圖
-        analysisResult = demoData;
-        renderMindmap(demoData);
+
+        // 插入測試數據
+        setupTestData();
       });
 
       // 窗口大小變化時自動適應
-      window.addEventListener("resize", function() {
+      window.addEventListener("resize", function () {
         initializeResponsiveFeatures();
+
+        // 重新渲染思維導圖以適應新的窗口大小
         if (analysisResult) {
           renderMindmap(analysisResult);
         }
       });
+
+      // 添加測試數據
+      function setupTestData() {
+        // 使用測試數據
+        analysisResult = {
+          errorAnalysis: [
+            {
+              id: "1",
+              title: "兌換卷類型錯誤",
+              category: "客戶服務",
+              description:
+                "客戶要兌換點數想要換成實體兌換卷，但我按成了電子兌換卷，客人堅持不要，因為客人是專櫃人員，好像是要幫他的客人兌換，所以要紙本的，但系統沒辦法退還點數，我該怎麼辦，主管還叫我自掏腰包賠償200元",
+              correctProcess: [
+                {
+                  id: "1.1",
+                  text: "與客戶確認兌換需求，明確是需要實體兌換卷還是電子兌換卷。",
+                },
+                {
+                  id: "1.2",
+                  text: "在系統中選擇正確的兌換方式，並在操作前再次與客戶確認。",
+                },
+                {
+                  id: "1.3",
+                  text: "完成操作後，向客戶展示或解釋兌換結果，確保客戶滿意。",
+                },
+              ],
+              causes: [
+                {
+                  id: "1.4",
+                  text: "在操作系統時，不小心將兌換方式選成了電子兌換卷，而不是客戶需要的實體兌換卷。",
+                },
+                {
+                  id: "1.5",
+                  text: "可能對系統操作不夠熟悉，或者當時注意力被其他事情分散。",
+                },
+                {
+                  id: "1.6",
+                  text: "與客戶的溝通可能不夠清晰，客戶需求未被完全理解。",
+                },
+                {
+                  id: "1.7",
+                  text: "系統設計可能缺乏足夠的提示或確認步驟，增加了錯誤的機會。",
+                },
+              ],
+              consequences: [
+                {
+                  id: "1.8",
+                  text: "客戶可能感到不滿意，甚至投訴或給予負面評價。",
+                },
+                {
+                  id: "1.9",
+                  text: "員工需要額外時間處理錯誤，可能影響其他工作。",
+                },
+                {
+                  id: "1.10",
+                  text: "若錯誤頻繁發生，可能影響公司聲譽和客戶信任。",
+                },
+                {
+                  id: "1.11",
+                  text: "員工可能因壓力增加而影響心情和工作表現。",
+                },
+              ],
+              improvements: [
+                {
+                  id: "1.12",
+                  text: "加強員工培訓，提升系統操作和客戶溝通技巧。",
+                },
+                {
+                  id: "1.13",
+                  text: "在系統中增加確認步驟，例如選擇兌換方式後彈出確認窗口。",
+                },
+                {
+                  id: "1.14",
+                  text: "建立錯誤處理流程，避免員工自行承擔賠償壓力。",
+                },
+              ],
+              personnel: [
+                { id: "1.15", text: "員工：需要提高操作技能和溝通能力。" },
+                {
+                  id: "1.16",
+                  text: "主管：應提供支持和指導，而非要求員工自費賠償。",
+                },
+                {
+                  id: "1.17",
+                  text: "系統設計人員：需改進系統，增加防錯功能。",
+                },
+              ],
+              optimalSolution: {
+                id: "1.18",
+                text: "先向客戶誠懇道歉並解釋錯誤原因，然後聯繫系統管理員確認是否能更正操作。若無法更正，與主管協商使用公司資源解決，而不是讓員工自費賠償。",
+              },
+              preventionMeasures: [
+                {
+                  id: "1.19",
+                  text: "定期進行員工培訓和考核，熟悉系統操作和服務流程。",
+                },
+                {
+                  id: "1.20",
+                  text: "在系統中加入錯誤預防功能，如操作前要求二次確認。",
+                },
+                {
+                  id: "1.21",
+                  text: "建立錯誤回報機制，定期審查並改進工作流程。",
+                },
+              ],
+            },
+          ],
+        };
+
+        renderMindmap(analysisResult);
+      }
 
       // 添加觸控手勢支持
       function addTouchGestureSupport() {
         const mindmap = document.getElementById("mindmap");
         if (!mindmap) return;
 
-        let touchStartX, touchStartY;
         let initialTransform = null;
         let initialDistance = 0;
         let initialZoom = 1;
+        let lastTapTime = 0;
 
-        // 單指拖動
-        mindmap.addEventListener("touchstart", function (e) {
-          if (e.touches.length === 1) {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-            initialTransform = {...transform};
-            isDragging = true;
-            e.preventDefault();
-          } else if (e.touches.length === 2) {
+        // 處理觸摸開始事件
+        mindmap.addEventListener(
+          "touchstart",
+          function (e) {
+            e.preventDefault(); // 防止瀏覽器默認行為
+
+            // 單指拖動
+            if (e.touches.length === 1) {
+              touchStartX = e.touches[0].clientX;
+              touchStartY = e.touches[0].clientY;
+              initialTransform = Object.assign({}, transform);
+              isDragging = true;
+
+              // 檢測雙擊縮放（重置視圖）
+              const currentTime = new Date().getTime();
+              const tapLength = currentTime - lastTapTime;
+              if (tapLength < 300 && tapLength > 0) {
+                resetView();
+              }
+              lastTapTime = currentTime;
+            }
             // 雙指縮放
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            initialDistance = Math.sqrt(dx * dx + dy * dy);
-            initialZoom = zoomLevel;
-            e.preventDefault();
-          }
-        }, { passive: false });
+            else if (e.touches.length === 2) {
+              const dx = e.touches[0].clientX - e.touches[1].clientX;
+              const dy = e.touches[0].clientY - e.touches[1].clientY;
+              initialDistance = Math.sqrt(dx * dx + dy * dy);
+              initialZoom = zoomLevel;
+              isDragging = false;
+            }
+          },
+          { passive: false }
+        );
 
-        mindmap.addEventListener("touchmove", function (e) {
-          if (isDragging && e.touches.length === 1) {
-            const dx = e.touches[0].clientX - touchStartX;
-            const dy = e.touches[0].clientY - touchStartY;
-            
-            // 更新拖拽位置
-            dragOffsetX = initialTransform.x + dx / zoomLevel;
-            dragOffsetY = initialTransform.y + dy / zoomLevel;
-            
-            updateMindmapTransform();
-            e.preventDefault();
-          } else if (e.touches.length === 2) {
-            // 雙指縮放計算
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            // 計算縮放比例
-            const scale = distance / initialDistance;
-            zoomLevel = Math.min(Math.max(initialZoom * scale, 0.3), 3); // 限制縮放範圍
-            
-            // 計算縮放中心點
-            const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-            const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-            
-            updateMindmapTransform();
-            e.preventDefault();
-          }
-        }, { passive: false });
+        // 處理觸摸移動事件
+        mindmap.addEventListener(
+          "touchmove",
+          function (e) {
+            e.preventDefault(); // 防止瀏覽器默認行為
+
+            // 單指拖動
+            if (isDragging && e.touches.length === 1) {
+              const dx = e.touches[0].clientX - touchStartX;
+              const dy = e.touches[0].clientY - touchStartY;
+
+              // 更新拖拽位置，加強移動設備上的靈敏度
+              dragOffsetX = initialTransform.x + dx / zoomLevel;
+              dragOffsetY = initialTransform.y + dy / zoomLevel;
+
+              updateMindmapTransform();
+            }
+            // 雙指縮放
+            else if (e.touches.length === 2) {
+              const dx = e.touches[0].clientX - e.touches[1].clientX;
+              const dy = e.touches[0].clientY - e.touches[1].clientY;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              // 計算新的縮放級別，增加平滑度
+              const scale = distance / initialDistance;
+              const newZoom = initialZoom * scale;
+              zoomLevel = Math.min(Math.max(newZoom, 0.3), 3); // 限制縮放範圍
+
+              // 計算縮放中心點
+              const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+              const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+
+              updateMindmapTransform();
+            }
+          },
+          { passive: false }
+        );
 
         mindmap.addEventListener("touchend", function (e) {
           isDragging = false;
         });
-        
-        // 禁用瀏覽器默認的縮放行為
-        document.addEventListener('gesturestart', function(e) {
-          e.preventDefault();
-        }, { passive: false });
-        
-        document.addEventListener('gesturechange', function(e) {
-          e.preventDefault();
-        }, { passive: false });
+
+        // 鼠標滾輪縮放支援
+        mindmap.addEventListener(
+          "wheel",
+          function (e) {
+            e.preventDefault();
+
+            // 確定縮放方向
+            const delta = e.deltaY < 0 ? 1.1 : 0.9;
+
+            // 限制縮放範圍
+            zoomLevel = Math.min(Math.max(zoomLevel * delta, 0.3), 3);
+
+            updateMindmapTransform();
+          },
+          { passive: false }
+        );
+      }
+
+      // 重置視圖
+      function resetView() {
+        zoomLevel = 1;
+        dragOffsetX = 0;
+        dragOffsetY = 0;
+        transform = d3.zoomIdentity;
+        if (analysisResult) {
+          renderMindmap(analysisResult);
+        }
       }
 
       // 更新思維導圖變換
       function updateMindmapTransform() {
         try {
           const svg = d3.select("#mindmap svg");
+
           if (!svg.empty()) {
             const g = svg.select("g");
-            
+
             if (!g.empty()) {
+              // 創建新的變換矩陣
               transform = d3.zoomIdentity
                 .translate(dragOffsetX, dragOffsetY)
                 .scale(zoomLevel);
+
+              // 應用變換
               g.attr("transform", transform);
             }
           }
@@ -890,42 +1489,10 @@
         }
       }
 
-      // 思維導圖控制按鈕
-      if (zoomInBtn) {
-        zoomInBtn.addEventListener("click", function() {
-          zoomLevel = Math.min(3, zoomLevel * 1.2); // 限制最大縮放
-          updateMindmapTransform();
-        });
-      }
-
-      if (zoomOutBtn) {
-        zoomOutBtn.addEventListener("click", function() {
-          zoomLevel = Math.max(0.3, zoomLevel * 0.8); // 限制最小縮放
-          updateMindmapTransform();
-        });
-      }
-
-      if (resetViewBtn) {
-        resetViewBtn.addEventListener("click", function() {
-          zoomLevel = 1;
-          dragOffsetX = 0;
-          dragOffsetY = 0;
-          transform = d3.zoomIdentity;
-          if (analysisResult) {
-            renderMindmap(analysisResult);
-          }
-        });
-      }
-
       // 切換到指定標籤頁
       function activateTab(tabId) {
-        tabs.forEach(function(t) {
-          t.classList.remove("active");
-        });
-        
-        tabContents.forEach(function(content) {
-          content.classList.remove("active");
-        });
+        tabs.forEach((t) => t.classList.remove("active"));
+        tabContents.forEach((content) => content.classList.remove("active"));
 
         const tabElement = document.querySelector(`[data-tab="${tabId}"]`);
         if (tabElement) {
@@ -937,30 +1504,265 @@
           contentElement.classList.add("active");
         }
 
-        if (tabId === "visualization" && analysisResult) {
+        if (tabId === "prompt") {
+          generatePrompt();
+        } else if (tabId === "visualization" && analysisResult) {
           renderMindmap(analysisResult);
         }
       }
 
       // 標籤頁點擊事件
-      tabs.forEach(function(tab) {
-        tab.addEventListener("click", function() {
-          const tabId = this.getAttribute("data-tab");
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          const tabId = tab.getAttribute("data-tab");
           activateTab(tabId);
         });
       });
 
+      // 思維導圖控制按鈕
+      if (zoomInBtn) {
+        zoomInBtn.addEventListener("click", () => {
+          zoomLevel = Math.min(3, zoomLevel * 1.2); // 限制最大縮放
+          updateMindmapTransform();
+        });
+      }
+
+      if (zoomOutBtn) {
+        zoomOutBtn.addEventListener("click", () => {
+          zoomLevel = Math.max(0.3, zoomLevel * 0.8); // 限制最小縮放
+          updateMindmapTransform();
+        });
+      }
+
+      if (resetViewBtn) {
+        resetViewBtn.addEventListener("click", resetView);
+      }
+
+      // 生成提示詞
+      function generatePrompt() {
+        if (errorEvents.length === 0) {
+          promptOutput.textContent = "請先在步驟1中添加錯誤事件！";
+          return;
+        }
+
+        const prompt = `我需要對以下辦公室工作錯誤進行深入而溫柔的分析，請像位理解人性的天使一樣幫我分析每個錯誤事件的根本原因、可能後果、改善方案、關聯人員及最優解決方案。
+
+      請以溫柔鼓勵的語氣分析這些錯誤，避免指責，而是著重於理解、學習和成長。我希望您能提供既有同理心又具體實用的建議，幫助我們避免類似錯誤，並創造更積極的工作環境。
+
+      對於每個錯誤事件，請深入分析並包含以下內容：
+      1. 錯誤根本原因（直接原因和深層原因）
+      2. 正確的工作流程（本應如何正確操作）
+      3. 可能造成的後果（短期和長期影響）
+      4. 改善方案（具體可行的步驟）
+      5. 關聯人員（需要參與解決問題的角色）
+      6. 最優解決方案（如何最佳處理已發生的錯誤）
+      7. 防範措施（如何確保未來不再發生類似錯誤）
+
+      以下是需要分析的錯誤事件：
+
+      ${errorEvents
+        .map(
+          (error, index) => `
+      錯誤事件 ${index + 1}：${error.title}
+      類別：${error.category}
+      描述：${error.description}
+      ${error.impact ? `已知影響：${error.impact}` : ""}
+      `
+        )
+        .join("\n")}
+
+      請使用以下JSON格式返回分析結果（請嚴格按照此格式，確保能被正確解析）：
+
+      \`\`\`json
+      {
+        "errorAnalysis": [
+          {
+            "id": "1",
+            "title": "錯誤事件標題",
+            "category": "錯誤類別",
+            "description": "錯誤描述",
+            "correctProcess": [
+              {"id": "1.1", "text": "正確流程步驟1"},
+              {"id": "1.2", "text": "正確流程步驟2"}
+            ],
+            "causes": [
+              {"id": "1.3", "text": "直接原因1"},
+              {"id": "1.4", "text": "直接原因2"},
+              {"id": "1.5", "text": "深層原因1"}
+            ],
+            "consequences": [
+              {"id": "1.6", "text": "短期後果1"},
+              {"id": "1.7", "text": "長期後果1"}
+            ],
+            "improvements": [
+              {"id": "1.8", "text": "改善方案1"},
+              {"id": "1.9", "text": "改善方案2"}
+            ],
+            "personnel": [
+              {"id": "1.10", "text": "關聯人員1"},
+              {"id": "1.11", "text": "關聯人員2"}
+            ],
+            "optimalSolution": {"id": "1.12", "text": "最優解決方案"},
+            "preventionMeasures": [
+              {"id": "1.13", "text": "防範措施1"},
+              {"id": "1.14", "text": "防範措施2"}
+            ]
+          }
+        ]
+      }
+      \`\`\`
+
+      請確保JSON格式正確，每個節點都有唯一的ID，以便在思維導圖中正確顯示關係。分析要溫柔、深入、全面且具體，讓使用者感到被理解和支持，而非被批評。`;
+
+        promptOutput.textContent = prompt;
+      }
+
+      // 複製提示詞到剪貼板
+      if (copyPromptBtn) {
+        copyPromptBtn.addEventListener("click", () => {
+          // 嘗試使用現代剪貼板API
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard
+              .writeText(promptOutput.textContent)
+              .then(() => {
+                showCopySuccess();
+              })
+              .catch((err) => {
+                // 如果API失敗，回退到傳統方法
+                fallbackCopy();
+              });
+          } else {
+            // 瀏覽器不支持現代API，使用傳統方法
+            fallbackCopy();
+          }
+
+          // 傳統複製方法
+          function fallbackCopy() {
+            const textArea = document.createElement("textarea");
+            textArea.value = promptOutput.textContent;
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.select();
+
+            try {
+              const successful = document.execCommand("copy");
+              if (successful) {
+                showCopySuccess();
+              } else {
+                alert("複製失敗，請手動選擇文本並複製");
+              }
+            } catch (err) {
+              alert("複製失敗，請手動選擇文本並複製");
+            }
+
+            document.body.removeChild(textArea);
+          }
+
+          // 顯示複製成功提示
+          function showCopySuccess() {
+            const originalText = copyPromptBtn.innerHTML;
+            copyPromptBtn.innerHTML = '<i class="fas fa-check"></i> 已複製！';
+            setTimeout(() => {
+              copyPromptBtn.innerHTML = originalText;
+            }, 2000);
+          }
+        });
+      }
+
+      // 處理AI回應
+      if (processResponseBtn) {
+        processResponseBtn.addEventListener("click", () => {
+          const response = aiResponse.value.trim();
+
+          if (!response) {
+            alert("請先粘貼AI助手的回應！");
+            return;
+          }
+
+          if (loading) loading.style.display = "block";
+
+          setTimeout(() => {
+            try {
+              // 嘗試提取JSON - 改進的JSON提取邏輯
+              let jsonString = response;
+
+              // 如果包含在```json中
+              const jsonMarkdownMatch = response.match(
+                /```json\s*([\s\S]*?)\s*```/
+              );
+              if (jsonMarkdownMatch) {
+                jsonString = jsonMarkdownMatch[1].trim();
+              } else {
+                // 如果只是普通的```代碼塊
+                const codeBlockMatch = response.match(/```\s*([\s\S]*?)\s*```/);
+                if (codeBlockMatch) {
+                  jsonString = codeBlockMatch[1].trim();
+                }
+              }
+
+              try {
+                analysisResult = JSON.parse(jsonString);
+
+                // 檢查JSON結構是否有效
+                if (
+                  !analysisResult ||
+                  !analysisResult.errorAnalysis ||
+                  !Array.isArray(analysisResult.errorAnalysis)
+                ) {
+                  throw new Error("JSON結構無效，缺少errorAnalysis數組");
+                }
+
+                // 顯示格式化的JSON
+                if (jsonOutput) {
+                  jsonOutput.textContent = JSON.stringify(
+                    analysisResult,
+                    null,
+                    2
+                  );
+                  jsonOutput.style.display = "block";
+                }
+
+                // 渲染思維導圖
+                activateTab("visualization");
+                renderMindmap(analysisResult);
+
+                // 確保觸控支援已啟用
+                window.setTimeout(() => {
+                  addTouchGestureSupport();
+                }, 500);
+              } catch (jsonError) {
+                alert("無法解析JSON數據: " + jsonError.message);
+                console.error("JSON解析錯誤：", jsonError);
+              }
+            } catch (error) {
+              alert(
+                "無法解析AI回應中的JSON格式。請確保回應包含正確格式的JSON數據。"
+              );
+              console.error("回應處理錯誤：", error);
+            } finally {
+              if (loading) loading.style.display = "none";
+            }
+          }, 1000);
+        });
+      }
+
       // 渲染思維導圖
       function renderMindmap(data, isMobileRender = false) {
-        if (!data || !data.errorAnalysis || !Array.isArray(data.errorAnalysis) || data.errorAnalysis.length === 0) {
+        if (
+          !data ||
+          !data.errorAnalysis ||
+          !Array.isArray(data.errorAnalysis) ||
+          data.errorAnalysis.length === 0
+        ) {
           const mindmapEl = document.getElementById("mindmap");
           if (mindmapEl) {
             mindmapEl.innerHTML = `
-              <div style="display:flex;height:100%;align-items:center;justify-content:center;flex-direction:column;color:#666;">
-                <i class="fas fa-exclamation-circle" style="font-size:3rem;color:#ccc;margin-bottom:1rem;"></i>
-                <p>無法顯示思維導圖，請確保已有分析數據</p>
-              </div>
-            `;
+                  <div style="display:flex;height:100%;align-items:center;justify-content:center;flex-direction:column;color:#666;">
+                    <i class="fas fa-exclamation-circle" style="font-size:3rem;color:#ccc;margin-bottom:15px;"></i>
+                    <p>無法顯示思維導圖，請確保已有分析數據</p>
+                  </div>
+                `;
           }
           return;
         }
@@ -970,266 +1772,855 @@
         if (!mindmapContainer) return;
         mindmapContainer.innerHTML = "";
 
-        // 檢測設備類型
-        const isMobileDevice = window.innerWidth <= 768 || isMobileRender;
-        const isTabletDevice = window.innerWidth > 768 && window.innerWidth <= 1024;
+        // 考慮設備特性
+        const isMobileDevice = window.innerWidth <= 480 || isMobileRender;
+        const isTabletDevice =
+          (window.innerWidth > 480 && window.innerWidth <= 768) ||
+          isMobileRender;
 
         try {
           // 創建SVG元素
-          const svg = d3.select("#mindmap")
+          const svg = d3
+            .select("#mindmap")
             .append("svg")
             .attr("width", "100%")
             .attr("height", "100%")
-            .call(d3.zoom().on("zoom", function(event) {
-              transform = event.transform;
-              g.attr("transform", transform);
-              zoomLevel = transform.k;
-              dragOffsetX = transform.x;
-              dragOffsetY = transform.y;
-            }));
+            .attr("viewBox", "0 0 800 600")
+            .attr("preserveAspectRatio", "xMidYMid meet")
+            .call(
+              d3
+                .zoom()
+                .scaleExtent([0.3, 3])
+                .on("zoom", function (event) {
+                  transform = event.transform;
+                  g.attr("transform", transform);
+                  zoomLevel = transform.k;
+                  dragOffsetX = transform.x;
+                  dragOffsetY = transform.y;
+                })
+            );
 
-          const g = svg.append("g");
+          // 創建主要組（設定中心位置）
+          const centerX = 400;
+          const centerY = 300;
+          const g = svg
+            .append("g")
+            .attr("transform", `translate(${centerX},${centerY})`);
 
-          // 添加說明提示
+          // 移動設備提示
           if (isMobileDevice) {
-            svg.append("text")
+            svg
+              .append("text")
               .attr("x", 20)
-              .attr("y", 30)
+              .attr("y", 25)
               .text("提示: 用兩指縮放查看更多內容")
+              .style("font-size", "12px")
+              .style("fill", "#7367f0")
+              .style("font-style", "italic");
+
+            svg
+              .append("text")
+              .attr("x", 20)
+              .attr("y", 45)
+              .text("左右滑動可查看完整思維導圖")
               .style("font-size", "12px")
               .style("fill", "#7367f0")
               .style("font-style", "italic");
           }
 
-          // 設置邊距和尺寸
-          const margin = isMobileDevice 
-            ? { top: 70, right: 20, bottom: 20, left: 20 }
-            : { top: 50, right: 100, bottom: 30, left: 50 };
-          
-          const width = mindmapContainer.clientWidth - margin.left - margin.right;
-          const height = mindmapContainer.clientHeight - margin.top - margin.bottom;
-
           // 處理每個錯誤分析
-          data.errorAnalysis.forEach(function(error, index) {
-            // 確保數據的有效性
-            if (!error) return;
-            
-            // 創建樹狀結構
-            const rootData = {
-              name: error.title || "未命名錯誤",
-              type: "root",
-              children: []
+          data.errorAnalysis.forEach((error, index) => {
+            // 確保所有數據都存在
+            const safeError = {
+              title: error.title || "未命名錯誤",
+              category: error.category || "未分類",
+              description: error.description || "",
+              correctProcess: Array.isArray(error.correctProcess)
+                ? error.correctProcess
+                : [],
+              causes: Array.isArray(error.causes) ? error.causes : [],
+              consequences: Array.isArray(error.consequences)
+                ? error.consequences
+                : [],
+              improvements: Array.isArray(error.improvements)
+                ? error.improvements
+                : [],
+              personnel: Array.isArray(error.personnel) ? error.personnel : [],
+              optimalSolution: error.optimalSolution || {
+                id: "default",
+                text: "無最優解決方案",
+              },
+              preventionMeasures: Array.isArray(error.preventionMeasures)
+                ? error.preventionMeasures
+                : [],
             };
-            
-            // 添加子節點
-            if (error.correctProcess && error.correctProcess.length) {
-              rootData.children.push({
-                name: "正確流程",
-                type: "correct-process",
-                children: error.correctProcess.map(item => ({
-                  name: item.text,
-                  type: "correct-process-item"
-                }))
-              });
+
+            // 創建樹狀數據結構
+            const treeData = {
+              name: safeError.title,
+              children: [],
+            };
+
+            // 根據選擇的視圖類型組織數據
+            if (currentView === "radial" || currentView === "hierarchical") {
+              // 輻射圖和層次圖使用分組方式
+
+              // 左側節點（問題分析）
+              const problemAnalysis = {
+                name: "問題分析",
+                children: [],
+              };
+
+              if (safeError.correctProcess.length > 0) {
+                problemAnalysis.children.push({
+                  name: "正確流程",
+                  type: "correct-process",
+                  children: safeError.correctProcess.map((item) => ({
+                    name: item.text,
+                    type: "correct-process-item",
+                  })),
+                });
+              }
+
+              if (safeError.causes.length > 0) {
+                problemAnalysis.children.push({
+                  name: "錯誤原因",
+                  type: "error-cause",
+                  children: safeError.causes.map((item) => ({
+                    name: item.text,
+                    type: "error-cause-item",
+                  })),
+                });
+              }
+
+              if (safeError.consequences.length > 0) {
+                problemAnalysis.children.push({
+                  name: "可能後果",
+                  type: "error-consequence",
+                  children: safeError.consequences.map((item) => ({
+                    name: item.text,
+                    type: "error-consequence-item",
+                  })),
+                });
+              }
+
+              // 右側節點（解決方案）
+              const solutionAnalysis = {
+                name: "解決方案",
+                children: [],
+              };
+
+              if (safeError.improvements.length > 0) {
+                solutionAnalysis.children.push({
+                  name: "改善方案",
+                  type: "error-improvement",
+                  children: safeError.improvements.map((item) => ({
+                    name: item.text,
+                    type: "error-improvement-item",
+                  })),
+                });
+              }
+
+              if (safeError.personnel.length > 0) {
+                solutionAnalysis.children.push({
+                  name: "關聯人員",
+                  type: "error-personnel",
+                  children: safeError.personnel.map((item) => ({
+                    name: item.text,
+                    type: "error-personnel-item",
+                  })),
+                });
+              }
+
+              if (safeError.optimalSolution) {
+                solutionAnalysis.children.push({
+                  name: "最優解決方案",
+                  type: "error-solution",
+                  children: [
+                    {
+                      name: safeError.optimalSolution.text,
+                      type: "error-solution-item",
+                    },
+                  ],
+                });
+              }
+
+              if (safeError.preventionMeasures.length > 0) {
+                solutionAnalysis.children.push({
+                  name: "防範措施",
+                  type: "prevention-measures",
+                  children: safeError.preventionMeasures.map((item) => ({
+                    name: item.text,
+                    type: "prevention-measures-item",
+                  })),
+                });
+              }
+
+              // 添加兩個主要分組
+              if (problemAnalysis.children.length > 0) {
+                treeData.children.push(problemAnalysis);
+              }
+
+              if (solutionAnalysis.children.length > 0) {
+                treeData.children.push(solutionAnalysis);
+              }
+            } else if (currentView === "horizontal") {
+              // 水平圖使用扁平結構
+
+              if (safeError.correctProcess.length > 0) {
+                treeData.children.push({
+                  name: "正確流程",
+                  type: "correct-process",
+                  children: safeError.correctProcess.map((item) => ({
+                    name: item.text,
+                    type: "correct-process-item",
+                  })),
+                });
+              }
+
+              if (safeError.causes.length > 0) {
+                treeData.children.push({
+                  name: "錯誤原因",
+                  type: "error-cause",
+                  children: safeError.causes.map((item) => ({
+                    name: item.text,
+                    type: "error-cause-item",
+                  })),
+                });
+              }
+
+              if (safeError.consequences.length > 0) {
+                treeData.children.push({
+                  name: "可能後果",
+                  type: "error-consequence",
+                  children: safeError.consequences.map((item) => ({
+                    name: item.text,
+                    type: "error-consequence-item",
+                  })),
+                });
+              }
+
+              if (safeError.improvements.length > 0) {
+                treeData.children.push({
+                  name: "改善方案",
+                  type: "error-improvement",
+                  children: safeError.improvements.map((item) => ({
+                    name: item.text,
+                    type: "error-improvement-item",
+                  })),
+                });
+              }
+
+              if (safeError.personnel.length > 0) {
+                treeData.children.push({
+                  name: "關聯人員",
+                  type: "error-personnel",
+                  children: safeError.personnel.map((item) => ({
+                    name: item.text,
+                    type: "error-personnel-item",
+                  })),
+                });
+              }
+
+              if (safeError.optimalSolution) {
+                treeData.children.push({
+                  name: "最優解決方案",
+                  type: "error-solution",
+                  children: [
+                    {
+                      name: safeError.optimalSolution.text,
+                      type: "error-solution-item",
+                    },
+                  ],
+                });
+              }
+
+              if (safeError.preventionMeasures.length > 0) {
+                treeData.children.push({
+                  name: "防範措施",
+                  type: "prevention-measures",
+                  children: safeError.preventionMeasures.map((item) => ({
+                    name: item.text,
+                    type: "prevention-measures-item",
+                  })),
+                });
+              }
             }
-            
-            if (error.causes && error.causes.length) {
-              rootData.children.push({
-                name: "錯誤原因",
-                type: "error-cause",
-                children: error.causes.map(item => ({
-                  name: item.text,
-                  type: "error-cause-item"
-                }))
-              });
+
+            // 創建層次結構
+            const root = d3.hierarchy(treeData);
+
+            // 根據視圖類型渲染不同布局
+            if (currentView === "radial") {
+              // 輻射狀布局
+              const radius = isMobileDevice ? 220 : isTabletDevice ? 250 : 300;
+
+              // 創建樹狀布局
+              const tree = d3
+                .tree()
+                .size([360, radius])
+                .separation((a, b) => {
+                  return (a.parent === b.parent ? 1 : 2) / a.depth;
+                });
+
+              // 計算節點位置
+              tree(root);
+
+              // 連線生成器（用於創建樹狀連線）
+              const linkGenerator = d3
+                .linkRadial()
+                .angle((d) => (d.x * Math.PI) / 180)
+                .radius((d) => d.y);
+
+              // 添加連線
+              g.append("g")
+                .attr("class", "links")
+                .selectAll("path")
+                .data(root.links())
+                .join("path")
+                .attr("class", "link")
+                .attr("d", linkGenerator)
+                .style("stroke", "#ccc")
+                .style("stroke-width", 1.5)
+                .style("fill", "none");
+
+              // 添加節點
+              const node = g
+                .append("g")
+                .attr("class", "nodes")
+                .selectAll("g")
+                .data(root.descendants())
+                .join("g")
+                .attr("class", "node")
+                .attr("transform", (d) => {
+                  const x = Math.sin((d.x * Math.PI) / 180) * d.y;
+                  const y = -Math.cos((d.x * Math.PI) / 180) * d.y;
+                  return `translate(${x},${y})`;
+                });
+
+              // 添加節點圓圈
+              node
+                .append("circle")
+                .attr("r", (d) => {
+                  if (d.depth === 0) return isMobileDevice ? 8 : 10;
+                  if (d.depth === 1) return isMobileDevice ? 7 : 9;
+                  if (d.depth === 2) return isMobileDevice ? 6 : 8;
+                  return isMobileDevice ? 4 : 6;
+                })
+                .attr("fill", (d) => {
+                  if (d.depth === 0) return "#7367f0";
+                  if (d.depth === 1) {
+                    return d.data.name === "問題分析" ? "#00cfe8" : "#ff9f43";
+                  }
+                  if (d.depth === 2) {
+                    if (d.data.type === "correct-process") return "#00c58a";
+                    if (d.data.type === "error-cause") return "#ea5455";
+                    if (d.data.type === "error-consequence") return "#ff9f43";
+                    if (d.data.type === "error-improvement") return "#28c76f";
+                    if (d.data.type === "error-personnel") return "#7367f0";
+                    if (d.data.type === "error-solution") return "#00cfe8";
+                    if (d.data.type === "prevention-measures") return "#9333ea";
+                    return "#7367f0";
+                  }
+                  if (d.depth === 3) {
+                    if (d.data.type === "correct-process-item")
+                      return "#00c58a";
+                    if (d.data.type === "error-cause-item") return "#ea5455";
+                    if (d.data.type === "error-consequence-item")
+                      return "#ff9f43";
+                    if (d.data.type === "error-improvement-item")
+                      return "#28c76f";
+                    if (d.data.type === "error-personnel-item")
+                      return "#7367f0";
+                    if (d.data.type === "error-solution-item") return "#00cfe8";
+                    if (d.data.type === "prevention-measures-item")
+                      return "#9333ea";
+                    return "#ccc";
+                  }
+                  return "#ccc";
+                })
+                .attr("stroke", "white")
+                .attr("stroke-width", 1.5);
+
+              // 添加節點文字
+              node
+                .append("text")
+                .attr("dy", (d) => {
+                  if (d.depth <= 1) return -12;
+                  if (d.x > 90 && d.x < 270) return 15;
+                  return -5;
+                })
+                .attr("x", (d) => {
+                  if (d.depth <= 1) return 0;
+                  if (d.x > 90 && d.x < 270) return -5;
+                  return 8;
+                })
+                .attr("text-anchor", (d) => {
+                  if (d.depth <= 1) return "middle";
+                  if (d.x > 90 && d.x < 270) return "end";
+                  return "start";
+                })
+                .attr("transform", (d) => {
+                  if (d.depth <= 1) return "";
+                  if (d.x > 180) return "rotate(180)";
+                  return "";
+                })
+                .style("font-size", (d) => {
+                  if (isMobileDevice) {
+                    return d.depth === 0
+                      ? "12px"
+                      : d.depth === 1
+                      ? "11px"
+                      : "9px";
+                  }
+                  return d.depth === 0
+                    ? "14px"
+                    : d.depth === 1
+                    ? "12px"
+                    : "10px";
+                })
+                .style("font-weight", (d) => (d.depth <= 1 ? "bold" : "normal"))
+                .style("fill", "#333")
+                .text((d) => {
+                  const text = d.data.name;
+                  const maxLength = isMobileDevice
+                    ? d.depth === 0
+                      ? 10
+                      : d.depth === 1
+                      ? 8
+                      : 6
+                    : d.depth === 0
+                    ? 12
+                    : d.depth === 1
+                    ? 10
+                    : 8;
+                  return text.length > maxLength
+                    ? text.substring(0, maxLength - 2) + "..."
+                    : text;
+                })
+                .on("mouseover", function (event, d) {
+                  // 文字太長時顯示提示框
+                  const maxLength = isMobileDevice
+                    ? d.depth === 0
+                      ? 10
+                      : d.depth === 1
+                      ? 8
+                      : 6
+                    : d.depth === 0
+                    ? 12
+                    : d.depth === 1
+                    ? 10
+                    : 8;
+
+                  if (d.data.name.length > maxLength) {
+                    const tooltip = document.createElement("div");
+                    tooltip.className = "tooltip";
+                    tooltip.textContent = d.data.name;
+                    tooltip.style.left = event.pageX + 10 + "px";
+                    tooltip.style.top = event.pageY + 10 + "px";
+                    document.body.appendChild(tooltip);
+                  }
+                })
+                .on("mousemove", function (event) {
+                  const tooltip = document.querySelector(".tooltip");
+                  if (tooltip) {
+                    tooltip.style.left = event.pageX + 10 + "px";
+                    tooltip.style.top = event.pageY + 10 + "px";
+                  }
+                })
+                .on("mouseout", function () {
+                  const tooltip = document.querySelector(".tooltip");
+                  if (tooltip) {
+                    tooltip.remove();
+                  }
+                });
+            } else if (currentView === "hierarchical") {
+              // 垂直層次布局
+              const height = isMobileDevice ? 450 : isTabletDevice ? 500 : 550;
+              const width = isMobileDevice ? 300 : isTabletDevice ? 350 : 400;
+
+              // 創建樹狀布局
+              const tree = d3.tree().size([width, height]);
+
+              // 計算節點位置
+              tree(root);
+
+              // 連線生成器
+              const linkGenerator = d3
+                .linkVertical()
+                .x((d) => d.x)
+                .y((d) => d.y);
+
+              // 添加連線
+              g.append("g")
+                .attr("class", "links")
+                .selectAll("path")
+                .data(root.links())
+                .join("path")
+                .attr("class", "link")
+                .attr("d", linkGenerator)
+                .style("stroke", "#ccc")
+                .style("stroke-width", 1.5)
+                .style("fill", "none");
+
+              // 添加節點
+              const node = g
+                .append("g")
+                .attr("class", "nodes")
+                .selectAll("g")
+                .data(root.descendants())
+                .join("g")
+                .attr("class", "node")
+                .attr("transform", (d) => `translate(${d.x},${d.y})`);
+
+              // 添加節點圓圈
+              node
+                .append("circle")
+                .attr("r", (d) => {
+                  if (d.depth === 0) return isMobileDevice ? 8 : 10;
+                  if (d.depth === 1) return isMobileDevice ? 7 : 9;
+                  return isMobileDevice ? 5 : 7;
+                })
+                .attr("fill", (d) => {
+                  if (d.depth === 0) return "#7367f0";
+                  if (d.depth === 1) {
+                    return d.data.name === "問題分析" ? "#00cfe8" : "#ff9f43";
+                  }
+                  if (d.depth === 2) {
+                    if (d.data.type === "correct-process") return "#00c58a";
+                    if (d.data.type === "error-cause") return "#ea5455";
+                    if (d.data.type === "error-consequence") return "#ff9f43";
+                    if (d.data.type === "error-improvement") return "#28c76f";
+                    if (d.data.type === "error-personnel") return "#7367f0";
+                    if (d.data.type === "error-solution") return "#00cfe8";
+                    if (d.data.type === "prevention-measures") return "#9333ea";
+                    return "#7367f0";
+                  }
+                  if (d.depth === 3) {
+                    if (d.data.type === "correct-process-item")
+                      return "#00c58a";
+                    if (d.data.type === "error-cause-item") return "#ea5455";
+                    if (d.data.type === "error-consequence-item")
+                      return "#ff9f43";
+                    if (d.data.type === "error-improvement-item")
+                      return "#28c76f";
+                    if (d.data.type === "error-personnel-item")
+                      return "#7367f0";
+                    if (d.data.type === "error-solution-item") return "#00cfe8";
+                    if (d.data.type === "prevention-measures-item")
+                      return "#9333ea";
+                    return "#ccc";
+                  }
+                  return "#ccc";
+                })
+                .attr("stroke", "white")
+                .attr("stroke-width", 1.5);
+
+              // 添加節點文字
+              node
+                .append("text")
+                .attr("dy", (d) => (d.depth === 0 ? -12 : 0))
+                .attr("x", (d) => (d.children ? 0 : 10))
+                .attr("text-anchor", (d) => (d.children ? "middle" : "start"))
+                .attr("transform", (d) =>
+                  d.depth > 0 && !d.children ? "translate(0,5)" : ""
+                )
+                .style("font-size", (d) => {
+                  if (isMobileDevice) {
+                    return d.depth === 0 ? "12px" : "9px";
+                  }
+                  return d.depth === 0 ? "14px" : "10px";
+                })
+                .style("font-weight", (d) => (d.depth <= 1 ? "bold" : "normal"))
+                .style("fill", "#333")
+                .text((d) => {
+                  const text = d.data.name;
+                  const maxLength = isMobileDevice
+                    ? d.depth === 0
+                      ? 10
+                      : 8
+                    : d.depth === 0
+                    ? 14
+                    : 12;
+                  return text.length > maxLength
+                    ? text.substring(0, maxLength - 2) + "..."
+                    : text;
+                })
+                .on("mouseover", function (event, d) {
+                  // 文字太長時顯示提示框
+                  const maxLength = isMobileDevice
+                    ? d.depth === 0
+                      ? 10
+                      : 8
+                    : d.depth === 0
+                    ? 14
+                    : 12;
+
+                  if (d.data.name.length > maxLength) {
+                    const tooltip = document.createElement("div");
+                    tooltip.className = "tooltip";
+                    tooltip.textContent = d.data.name;
+                    tooltip.style.left = event.pageX + 10 + "px";
+                    tooltip.style.top = event.pageY + 10 + "px";
+                    document.body.appendChild(tooltip);
+                  }
+                })
+                .on("mousemove", function (event) {
+                  const tooltip = document.querySelector(".tooltip");
+                  if (tooltip) {
+                    tooltip.style.left = event.pageX + 10 + "px";
+                    tooltip.style.top = event.pageY + 10 + "px";
+                  }
+                })
+                .on("mouseout", function () {
+                  const tooltip = document.querySelector(".tooltip");
+                  if (tooltip) {
+                    tooltip.remove();
+                  }
+                });
+            } else if (currentView === "horizontal") {
+              // 水平樹狀布局
+              const height = isMobileDevice ? 450 : isTabletDevice ? 550 : 600;
+              const width = isMobileDevice ? 300 : isTabletDevice ? 450 : 600;
+
+              // 創建樹狀布局
+              const tree = d3.tree().size([height, width]);
+
+              // 計算節點位置
+              tree(root);
+
+              // 連線生成器
+              const linkGenerator = d3
+                .linkHorizontal()
+                .x((d) => d.y)
+                .y((d) => d.x);
+
+              // 添加連線
+              g.append("g")
+                .attr("class", "links")
+                .selectAll("path")
+                .data(root.links())
+                .join("path")
+                .attr("class", "link")
+                .attr("d", linkGenerator)
+                .style("stroke", "#ccc")
+                .style("stroke-width", 1.5)
+                .style("fill", "none");
+
+              // 添加節點
+              const node = g
+                .append("g")
+                .attr("class", "nodes")
+                .selectAll("g")
+                .data(root.descendants())
+                .join("g")
+                .attr("class", "node")
+                .attr("transform", (d) => `translate(${d.y},${d.x})`);
+
+              // 添加節點圓圈
+              node
+                .append("circle")
+                .attr("r", (d) => {
+                  if (d.depth === 0) return isMobileDevice ? 8 : 10;
+                  if (d.depth === 1) return isMobileDevice ? 7 : 9;
+                  return isMobileDevice ? 5 : 7;
+                })
+                .attr("fill", (d) => {
+                  if (d.depth === 0) return "#7367f0";
+                  if (d.depth === 1) {
+                    if (d.data.type === "correct-process") return "#00c58a";
+                    if (d.data.type === "error-cause") return "#ea5455";
+                    if (d.data.type === "error-consequence") return "#ff9f43";
+                    if (d.data.type === "error-improvement") return "#28c76f";
+                    if (d.data.type === "error-personnel") return "#7367f0";
+                    if (d.data.type === "error-solution") return "#00cfe8";
+                    if (d.data.type === "prevention-measures") return "#9333ea";
+                    return "#00cfe8";
+                  }
+                  if (d.depth === 2) {
+                    if (d.data.type === "correct-process-item")
+                      return "#00c58a";
+                    if (d.data.type === "error-cause-item") return "#ea5455";
+                    if (d.data.type === "error-consequence-item")
+                      return "#ff9f43";
+                    if (d.data.type === "error-improvement-item")
+                      return "#28c76f";
+                    if (d.data.type === "error-personnel-item")
+                      return "#7367f0";
+                    if (d.data.type === "error-solution-item") return "#00cfe8";
+                    if (d.data.type === "prevention-measures-item")
+                      return "#9333ea";
+                    return "#ccc";
+                  }
+                  return "#ccc";
+                })
+                .attr("stroke", "white")
+                .attr("stroke-width", 1.5);
+
+              // 添加節點文字
+              node
+                .append("text")
+                .attr("dy", 4)
+                .attr("x", (d) => (d.depth === 0 ? -10 : d.children ? -8 : 8))
+                .attr("text-anchor", (d) =>
+                  d.depth === 0 ? "end" : d.children ? "end" : "start"
+                )
+                .style("font-size", (d) => {
+                  if (isMobileDevice) {
+                    return d.depth === 0 ? "12px" : "9px";
+                  }
+                  return d.depth === 0 ? "14px" : "10px";
+                })
+                .style("font-weight", (d) => (d.depth <= 1 ? "bold" : "normal"))
+                .style("fill", "#333")
+                .text((d) => {
+                  const text = d.data.name;
+                  const maxLength = isMobileDevice
+                    ? d.depth === 0
+                      ? 10
+                      : 8
+                    : d.depth === 0
+                    ? 14
+                    : 12;
+                  return text.length > maxLength
+                    ? text.substring(0, maxLength - 2) + "..."
+                    : text;
+                })
+                .on("mouseover", function (event, d) {
+                  // 文字太長時顯示提示框
+                  const maxLength = isMobileDevice
+                    ? d.depth === 0
+                      ? 10
+                      : 8
+                    : d.depth === 0
+                    ? 14
+                    : 12;
+
+                  if (d.data.name.length > maxLength) {
+                    const tooltip = document.createElement("div");
+                    tooltip.className = "tooltip";
+                    tooltip.textContent = d.data.name;
+                    tooltip.style.left = event.pageX + 10 + "px";
+                    tooltip.style.top = event.pageY + 10 + "px";
+                    document.body.appendChild(tooltip);
+                  }
+                })
+                .on("mousemove", function (event) {
+                  const tooltip = document.querySelector(".tooltip");
+                  if (tooltip) {
+                    tooltip.style.left = event.pageX + 10 + "px";
+                    tooltip.style.top = event.pageY + 10 + "px";
+                  }
+                })
+                .on("mouseout", function () {
+                  const tooltip = document.querySelector(".tooltip");
+                  if (tooltip) {
+                    tooltip.remove();
+                  }
+                });
             }
-            
-            if (error.consequences && error.consequences.length) {
-              rootData.children.push({
-                name: "可能後果",
-                type: "error-consequence",
-                children: error.consequences.map(item => ({
-                  name: item.text,
-                  type: "error-consequence-item"
-                }))
-              });
-            }
-            
-            if (error.improvements && error.improvements.length) {
-              rootData.children.push({
-                name: "改善方案",
-                type: "error-improvement",
-                children: error.improvements.map(item => ({
-                  name: item.text,
-                  type: "error-improvement-item"
-                }))
-              });
-            }
-            
-            if (error.personnel && error.personnel.length) {
-              rootData.children.push({
-                name: "關聯人員",
-                type: "error-personnel",
-                children: error.personnel.map(item => ({
-                  name: item.text,
-                  type: "error-personnel-item"
-                }))
-              });
-            }
-            
-            if (error.optimalSolution) {
-              rootData.children.push({
-                name: "最優解決方案",
-                type: "error-solution",
-                children: [{
-                  name: error.optimalSolution.text,
-                  type: "error-solution-item"
-                }]
-              });
-            }
-            
-            if (error.preventionMeasures && error.preventionMeasures.length) {
-              rootData.children.push({
-                name: "防範措施",
-                type: "prevention-measures",
-                children: error.preventionMeasures.map(item => ({
-                  name: item.text,
-                  type: "prevention-measures-item"
-                }))
-              });
-            }
-            
-            // 垂直偏移以處理多個錯誤分析
-            const yOffset = index * (isMobileDevice ? 250 : 350);
-            
-            // 創建樹狀布局
-            const treeLayout = d3.tree()
-              .size([height, isMobileDevice ? width * 1.5 : width * 1.2]);
-            
-            // 處理層次結構
-            const rootNode = d3.hierarchy(rootData);
-            treeLayout(rootNode);
-            
-            // 為節點添加ID
-            let nodeId = 0;
-            rootNode.descendants().forEach(node => {
-              node.id = `node-${index}-${nodeId++}`;
-            });
-            
-            // 繪製連線
-            const linkGroup = g.append("g")
-              .attr("class", "links")
-              .attr("transform", `translate(${margin.left},${margin.top + yOffset})`);
-              
-            linkGroup.selectAll("path")
-              .data(rootNode.links())
-              .enter()
-              .append("path")
-              .attr("class", "link")
-              .attr("d", d => {
-                return `M${d.source.y},${d.source.x}
-                        C${(d.source.y + d.target.y) / 2},${d.source.x}
-                        ${(d.source.y + d.target.y) / 2},${d.target.x}
-                        ${d.target.y},${d.target.x}`;
-              });
-            
-            // 繪製節點
-            const nodeGroup = g.append("g")
-              .attr("class", "nodes")
-              .attr("transform", `translate(${margin.left},${margin.top + yOffset})`);
-              
-            const nodes = nodeGroup.selectAll("g")
-              .data(rootNode.descendants())
-              .enter()
-              .append("g")
-              .attr("id", d => d.id)
-              .attr("class", "node")
-              .attr("transform", d => `translate(${d.y},${d.x})`);
-            
-            // 添加節點圓圈
-            nodes.append("circle")
-              .attr("r", isMobileDevice ? 6 : 8)
-              .attr("class", d => {
-                // 根據節點類型設置顏色類
-                return d.data.type;
-              });
-            
-            // 添加節點文本
-            nodes.append("text")
-              .attr("dy", d => d.children ? -12 : 4)
-              .attr("dx", d => d.children ? 0 : 12)
-              .attr("text-anchor", d => d.children ? "middle" : "start")
-              .text(d => {
-                const text = d.data.name;
-                // 根據設備類型截斷文本
-                const maxLength = isMobileDevice ? 12 : 20;
-                return text.length > maxLength ? text.substring(0, maxLength - 3) + "..." : text;
-              })
-              .style("fill", "#333")
-              .style("font-weight", d => d.depth <= 1 ? "bold" : "normal")
-              .style("font-size", d => {
-                if (isMobileDevice) {
-                  return d.depth === 0 ? "12px" : "10px";
-                }
-                return d.depth === 0 ? "14px" : "12px";
-              })
-              .on("mouseover", function(event, d) {
-                // 顯示完整文本提示
-                if (d.data.name.length > (isMobileDevice ? 12 : 20)) {
-                  const tooltip = document.createElement("div");
-                  tooltip.className = "tooltip";
-                  tooltip.textContent = d.data.name;
-                  tooltip.style.left = event.pageX + 10 + "px";
-                  tooltip.style.top = event.pageY + 10 + "px";
-                  document.body.appendChild(tooltip);
-                }
-              })
-              .on("mousemove", function(event) {
-                // 移動提示框跟隨滑鼠
-                const tooltip = document.querySelector(".tooltip");
-                if (tooltip) {
-                  tooltip.style.left = event.pageX + 10 + "px";
-                  tooltip.style.top = event.pageY + 10 + "px";
-                }
-              })
-              .on("mouseout", function() {
-                // 移除提示框
-                const tooltip = document.querySelector(".tooltip");
-                if (tooltip) {
-                  tooltip.remove();
-                }
-              });
           });
-          
-          // 設置SVG大小以容納所有錯誤分析
-          const analysisCount = data.errorAnalysis.length;
-          const itemHeight = isMobileDevice ? 300 : 400;
-          const svgHeight = Math.max(600, analysisCount * itemHeight + 100);
-          
-          // 初始縮放調整
-          setTimeout(function() {
-            // 根據設備類型調整初始縮放
-            const initialScale = isMobileDevice ? 0.6 : 0.8;
-            const initialX = isMobileDevice ? 20 : 50;
-            transform = d3.zoomIdentity
-              .scale(initialScale)
-              .translate(initialX, 30);
+
+          // 初始縮放和位置設置
+          setTimeout(() => {
+            const initialScale = isMobileDevice
+              ? 0.7
+              : isTabletDevice
+              ? 0.8
+              : 0.9;
+            transform = d3.zoomIdentity.scale(initialScale).translate(0, 0);
+
             g.attr("transform", transform);
             zoomLevel = initialScale;
-            dragOffsetX = initialX;
-            dragOffsetY = 30;
+            dragOffsetX = 0;
+            dragOffsetY = 0;
           }, 100);
-          
         } catch (error) {
           console.error("思維導圖渲染錯誤:", error);
           mindmapContainer.innerHTML = `
-            <div style="display:flex;height:100%;align-items:center;justify-content:center;flex-direction:column;color:#e74c3c;">
-              <i class="fas fa-exclamation-triangle" style="font-size:3rem;margin-bottom:1rem;"></i>
-              <p>思維導圖渲染失敗，請重新整理頁面</p>
-              <small style="margin-top:0.5rem;color:#666;">${error.message}</small>
-            </div>
-          `;
+                  <div style="display:flex;height:100%;align-items:center;justify-content:center;flex-direction:column;color:#e74c3c;">
+                    <i class="fas fa-exclamation-triangle" style="font-size:3rem;margin-bottom:1rem;"></i>
+                    <p style="text-align:center;">思維導圖渲染失敗，請重新整理頁面</p>
+                    <small style="margin-top:0.5rem;color:#666;max-width:80%;text-align:center;">${error.message}</small>
+                  </div>
+                `;
         }
+      }
+
+      // 如果有錯誤事件處理函數
+      if (addQuickErrorBtn) {
+        addQuickErrorBtn.addEventListener("click", () => {
+          const description = quickErrorInput.value.trim();
+          const category = errorCategory.value;
+
+          if (!description) {
+            alert("請輸入錯誤描述！");
+            return;
+          }
+
+          const error = {
+            id: Date.now().toString(),
+            title:
+              description.length > 30
+                ? description.substring(0, 27) + "..."
+                : description,
+            category,
+            description,
+            impact: "",
+          };
+
+          errorEvents.push(error);
+          renderErrorList();
+
+          // 添加成功反饋
+          const successMsg = document.createElement("div");
+          successMsg.className = "success-message";
+          successMsg.textContent = "✓ 添加成功";
+          successMsg.style.position = "fixed";
+          successMsg.style.top = "20px";
+          successMsg.style.right = "20px";
+          successMsg.style.padding = "10px 20px";
+          successMsg.style.backgroundColor = "rgba(46, 204, 113, 0.9)";
+          successMsg.style.color = "white";
+          successMsg.style.borderRadius = "5px";
+          successMsg.style.zIndex = "1000";
+          successMsg.style.animation =
+            "fadeIn 0.3s ease, fadeOut 0.3s ease 2s forwards";
+
+          document.body.appendChild(successMsg);
+          setTimeout(() => {
+            document.body.removeChild(successMsg);
+          }, 2500);
+        });
+      }
+
+      // 渲染錯誤列表
+      function renderErrorList() {
+        if (!errorItems) return;
+
+        errorItems.innerHTML = "";
+
+        if (errorEvents.length === 0) {
+          errorItems.innerHTML = `
+                <div class="empty-state">
+                  <i class="fas fa-clipboard-list"></i>
+                  <p>尚未添加任何錯誤事件，請在上方輸入框中描述您遇到的錯誤或選擇常見場景</p>
+                </div>`;
+          return;
+        }
+
+        errorEvents.forEach((error) => {
+          const errorItem = document.createElement("div");
+          errorItem.className = "error-item";
+          errorItem.innerHTML = `
+                <h4>${error.title} <small><i class="fas fa-tag"></i> ${error.category}</small></h4>
+                <p>${error.description}</p>
+                <button class="delete-btn" data-id="${error.id}">
+                  <i class="fas fa-times"></i>
+                </button>
+              `;
+          errorItems.appendChild(errorItem);
+        });
       }
     </script>
   </body>
