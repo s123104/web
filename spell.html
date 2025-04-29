@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>💀 詭異咒語產生器 3.0 💫</title>
+  <style>
+    body {
+      background: #0a0a0a;
+      color: #eee;
+      font-family: 'Courier New', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-shadow: 0 0 8px #0f0, 0 0 16px #0f0;
+    }
+    textarea {
+      width: 80%;
+      height: 120px;
+      background: #111;
+      color: #0f0;
+      border: 1px solid #0f0;
+      padding: 10px;
+      margin: 15px 0;
+      font-size: 1rem;
+      resize: vertical;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .controls label { font-size: 0.9rem; }
+    .controls input[type=range] { width: 120px; }
+    button {
+      background: #0f0;
+      color: #111;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: opacity .2s;
+    }
+    button:hover { opacity: 0.8; }
+    #result {
+      white-space: pre-wrap;
+      text-align: left;
+      width: 80%;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      background: #111;
+      padding: 20px;
+      border: 1px dashed #0f0;
+      animation: flicker 3s infinite;
+    }
+    @keyframes flicker {
+      0%,18%,22%,25%,53%,57%,100% {opacity:1;}
+      20%,24%,55% {opacity:0.4;}
+    }
+  </style>
+</head>
+<body>
+  <h1>💀 詭異咒語產生器 3.0 💫</h1>
+  <textarea id="input" placeholder="在這裡輸入中文或英文文字…"></textarea>
+
+  <div class="controls">
+    <label for="intensity">強度:</label>
+    <input type="range" id="intensity" min="1" max="5" value="3">
+    <button id="generate">生成詭異咒語</button>
+    <button id="copy">複製咒語</button>
+  </div>
+
+  <div id="result">咒語結果會跑這裡～</div>
+
+  <script>
+    // 前綴、中綴、後綴、符號庫
+    const prefixes = ['Ω-load','Αρχή','Cœur','Geist','梦境','시스템','sueños','rêve','corazón','fall','ψ','λ','暗影','虚无'];
+    const infixes = ['::','->','=>','➤','⇝'];
+    const suffixes = ['同化','終結','裂縫','崩潰','滅絕','虛空','吞噬'];
+    const symbols = ['▲','★','✦','☠️','☢️','⚡','✺'];
+    // 語言對應表（LibreTranslate 支援）
+    const langMap = [
+      { name: 'English', code: 'en' },
+      { name: 'Español', code: 'es' },
+      { name: 'Français', code: 'fr' },
+      { name: 'Deutsch', code: 'de' },
+      { name: '한국어', code: 'ko' },
+      { name: '日本語', code: 'ja' },
+      { name: '中文', code: 'zh' }
+    ];
+
+    function rnd(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+    function shuffle(a) {
+      for (let i=a.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+    }
+
+    // 呼叫 LibreTranslate 公開 API
+    async function translate(text, target) {
+      const res = await fetch('https://libretranslate.de/translate', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          q:text,
+          source:'auto',
+          target,
+          format:'text'
+        })
+      });
+      const j = await res.json();
+      return j.translatedText;
+    }
+
+    document.getElementById('generate').addEventListener('click', async () => {
+      const txt = document.getElementById('input').value.trim();
+      if (!txt) {
+        return document.getElementById('result').textContent = '靠北，先輸入一點文字啦…😒';
+      }
+      const intensity = +document.getElementById('intensity').value;
+      const words = txt.split(/\s+/);
+      let promises = [];
+
+      words.forEach(w => {
+        for (let i=0;i<intensity;i++){
+          const p = rnd(prefixes);
+          const inf = rnd(infixes);
+          const s = rnd(suffixes);
+          const sym = rnd(symbols);
+          const langObj = rnd(langMap);
+          promises.push(
+            translate(w, langObj.code)
+              .then(trans => `${p}${inf}("${trans}") ➡️ { ${s} in ${langObj.name} ${sym} }`)
+              .catch(() => `${p}${inf}("${w}") ➡️ { ${s} in ${langObj.name} ${sym} }`)
+          );
+        }
+      });
+
+      let spells = await Promise.all(promises);
+      shuffle(spells);
+      document.getElementById('result').textContent = spells.join('\n');
+    });
+
+    document.getElementById('copy').addEventListener('click', () => {
+      const txt = document.getElementById('result').textContent;
+      if (!txt) return;
+      navigator.clipboard.writeText(txt)
+        .then(() => alert('靠北複製好了，去嚇人吧🤣'))
+        .catch(() => alert('複製失敗，自己手動拉😤'));
+    });
+  </script>
+</body>
+</html>
