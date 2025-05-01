@@ -1,0 +1,2445 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>心理統計公式計算器</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap"
+    />
+    <script
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"
+    ></script>
+    <style>
+      :root {
+        --primary-color: #4361ee;
+        --primary-dark: #3a0ca3;
+        --primary-light: #7209b7;
+        --secondary-color: #4cc9f0;
+        --accent-color: #f72585;
+        --success-color: #06d6a0;
+        --warning-color: #ffd166;
+        --error-color: #ef476f;
+        --light-bg: #f8f9fa;
+        --dark-text: #212529;
+        --gray-text: #6c757d;
+        --light-text: #ffffff;
+        --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        --hover-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        --transition: all 0.3s ease;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        color: var(--dark-text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px 15px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1000px;
+        background-color: rgba(255, 255, 255, 0.97);
+        border-radius: 20px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        margin-bottom: 30px;
+      }
+
+      header {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+        color: white;
+        padding: 28px 30px;
+        text-align: center;
+        position: relative;
+      }
+
+      h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        font-size: 16px;
+        opacity: 0.9;
+      }
+
+      .tab-container {
+        display: flex;
+        background-color: white;
+        border-bottom: 1px solid #e0e6ff;
+        overflow-x: auto;
+        scrollbar-width: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tab-container::-webkit-scrollbar {
+        display: none;
+      }
+
+      .tab {
+        padding: 14px 18px;
+        cursor: pointer;
+        white-space: nowrap;
+        font-weight: 600;
+        color: var(--gray-text);
+        transition: var(--transition);
+        position: relative;
+        border-bottom: 3px solid transparent;
+        font-size: 14px;
+      }
+
+      .tab:hover {
+        color: var(--primary-color);
+        background-color: rgba(67, 97, 238, 0.05);
+      }
+
+      .tab.active {
+        color: var(--primary-color);
+        border-bottom: 3px solid var(--primary-color);
+      }
+
+      .tab-content {
+        display: none;
+        padding: 25px 20px;
+        animation: fadeIn 0.5s ease;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .calculator-section {
+        background-color: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        padding: 25px 20px;
+        margin-bottom: 25px;
+        transition: var(--transition);
+      }
+
+      .calculator-section:hover {
+        box-shadow: var(--hover-shadow);
+      }
+
+      .calculator-section h2 {
+        color: var(--primary-dark);
+        margin-bottom: 20px;
+        font-size: 22px;
+        display: flex;
+        align-items: center;
+        line-height: 1.3;
+      }
+
+      .calculator-section h2 i {
+        margin-right: 10px;
+        color: var(--primary-color);
+      }
+
+      .formula-container {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 20px 15px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+      }
+
+      .math-formula {
+        margin: 15px 0;
+        text-align: center;
+        font-size: 18px;
+        overflow: visible;
+        padding-bottom: 5px;
+      }
+
+      .math-formula::-webkit-scrollbar {
+        display: none;
+      }
+
+      .formula-description {
+        margin-top: 15px;
+        color: var(--gray-text);
+      }
+
+      .variables {
+        margin-top: 12px;
+        text-align: left;
+        padding-left: 10px;
+        line-height: 1.6;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--dark-text);
+      }
+
+      .input-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .slider-container {
+        flex-grow: 1;
+        position: relative;
+      }
+
+      input[type="number"] {
+        width: 100%;
+        max-width: 150px;
+        padding: 10px;
+        border: 2px solid #e0e6ff;
+        border-radius: 10px;
+        font-size: 16px;
+        transition: var(--transition);
+        background-color: #f8faff;
+        text-align: center;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        height: 6px;
+        border-radius: 5px;
+        background: #e0e6ff;
+        outline: none;
+        transition: var(--transition);
+        -webkit-appearance: none;
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+      }
+
+      input[type="range"]::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+      }
+
+      input:focus,
+      textarea:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+      }
+
+      textarea {
+        width: 100%;
+        padding: 14px;
+        border: 2px solid #e0e6ff;
+        border-radius: 10px;
+        font-size: 16px;
+        transition: var(--transition);
+        background-color: #f8faff;
+        resize: vertical;
+        min-height: 120px;
+        font-family: "Noto Sans TC", sans-serif;
+      }
+
+      button {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+        color: white;
+        border: none;
+        padding: 14px 24px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        width: 100%;
+        transition: var(--transition);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      .result {
+        margin-top: 25px;
+        padding: 20px;
+        background: linear-gradient(135deg, #f1f9ff 0%, #dcf2ff 100%);
+        border-radius: 12px;
+        text-align: center;
+        display: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      }
+
+      .result.show {
+        display: block;
+        animation: fadeIn 0.5s ease;
+      }
+
+      .result-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin: 10px 0;
+      }
+
+      .interpretation {
+        color: var(--dark-text);
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.7);
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        margin: 25px 0;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      }
+
+      th {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 12px 15px;
+        text-align: left;
+      }
+
+      td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #e0e6ff;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f8faff;
+      }
+
+      tr:hover {
+        background-color: #f1f5ff;
+      }
+
+      .explanation {
+        margin-top: 20px;
+        color: var(--dark-text);
+        font-size: 15px;
+        line-height: 1.6;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 4px solid var(--primary-color);
+      }
+
+      .model-diagram {
+        width: 100%;
+        max-width: 400px;
+        margin: 20px auto;
+        display: block;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .notation {
+        margin-top: 8px;
+        color: var(--gray-text);
+        font-style: italic;
+      }
+
+      footer {
+        margin-top: auto;
+        text-align: center;
+        padding: 20px;
+        color: var(--gray-text);
+        font-size: 14px;
+      }
+
+      .card {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        padding: 18px;
+        margin: 15px 0;
+        border-left: 4px solid var(--accent-color);
+      }
+
+      .example-card {
+        border-left: 4px solid var(--secondary-color);
+      }
+
+      .metaphor-card {
+        border-left: 4px solid var(--primary-light);
+      }
+
+      .life-application {
+        margin: 30px 0;
+        padding-top: 10px;
+        border-top: 1px dashed #ccc;
+      }
+
+      .life-application h3 {
+        display: flex;
+        align-items: center;
+        color: var(--primary-dark);
+        margin-bottom: 15px;
+        font-size: 18px;
+      }
+
+      .life-application h3 i {
+        margin-right: 10px;
+        color: var(--accent-color);
+      }
+
+      .graph-container {
+        width: 100%;
+        max-width: 500px;
+        margin: 20px auto;
+        padding: 15px;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: var(--transition);
+      }
+
+      .graph-container:hover {
+        box-shadow: var(--hover-shadow);
+      }
+
+      .card h4 {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 16px;
+      }
+
+      .card h4 i {
+        margin-right: 8px;
+      }
+
+      .card p {
+        line-height: 1.6;
+      }
+
+      /* 新增的動態效果 */
+      .fade-in {
+        animation: fadeIn 0.5s ease;
+      }
+
+      .scale-in {
+        animation: scaleIn 0.3s ease;
+      }
+
+      @keyframes scaleIn {
+        from {
+          transform: scale(0.95);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* 數學公式顯示相關 */
+      .mjx-chtml {
+        max-width: 100% !important;
+        overflow-x: visible !important;
+        margin: 10px 0 !important;
+        display: inline-block !important;
+        padding-bottom: 5px !important;
+      }
+
+      /* 示意圖樣式 */
+      .illustration {
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      .illustration img {
+        max-width: 100%;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 提示卡片 */
+      .tip-card {
+        background-color: #fff8e6;
+        border-left: 4px solid #ffb300;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+
+      .tip-card h4 {
+        color: #d97706;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+      }
+
+      .tip-card h4 i {
+        margin-right: 8px;
+      }
+
+      /* 浮動標籤 */
+      .floating-label {
+        position: absolute;
+        bottom: -20px;
+        left: 0;
+        color: var(--gray-text);
+        font-size: 12px;
+      }
+
+      /* 模態窗和吐司訊息 */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .modal {
+        background-color: white;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 500px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        transform: scale(0.8);
+        transition: all 0.3s ease;
+      }
+
+      .modal-overlay.active .modal {
+        transform: scale(1);
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #e0e6ff;
+        padding-bottom: 10px;
+      }
+
+      .modal-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--primary-dark);
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: var(--gray-text);
+        width: auto;
+        padding: 0;
+        margin: 0;
+      }
+
+      .modal-close:hover {
+        color: var(--accent-color);
+        transform: none;
+        box-shadow: none;
+      }
+
+      .modal-body {
+        margin-bottom: 20px;
+      }
+
+      .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .modal-btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        width: auto;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color) 0%,
+          var(--primary-light) 100%
+        );
+        color: white;
+        border: none;
+      }
+
+      .btn-secondary {
+        background-color: #e9ecef;
+        color: var(--dark-text);
+        border: none;
+      }
+
+      .toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+      }
+
+      .toast {
+        background-color: white;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transform: translateX(120%);
+        transition: transform 0.3s ease;
+        max-width: 350px;
+      }
+
+      .toast.show {
+        transform: translateX(0);
+      }
+
+      .toast-icon {
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .toast-body {
+        flex-grow: 1;
+      }
+
+      .toast-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+
+      .toast-message {
+        font-size: 14px;
+        color: var(--gray-text);
+      }
+
+      .toast-success {
+        border-left: 4px solid var(--success-color);
+      }
+
+      .toast-success .toast-icon {
+        color: var(--success-color);
+      }
+
+      .toast-warning {
+        border-left: 4px solid var(--warning-color);
+      }
+
+      .toast-warning .toast-icon {
+        color: var(--warning-color);
+      }
+
+      .toast-error {
+        border-left: 4px solid var(--error-color);
+      }
+
+      .toast-error .toast-icon {
+        color: var(--error-color);
+      }
+
+      .toast-info {
+        border-left: 4px solid var(--secondary-color);
+      }
+
+      .toast-info .toast-icon {
+        color: var(--secondary-color);
+      }
+
+      /* 當螢幕寬度變小時調整公式大小 */
+      @media (max-width: 767px) {
+        body {
+          padding: 10px;
+        }
+
+        .container {
+          border-radius: 15px;
+        }
+
+        header {
+          padding: 20px 15px;
+        }
+
+        h1 {
+          font-size: 22px;
+        }
+
+        .subtitle {
+          font-size: 14px;
+        }
+
+        .tab {
+          padding: 12px 15px;
+          font-size: 13px;
+        }
+
+        .calculator-section h2 {
+          font-size: 18px;
+        }
+
+        .card h4 {
+          font-size: 15px;
+        }
+
+        .variables {
+          font-size: 14px;
+        }
+
+        .life-application h3 {
+          font-size: 16px;
+        }
+
+        .result-value {
+          font-size: 18px;
+        }
+
+        .formula-container {
+          padding: 15px 10px;
+        }
+
+        .math-formula {
+          font-size: 14px;
+        }
+
+        .mjx-chtml {
+          transform-origin: left center;
+          transform: scale(0.85);
+        }
+      }
+
+      @media (min-width: 768px) {
+        .input-wrapper {
+          flex-direction: row;
+          align-items: center;
+          gap: 15px;
+        }
+
+        input[type="number"] {
+          width: 80px;
+        }
+
+        .container {
+          border-radius: 20px;
+        }
+
+        header {
+          padding: 28px 30px;
+        }
+
+        h1 {
+          font-size: 30px;
+        }
+
+        .tab-content {
+          padding: 30px;
+        }
+
+        .tab {
+          padding: 16px 24px;
+          font-size: 16px;
+        }
+
+        .calculator-section {
+          padding: 25px;
+        }
+
+        .calculator-section h2 {
+          font-size: 24px;
+        }
+
+        .math-formula {
+          font-size: 22px;
+        }
+
+        .variables {
+          padding-left: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 模態窗 -->
+    <div class="modal-overlay" id="modal">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-title">提示</div>
+          <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body">訊息內容</div>
+        <div class="modal-footer">
+          <button class="modal-btn btn-secondary" onclick="closeModal()">
+            取消
+          </button>
+          <button
+            class="modal-btn btn-primary"
+            id="modal-confirm"
+            onclick="confirmModal()"
+          >
+            確定
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 吐司訊息容器 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <div class="container">
+      <header>
+        <h1>心理統計公式計算器</h1>
+        <div class="subtitle">測量模型與心理統計公式的交互式計算工具</div>
+      </header>
+
+      <div class="tab-container">
+        <div class="tab active" data-tab="cronbach">
+          <i class="fas fa-calculator"></i> Cronbach's α
+        </div>
+        <!-- <div class="tab" data-tab="correlation">
+          <i class="fas fa-project-diagram"></i> 觀察變項與潛在變項
+        </div> -->
+        <div class="tab" data-tab="covariance">
+          <i class="fas fa-arrows-alt-h"></i> 共變異數
+        </div>
+        <div class="tab" data-tab="pearson">
+          <i class="fas fa-chart-line"></i> 皮爾森相關
+        </div>
+        <div class="tab" data-tab="splithalf">
+          <i class="fas fa-columns"></i> 折半信度
+        </div>
+        <div class="tab" data-tab="effect">
+          <i class="fas fa-balance-scale"></i> 效果量
+        </div>
+        <div class="tab" data-tab="reliability">
+          <i class="fas fa-shield-alt"></i> 信度類型
+        </div>
+      </div>
+
+      <!-- Cronbach's α -->
+      <div class="tab-content active" id="cronbach">
+        <div class="calculator-section">
+          <h2><i class="fas fa-calculator"></i> Cronbach's Alpha (α) 計算器</h2>
+
+          <div class="formula-container">
+            <div class="math-formula">
+              $$\alpha = \frac{k \times r}{1 + (k - 1) \times r}$$
+            </div>
+            <div class="formula-description">
+              <div class="variables">
+                • k：題數（量表中的題目數量）<br />
+                •
+                r：平均的「題與題之間的相關」（量表中各題目之間的平均相關係數）
+              </div>
+            </div>
+          </div>
+
+          <div class="card example-card">
+            <h4><i class="fas fa-lightbulb"></i> 實際例子</h4>
+            <p>
+              假設一份5題的「工作滿意度量表」，平均題間相關為0.5，套用公式可得 α
+              = (5×0.5)/(1+(5-1)×0.5) = 2.5/3 =
+              0.833，表示此量表有良好的內部一致性。
+            </p>
+          </div>
+
+          <div class="card metaphor-card">
+            <h4><i class="fas fa-magic"></i> 簡單比喻</h4>
+            <p>
+              想像一個合唱團：如果所有人（題目）都在唱相似的旋律（測量相同概念），聲音會和諧（高α值）；如果每個人唱不同曲子（測量不同概念），聲音會混亂（低α值）。α係數就像是衡量合唱團和諧度的指標。
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label for="items">題數 (k)：</label>
+            <div class="input-wrapper">
+              <div class="slider-container">
+                <input
+                  type="range"
+                  id="items-slider"
+                  min="2"
+                  max="50"
+                  step="1"
+                  value="10"
+                />
+                <span class="floating-label">拖動滑桿或直接輸入</span>
+              </div>
+              <input
+                type="number"
+                id="items"
+                min="2"
+                max="50"
+                step="1"
+                value="10"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="correlation">平均題間相關 (r)：</label>
+            <div class="input-wrapper">
+              <div class="slider-container">
+                <input
+                  type="range"
+                  id="correlation-slider"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value="0.5"
+                />
+                <span class="floating-label">0 = 無相關，1 = 完全相關</span>
+              </div>
+              <input
+                type="number"
+                id="correlation"
+                min="0"
+                max="1"
+                step="0.01"
+                value="0.5"
+              />
+            </div>
+          </div>
+
+          <button onclick="calculateAlpha()">
+            <i class="fas fa-calculator"></i> 計算 Cronbach's Alpha
+          </button>
+
+          <div class="result" id="cronbach-result">
+            <div class="result-value" id="alpha-value"></div>
+            <div class="interpretation" id="alpha-interpretation"></div>
+          </div>
+
+          <div class="explanation">
+            <p>Cronbach's α 是衡量量表內部一致性的指標：</p>
+            <p>
+              • α > 0.9：優良<br />
+              • 0.8 < α ≤ 0.9：良好<br />
+              • 0.7 < α ≤ 0.8：可接受<br />
+              • 0.6 < α ≤ 0.7：尚可<br />
+              • 0.5 < α ≤ 0.6：偏低<br />
+              • α ≤ 0.5：不可接受
+            </p>
+            <p>
+              另一種計算公式：$$\alpha = \frac{k}{k-1} \left[ 1- \frac{\sum
+              \sigma_i^2}{\sigma_t^2} \right]$$
+            </p>
+            <p>
+              其中 \(\sigma_i^2\) 是每一題的變異數，\(\sigma_t^2\)
+              是總分的變異數。
+            </p>
+          </div>
+
+          <div class="life-application">
+            <h3><i class="fas fa-briefcase"></i> 實際生活應用</h3>
+            <ul>
+              <li>
+                <strong>心理測驗發展</strong
+                >：心理學家發展人格測驗、智力測驗時，會計算α係數確保測驗題目測量的是同一個概念
+              </li>
+              <li>
+                <strong>教育評量</strong
+                >：教師可評估考試題目的質量，確保它們一致地測量學生的知識水平
+              </li>
+              <li>
+                <strong>市場調查</strong
+                >：企業開發顧客滿意度問卷時，會確保各題目一致地測量「滿意度」這個概念
+              </li>
+              <li>
+                <strong>醫療問卷</strong
+                >：健康相關量表（如憂鬱量表、疼痛評估）需要高度一致性以確保可靠診斷
+              </li>
+            </ul>
+
+            <div class="tip-card">
+              <h4><i class="fas fa-lightbulb"></i> 小提示</h4>
+              <p>
+                α值偏低時，可檢查是否有題目與其他題目關聯性較低（可能測量不同概念），移除這類題目通常能提高α值。但請記住，高α值不一定代表量表是好的，過高的α值（>0.95）可能表示題目過於重複。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 觀察變項與潛在變項 -->
+      <div class="tab-content" id="correlation">
+        <div class="calculator-section">
+          <h2>
+            <i class="fas fa-project-diagram"></i> 觀察變項與潛在變項的相關計算
+          </h2>
+
+          <div class="formula-container">
+            <div class="math-formula">
+              $$r_{ij} = \lambda_i \times \lambda_j$$
+            </div>
+            <div class="formula-description">
+              <div class="variables">
+                • \(\lambda_i\)：第 i
+                題（觀察變項）對潛在變項的因素負荷量（factor loading）<br />
+                • \(\lambda_j\)：第 j
+                題（觀察變項）對潛在變項的因素負荷量（factor loading）<br />
+                • \(r_{ij}\)：第 i 題與第 j 題之間的相關係數
+              </div>
+            </div>
+          </div>
+
+          <div class="card example-card">
+            <h4><i class="fas fa-lightbulb"></i> 實際例子</h4>
+            <p>
+              假設有一份「自尊量表」中，第1題「我對自己感到滿意」對潛在變項「自尊」的負荷量為0.8，第2題「我認為自己是有價值的人」對「自尊」的負荷量為0.7。則這兩題的理論相關係數為
+              0.8 × 0.7 = 0.56，表示中度相關。
+            </p>
+          </div>
+
+          <div class="card metaphor-card">
+            <h4><i class="fas fa-magic"></i> 簡單比喻</h4>
+            <p>
+              把潛在變項想像成燈泡（例如：自信心），觀察變項是照射在不同物體上的光線（例如：自我評價問題）。因素負荷量就像光線強度，強度高的光線（高負荷量）會讓物體更明亮。如果兩個物體都被同一個燈泡強烈照射，它們的亮度就會有很高的相關性。
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label for="loading1"
+              >第一個觀察變項的因素負荷量 (\(\lambda_1\))：</label
+            >
+            <div class="input-wrapper">
+              <div class="slider-container">
+                <input
+                  type="range"
+                  id="loading1-slider"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value="0.7"
+                />
+                <span class="floating-label">0 = 無關聯，1 = 完全關聯</span>
+              </div>
+              <input
+                type="number"
+                id="loading1"
+                min="0"
+                max="1"
+                step="0.01"
+                value="0.7"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="loading2"
+              >第二個觀察變項的因素負荷量 (\(\lambda_2\))：</label
+            >
+            <div class="input-wrapper">
+              <div class="slider-container">
+                <input
+                  type="range"
+                  id="loading2-slider"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value="0.6"
+                />
+                <span class="floating-label">0 = 無關聯，1 = 完全關聯</span>
+              </div>
+              <input
+                type="number"
+                id="loading2"
+                min="0"
+                max="1"
+                step="0.01"
+                value="0.6"
+              />
+            </div>
+          </div>
+
+          <button onclick="calculateCorrelation()">
+            <i class="fas fa-calculator"></i> 計算觀察變項相關
+          </button>
+
+          <div class="result" id="correlation-result">
+            <div class="result-value" id="correlation-value"></div>
+            <div class="interpretation" id="correlation-interpretation"></div>
+          </div>
+
+          <div class="explanation">
+            <p><strong>單一潛在變項模型說明：</strong></p>
+            <p>
+              此公式適用於單一潛在變項模型，用於計算受同一潛在變項影響的兩個觀察變項間的理論相關係數。
+            </p>
+            <p>• 當兩個觀察變項的因素負荷量較高時，它們之間的相關性也會較高</p>
+            <p>• 這反映了共同潛在因素的影響程度</p>
+            <p>• 因素負荷量（λ）可以視為潛在變項對觀察變項的影響強度</p>
+            <p>• 因素負荷量的平方（λ²）代表潛在變項解釋觀察變項變異數的比例</p>
+          </div>
+
+          <div class="life-application">
+            <h3><i class="fas fa-briefcase"></i> 實際生活應用</h3>
+            <ul>
+              <li>
+                <strong>量表設計</strong
+                >：設計心理量表時，研究者需確保所有題目都與同一潛在概念（如焦慮、抑鬱）有足夠強的關聯
+              </li>
+              <li>
+                <strong>能力測驗</strong
+                >：如IQ測驗的不同分測驗應與「一般智力」這個潛在變項有良好的負荷量
+              </li>
+              <li>
+                <strong>市場研究</strong
+                >：分析消費者行為時，可了解不同行為指標（購買頻率、推薦意願等）如何反映潛在的品牌忠誠度
+              </li>
+              <li>
+                <strong>教育評量</strong
+                >：分析各題目如何反映學生對特定概念的掌握程度
+              </li>
+            </ul>
+
+            <div class="tip-card">
+              <h4><i class="fas fa-lightbulb"></i> 小提示</h4>
+              <p>
+                在實務研究中，我們通常先蒐集觀察變項（問卷題目）的資料，再透過因素分析來估計因素負荷量。良好的測量工具應有較高的因素負荷量（通常
+                > 0.5），表示題目確實有效地反映了潛在概念。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 共變異數 -->
+      <div class="tab-content" id="covariance">
+        <div class="calculator-section">
+          <h2>
+            <i class="fas fa-arrows-alt-h"></i> 共變異數 (Covariance) 計算器
+          </h2>
+
+          <div class="formula-container">
+            <div class="math-formula">
+              $$\text{Cov}_{XY} = \frac{\sum_{i=1}^{n} (X_i - \bar{X})(Y_i -
+              \bar{Y})}{n - 1}$$
+            </div>
+            <div class="formula-description">
+              <div class="variables">
+                • \(X_i, Y_i\)：第i個觀察值的X和Y值<br />
+                • \(\bar{X}, \bar{Y}\)：X和Y的平均值<br />
+                • n：樣本數量
+              </div>
+            </div>
+          </div>
+
+          <div class="card example-card">
+            <h4><i class="fas fa-lightbulb"></i> 實際例子</h4>
+            <p>
+              假設我們有五名學生的數學成績(X)和科學成績(Y)：(80,85)、(70,75)、(90,95)、(85,80)、(75,70)。計算後得到共變異數為62.5，表示數學和科學成績有正向的共同變動趨勢。
+            </p>
+          </div>
+
+          <div class="card metaphor-card">
+            <h4><i class="fas fa-magic"></i> 簡單比喻</h4>
+            <p>
+              想像兩個朋友的情緒起伏：如果他們常常同時高興或同時難過，則共變異數為正值；如果一人高興時另一人常難過，則共變異數為負值；如果兩人情緒變化完全無關，則共變異數接近零。共變異數衡量的就是這種「一起變動」的傾向。
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label for="data-values"
+              >請輸入數據對 (每行一組X,Y，用逗號分隔)：</label
+            >
+            <textarea
+              id="data-values"
+              rows="5"
+              placeholder="例如：
+5,10
+8,12
+3,6
+9,15
+4,8"
+            ></textarea>
+          </div>
+
+          <button onclick="calculateCovariance()">
+            <i class="fas fa-calculator"></i> 計算共變異數
+          </button>
+
+          <div class="result" id="covariance-result">
+            <div class="result-value" id="covariance-value"></div>
+            <div class="interpretation" id="covariance-interpretation"></div>
+          </div>
+
+          <div class="explanation">
+            <p>共變異數是統計學中用來衡量兩個變項共同變動程度的指標：</p>
+            <p>• 正值：表示兩個變項有同向變動的趨勢</p>
+            <p>• 負值：表示兩個變項有反向變動的趨勢</p>
+            <p>• 接近零：表示兩個變項之間幾乎沒有線性關係</p>
+            <p>
+              注意：共變異數的值會受到原始單位的影響，因此難以直接用其絕對值判斷關係強度。這也是為什麼我們通常會使用標準化後的相關係數（如皮爾森相關係數）來評估變項之間的關聯強度。
+            </p>
+          </div>
+
+          <div class="life-application">
+            <h3><i class="fas fa-briefcase"></i> 實際生活應用</h3>
+            <ul>
+              <li>
+                <strong>財務分析</strong
+                >：評估不同股票或投資產品之間的共變關係，用於投資組合風險分析
+              </li>
+              <li>
+                <strong>氣象預測</strong
+                >：分析溫度與降雨量等氣象因素之間的共變關係
+              </li>
+              <li>
+                <strong>教育研究</strong>：探討學習時間與學業成績的共同變動趨勢
+              </li>
+              <li><strong>運動科學</strong>：分析訓練時間與運動表現的關係</li>
+            </ul>
+
+            <div class="tip-card">
+              <h4><i class="fas fa-lightbulb"></i> 小提示</h4>
+              <p>
+                共變異數受到變項測量單位的影響，難以跨研究比較。例如，分析身高(cm)與體重(kg)的共變異數與分析身高(m)與體重(g)的共變異數會有很大差異，儘管它們描述的是同一現象。這就是為什麼在實務上，我們常使用標準化的相關係數。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 皮爾森相關 -->
+      <div class="tab-content" id="pearson">
+        <div class="calculator-section">
+          <h2>
+            <i class="fas fa-chart-line"></i> 皮爾森相關係數 (Pearson's r)
+            計算器
+          </h2>
+
+          <div class="formula-container">
+            <div class="math-formula">
+              $$r_{XY} = \frac{\text{Cov}_{XY}}{S_X \cdot S_Y} =
+              \frac{\sum_{i=1}^{n} (X_i - \bar{X})(Y_i -
+              \bar{Y})}{\sqrt{\sum_{i=1}^{n} (X_i - \bar{X})^2 \sum_{i=1}^{n}
+              (Y_i - \bar{Y})^2}}$$
+            </div>
+            <div class="formula-description">
+              <div class="variables">
+                • \(\text{Cov}_{XY}\)：X 和 Y 的共變異數<br />
+                • \(S_X, S_Y\)：X 和 Y 的標準差<br />
+                • \(X_i, Y_i\)：第i個觀察值的X和Y值<br />
+                • \(\bar{X}, \bar{Y}\)：X和Y的平均值
+              </div>
+            </div>
+          </div>
+
+          <div class="card example-card">
+            <h4><i class="fas fa-lightbulb"></i> 實際例子</h4>
+            <p>
+              假設研究學習時間(X)與考試成績(Y)的關係，得到r =
+              0.82，表示學習時間與考試成績有強正相關，即學習時間越長，考試成績通常越高。
+            </p>
+          </div>
+
+          <div class="card metaphor-card">
+            <h4><i class="fas fa-magic"></i> 簡單比喻</h4>
+            <p>
+              皮爾森相關係數就像是測量兩個人同步舞蹈的默契程度：1表示完美同步，0表示完全不同步，-1表示一人向左踏步時另一人總是向右踏步。r值越接近1或-1，表示這種同步或反向同步的模式越明顯。
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label for="pearson-data"
+              >請輸入數據對 (每行一組X,Y，用逗號分隔)：</label
+            >
+            <textarea
+              id="pearson-data"
+              rows="5"
+              placeholder="例如：
+5,10
+8,12
+3,6
+9,15
+4,8"
+            ></textarea>
+          </div>
+
+          <button onclick="calculatePearson()">
+            <i class="fas fa-calculator"></i> 計算皮爾森相關係數
+          </button>
+
+          <div class="result" id="pearson-result">
+            <div class="result-value" id="pearson-value"></div>
+            <div class="interpretation" id="pearson-interpretation"></div>
+          </div>
+
+          <div class="explanation">
+            <p>
+              皮爾森相關係數是衡量兩個變項線性關係的標準化指標，其值範圍為 -1 到
+              1：
+            </p>
+            <p>• r ≈ 1：完全正相關，一個變項增加，另一個也成比例增加</p>
+            <p>• r ≈ -1：完全負相關，一個變項增加，另一個成比例減少</p>
+            <p>• r ≈ 0：兩個變項之間沒有線性關係</p>
+            <p>
+              相關係數的強度通常解釋為：|r| < 0.3 弱相關，0.3 < |r| < 0.7
+              中度相關，|r| > 0.7 強相關
+            </p>
+          </div>
+
+          <div class="life-application">
+            <h3><i class="fas fa-briefcase"></i> 實際生活應用</h3>
+            <ul>
+              <li><strong>醫學研究</strong>：探討血壓與心臟疾病風險的相關性</li>
+              <li><strong>行銷分析</strong>：分析廣告支出與銷售額之間的關係</li>
+              <li>
+                <strong>環境科學</strong>：研究汙染物濃度與特定疾病發生率的關聯
+              </li>
+              <li><strong>人力資源</strong>：分析員工滿意度與生產力的關係</li>
+            </ul>
+
+            <div class="tip-card">
+              <h4><i class="fas fa-lightbulb"></i> 小提示</h4>
+              <p>
+                相關不等於因果！即使發現兩個變項高度相關，也不能直接斷定一個導致另一個。例如，冰淇淋銷售量與溺水事件可能有正相關，但這可能是因為兩者都與第三個變項（夏季高溫天氣）有關。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 折半信度 -->
+      <div class="tab-content" id="splithalf">
+        <div class="calculator-section">
+          <h2>
+            <i class="fas fa-columns"></i> 折半信度 (Split-half Reliability)
+            計算器
+          </h2>
+
+          <div class="formula-container">
+            <div class="math-formula">
+              $$r_{\text{split}} = \frac{2r_{\text{half}}}{1 +
+              r_{\text{half}}}$$
+            </div>
+            <div class="formula-description">
+              <div class="variables">
+                • \(r_{\text{half}}\)：前半題與後半題得分的相關係數<br />
+                • \(r_{\text{split}}\)：整體測驗的折半信度
+              </div>
+            </div>
+          </div>
+
+          <div class="card example-card">
+            <h4><i class="fas fa-lightbulb"></i> 實際例子</h4>
+            <p>
+              一份數學能力測驗，將20題分為前10題和後10題，計算學生在這兩組題目的得分相關為0.75。使用公式計算得到折半信度為(2×0.75)/(1+0.75)
+              = 1.5/1.75 = 0.857，表示該測驗有良好的內部一致性。
+            </p>
+          </div>
+
+          <div class="card metaphor-card">
+            <h4><i class="fas fa-magic"></i> 簡單比喻</h4>
+            <p>
+              想像一個天平：如果你將一袋糖分成兩半，兩半的重量應該非常接近。同樣地，一個良好的測驗被分成兩半後，人們在這兩半的得分表現應該很一致。折半信度就像是衡量這種一致性的指標。
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label for="half-correlation"
+              >前半題與後半題得分的相關係數 (\(r_{\text{half}}\))：</label
+            >
+            <div class="input-wrapper">
+              <div class="slider-container">
+                <input
+                  type="range"
+                  id="half-correlation-slider"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value="0.75"
+                />
+                <span class="floating-label">0 = 無相關，1 = 完全相關</span>
+              </div>
+              <input
+                type="number"
+                id="half-correlation"
+                min="0"
+                max="1"
+                step="0.01"
+                value="0.75"
+              />
+            </div>
+          </div>
+
+          <button onclick="calculateSplitHalf()">
+            <i class="fas fa-calculator"></i> 計算折半信度
+          </button>
+
+          <div class="result" id="splithalf-result">
+            <div class="result-value" id="splithalf-value"></div>
+            <div class="interpretation" id="splithalf-interpretation"></div>
+          </div>
+
+          <div class="explanation">
+            <p>折半信度是一種估計測驗內部一致性的方法：</p>
+            <p>• 將測驗分成兩半（通常是前半部與後半部，或奇數題與偶數題）</p>
+            <p>• 計算兩半部分之間的相關係數</p>
+            <p>• 使用 Spearman-Brown 預測公式校正，得到整體測驗的信度</p>
+            <p>
+              折半信度的判斷標準通常與 Cronbach's α
+              相同，通常認為0.7以上為可接受水平
+            </p>
+          </div>
+
+          <div class="life-application">
+            <h3><i class="fas fa-briefcase"></i> 實際生活應用</h3>
+            <ul>
+              <li>
+                <strong>教育測驗</strong>：評估學校考試的可靠性，確保題目品質
+              </li>
+              <li><strong>心理評估</strong>：確認臨床心理量表的穩定性</li>
+              <li><strong>招聘測試</strong>：評估就業能力測驗的一致性</li>
+              <li><strong>問卷設計</strong>：檢驗調查問卷的可靠性</li>
+            </ul>
+
+            <div class="tip-card">
+              <h4><i class="fas fa-lightbulb"></i> 小提示</h4>
+              <p>
+                在實際應用中，有多種分半方式，最常見的是前半/後半或奇數題/偶數題。後者通常更受推薦，因為它可以降低題目難度分布不均或測驗疲勞等因素的影響。此外，當今計算機技術發達，Cronbach's
+                α 因其可同時考慮所有題目而更為常用。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 效果量 -->
+      <div class="tab-content" id="effect">
+        <div class="calculator-section">
+          <h2>
+            <i class="fas fa-balance-scale"></i> 效果量 (Effect Size) 解釋表
+          </h2>
+
+          <div class="card example-card">
+            <h4><i class="fas fa-lightbulb"></i> 實際例子</h4>
+            <p>
+              一項研究顯示，冥想訓練與壓力水平的相關為r =
+              -0.45，這是一個中等效果量，表示冥想訓練與壓力降低有中度關聯，雖然未達到強關聯，但在實務上已有明顯意義。
+            </p>
+          </div>
+
+          <div class="card metaphor-card">
+            <h4><i class="fas fa-magic"></i> 簡單比喻</h4>
+            <p>
+              如果把統計顯著性（p值）比喻為「是否下雨」的判斷，那麼效果量就像是「下雨的強度」。p值只告訴我們「有沒有」關係，而效果量則告訴我們這種關係「有多強」。就像小雨和暴雨都是雨，但對我們的生活影響程度截然不同。
+            </p>
+          </div>
+
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>效果量 r</th>
+                  <th>解釋</th>
+                  <th>實務意義</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>r ≈ 0.10</td>
+                  <td>小效果</td>
+                  <td>變項間有微弱但可察覺的關聯，實務應用價值有限</td>
+                </tr>
+                <tr>
+                  <td>r ≈ 0.30</td>
+                  <td>中效果</td>
+                  <td>變項間有明顯關聯，可能具有實務應用價值</td>
+                </tr>
+                <tr>
+                  <td>r ≈ 0.50</td>
+                  <td>大效果</td>
+                  <td>變項間有強烈關聯，應具有實質的實務應用價值</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="graph-container">
+            <svg
+              width="100%"
+              height="200"
+              viewBox="0 0 400 200"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <!-- 背景格線 -->
+              <rect
+                x="50"
+                y="20"
+                width="300"
+                height="150"
+                fill="#f8f9fa"
+                stroke="#e0e6ff"
+                stroke-width="1"
+              />
+
+              <!-- 座標軸 -->
+              <line
+                x1="50"
+                y1="170"
+                x2="350"
+                y2="170"
+                stroke="black"
+                stroke-width="2"
+              />
+              <line
+                x1="50"
+                y1="170"
+                x2="50"
+                y2="20"
+                stroke="black"
+                stroke-width="2"
+              />
+
+              <!-- X軸標籤 -->
+              <text x="200" y="195" text-anchor="middle" font-size="14">
+                效果量 (r)
+              </text>
+              <text x="50" y="185" text-anchor="middle" font-size="12">
+                0.0
+              </text>
+              <text x="150" y="185" text-anchor="middle" font-size="12">
+                0.3
+              </text>
+              <text x="250" y="185" text-anchor="middle" font-size="12">
+                0.5
+              </text>
+              <text x="350" y="185" text-anchor="middle" font-size="12">
+                1.0
+              </text>
+
+              <!-- 效果量區間 -->
+              <rect
+                x="50"
+                y="20"
+                width="100"
+                height="150"
+                fill="#f8daef"
+                opacity="0.5"
+              />
+              <rect
+                x="150"
+                y="20"
+                width="100"
+                height="150"
+                fill="#cceeff"
+                opacity="0.5"
+              />
+              <rect
+                x="250"
+                y="20"
+                width="100"
+                height="150"
+                fill="#ccffee"
+                opacity="0.5"
+              />
+
+              <!-- 標籤 -->
+              <text
+                x="100"
+                y="45"
+                text-anchor="middle"
+                font-size="14"
+                fill="#d63384"
+              >
+                小效果
+              </text>
+              <text
+                x="200"
+                y="45"
+                text-anchor="middle"
+                font-size="14"
+                fill="#0066cc"
+              >
+                中效果
+              </text>
+              <text
+                x="300"
+                y="45"
+                text-anchor="middle"
+                font-size="14"
+                fill="#009977"
+              >
+                大效果
+              </text>
+
+              <!-- 實務意義箭頭 -->
+              <line
+                x1="50"
+                y1="120"
+                x2="350"
+                y2="120"
+                stroke="#666"
+                stroke-width="2"
+                stroke-dasharray="5,5"
+              />
+              <polygon points="350,120 340,115 340,125" fill="#666" />
+              <text
+                x="200"
+                y="140"
+                text-anchor="middle"
+                font-size="14"
+                fill="#666"
+              >
+                實務意義增加
+              </text>
+            </svg>
+          </div>
+
+          <div class="explanation">
+            <p>
+              效果量是統計意義外的實務意義指標，用來評估變項間關係的實質重要性：
+            </p>
+            <p>
+              • 即使達到統計顯著性（p .05），效果量小的結果在實務上可能並不重要
+            </p>
+            <p>• 研究報告中應同時報告 p 值和效果量，全面評估研究發現</p>
+            <p>
+              • 除了相關係數 r，常見的效果量指標還有 Cohen's
+              d（用於比較平均數）、η² 和 ω²（用於變異數分析）
+            </p>
+          </div>
+
+          <div class="life-application">
+            <h3><i class="fas fa-briefcase"></i> 實際生活應用</h3>
+            <ul>
+              <li>
+                <strong>臨床決策</strong
+                >：評估治療方法的實際療效大小，而非僅依賴統計顯著性
+              </li>
+              <li><strong>教育創新</strong>：判斷新教學方法的實質改善程度</li>
+              <li><strong>政策評估</strong>：分析政策變更帶來的實際影響大小</li>
+              <li>
+                <strong>產品開發</strong>：評估產品改良對用戶滿意度的實質影響
+              </li>
+            </ul>
+
+            <div class="tip-card">
+              <h4><i class="fas fa-lightbulb"></i> 小提示</h4>
+              <p>
+                大樣本研究往往能輕易達到統計顯著性（p
+                .05），但效果量可能很小，實務意義有限。例如，一項10,000人的研究發現某種維他命與感冒發生率具有統計顯著相關（p
+                .01），但效果量r只有0.03，實際影響微乎其微。這就是為什麼效果量比p值更能反映研究的實質重要性。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 信度類型 -->
+      <div class="tab-content" id="reliability">
+        <div class="calculator-section">
+          <h2>
+            <i class="fas fa-shield-alt"></i> 信度類型 (Reliability Types)
+          </h2>
+
+          <div class="card example-card">
+            <h4><i class="fas fa-lightbulb"></i> 實際例子</h4>
+            <p>
+              某公司的績效評估系統採用了多種方式確保信度：(1)使用Cronbach's
+              α確保評估項目內部一致性；(2)計算不同主管對同一員工評分的一致性（評分者信度）；(3)比較半年前後評分的穩定性（再測信度）。
+            </p>
+          </div>
+
+          <div class="card metaphor-card">
+            <h4><i class="fas fa-magic"></i> 簡單比喻</h4>
+            <p>
+              信度就像是一把尺的精確度。優質的尺子每次測量同一物體都會得到相同的結果（再測信度）；尺子上的每個刻度都精確反映實際長度（內部一致性）；不同的人使用同一把尺子測量相同物體會得到一致的結果（評分者信度）。
+            </p>
+          </div>
+
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>信度類型</th>
+                  <th>適用情境</th>
+                  <th>說明</th>
+                  <th>常見應用</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Cronbach's α</td>
+                  <td>多題測驗</td>
+                  <td>衡量測驗內部一致性的指標</td>
+                  <td>人格量表、態度調查、能力測驗</td>
+                </tr>
+                <tr>
+                  <td>KR-20、KR-21</td>
+                  <td>二元題型</td>
+                  <td>適用於是非題、對錯題等二分計分的題型</td>
+                  <td>知識測驗、診斷性測驗</td>
+                </tr>
+                <tr>
+                  <td>再測信度<br />(test-retest)</td>
+                  <td>時間穩定性</td>
+                  <td>同一群人在不同時間點做同一測驗的得分相關</td>
+                  <td>特質測量、能力評估</td>
+                </tr>
+                <tr>
+                  <td>折半信度<br />(split-half)</td>
+                  <td>內部一致性</td>
+                  <td>測驗的前半部分與後半部分得分的相關</td>
+                  <td>長篇測驗、智力測驗</td>
+                </tr>
+                <tr>
+                  <td>評分者一致性</td>
+                  <td>主觀評分</td>
+                  <td>多位評分者對同一受試者評分的一致程度</td>
+                  <td>口試評分、表現評估、作文評分</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="explanation">
+            <p>不同的研究情境需要考慮不同的信度指標：</p>
+            <p>
+              • 內部一致性信度（如 Cronbach's α）用於評估測驗題目之間的關聯程度
+            </p>
+            <p>• 再測信度用於評估測驗結果在時間上的穩定性</p>
+            <p>• 評分者一致性用於評估不同評分者間判斷的一致程度</p>
+            <p>好的測量工具應該具備高信度，通常建議信度係數至少達 0.7 以上</p>
+          </div>
+
+          <div class="graph-container">
+            <svg
+              width="100%"
+              height="220"
+              viewBox="0 0 450 220"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <!-- 背景 -->
+              <rect width="450" height="220" fill="white" rx="10" />
+
+              <!-- 信度類型關係圖 -->
+              <ellipse
+                cx="225"
+                cy="50"
+                rx="180"
+                ry="40"
+                fill="#f1f5ff"
+                stroke="#4361ee"
+                stroke-width="2"
+              />
+              <text
+                x="225"
+                y="55"
+                text-anchor="middle"
+                font-size="16"
+                font-weight="bold"
+              >
+                信度 (Reliability)
+              </text>
+
+              <!-- 三個子類型圓圈 -->
+              <circle
+                cx="120"
+                cy="130"
+                r="40"
+                fill="#ffebf5"
+                stroke="#f72585"
+                stroke-width="2"
+              />
+              <text
+                x="120"
+                y="130"
+                text-anchor="middle"
+                font-size="14"
+                font-weight="bold"
+              >
+                內部一致性
+              </text>
+              <text x="120" y="150" text-anchor="middle" font-size="12">
+                Cronbach's α
+              </text>
+              <text x="120" y="165" text-anchor="middle" font-size="12">
+                折半信度
+              </text>
+
+              <circle
+                cx="225"
+                cy="130"
+                r="40"
+                fill="#e2f9ff"
+                stroke="#4cc9f0"
+                stroke-width="2"
+              />
+              <text
+                x="225"
+                y="130"
+                text-anchor="middle"
+                font-size="14"
+                font-weight="bold"
+              >
+                時間穩定性
+              </text>
+              <text x="225" y="150" text-anchor="middle" font-size="12">
+                再測信度
+              </text>
+
+              <circle
+                cx="330"
+                cy="130"
+                r="40"
+                fill="#e2fff9"
+                stroke="#06d6a0"
+                stroke-width="2"
+              />
+              <text
+                x="330"
+                y="130"
+                text-anchor="middle"
+                font-size="14"
+                font-weight="bold"
+              >
+                評分者一致性
+              </text>
+              <text x="330" y="150" text-anchor="middle" font-size="12">
+                多位評分者相關
+              </text>
+
+              <!-- 連線 -->
+              <line
+                x1="225"
+                y1="90"
+                x2="120"
+                y2="100"
+                stroke="#4361ee"
+                stroke-width="2"
+              />
+              <line
+                x1="225"
+                y1="90"
+                x2="225"
+                y2="100"
+                stroke="#4361ee"
+                stroke-width="2"
+              />
+              <line
+                x1="225"
+                y1="90"
+                x2="330"
+                y2="100"
+                stroke="#4361ee"
+                stroke-width="2"
+              />
+            </svg>
+          </div>
+
+          <div class="life-application">
+            <h3><i class="fas fa-briefcase"></i> 實際生活應用</h3>
+            <ul>
+              <li>
+                <strong>臨床評估</strong>：確保心理診斷工具的穩定性，避免誤診
+              </li>
+              <li>
+                <strong>標準化測驗</strong
+                >：確保學術測驗（如SAT、GRE）在不同時間和場合的一致性
+              </li>
+              <li>
+                <strong>人力資源管理</strong
+                >：確保員工績效評估系統的公平性和準確性
+              </li>
+              <li><strong>市場研究</strong>：確保消費者意見調查的可靠性</li>
+            </ul>
+
+            <div class="tip-card">
+              <h4><i class="fas fa-lightbulb"></i> 小提示</h4>
+              <p>
+                信度是測量的必要條件，但不是充分條件。一個測驗可能有高信度但低效度（例如，一把精確但校準錯誤的體重計會一致地測量出錯誤的體重）。好的測量工具需要同時具備信度（可靠性）和效度（準確性）。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>© 2025 心理統計公式計算器 | 專為教育與研究目的設計</footer>
+
+    <script>
+      // 頁面加載完成後重新渲染公式
+      document.addEventListener("DOMContentLoaded", function () {
+        if (typeof MathJax !== "undefined") {
+          MathJax.typesetPromise();
+        }
+
+        // 同步滑桿和輸入框的值
+        syncInputs("items-slider", "items");
+        syncInputs("correlation-slider", "correlation");
+        syncInputs("loading1-slider", "loading1");
+        syncInputs("loading2-slider", "loading2");
+        syncInputs("half-correlation-slider", "half-correlation");
+      });
+
+      // 切換標籤頁
+      document.querySelectorAll(".tab").forEach((tab) => {
+        tab.addEventListener("click", function () {
+          // 移除所有標籤頁和內容的 active 類
+          document
+            .querySelectorAll(".tab")
+            .forEach((t) => t.classList.remove("active"));
+          document
+            .querySelectorAll(".tab-content")
+            .forEach((c) => c.classList.remove("active"));
+
+          // 添加當前標籤頁和內容的 active 類
+          this.classList.add("active");
+          document
+            .getElementById(this.getAttribute("data-tab"))
+            .classList.add("active");
+
+          // 重新渲染當前頁的公式
+          if (typeof MathJax !== "undefined") {
+            MathJax.typesetPromise();
+          }
+        });
+      });
+
+      // 同步滑桿和輸入框的值
+      function syncInputs(sliderId, inputId) {
+        const slider = document.getElementById(sliderId);
+        const input = document.getElementById(inputId);
+
+        if (!slider || !input) return;
+
+        slider.addEventListener("input", function () {
+          input.value = this.value;
+        });
+
+        input.addEventListener("input", function () {
+          slider.value = this.value;
+        });
+      }
+
+      // 模態窗函數
+      function showModal(title, message, confirmCallback = null) {
+        document.getElementById("modal-title").textContent = title;
+        document.getElementById("modal-body").textContent = message;
+
+        // 儲存確認回調函數
+        document.getElementById("modal-confirm").onclick = function () {
+          if (confirmCallback) confirmCallback();
+          closeModal();
+        };
+
+        document.getElementById("modal").classList.add("active");
+      }
+
+      function closeModal() {
+        document.getElementById("modal").classList.remove("active");
+      }
+
+      function confirmModal() {
+        // 由於已經在 showModal 中設置了回調，這裡只需關閉模態窗
+        closeModal();
+      }
+
+      // 吐司訊息函數
+      function showToast(message, type = "info", duration = 3000) {
+        const toast = document.createElement("div");
+        toast.className = `toast toast-${type}`;
+
+        let icon = "";
+        switch (type) {
+          case "success":
+            icon = '<i class="fas fa-check-circle toast-icon"></i>';
+            break;
+          case "warning":
+            icon = '<i class="fas fa-exclamation-triangle toast-icon"></i>';
+            break;
+          case "error":
+            icon = '<i class="fas fa-times-circle toast-icon"></i>';
+            break;
+          default:
+            icon = '<i class="fas fa-info-circle toast-icon"></i>';
+        }
+
+        const title = type.charAt(0).toUpperCase() + type.slice(1);
+
+        toast.innerHTML = `
+              ${icon}
+              <div class="toast-body">
+                  <div class="toast-title">${title}</div>
+                  <div class="toast-message">${message}</div>
+              </div>
+          `;
+
+        document.getElementById("toast-container").appendChild(toast);
+
+        // 顯示吐司訊息
+        setTimeout(() => {
+          toast.classList.add("show");
+        }, 10);
+
+        // 定時移除吐司訊息
+        setTimeout(() => {
+          toast.classList.remove("show");
+          setTimeout(() => {
+            toast.remove();
+          }, 300);
+        }, duration);
+      }
+
+      // Cronbach's Alpha 計算
+      function calculateAlpha() {
+        const k = parseFloat(document.getElementById("items").value);
+        const r = parseFloat(document.getElementById("correlation").value);
+
+        if (isNaN(k) || isNaN(r) || k < 2 || r < 0 || r > 1) {
+          showModal(
+            "輸入錯誤",
+            "請輸入有效數值。題數至少需要2題，相關係數須在0到1之間。"
+          );
+          return;
+        }
+
+        const alpha = (k * r) / (1 + (k - 1) * r);
+
+        document.getElementById(
+          "alpha-value"
+        ).textContent = `Cronbach's α = ${alpha.toFixed(4)}`;
+
+        let interpretation = "";
+        let toastType = "info";
+
+        if (alpha > 0.9) {
+          interpretation = "此 Alpha 值表示量表具有優良的內部一致性。";
+          toastType = "success";
+        } else if (alpha > 0.8) {
+          interpretation = "此 Alpha 值表示量表具有良好的內部一致性。";
+          toastType = "success";
+        } else if (alpha > 0.7) {
+          interpretation = "此 Alpha 值表示量表具有可接受的內部一致性。";
+          toastType = "success";
+        } else if (alpha > 0.6) {
+          interpretation =
+            "此 Alpha 值表示量表的內部一致性尚可，但可考慮修正。";
+          toastType = "warning";
+        } else if (alpha > 0.5) {
+          interpretation = "此 Alpha 值偏低，量表的內部一致性有待改進。";
+          toastType = "warning";
+        } else {
+          interpretation =
+            "此 Alpha 值不可接受，量表的內部一致性很低，建議修訂。";
+          toastType = "error";
+        }
+
+        document.getElementById("alpha-interpretation").textContent =
+          interpretation;
+        document.getElementById("cronbach-result").classList.add("show");
+
+        showToast(`計算完成：Cronbach's α = ${alpha.toFixed(4)}`, toastType);
+
+        // 重新渲染公式
+        if (typeof MathJax !== "undefined") {
+          MathJax.typesetPromise();
+        }
+      }
+
+      // 觀察變項相關計算
+      function calculateCorrelation() {
+        const loading1 = parseFloat(document.getElementById("loading1").value);
+        const loading2 = parseFloat(document.getElementById("loading2").value);
+
+        if (
+          isNaN(loading1) ||
+          isNaN(loading2) ||
+          loading1 < 0 ||
+          loading1 > 1 ||
+          loading2 < 0 ||
+          loading2 > 1
+        ) {
+          showModal("輸入錯誤", "請輸入有效數值。因素負荷量須在0到1之間。");
+          return;
+        }
+
+        const correlation = loading1 * loading2;
+
+        document.getElementById(
+          "correlation-value"
+        ).textContent = `觀察變項相關 r = ${correlation.toFixed(4)}`;
+
+        let interpretation = "";
+        let toastType = "info";
+
+        if (correlation > 0.7) {
+          interpretation =
+            "兩個觀察變項有強相關，顯示它們受到共同潛在因素的強烈影響。";
+          toastType = "success";
+        } else if (correlation > 0.3) {
+          interpretation =
+            "兩個觀察變項有中度相關，顯示它們受到共同潛在因素的明顯影響。";
+          toastType = "success";
+        } else {
+          interpretation = "兩個觀察變項有弱相關，顯示共同潛在因素的影響較小。";
+          toastType = "warning";
+        }
+
+        document.getElementById("correlation-interpretation").textContent =
+          interpretation;
+        document.getElementById("correlation-result").classList.add("show");
+
+        showToast(
+          `計算完成：觀察變項相關 r = ${correlation.toFixed(4)}`,
+          toastType
+        );
+
+        // 重新渲染公式
+        if (typeof MathJax !== "undefined") {
+          MathJax.typesetPromise();
+        }
+      }
+
+      // 共變異數計算
+      function calculateCovariance() {
+        const dataText = document.getElementById("data-values").value.trim();
+        const lines = dataText.split("\n");
+
+        if (lines.length < 2) {
+          showModal("輸入錯誤", "請至少輸入兩組數據。");
+          return;
+        }
+
+        const pairs = [];
+        for (const line of lines) {
+          if (line.trim() === "") continue;
+
+          const values = line.split(",").map((v) => parseFloat(v.trim()));
+          if (values.length !== 2 || isNaN(values[0]) || isNaN(values[1])) {
+            showModal(
+              "格式錯誤",
+              "數據格式不正確。請確保每行包含兩個以逗號分隔的數字。"
+            );
+            return;
+          }
+
+          pairs.push(values);
+        }
+
+        // 計算平均值
+        let sumX = 0,
+          sumY = 0;
+        for (const [x, y] of pairs) {
+          sumX += x;
+          sumY += y;
+        }
+
+        const meanX = sumX / pairs.length;
+        const meanY = sumY / pairs.length;
+
+        // 計算共變異數
+        let sumCovariance = 0;
+        for (const [x, y] of pairs) {
+          sumCovariance += (x - meanX) * (y - meanY);
+        }
+
+        const covariance = sumCovariance / (pairs.length - 1);
+
+        document.getElementById(
+          "covariance-value"
+        ).textContent = `共變異數 = ${covariance.toFixed(4)}`;
+
+        let interpretation = "";
+        let toastType = "info";
+
+        if (covariance > 0) {
+          interpretation = "正的共變異數表示兩個變項有同向變動的趨勢。";
+          toastType = "success";
+        } else if (covariance < 0) {
+          interpretation = "負的共變異數表示兩個變項有反向變動的趨勢。";
+          toastType = "warning";
+        } else {
+          interpretation = "共變異數接近零，表示兩個變項之間幾乎沒有線性關係。";
+          toastType = "error";
+        }
+
+        document.getElementById("covariance-interpretation").textContent =
+          interpretation;
+        document.getElementById("covariance-result").classList.add("show");
+
+        showToast(`計算完成：共變異數 = ${covariance.toFixed(4)}`, toastType);
+
+        // 重新渲染公式
+        if (typeof MathJax !== "undefined") {
+          MathJax.typesetPromise();
+        }
+      }
+
+      // 皮爾森相關係數計算
+      function calculatePearson() {
+        const dataText = document.getElementById("pearson-data").value.trim();
+        const lines = dataText.split("\n");
+
+        if (lines.length < 2) {
+          showModal("輸入錯誤", "請至少輸入兩組數據。");
+          return;
+        }
+
+        const pairs = [];
+        for (const line of lines) {
+          if (line.trim() === "") continue;
+
+          const values = line.split(",").map((v) => parseFloat(v.trim()));
+          if (values.length !== 2 || isNaN(values[0]) || isNaN(values[1])) {
+            showModal(
+              "格式錯誤",
+              "數據格式不正確。請確保每行包含兩個以逗號分隔的數字。"
+            );
+            return;
+          }
+
+          pairs.push(values);
+        }
+
+        // 計算平均值
+        let sumX = 0,
+          sumY = 0;
+        for (const [x, y] of pairs) {
+          sumX += x;
+          sumY += y;
+        }
+
+        const meanX = sumX / pairs.length;
+        const meanY = sumY / pairs.length;
+
+        // 計算共變異數和標準差
+        let sumCovariance = 0;
+        let sumSquaredDeviationX = 0;
+        let sumSquaredDeviationY = 0;
+
+        for (const [x, y] of pairs) {
+          const deviationX = x - meanX;
+          const deviationY = y - meanY;
+
+          sumCovariance += deviationX * deviationY;
+          sumSquaredDeviationX += deviationX * deviationX;
+          sumSquaredDeviationY += deviationY * deviationY;
+        }
+
+        const covariance = sumCovariance / (pairs.length - 1);
+        const sdX = Math.sqrt(sumSquaredDeviationX / (pairs.length - 1));
+        const sdY = Math.sqrt(sumSquaredDeviationY / (pairs.length - 1));
+
+        const pearsonR = covariance / (sdX * sdY);
+
+        document.getElementById(
+          "pearson-value"
+        ).textContent = `皮爾森相關係數 r = ${pearsonR.toFixed(4)}`;
+
+        let interpretation = "";
+        let toastType = "info";
+        const absPearson = Math.abs(pearsonR);
+
+        if (absPearson > 0.7) {
+          interpretation = `兩個變項有${
+            pearsonR > 0 ? "強正" : "強負"
+          }相關，變動趨勢${pearsonR > 0 ? "高度一致" : "高度相反"}。`;
+          toastType = "success";
+        } else if (absPearson > 0.3) {
+          interpretation = `兩個變項有${
+            pearsonR > 0 ? "中度正" : "中度負"
+          }相關，變動趨勢${pearsonR > 0 ? "較為一致" : "較為相反"}。`;
+          toastType = "success";
+        } else {
+          interpretation = `兩個變項${
+            pearsonR > 0 ? "弱正" : "弱負"
+          }相關或幾乎無相關，變動趨勢關聯性較低。`;
+          toastType = "warning";
+        }
+
+        document.getElementById("pearson-interpretation").textContent =
+          interpretation;
+        document.getElementById("pearson-result").classList.add("show");
+
+        showToast(
+          `計算完成：皮爾森相關係數 r = ${pearsonR.toFixed(4)}`,
+          toastType
+        );
+
+        // 重新渲染公式
+        if (typeof MathJax !== "undefined") {
+          MathJax.typesetPromise();
+        }
+      }
+
+      // 折半信度計算
+      function calculateSplitHalf() {
+        const halfCorrelation = parseFloat(
+          document.getElementById("half-correlation").value
+        );
+
+        if (
+          isNaN(halfCorrelation) ||
+          halfCorrelation < 0 ||
+          halfCorrelation > 1
+        ) {
+          showModal("輸入錯誤", "請輸入有效數值。相關係數須在0到1之間。");
+          return;
+        }
+
+        const splitHalf = (2 * halfCorrelation) / (1 + halfCorrelation);
+
+        document.getElementById(
+          "splithalf-value"
+        ).textContent = `折半信度 = ${splitHalf.toFixed(4)}`;
+
+        let interpretation = "";
+        let toastType = "info";
+
+        if (splitHalf > 0.9) {
+          interpretation = "此折半信度表示測驗具有優良的內部一致性。";
+          toastType = "success";
+        } else if (splitHalf > 0.8) {
+          interpretation = "此折半信度表示測驗具有良好的內部一致性。";
+          toastType = "success";
+        } else if (splitHalf > 0.7) {
+          interpretation = "此折半信度表示測驗具有可接受的內部一致性。";
+          toastType = "success";
+        } else if (splitHalf > 0.6) {
+          interpretation = "此折半信度表示測驗的內部一致性尚可，但可考慮修正。";
+          toastType = "warning";
+        } else if (splitHalf > 0.5) {
+          interpretation = "此折半信度偏低，測驗的內部一致性有待改進。";
+          toastType = "warning";
+        } else {
+          interpretation =
+            "此折半信度不可接受，測驗的內部一致性很低，建議修訂。";
+          toastType = "error";
+        }
+
+        document.getElementById("splithalf-interpretation").textContent =
+          interpretation;
+        document.getElementById("splithalf-result").classList.add("show");
+
+        showToast(`計算完成：折半信度 = ${splitHalf.toFixed(4)}`, toastType);
+
+        // 重新渲染公式
+        if (typeof MathJax !== "undefined") {
+          MathJax.typesetPromise();
+        }
+      }
+
+      // 在頁面載入時隱藏觀察變項與潛在變項區塊中的圖示
+      document.addEventListener("DOMContentLoaded", function () {
+        // 檢查是否在手機模式下
+        function checkMobileView() {
+          const isMobile = window.innerWidth < 768;
+
+          // 調整公式大小
+          if (isMobile) {
+            document.querySelectorAll(".mjx-chtml").forEach((el) => {
+              el.style.transform = "scale(0.85)";
+              el.style.transformOrigin = "left center";
+            });
+          } else {
+            document.querySelectorAll(".mjx-chtml").forEach((el) => {
+              el.style.transform = "";
+            });
+          }
+        }
+
+        // 初始檢查並監聽視窗大小變化
+        checkMobileView();
+        window.addEventListener("resize", checkMobileView);
+
+        // 監聽顯示公式的過程，避免公式超出容器
+        if (typeof MathJax !== "undefined") {
+          MathJax.Hub.Register.StartupHook("End", function () {
+            checkMobileView();
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
