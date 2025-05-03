@@ -2,93 +2,2586 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>今天想吃什麼</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>今天想吃什麼？ - 地理位置餐廳推薦</title>
+    <meta name="description" content="透過位置定位，發現附近美食，解決每天「今天不知道吃什麼」的煩惱！">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#FFF8E1',
+                            100: '#FFECB3',
+                            200: '#FFE082',
+                            300: '#FFD54F',
+                            400: '#FFCA28',
+                            500: '#F8B400', // 主色
+                            600: '#FFA000',
+                            700: '#FF8F00',
+                            800: '#FF6F00',
+                            900: '#FF5722',
+                        },
+                        accent: {
+                            500: '#FF6B6B', // 輔助色
+                        },
+                        success: {
+                            500: '#4CAF50', // 功能色：成功
+                        },
+                        info: {
+                            500: '#2196F3', // 功能色：信息
+                        }
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 2s infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    
     <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- Leaflet.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.3/dist/cdn.min.js"></script>
+    
+    <!-- Leaflet.js for Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- GSAP -->
+    
+    <!-- Leaflet Markercluster for grouping markers -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    
+    <!-- GSAP for animations -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <!-- SweetAlert2 -->
+    
+    <!-- SweetAlert2 for nice popups -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Confetti -->
+    
+    <!-- Confetti effects -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    
     <style>
-        #map { height: 100vh; }
-        .bottom-drawer { position: fixed; bottom: 0; background: white; border-radius: 24px 24px 0 0; }
-        .wheel-container { width: 280px; height: 280px; border-radius: 50%; border: 8px solid #F8B400; }
-        .wheel-segment { position: absolute; width: 100%; height: 100%; clip-path: polygon(50% 50%, 0 0, 0 100%); }
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            touch-action: manipulation;
+            overflow-x: hidden;
+        }
+        
+        /* 隱藏滾動條但保留功能 */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* 食物輪盤樣式 */
+        .food-wheel {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 0 auto;
+        }
+
+        .wheel-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            border-radius: 50%;
+            border: 8px solid #f8b400;
+            box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1), 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .wheel-segment {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            clip-path: polygon(50% 50%, 0 0, 0 100%);
+            transform-origin: 50% 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .wheel-text {
+            position: absolute;
+            top: 40%;
+            left: 30%;
+            transform: rotate(60deg);
+            transform-origin: 0 0;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .wheel-marker {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 40px;
+            background-color: #d62828;
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 10;
+        }
+        
+        /* 地圖容器樣式 */
+        #map {
+            width: 100%;
+            height: 100vh;
+            z-index: 0;
+        }
+        
+        /* 底部抽屜樣式 */
+        .bottom-drawer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .drawer-handle {
+            width: 40px;
+            height: 5px;
+            background-color: #e5e5e5;
+            border-radius: 3px;
+            margin: 10px auto;
+        }
+        
+        /* 餐廳卡片樣式 */
+        .restaurant-card {
+            transition: all 0.2s ease;
+        }
+        
+        .restaurant-card:active {
+            transform: scale(0.98);
+        }
+        
+        .pulsing-dot {
+            position: relative;
+        }
+        
+        .pulsing-dot::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(76, 175, 80, 0.4);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            70% {
+                transform: translate(-50%, -50%) scale(2);
+                opacity: 0;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
+        }
+        
+        /* 自定義標記樣式 */
+        .custom-marker {
+            border-radius: 50% 50% 50% 0;
+            border: 4px solid white;
+            width: 30px;
+            height: 30px;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .custom-marker i {
+            transform: rotate(45deg);
+            color: white;
+            font-size: 12px;
+        }
+        
+        /* 自定義 Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #68D391;
+        }
+        
+        /* 輪盤旋轉動畫 */
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(var(--spin-degree));
+            }
+        }
+
+        .spinning {
+            animation: spin 3s cubic-bezier(0.1, 0.7, 0.1, 1) forwards;
+        }
+        
+        /* 加載動畫 */
+        .loading-plate {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 5px solid #f8b400;
+            border-top-color: transparent;
+            animation: spin-plate 1s linear infinite;
+        }
+        
+        @keyframes spin-plate {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* 圓形距離指示器 */
+        .distance-circle {
+            border: 2px dashed rgba(248, 180, 0, 0.5);
+            border-radius: 50%;
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        /* View transitions for smooth UI */
+        .view-transition {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .view-enter {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        /* 防止滾動穿透 */
+        .no-scroll {
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        /* 滑動菜單指示器 */
+        .slide-indicator {
+            width: 40px;
+            height: 4px;
+            background-color: #e5e5e5;
+            border-radius: 2px;
+            margin: 0 auto;
+        }
+        
+        /* 當前位置脈動效果 */
+        .current-location-pulse {
+            position: relative;
+        }
+        
+        .current-location-pulse::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background-color: rgba(33, 150, 243, 0.4);
+            border-radius: 50%;
+            z-index: -1;
+            animation: locationPulse 2s infinite;
+        }
+        
+        @keyframes locationPulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            70% {
+                transform: scale(2);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 0;
+            }
+        }
+        
+        /* 自定義 Leaflet 控制項樣式 */
+        .leaflet-touch .leaflet-control-layers, 
+        .leaflet-touch .leaflet-bar {
+            border: none !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        /* 文字截斷 */
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
     </style>
 </head>
-<body x-data="app()" x-init="init()">
-    <!-- 地圖容器 -->
-    <div id="map"></div>
 
-    <!-- 隨機推薦按鈕 -->
-    <button class="fixed bottom-20 right-4 bg-yellow-500 text-white p-4 rounded-full" @click="randomSelect()">
-        隨機選擇
-    </button>
-
-    <!-- 底部抽屜（列表） -->
-    <div class="bottom-drawer p-4" x-show="currentView === 'list'">
-        <h2 class="text-xl font-bold">附近餐廳</h2>
-        <template x-for="restaurant in filteredRestaurants" :key="restaurant.id">
-            <div class="flex mb-2">
-                <img :src="restaurant.image" class="w-16 h-16 rounded" />
-                <div class="ml-4">
-                    <h3 x-text="restaurant.name"></h3>
-                    <p x-text="restaurant.type"></p>
-                    <p x-text="restaurant.distance + ' 公尺'"></p>
+<body class="bg-gray-50">
+    <div x-data="foodMapApp()" x-init="initialize()" class="relative">
+        <!-- 位置獲取遮罩 (初始加載) -->
+        <div x-show="isInitializing" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+            <div class="loading-plate mb-6"></div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">今天想吃什麼？</h2>
+            <p class="text-gray-600 mb-4">正在尋找附近的美食...</p>
+            <div class="w-64 bg-gray-200 rounded-full h-2">
+                <div 
+                    class="bg-primary-500 h-2 rounded-full transition-all duration-300 ease-out"
+                    :style="'width: ' + loadingProgress + '%'"
+                ></div>
+            </div>
+        </div>
+        
+        <!-- 主地圖容器 -->
+        <div id="map" class="fixed inset-0"></div>
+        
+        <!-- 頂部控制區域 -->
+        <div class="absolute top-0 left-0 right-0 z-10 px-4 pt-4">
+            <!-- 搜尋欄 -->
+            <div class="bg-white rounded-full shadow-lg px-3 py-2 flex items-center mb-3">
+                <i class="fas fa-search text-gray-400 mr-2"></i>
+                <input 
+                    type="text" 
+                    x-model="searchQuery" 
+                    @input="searchRestaurants"
+                    placeholder="搜尋餐廳或美食..." 
+                    class="flex-1 bg-transparent border-none outline-none text-gray-700"
+                >
+                <template x-if="searchQuery">
+                    <button @click="searchQuery = ''; searchRestaurants()" class="text-gray-400 p-1">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </template>
+            </div>
+            
+            <!-- 篩選按鈕區 -->
+            <div class="flex items-center space-x-2 overflow-x-auto pb-2 hide-scrollbar">
+                <button 
+                    @click="setFilterType('all')" 
+                    :class="{'bg-primary-500 text-white': currentFilter === 'all', 'bg-white text-gray-700': currentFilter !== 'all'}"
+                    class="px-4 py-1 rounded-full shadow-sm text-sm font-medium whitespace-nowrap focus:outline-none"
+                >
+                    全部
+                </button>
+                <button 
+                    @click="setFilterType('chinese')" 
+                    :class="{'bg-primary-500 text-white': currentFilter === 'chinese', 'bg-white text-gray-700': currentFilter !== 'chinese'}"
+                    class="px-4 py-1 rounded-full shadow-sm text-sm font-medium whitespace-nowrap focus:outline-none"
+                >
+                    中式
+                </button>
+                <button 
+                    @click="setFilterType('japanese')" 
+                    :class="{'bg-primary-500 text-white': currentFilter === 'japanese', 'bg-white text-gray-700': currentFilter !== 'japanese'}"
+                    class="px-4 py-1 rounded-full shadow-sm text-sm font-medium whitespace-nowrap focus:outline-none"
+                >
+                    日式
+                </button>
+                <button 
+                    @click="setFilterType('western')" 
+                    :class="{'bg-primary-500 text-white': currentFilter === 'western', 'bg-white text-gray-700': currentFilter !== 'western'}"
+                    class="px-4 py-1 rounded-full shadow-sm text-sm font-medium whitespace-nowrap focus:outline-none"
+                >
+                    西式
+                </button>
+                <button 
+                    @click="setFilterType('southeast')" 
+                    :class="{'bg-primary-500 text-white': currentFilter === 'southeast', 'bg-white text-gray-700': currentFilter !== 'southeast'}"
+                    class="px-4 py-1 rounded-full shadow-sm text-sm font-medium whitespace-nowrap focus:outline-none"
+                >
+                    東南亞
+                </button>
+                <button 
+                    @click="openFilterModal()"
+                    class="px-4 py-1 rounded-full bg-white shadow-sm text-sm font-medium whitespace-nowrap focus:outline-none"
+                >
+                    <i class="fas fa-sliders-h text-gray-600"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 地圖控制按鈕 (右側) -->
+        <div class="absolute top-20 right-4 z-10 flex flex-col space-y-3">
+            <button 
+                @click="findMyLocation()" 
+                class="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center text-primary-600 focus:outline-none"
+            >
+                <i class="fas fa-location-arrow"></i>
+            </button>
+            <button 
+                @click="toggleDistanceCircle()" 
+                class="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center text-primary-600 focus:outline-none"
+                :class="{'bg-primary-500 text-white': showDistanceCircle}"
+            >
+                <i class="fas fa-circle-notch"></i>
+            </button>
+        </div>
+        
+        <!-- 底部主導航 -->
+        <div class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+            <div class="flex items-center bg-white rounded-full shadow-lg px-2 py-1">
+                <button 
+                    @click="changeView('map')" 
+                    class="px-4 py-2 rounded-full flex items-center justify-center"
+                    :class="{'text-primary-600 bg-primary-50': currentView === 'map', 'text-gray-600': currentView !== 'map'}"
+                >
+                    <i class="fas fa-map-marker-alt mr-1"></i>
+                    <span class="text-sm">地圖</span>
+                </button>
+                <button 
+                    @click="changeView('list')" 
+                    class="px-4 py-2 rounded-full flex items-center justify-center"
+                    :class="{'text-primary-600 bg-primary-50': currentView === 'list', 'text-gray-600': currentView !== 'list'}"
+                >
+                    <i class="fas fa-list mr-1"></i>
+                    <span class="text-sm">列表</span>
+                </button>
+                <button 
+                    @click="changeView('wheel')" 
+                    class="px-4 py-2 rounded-full flex items-center justify-center"
+                    :class="{'text-primary-600 bg-primary-50': currentView === 'wheel', 'text-gray-600': currentView !== 'wheel'}"
+                >
+                    <i class="fas fa-random mr-1"></i>
+                    <span class="text-sm">轉盤</span>
+                </button>
+                <button 
+                    @click="changeView('favorites')" 
+                    class="px-4 py-2 rounded-full flex items-center justify-center"
+                    :class="{'text-primary-600 bg-primary-50': currentView === 'favorites', 'text-gray-600': currentView !== 'favorites'}"
+                >
+                    <i class="fas fa-heart mr-1"></i>
+                    <span class="text-sm">最愛</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 決定按鈕 (浮動大按鈕) -->
+        <button 
+            @click="decideRestaurant()" 
+            class="fixed bottom-20 right-4 z-20 w-14 h-14 bg-accent-500 rounded-full shadow-lg flex items-center justify-center text-white focus:outline-none transform transition hover:scale-105"
+        >
+            <i class="fas fa-utensils text-xl"></i>
+        </button>
+        
+        <!-- 底部抽屜 (列表視圖) -->
+        <div 
+            x-show="currentView === 'list'" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="translate-y-full"
+            x-transition:enter-end="translate-y-0"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="translate-y-0"
+            x-transition:leave-end="translate-y-full"
+            class="bottom-drawer h-2/3"
+            @touchstart="handleDrawerTouchStart"
+            @touchmove="handleDrawerTouchMove"
+            @touchend="handleDrawerTouchEnd"
+        >
+            <div class="drawer-handle"></div>
+            <div class="p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">
+                        附近的餐廳
+                        <span class="text-sm font-normal text-gray-500" x-text="'（' + filteredRestaurants.length + '間）'"></span>
+                    </h2>
+                    <div class="flex items-center">
+                        <button @click="toggleSortOrder()" class="p-2 text-gray-600 hover:text-primary-600">
+                            <i class="fas" :class="sortOrder === 'distance' ? 'fa-sort-amount-down' : 'fa-sort-amount-up'"></i>
+                        </button>
+                        <button @click="openSettings()" class="p-2 text-gray-600 hover:text-primary-600">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 餐廳列表 -->
+                <div class="overflow-y-auto h-[calc(100vh-220px)]">
+                    <template x-if="filteredRestaurants.length === 0">
+                        <div class="flex flex-col items-center justify-center py-8">
+                            <i class="fas fa-search text-gray-300 text-3xl mb-2"></i>
+                            <p class="text-gray-500">沒有符合的餐廳</p>
+                            <button 
+                                @click="resetFilters()" 
+                                class="mt-2 text-primary-600 font-medium"
+                            >
+                                重設篩選條件
+                            </button>
+                        </div>
+                    </template>
+                    
+                    <div class="grid grid-cols-1 gap-3">
+                        <template x-for="(restaurant, index) in filteredRestaurants" :key="restaurant.id">
+                            <div 
+                                @click="showRestaurantDetail(restaurant)" 
+                                class="restaurant-card bg-white rounded-xl shadow p-3 flex items-start"
+                            >
+                                <div class="w-20 h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                                    <img :src="restaurant.image" :alt="restaurant.name" class="w-full h-full object-cover">
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <div class="flex justify-between">
+                                        <h3 class="font-bold text-gray-900" x-text="restaurant.name"></h3>
+                                        <div class="flex items-center">
+                                            <span 
+                                                x-text="formatDistance(restaurant.distance)" 
+                                                class="text-xs text-gray-500 mr-2"
+                                            ></span>
+                                            <button 
+                                                @click.stop="toggleFavorite(restaurant.id)" 
+                                                class="text-gray-400 hover:text-yellow-500 transition-colors"
+                                                :class="{'text-yellow-500': isFavorite(restaurant.id)}"
+                                            >
+                                                <i class="fas fa-heart"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center mt-1">
+                                        <div 
+                                            class="px-2 py-0.5 text-xs font-medium rounded-full mr-2"
+                                            :class="{
+                                                'bg-red-100 text-red-800': restaurant.type === 'chinese',
+                                                'bg-blue-100 text-blue-800': restaurant.type === 'japanese',
+                                                'bg-yellow-100 text-yellow-800': restaurant.type === 'western',
+                                                'bg-green-100 text-green-800': restaurant.type === 'southeast',
+                                                'bg-purple-100 text-purple-800': restaurant.type === 'other'
+                                            }"
+                                            x-text="getTypeText(restaurant.type)"
+                                        ></div>
+                                        <div class="flex items-center text-amber-500">
+                                            <template x-for="i in 5" :key="i">
+                                                <i 
+                                                    class="fas fa-star text-xs" 
+                                                    :class="{'text-amber-500': i <= restaurant.rating, 'text-gray-300': i > restaurant.rating}"
+                                                ></i>
+                                            </template>
+                                            <span class="text-xs text-gray-500 ml-1" x-text="restaurant.rating"></span>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1 line-clamp-2" x-text="restaurant.description"></p>
+                                    <div class="flex mt-2">
+                                        <span 
+                                            x-show="restaurant.priceLevel >= 1" 
+                                            class="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded mr-2"
+                                        >
+                                            $<span x-text="''.padStart(restaurant.priceLevel, '$')"></span>
+                                        </span>
+                                        <span 
+                                            x-show="restaurant.openNow" 
+                                            class="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded mr-2"
+                                        >
+                                            營業中
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </div>
-        </template>
+        </div>
+        
+        <!-- 輪盤視圖 -->
+        <div 
+            x-show="currentView === 'wheel'" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="translate-y-full"
+            x-transition:enter-end="translate-y-0"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="translate-y-0"
+            x-transition:leave-end="translate-y-full"
+            class="bottom-drawer h-2/3 flex flex-col"
+        >
+            <div class="drawer-handle"></div>
+            <div class="p-4">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">隨機選擇餐廳</h2>
+                
+                <!-- 輪盤區域 -->
+                <div class="relative flex flex-col items-center mb-8" x-show="!showResult">
+                    <div class="food-wheel">
+                        <div class="wheel-marker"></div>
+                        <div id="wheelContainer" class="wheel-container" x-ref="wheelContainer">
+                            <!-- 輪盤將由 JS 動態生成 -->
+                        </div>
+                    </div>
+                    <button 
+                        @click="spinWheel()" 
+                        x-bind:disabled="isSpinning" 
+                        class="mt-8 px-8 py-3 bg-accent-500 text-white text-xl font-bold rounded-full shadow-lg hover:bg-accent-600 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span x-show="!isSpinning">轉起來！</span>
+                        <span x-show="isSpinning">轉動中...</span>
+                    </button>
+                </div>
+                
+                <!-- 輪盤結果 -->
+                <div 
+                    x-show="showResult" 
+                    x-transition:enter="transition ease-out duration-300" 
+                    x-transition:enter-start="opacity-0 transform scale-90" 
+                    x-transition:enter-end="opacity-100 transform scale-100" 
+                    class="bg-white rounded-xl shadow-xl p-6 max-w-sm mx-auto"
+                >
+                    <div class="text-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800">今天就決定吃</h2>
+                        <h3 class="text-3xl font-bold text-accent-500 mt-2" x-text="selectedRestaurant.name"></h3>
+                    </div>
+                    <div class="flex justify-center mb-4">
+                        <img 
+                            :src="selectedRestaurant.image" 
+                            :alt="selectedRestaurant.name" 
+                            class="w-40 h-40 object-cover rounded-lg shadow"
+                        >
+                    </div>
+                    <div class="flex items-center justify-center space-x-4 mb-4">
+                        <div 
+                            class="px-2 py-0.5 text-sm font-medium rounded-full"
+                            :class="{
+                                'bg-red-100 text-red-800': selectedRestaurant.type === 'chinese',
+                                'bg-blue-100 text-blue-800': selectedRestaurant.type === 'japanese',
+                                'bg-yellow-100 text-yellow-800': selectedRestaurant.type === 'western',
+                                'bg-green-100 text-green-800': selectedRestaurant.type === 'southeast',
+                                'bg-purple-100 text-purple-800': selectedRestaurant.type === 'other'
+                            }"
+                            x-text="getTypeText(selectedRestaurant.type)"
+                        ></div>
+                        <div class="flex items-center text-amber-500">
+                            <template x-for="i in 5" :key="i">
+                                <i 
+                                    class="fas fa-star text-xs" 
+                                    :class="{'text-amber-500': i <= selectedRestaurant.rating, 'text-gray-300': i > selectedRestaurant.rating}"
+                                ></i>
+                            </template>
+                        </div>
+                        <span class="text-sm text-gray-600" x-text="formatDistance(selectedRestaurant.distance)"></span>
+                    </div>
+                    <p class="text-center text-gray-600 mb-6" x-text="selectedRestaurant.description"></p>
+                    <div class="flex justify-center space-x-3">
+                        <button 
+                            @click="resetWheel()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+                        >
+                            <i class="fas fa-redo mr-1"></i> 重新選擇
+                        </button>
+                        <button 
+                            @click="navigateToRestaurant(selectedRestaurant)" 
+                            class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition"
+                        >
+                            <i class="fas fa-route mr-1"></i> 前往
+                        </button>
+                        <button 
+                            @click="shareResult()" 
+                            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                        >
+                            <i class="fas fa-share-alt mr-1"></i> 分享
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 最愛視圖 -->
+        <div 
+            x-show="currentView === 'favorites'" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="translate-y-full"
+            x-transition:enter-end="translate-y-0"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="translate-y-0"
+            x-transition:leave-end="translate-y-full"
+            class="bottom-drawer h-2/3"
+        >
+            <div class="drawer-handle"></div>
+            <div class="p-4">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">我的最愛</h2>
+                
+                <!-- 最愛餐廳列表 -->
+                <div class="overflow-y-auto h-[calc(100vh-220px)]">
+                    <template x-if="favoriteRestaurants.length === 0">
+                        <div class="flex flex-col items-center justify-center py-12">
+                            <i class="fas fa-heart text-gray-300 text-4xl mb-3"></i>
+                            <p class="text-gray-500 text-center">你還沒有收藏任何餐廳</p>
+                            <p class="text-gray-500 text-center mt-1">瀏覽餐廳時點擊愛心圖標加入最愛</p>
+                        </div>
+                    </template>
+                    
+                    <div class="grid grid-cols-1 gap-3">
+                        <template x-for="(restaurant, index) in favoriteRestaurants" :key="restaurant.id">
+                            <div 
+                                @click="showRestaurantDetail(restaurant)" 
+                                class="restaurant-card bg-white rounded-xl shadow p-3 flex items-start"
+                            >
+                                <div class="w-20 h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                                    <img :src="restaurant.image" :alt="restaurant.name" class="w-full h-full object-cover">
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <div class="flex justify-between">
+                                        <h3 class="font-bold text-gray-900" x-text="restaurant.name"></h3>
+                                        <div class="flex items-center">
+                                            <span 
+                                                x-text="formatDistance(restaurant.distance)" 
+                                                class="text-xs text-gray-500 mr-2"
+                                            ></span>
+                                            <button 
+                                                @click.stop="toggleFavorite(restaurant.id)" 
+                                                class="text-yellow-500 hover:text-yellow-600 transition-colors"
+                                            >
+                                                <i class="fas fa-heart"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center mt-1">
+                                        <div 
+                                            class="px-2 py-0.5 text-xs font-medium rounded-full mr-2"
+                                            :class="{
+                                                'bg-red-100 text-red-800': restaurant.type === 'chinese',
+                                                'bg-blue-100 text-blue-800': restaurant.type === 'japanese',
+                                                'bg-yellow-100 text-yellow-800': restaurant.type === 'western',
+                                                'bg-green-100 text-green-800': restaurant.type === 'southeast',
+                                                'bg-purple-100 text-purple-800': restaurant.type === 'other'
+                                            }"
+                                            x-text="getTypeText(restaurant.type)"
+                                        ></div>
+                                        <div class="flex items-center text-amber-500">
+                                            <template x-for="i in 5" :key="i">
+                                                <i 
+                                                    class="fas fa-star text-xs" 
+                                                    :class="{'text-amber-500': i <= restaurant.rating, 'text-gray-300': i > restaurant.rating}"
+                                                ></i>
+                                            </template>
+                                            <span class="text-xs text-gray-500 ml-1" x-text="restaurant.rating"></span>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1 line-clamp-2" x-text="restaurant.description"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 餐廳詳情視圖 -->
+        <div 
+            x-show="showDetail" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-50 flex flex-col"
+        >
+            <div class="absolute inset-0 bg-black opacity-40" @click="closeDetail()"></div>
+            
+            <div class="relative z-10 bg-white rounded-t-2xl max-h-[85vh] mt-auto overflow-hidden">
+                <!-- 餐廳照片 -->
+                <div class="relative w-full h-48">
+                    <img 
+                        :src="detailRestaurant.image" 
+                        :alt="detailRestaurant.name" 
+                        class="w-full h-full object-cover"
+                    >
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                    <button 
+                        @click="closeDetail()" 
+                        class="absolute top-4 left-4 w-10 h-10 bg-black/30 backdrop-blur rounded-full flex items-center justify-center text-white"
+                    >
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button 
+                        @click="toggleFavorite(detailRestaurant.id)" 
+                        class="absolute top-4 right-4 w-10 h-10 bg-black/30 backdrop-blur rounded-full flex items-center justify-center"
+                        :class="{'text-yellow-500': isFavorite(detailRestaurant.id), 'text-white': !isFavorite(detailRestaurant.id)}"
+                    >
+                        <i class="fas fa-heart"></i>
+                    </button>
+                </div>
+                
+                <!-- 餐廳資訊 -->
+                <div class="px-4 pt-3 pb-8">
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-2xl font-bold text-gray-900" x-text="detailRestaurant.name"></h3>
+                        <div class="flex flex-col items-end">
+                            <div class="flex items-center">
+                                <template x-for="i in 5" :key="i">
+                                    <i 
+                                        class="fas fa-star text-xs" 
+                                        :class="{'text-amber-500': i <= detailRestaurant.rating, 'text-gray-300': i > detailRestaurant.rating}"
+                                    ></i>
+                                </template>
+                                <span class="text-sm text-gray-700 ml-1" x-text="detailRestaurant.rating"></span>
+                            </div>
+                            <span 
+                                x-show="detailRestaurant.priceLevel >= 1" 
+                                class="text-sm text-gray-600 mt-1"
+                            >
+                                $<span x-text="''.padStart(detailRestaurant.priceLevel, '$')"></span>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center mt-2">
+                        <div 
+                            class="px-2 py-0.5 text-sm font-medium rounded-full mr-2"
+                            :class="{
+                                'bg-red-100 text-red-800': detailRestaurant.type === 'chinese',
+                                'bg-blue-100 text-blue-800': detailRestaurant.type === 'japanese',
+                                'bg-yellow-100 text-yellow-800': detailRestaurant.type === 'western',
+                                'bg-green-100 text-green-800': detailRestaurant.type === 'southeast',
+                                'bg-purple-100 text-purple-800': detailRestaurant.type === 'other'
+                            }"
+                            x-text="getTypeText(detailRestaurant.type)"
+                        ></div>
+                        <span 
+                            x-show="detailRestaurant.openNow" 
+                            class="px-2 py-0.5 text-sm font-medium bg-green-100 text-green-800 rounded-full mr-2"
+                        >
+                            營業中
+                        </span>
+                        <span x-text="formatDistance(detailRestaurant.distance)" class="text-sm text-gray-600"></span>
+                    </div>
+                    
+                    <p class="text-gray-700 mt-3" x-text="detailRestaurant.description"></p>
+                    
+                    <!-- 特色與標籤 -->
+                    <div class="mt-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">特色與推薦</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <template x-for="(tag, index) in detailRestaurant.tags || []" :key="index">
+                                <span class="px-2 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
+                                    <span x-text="tag"></span>
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <!-- 地址與聯絡資訊 -->
+                    <div class="mt-4">
+                        <h4 class="font-semibold text-gray-800 mb-2">地址與聯絡資訊</h4>
+                        <div class="flex items-start mb-2">
+                            <i class="fas fa-map-marker-alt text-gray-500 mt-1 mr-2"></i>
+                            <p class="text-gray-700" x-text="detailRestaurant.address"></p>
+                        </div>
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-phone text-gray-500 mr-2"></i>
+                            <p class="text-gray-700" x-text="detailRestaurant.phone || '無資訊'"></p>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-clock text-gray-500 mr-2"></i>
+                            <p class="text-gray-700" x-text="detailRestaurant.hours || '無資訊'"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按鈕 -->
+                    <div class="flex mt-6 space-x-3">
+                        <button 
+                            @click="navigateToRestaurant(detailRestaurant)" 
+                            class="flex-1 py-3 bg-primary-500 text-white font-medium rounded-lg shadow text-center hover:bg-primary-600 transition"
+                        >
+                            <i class="fas fa-route mr-1"></i> 導航前往
+                        </button>
+                        <button 
+                            @click="shareRestaurant(detailRestaurant)" 
+                            class="py-3 px-4 bg-gray-200 text-gray-800 font-medium rounded-lg shadow text-center hover:bg-gray-300 transition"
+                        >
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 設定彈窗 -->
+        <div 
+            x-show="showSettings" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-50 flex items-center justify-center"
+        >
+            <div class="absolute inset-0 bg-black bg-opacity-40" @click="showSettings = false"></div>
+            <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto m-4">
+                <div class="p-5">
+                    <div class="flex justify-between items-center mb-5">
+                        <h3 class="text-xl font-bold text-gray-800">設定</h3>
+                        <button @click="showSettings = false" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <!-- 距離設定 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">搜尋範圍</h4>
+                            <div class="flex items-center space-x-2">
+                                <input 
+                                    x-model="settings.searchRadius" 
+                                    type="range" 
+                                    min="500" 
+                                    max="5000" 
+                                    step="500" 
+                                    class="w-full accent-primary-500"
+                                >
+                                <span class="text-gray-700 min-w-[70px]" x-text="(settings.searchRadius/1000).toFixed(1) + ' 公里'"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- 價格範圍 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">價格範圍</h4>
+                            <div class="flex space-x-2">
+                                <template x-for="i in 4" :key="i">
+                                    <button 
+                                        @click="togglePriceLevel(i)" 
+                                        class="flex-1 py-2 border rounded-lg text-center transition"
+                                        :class="settings.priceLevels.includes(i) ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-300 text-gray-600'"
+                                    >
+                                        <span x-text="''.padStart(i, '$')"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- 常用位置 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">常用位置</h4>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <template x-for="(location, index) in settings.savedLocations" :key="index">
+                                    <div 
+                                        @click="selectSavedLocation(index)" 
+                                        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer"
+                                        :class="currentLocationIndex === index ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700'"
+                                    >
+                                        <span x-text="location.name"></span>
+                                        <button 
+                                            @click.stop="removeSavedLocation(index)" 
+                                            class="ml-1 text-xs opacity-70 hover:opacity-100"
+                                        >
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </template>
+                                <button 
+                                    @click="addNewLocation()" 
+                                    class="inline-flex items-center px-3 py-1 rounded-full bg-primary-100 text-primary-700 text-sm font-medium cursor-pointer"
+                                >
+                                    <i class="fas fa-plus mr-1"></i> 新增位置
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 其他設定 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-3">顯示設定</h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-700">只顯示營業中餐廳</span>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input 
+                                            type="checkbox" 
+                                            x-model="settings.openNowOnly" 
+                                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                        />
+                                        <label 
+                                            class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+                                        ></label>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-700">啟用動畫效果</span>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input 
+                                            type="checkbox" 
+                                            x-model="settings.enableAnimations" 
+                                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                        />
+                                        <label 
+                                            class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+                                        ></label>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-700">夜間模式地圖</span>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input 
+                                            type="checkbox" 
+                                            x-model="settings.darkMode" 
+                                            @change="toggleDarkMode()" 
+                                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                        />
+                                        <label 
+                                            class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+                                        ></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 歷史記錄管理 -->
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-semibold text-gray-700">歷史記錄</h4>
+                                <button 
+                                    @click="clearHistory()" 
+                                    class="text-xs text-red-500 hover:text-red-700"
+                                >
+                                    清除歷史
+                                </button>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg max-h-36 overflow-y-auto">
+                                <template x-if="history.length === 0">
+                                    <p class="text-gray-500 text-center text-sm py-2">尚無歷史記錄</p>
+                                </template>
+                                <ul class="space-y-1">
+                                    <template x-for="(item, index) in history" :key="index">
+                                        <li class="text-sm text-gray-700">
+                                            <span x-text="formatHistoryDate(item.date)"></span> - 
+                                            <span x-text="item.restaurant.name" class="font-medium"></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button 
+                            @click="saveSettings()" 
+                            class="px-5 py-2 bg-primary-500 text-white rounded-lg shadow hover:bg-primary-600 transition"
+                        >
+                            保存設定
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 高級篩選彈窗 -->
+        <div 
+            x-show="showFilterModal" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-50 flex items-center justify-center"
+        >
+            <div class="absolute inset-0 bg-black bg-opacity-40" @click="closeFilterModal()"></div>
+            <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto m-4">
+                <div class="p-5">
+                    <div class="flex justify-between items-center mb-5">
+                        <h3 class="text-xl font-bold text-gray-800">進階篩選</h3>
+                        <button @click="closeFilterModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-5">
+                        <!-- 類型篩選 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">餐廳類型</h4>
+                            <div class="grid grid-cols-3 gap-2">
+                                <template x-for="(type, key) in restaurantTypes" :key="key">
+                                    <button 
+                                        @click="toggleFilterType(key)" 
+                                        class="py-2 rounded-lg text-center transition"
+                                        :class="filterSettings.types.includes(key) ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700'"
+                                    >
+                                        <span x-text="type"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- 價格篩選 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">價格範圍</h4>
+                            <div class="flex space-x-2">
+                                <template x-for="i in 4" :key="i">
+                                    <button 
+                                        @click="toggleFilterPrice(i)" 
+                                        class="flex-1 py-2 border rounded-lg text-center transition"
+                                        :class="filterSettings.prices.includes(i) ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-300 text-gray-600'"
+                                    >
+                                        <span x-text="''.padStart(i, '$')"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- 距離篩選 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">距離範圍</h4>
+                            <div class="flex items-center space-x-2">
+                                <input 
+                                    x-model="filterSettings.maxDistance" 
+                                    type="range" 
+                                    min="500" 
+                                    max="5000" 
+                                    step="500" 
+                                    class="w-full accent-primary-500"
+                                >
+                                <span class="text-gray-700 min-w-[70px]" x-text="(filterSettings.maxDistance/1000).toFixed(1) + ' 公里'"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- 評分篩選 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">最低評分</h4>
+                            <div class="flex items-center space-x-2">
+                                <input 
+                                    x-model="filterSettings.minRating" 
+                                    type="range" 
+                                    min="0" 
+                                    max="5" 
+                                    step="0.5" 
+                                    class="w-full accent-primary-500"
+                                >
+                                <div class="flex items-center text-amber-500 min-w-[70px]">
+                                    <template x-for="i in 5" :key="i">
+                                        <i 
+                                            class="fas fa-star text-sm" 
+                                            :class="{'text-amber-500': i <= filterSettings.minRating, 'text-gray-300': i > filterSettings.minRating}"
+                                        ></i>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 其他篩選選項 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-3">其他選項</h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-700">只顯示營業中餐廳</span>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input 
+                                            type="checkbox" 
+                                            x-model="filterSettings.openNowOnly" 
+                                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                        />
+                                        <label 
+                                            class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+                                        ></label>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-700">只顯示最愛餐廳</span>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input 
+                                            type="checkbox" 
+                                            x-model="filterSettings.favoritesOnly" 
+                                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                        />
+                                        <label 
+                                            class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+                                        ></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-between">
+                        <button 
+                            @click="resetFilters()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+                        >
+                            重設篩選
+                        </button>
+                        <button 
+                            @click="applyFilters()" 
+                            class="px-5 py-2 bg-primary-500 text-white rounded-lg shadow hover:bg-primary-600 transition"
+                        >
+                            套用篩選
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        function app() {
+        function foodMapApp() {
             return {
+                // 應用狀態
+                isInitializing: true,
+                loadingProgress: 0,
                 currentView: 'map',
-                restaurants: [
-                    { id: 1, name: '老王牛肉麵', type: '中式', distance: 100, image: 'https://via.placeholder.com/150', lat: 25.033, lng: 121.565 },
-                    { id: 2, name: 'Tokyo拉麵', type: '日式', distance: 200, image: 'https://via.placeholder.com/150', lat: 25.034, lng: 121.566 }
-                ],
-                filteredRestaurants: [],
+                showResult: false,
+                showDetail: false,
+                showSettings: false,
+                showFilterModal: false,
+                isSpinning: false,
+                searchQuery: '',
+                currentFilter: 'all',
+                sortOrder: 'distance', // 'distance' 或 'rating'
+                showDistanceCircle: false,
+                
+                // 地圖相關
                 map: null,
-                async init() {
+                currentLocation: null,
+                currentLocationIndex: -1, // -1 代表當前位置，>=0 代表已保存的位置
+                markers: [],
+                markerCluster: null,
+                distanceCircle: null,
+                currentLocationMarker: null,
+                
+                // 資料
+                restaurants: [],
+                filteredRestaurants: [],
+                selectedRestaurant: null,
+                detailRestaurant: null,
+                favorites: [],
+                history: [],
+                
+                // 底部抽屜相關
+                drawerStartY: 0,
+                drawerCurrentY: 0,
+                
+                // 設定
+                settings: {
+                    searchRadius: 1000, // 1公里
+                    priceLevels: [1, 2, 3, 4],
+                    savedLocations: [
+                        // 格式: { name: '地點名稱', lat: 緯度, lng: 經度 }
+                    ],
+                    openNowOnly: false,
+                    enableAnimations: true,
+                    darkMode: false
+                },
+                
+                // 篩選設定
+                filterSettings: {
+                    types: ['chinese', 'japanese', 'western', 'southeast', 'other'],
+                    prices: [1, 2, 3, 4],
+                    maxDistance: 2000,
+                    minRating: 0,
+                    openNowOnly: false,
+                    favoritesOnly: false
+                },
+                
+                // 常量
+                restaurantTypes: {
+                    'chinese': '中式',
+                    'japanese': '日式',
+                    'western': '西式',
+                    'southeast': '東南亞',
+                    'other': '其他'
+                },
+                
+                // 測試數據 - 假設是從API獲取的餐廳列表
+                restaurantData: [
+                    {
+                        id: 1,
+                        name: '老王牛肉麵',
+                        type: 'chinese',
+                        rating: 4.5,
+                        priceLevel: 2,
+                        lat: 0, // 將在初始化時根據當前位置設定
+                        lng: 0,
+                        distance: 0,
+                        description: '超人氣牛肉麵店，湯頭濃郁，牛肉軟嫩多汁，麵條彈牙有勁，是在地人推薦的美食。',
+                        address: '台灣台中市北區三民路三段123號',
+                        phone: '04-2345-6789',
+                        hours: '11:00-21:00',
+                        image: 'https://source.unsplash.com/random/600x400/?beef,noodle',
+                        openNow: true,
+                        tags: ['招牌紅燒牛肉麵', '清燉牛肉麵', '牛肉餃子']
+                    },
+                    {
+                        id: 2,
+                        name: '阿美滷肉飯',
+                        type: 'chinese',
+                        rating: 4.2,
+                        priceLevel: 1,
+                        lat: 0,
+                        lng: 0,
+                        distance: 0,
+                        description: '傳統台式滷肉飯，香氣四溢，油亮油亮的滷肉配上白飯，絕對是味蕾的享受。',
+                        address: '台灣台中市中區中華路78號',
+                        phone: '04-2234-5678',
+                        hours: '10:30-20:30',
+                        image: 'https://source.unsplash.com/random/600x400/?braised,pork,rice',
+                        openNow: true,
+                        tags: ['滷肉飯', '控肉飯', '焢肉飯']
+                    },
+                    {
+                        id: 3,
+                        name: 'Tokyo拉麵',
+                        type: 'japanese',
+                        rating: 4.7,
+                        priceLevel: 3,
+                        lat: 0,
+                        lng: 0,
+                        distance: 0,
+                        description: '道地日式拉麵，豚骨湯底熬煮超過12小時，搭配特製叉燒肉和溏心蛋，絕對是拉麵控必訪之處。',
+                        address: '台灣台中市西區美村路一段22號',
+                        phone: '04-2332-1234',
+                        hours: '11:30-21:30',
+                        image: 'https://source.unsplash.com/random/600x400/?ramen',
+                        openNow: false,
+                        tags: ['豚骨拉麵', '味噌拉麵', '叉燒飯']
+                    },
+                    {
+                        id: 4,
+                        name: 'Bella義大利餐廳',
+                        type: 'western',
+                        rating: 4.4,
+                        priceLevel: 4,
+                        lat: 0,
+                        lng: 0,
+                        distance: 0,
+                        description: '精緻義式料理，從前菜到甜點，每一道都充滿意大利風情，是約會和慶祝的好選擇。',
+                        address: '台灣台中市西屯區河南路二段256號',
+                        phone: '04-2707-8888',
+                        hours: '11:30-14:30, 17:30-21:30',
+                        image: 'https://source.unsplash.com/random/600x400/?italian,pasta',
+                        openNow: true,
+                        tags: ['義大利麵', '披薩', '提拉米蘇']
+                    },
+                    {
+                        id: 5,
+                        name: '泰好吃',
+                        type: 'southeast',
+                        rating: 4.3,
+                        priceLevel: 2,
+                        lat: 0,
+                        lng: 0,
+                        distance: 0,
+                        description: '正宗泰國料理，酸辣鮮香的味道讓人回味無窮，是忠實顧客推薦的泰式餐廳。',
+                        address: '台灣台中市南區復興路三段156號',
+                        phone: '04-2287-5678',
+                        hours: '11:00-21:00',
+                        image: 'https://source.unsplash.com/random/600x400/?thai,food',
+                        openNow: true,
+                        tags: ['泰式打拋豬', '綠咖哩', '泰式奶茶']
+                    },
+                    {
+                        id: 6,
+                        name: '鮮味壽司',
+                        type: 'japanese',
+                        rating: 4.6,
+                        priceLevel: 3,
+                        lat: 0,
+                        lng: 0,
+                        distance: 0,
+                        description: '新鮮食材直送，壽司口感一流，從基本的鮪魚、鮭魚到高級的大拖羅，都能滿足你的味蕾。',
+                        address: '台灣台中市北屯區崇德路二段46號',
+                        phone: '04-2422-3456',
+                        hours: '11:30-14:00, 17:00-21:30',
+                        image: 'https://source.unsplash.com/random/600x400/?sushi',
+                        openNow: true,
+                        tags: ['握壽司', '生魚片', '炙燒比目魚']
+                    },
+                    {
+                        id: 7,
+                        name: 'Burger Heaven',
+                        type: 'western',
+                        rating: 4.1,
+                        priceLevel: 2,
+                        lat: 0,
+                        lng: 0,
+                        distance: 0,
+                        description: '手工漢堡專賣店，使用100%純牛肉，配上特製醬料和新鮮蔬果，每一口都是享受。',
+                        address: '台灣台中市西區公益路88號',
+                        phone: '04-2328-9876',
+                        hours: '11:00-22:00',
+                        image: 'https://source.unsplash.com/random/600x400/?burger',
+                        openNow: false,
+                        tags: ['起司漢堡', '培根漢堡', '薯條']
+                    },
+                    {
+                        id: 8,
+                        name: '越南河粉',
+                        type: 'southeast',
+                        rating: 4.0,
+                        priceLevel: 1,
+                        lat: 0,
+                        lng: 0,
+                        distance: 0,
+                        description: '道地越南料理，清爽的湯頭搭配香草和辣椒，讓人胃口大開，是平價美食的好選擇。',
+                        address: '台灣台中市太平區中山路152號',
+                        phone: '04-2276-5432',
+                        hours: '10:00-20:00',
+                        image: 'https://source.unsplash.com/random/600x400/?pho',
+                        openNow: true,
+                        tags: ['牛肉河粉', '越南春捲', '法國麵包']
+                    },
+                    {
+                        id: 9,
+                        name: '大中華麵食館',
+                        type: 'chinese',
+                        rating: 3.9,
+                        priceLevel: 1,
+                        lat: 0,
+                        lng: 0,
+                        distance: 0,
+                        description: '各式麵食一應俱全，從熱乾麵到麻辣牛肉麵，都有獨特風味，是學生和上班族的最愛。',
+                        address: '台灣台中市西屯區福星路427號',
+                        phone: '04-2465-3210',
+                        hours: '07:00-20:00',
+                        image: 'https://source.unsplash.com/random/600x400/?chinese,noodle',
+                        openNow: true,
+                        tags: ['炸醬麵', '餛飩麵', '牛肉麵']
+                    },
+                    {
+                        id: 10,
+                        name: '咖啡香早午餐',
+                        type: 'western',
+                        rating: 4.3,
+                        priceLevel: 2,
+                        lat: 0,
+                        lng: 0,
+                        distance: 0,
+                        description: '悠閒的早午餐餐廳，提供多種美式和歐式早餐選擇，咖啡也是一絕，是週末放鬆的好去處。',
+                        address: '台灣台中市南屯區大墩路689號',
+                        phone: '04-2386-7890',
+                        hours: '08:00-15:00',
+                        image: 'https://source.unsplash.com/random/600x400/?brunch',
+                        openNow: true,
+                        tags: ['班尼迪克蛋', '法式吐司', '鬆餅']
+                    },
+                    {
+                        id: 11,
+                        name: '川味小館',
+                        type: 'chinese',
+                        rating: 4.2,
+                        priceLevel: 2,
+                        lat: 0,
+                        lng: 0,
+                        distance: 0,
+                        description: '正宗四川料理，麻辣鮮香，讓你一嚐川菜的魅力，重口味愛好者的天堂。',
+                        address: '台灣台中市北區三民路一段167號',
+                        phone: '04-2223-4567',
+                        hours: '11:30-14:00, 17:00-21:00',
+                        image: 'https://source.unsplash.com/random/600x400/?spicy,chinese',
+                        openNow: false,
+                        tags: ['麻婆豆腐', '水煮魚', '夫妻肺片']
+                    },
+                    {
+                        id: 12,
+                        name: '海鮮市集',
+                        type: 'chinese',
+                        rating: 4.5,
+                        priceLevel: 4,
+                        lat: 0,
+                        lng: 0,
+                        distance: 0,
+                        description: '每日新鮮海鮮直送，從現撈活魚到生猛海鮮，讓你品嚐最新鮮的海味。',
+                        address: '台灣台中市梧棲區臨港路二段22號',
+                        phone: '04-2656-7890',
+                        hours: '11:00-22:00',
+                        image: 'https://source.unsplash.com/random/600x400/?seafood',
+                        openNow: true,
+                        tags: ['清蒸魚', '蒜蓉蝦', '薑蔥螃蟹']
+                    }
+                ],
+                
+                // 初始化函數
+                async initialize() {
+                    // 增量加載進度
+                    const updateProgress = (increment) => {
+                        this.loadingProgress += increment;
+                        if (this.loadingProgress > 100) this.loadingProgress = 100;
+                    };
+                    
+                    updateProgress(10); // 初始進度
+                    
+                    // 加載本地存儲的設定和收藏
+                    this.loadLocalData();
+                    updateProgress(20);
+                    
+                    // 獲取當前位置
+                    try {
+                        await this.getCurrentLocation();
+                        updateProgress(70);
+                    } catch (error) {
+                        console.error('獲取位置失敗:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: '無法獲取位置',
+                            text: '請手動選擇一個位置',
+                            confirmButtonColor: '#F8B400'
+                        });
+                        // 設定預設位置（台北市）
+                        this.currentLocation = { lat: 25.033, lng: 121.565 };
+                        updateProgress(60);
+                    }
+                    
                     // 初始化地圖
-                    this.map = L.map('map').setView([25.033, 121.565], 13);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    this.initMap();
+                    updateProgress(80);
+                    
+                    // 生成餐廳數據並設置標記
+                    this.generateRestaurants();
+                    this.displayRestaurants();
+                    updateProgress(95);
+                    
+                    // 更新篩選結果
+                    this.updateFilteredRestaurants();
+                    
+                    // 初始化輪盤
+                    this.renderWheel();
+                    
+                    // 完成初始化
+                    updateProgress(100);
+                    setTimeout(() => {
+                        this.isInitializing = false;
+                    }, 500);
+                },
+                
+                // 地理位置相關函數
+                getCurrentLocation() {
+                    return new Promise((resolve, reject) => {
+                        if (!navigator.geolocation) {
+                            reject(new Error('瀏覽器不支持地理位置'));
+                            return;
+                        }
+                        
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                this.currentLocation = {
+                                    lat: position.coords.latitude,
+                                    lng: position.coords.longitude
+                                };
+                                resolve(this.currentLocation);
+                            },
+                            (error) => {
+                                reject(error);
+                            },
+                            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                        );
+                    });
+                },
+                
+                // 地圖相關函數
+                initMap() {
+                    // 初始化地圖
+                    this.map = L.map('map').setView([this.currentLocation.lat, this.currentLocation.lng], 15);
+                    
+                    // 設定地圖圖層
+                    const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    });
+                    
+                    const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    });
+                    
+                    if (this.settings.darkMode) {
+                        darkLayer.addTo(this.map);
+                    } else {
+                        baseLayer.addTo(this.map);
+                    }
+                    
+                    // 添加圖層控制
+                    const baseMaps = {
+                        "標準": baseLayer,
+                        "夜間": darkLayer
+                    };
+                    
+                    L.control.layers(baseMaps).addTo(this.map);
+                    
+                    // 初始化標記聚合
+                    this.markerCluster = L.markerClusterGroup({
+                        disableClusteringAtZoom: 17,
+                        spiderfyOnMaxZoom: true,
+                        showCoverageOnHover: false,
+                        zoomToBoundsOnClick: true,
+                        maxClusterRadius: 40
+                    });
+                    
+                    this.map.addLayer(this.markerCluster);
+                    
+                    // 添加當前位置標記
+                    this.addCurrentLocationMarker();
+                    
+                    // 添加縮放控制
+                    L.control.zoom({
+                        position: 'bottomleft'
                     }).addTo(this.map);
-
-                    // 獲取位置
-                    navigator.geolocation.getCurrentPosition((pos) => {
-                        const { latitude, longitude } = pos.coords;
-                        this.map.setView([latitude, longitude], 15);
-                        L.marker([latitude, longitude]).addTo(this.map);
-                        this.updateDistances(latitude, longitude);
+                    
+                    // 監聽地圖點擊事件
+                    this.map.on('click', (e) => {
+                        if (e.originalEvent.target.id === 'map') {
+                            this.closeDetail();
+                        }
                     });
-
-                    this.filteredRestaurants = [...this.restaurants];
                 },
-                updateDistances(lat, lng) {
-                    this.restaurants.forEach(r => {
-                        r.distance = Math.sqrt(Math.pow(r.lat - lat, 2) + Math.pow(r.lng - lng, 2)) * 111000; // 簡化距離計算
+                
+                addCurrentLocationMarker() {
+                    if (this.currentLocationMarker) {
+                        this.map.removeLayer(this.currentLocationMarker);
+                    }
+                    
+                    // 自定義當前位置標記
+                    const locationIcon = L.divIcon({
+                        className: 'current-location-pulse',
+                        html: '<div style="width: 16px; height: 16px; background-color: #2196F3; border: 3px solid white; border-radius: 50%;"></div>',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
                     });
-                    this.filteredRestaurants = [...this.restaurants];
+                    
+                    this.currentLocationMarker = L.marker([this.currentLocation.lat, this.currentLocation.lng], {
+                        icon: locationIcon,
+                        zIndexOffset: 1000
+                    }).addTo(this.map);
                 },
-                randomSelect() {
-                    const idx = Math.floor(Math.random() * this.filteredRestaurants.length);
-                    Swal.fire({ title: '今天吃：', text: this.filteredRestaurants[idx].name });
+                
+                findMyLocation() {
+                    this.getCurrentLocation().then(() => {
+                        // 更新地圖視圖
+                        this.map.setView([this.currentLocation.lat, this.currentLocation.lng], 16);
+                        
+                        // 更新當前位置標記
+                        this.addCurrentLocationMarker();
+                        
+                        // 更新餐廳距離和標記
+                        this.updateRestaurantDistances();
+                        this.updateFilteredRestaurants();
+                        this.refreshMarkers();
+                        
+                        // 更新距離圓圈
+                        if (this.showDistanceCircle) {
+                            this.updateDistanceCircle();
+                        }
+                        
+                        // 重新整理輪盤
+                        this.renderWheel();
+                        
+                        // 重設當前位置索引
+                        this.currentLocationIndex = -1;
+                    }).catch(error => {
+                        console.error('獲取位置失敗:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: '無法獲取位置',
+                            text: '請手動選擇一個位置',
+                            confirmButtonColor: '#F8B400'
+                        });
+                    });
+                },
+                
+                toggleDistanceCircle() {
+                    this.showDistanceCircle = !this.showDistanceCircle;
+                    
+                    if (this.showDistanceCircle) {
+                        this.updateDistanceCircle();
+                    } else if (this.distanceCircle) {
+                        this.map.removeLayer(this.distanceCircle);
+                        this.distanceCircle = null;
+                    }
+                },
+                
+                updateDistanceCircle() {
+                    // 移除舊的圈
+                    if (this.distanceCircle) {
+                        this.map.removeLayer(this.distanceCircle);
+                    }
+                    
+                    // 創建新的距離圈
+                    this.distanceCircle = L.circle([this.currentLocation.lat, this.currentLocation.lng], {
+                        radius: this.filterSettings.maxDistance || this.settings.searchRadius,
+                        color: '#F8B400',
+                        fillColor: '#F8B400',
+                        fillOpacity: 0.1,
+                        weight: 2,
+                        dashArray: '5, 10'
+                    }).addTo(this.map);
+                },
+                
+                // 餐廳資料相關函數
+                generateRestaurants() {
+                    // 模擬從數據庫或API獲取附近餐廳
+                    this.restaurants = this.restaurantData.map(restaurant => {
+                        // 在當前位置附近隨機生成位置
+                        const r = (Math.random() * this.settings.searchRadius) / 1000; // 隨機距離（公里）
+                        const theta = Math.random() * 2 * Math.PI; // 隨機角度
+                        
+                        // 將極座標轉換為緯度/經度偏移
+                        // 緯度 1 度 ≈ 111 公里
+                        // 經度 1 度 ≈ 111 * cos(緯度) 公里
+                        const latOffset = r * Math.sin(theta) / 111;
+                        const lngOffset = r * Math.cos(theta) / (111 * Math.cos(this.currentLocation.lat * Math.PI / 180));
+                        
+                        // 更新餐廳經緯度
+                        restaurant.lat = this.currentLocation.lat + latOffset;
+                        restaurant.lng = this.currentLocation.lng + lngOffset;
+                        
+                        // 計算與當前位置的距離
+                        restaurant.distance = this.calculateDistance(
+                            this.currentLocation.lat, this.currentLocation.lng,
+                            restaurant.lat, restaurant.lng
+                        );
+                        
+                        return restaurant;
+                    });
+                    
+                    // 排序餐廳（按距離）
+                    this.restaurants.sort((a, b) => a.distance - b.distance);
+                },
+                
+                calculateDistance(lat1, lon1, lat2, lon2) {
+                    // 使用 Haversine 公式計算兩點間距離
+                    const R = 6371; // 地球半徑（公里）
+                    const dLat = (lat2 - lat1) * Math.PI / 180;
+                    const dLon = (lon2 - lon1) * Math.PI / 180;
+                    const a = 
+                        Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                        Math.sin(dLon/2) * Math.sin(dLon/2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    const distance = R * c; // 公里
+                    
+                    return distance * 1000; // 轉為公尺
+                },
+                
+                updateRestaurantDistances() {
+                    this.restaurants.forEach(restaurant => {
+                        restaurant.distance = this.calculateDistance(
+                            this.currentLocation.lat, this.currentLocation.lng,
+                            restaurant.lat, restaurant.lng
+                        );
+                    });
+                    
+                    // 重新排序餐廳
+                    if (this.sortOrder === 'distance') {
+                        this.restaurants.sort((a, b) => a.distance - b.distance);
+                    }
+                },
+                
+                displayRestaurants() {
+                    // 清除所有現有標記
+                    this.markerCluster.clearLayers();
+                    this.markers = [];
+                    
+                    // 為每家餐廳添加標記
+                    this.restaurants.forEach(restaurant => {
+                        // 根據餐廳類型創建不同顏色的標記
+                        const markerColor = this.getMarkerColor(restaurant.type);
+                        
+                        // 創建自定義標記
+                        const customIcon = L.divIcon({
+                            className: 'custom-marker',
+                            html: `
+                                <div style="background-color: ${markerColor};">
+                                    <i class="fas ${this.getTypeIcon(restaurant.type)}"></i>
+                                </div>
+                            `,
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 30],
+                            popupAnchor: [0, -28]
+                        });
+                        
+                        const marker = L.marker([restaurant.lat, restaurant.lng], {
+                            icon: customIcon,
+                            title: restaurant.name
+                        });
+                        
+                        // 添加彈出信息
+                        marker.bindPopup(this.createPopupContent(restaurant));
+                        
+                        // 添加點擊事件
+                        marker.on('click', () => {
+                            this.showRestaurantDetail(restaurant);
+                        });
+                        
+                        this.markers.push(marker);
+                        this.markerCluster.addLayer(marker);
+                    });
+                },
+                
+                refreshMarkers() {
+                    // 更新標記以反映新的篩選結果
+                    this.markerCluster.clearLayers();
+                    
+                    this.filteredRestaurants.forEach(restaurant => {
+                        const marker = this.markers.find(m => m.options.title === restaurant.name);
+                        if (marker) {
+                            this.markerCluster.addLayer(marker);
+                        }
+                    });
+                },
+                
+                getMarkerColor(type) {
+                    // 根據餐廳類型返回顏色
+                    const colorMap = {
+                        'chinese': '#e74c3c', // 紅色
+                        'japanese': '#3498db', // 藍色
+                        'western': '#f39c12', // 黃色
+                        'southeast': '#2ecc71', // 綠色
+                       ```javascript
+                        'other': '#9b59b6' // 紫色
+                    };
+                    
+                    return colorMap[type] || '#95a5a6';
+                },
+                
+                getTypeIcon(type) {
+                    // 根據餐廳類型返回圖標類
+                    const iconMap = {
+                        'chinese': 'fa-utensils', 
+                        'japanese': 'fa-fish',
+                        'western': 'fa-hamburger',
+                        'southeast': 'fa-pepper-hot',
+                        'other': 'fa-store'
+                    };
+                    
+                    return iconMap[type] || 'fa-utensils';
+                },
+                
+                createPopupContent(restaurant) {
+                    // 創建標記的彈出內容
+                    return `
+                        <div class="popup-content">
+                            <div class="font-bold text-lg">${restaurant.name}</div>
+                            <div class="flex items-center mt-1">
+                                <span class="text-xs font-medium px-2 py-0.5 rounded-full mr-1" 
+                                    style="background-color: ${this.getMarkerColor(restaurant.type)}20; color: ${this.getMarkerColor(restaurant.type)};">
+                                    ${this.getTypeText(restaurant.type)}
+                                </span>
+                                <span class="text-xs">${this.formatDistance(restaurant.distance)}</span>
+                            </div>
+                            <div class="mt-1">
+                                <button onclick="document.dispatchEvent(new CustomEvent('showDetail', {detail: ${restaurant.id}}))" 
+                                    class="text-xs text-primary-600 font-medium">
+                                    查看詳情
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                },
+                
+                // 篩選和排序功能
+                updateFilteredRestaurants() {
+                    // 應用當前篩選條件
+                    this.filteredRestaurants = this.restaurants.filter(restaurant => {
+                        // 按類型篩選
+                        if (this.currentFilter !== 'all' && restaurant.type !== this.currentFilter) {
+                            return false;
+                        }
+                        
+                        // 按距離篩選
+                        if (restaurant.distance > this.filterSettings.maxDistance) {
+                            return false;
+                        }
+                        
+                        // 按價格篩選
+                        if (!this.filterSettings.prices.includes(restaurant.priceLevel)) {
+                            return false;
+                        }
+                        
+                        // 按評分篩選
+                        if (restaurant.rating < this.filterSettings.minRating) {
+                            return false;
+                        }
+                        
+                        // 只顯示營業中
+                        if (this.filterSettings.openNowOnly && !restaurant.openNow) {
+                            return false;
+                        }
+                        
+                        // 只顯示最愛
+                        if (this.filterSettings.favoritesOnly && !this.isFavorite(restaurant.id)) {
+                            return false;
+                        }
+                        
+                        // 搜尋關鍵字
+                        if (this.searchQuery) {
+                            const query = this.searchQuery.toLowerCase();
+                            const nameMatch = restaurant.name.toLowerCase().includes(query);
+                            const typeMatch = this.getTypeText(restaurant.type).toLowerCase().includes(query);
+                            const descMatch = restaurant.description.toLowerCase().includes(query);
+                            
+                            if (!(nameMatch || typeMatch || descMatch)) {
+                                return false;
+                            }
+                        }
+                        
+                        return true;
+                    });
+                    
+                    // 應用排序
+                    if (this.sortOrder === 'distance') {
+                        this.filteredRestaurants.sort((a, b) => a.distance - b.distance);
+                    } else if (this.sortOrder === 'rating') {
+                        this.filteredRestaurants.sort((a, b) => b.rating - a.rating);
+                    }
+                    
+                    // 更新地圖標記
+                    this.refreshMarkers();
+                },
+                
+                setFilterType(type) {
+                    this.currentFilter = type;
+                    this.updateFilteredRestaurants();
+                },
+                
+                toggleSortOrder() {
+                    this.sortOrder = this.sortOrder === 'distance' ? 'rating' : 'distance';
+                    this.updateFilteredRestaurants();
+                },
+                
+                searchRestaurants() {
+                    this.updateFilteredRestaurants();
+                },
+                
+                resetFilters() {
+                    this.filterSettings = {
+                        types: ['chinese', 'japanese', 'western', 'southeast', 'other'],
+                        prices: [1, 2, 3, 4],
+                        maxDistance: 2000,
+                        minRating: 0,
+                        openNowOnly: false,
+                        favoritesOnly: false
+                    };
+                    
+                    this.currentFilter = 'all';
+                    this.searchQuery = '';
+                    this.updateFilteredRestaurants();
+                    
+                    if (this.showFilterModal) {
+                        this.closeFilterModal();
+                    }
+                },
+                
+                openFilterModal() {
+                    this.showFilterModal = true;
+                },
+                
+                closeFilterModal() {
+                    this.showFilterModal = false;
+                },
+                
+                applyFilters() {
+                    this.updateFilteredRestaurants();
+                    this.closeFilterModal();
+                    
+                    // 更新距離圓圈
+                    if (this.showDistanceCircle) {
+                        this.updateDistanceCircle();
+                    }
+                },
+                
+                toggleFilterType(type) {
+                    const index = this.filterSettings.types.indexOf(type);
+                    if (index > -1) {
+                        // 如果至少有一個類型，則允許刪除
+                        if (this.filterSettings.types.length > 1) {
+                            this.filterSettings.types.splice(index, 1);
+                        }
+                    } else {
+                        this.filterSettings.types.push(type);
+                    }
+                },
+                
+                toggleFilterPrice(price) {
+                    const index = this.filterSettings.prices.indexOf(price);
+                    if (index > -1) {
+                        // 如果至少有一個價格級別，則允許刪除
+                        if (this.filterSettings.prices.length > 1) {
+                            this.filterSettings.prices.splice(index, 1);
+                        }
+                    } else {
+                        this.filterSettings.prices.push(price);
+                    }
+                },
+                
+                // 餐廳詳情與交互功能
+                showRestaurantDetail(restaurant) {
+                    this.detailRestaurant = restaurant;
+                    this.showDetail = true;
+                },
+                
+                closeDetail() {
+                    this.showDetail = false;
+                },
+                
+                navigateToRestaurant(restaurant) {
+                    // 導航到餐廳 (使用原生地圖或導航應用)
+                    const url = `https://www.google.com/maps/dir/?api=1&destination=${restaurant.lat},${restaurant.lng}&travelmode=driving`;
+                    window.open(url, '_blank');
+                },
+                
+                shareRestaurant(restaurant) {
+                    const shareText = `我發現了一家不錯的餐廳：${restaurant.name}，${restaurant.description}`;
+                    const shareUrl = window.location.href;
+                    
+                    // 檢查是否支持 Web Share API
+                    if (navigator.share) {
+                        navigator.share({
+                            title: `${restaurant.name} - 今天想吃什麼`,
+                            text: shareText,
+                            url: shareUrl
+                        }).catch(err => {
+                            console.error('分享失敗:', err);
+                        });
+                    } else {
+                        // 不支持時顯示分享訊息
+                        Swal.fire({
+                            title: '分享餐廳',
+                            text: shareText,
+                            icon: 'info',
+                            showCancelButton: true,
+                            confirmButtonText: '複製文字',
+                            cancelButtonText: '關閉'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                navigator.clipboard.writeText(shareText).then(() => {
+                                    Swal.fire({
+                                        position: 'top-end',
+                                        icon: 'success',
+                                        title: '已複製到剪貼簿',
+                                        showConfirmButton: false,
+                                        timer: 1500
+                                    });
+                                });
+                            }
+                        });
+                    }
+                },
+                
+                decideRestaurant() {
+                    // 隨機選擇一家餐廳
+                    if (this.filteredRestaurants.length === 0) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: '沒有符合的餐廳',
+                            text: '請調整篩選條件再試一次',
+                            confirmButtonColor: '#F8B400'
+                        });
+                        return;
+                    }
+                    
+                    // 隨機選擇
+                    const randomIndex = Math.floor(Math.random() * this.filteredRestaurants.length);
+                    const restaurant = this.filteredRestaurants[randomIndex];
+                    
+                    // 顯示結果
+                    Swal.fire({
+                        title: '今天就決定吃...',
+                        html: `
+                            <div class="text-2xl font-bold text-accent-500 mb-3">${restaurant.name}</div>
+                            <div class="mb-2">
+                                <span class="px-2 py-1 text-sm font-medium rounded-full" 
+                                    style="background-color: ${this.getMarkerColor(restaurant.type)}20; color: ${this.getMarkerColor(restaurant.type)};">
+                                    ${this.getTypeText(restaurant.type)}
+                                </span>
+                                <span class="ml-2">${this.formatDistance(restaurant.distance)}</span>
+                            </div>
+                            <p class="text-gray-600">${restaurant.description}</p>
+                        `,
+                        imageUrl: restaurant.image,
+                        imageWidth: 200,
+                        imageHeight: 200,
+                        imageAlt: restaurant.name,
+                        showCancelButton: true,
+                        confirmButtonColor: '#4CAF50',
+                        cancelButtonColor: '#F8B400',
+                        confirmButtonText: '<i class="fas fa-route mr-1"></i> 導航前往',
+                        cancelButtonText: '查看詳情'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            this.navigateToRestaurant(restaurant);
+                        } else if (result.dismiss === Swal.DismissReason.cancel) {
+                            this.showRestaurantDetail(restaurant);
+                        }
+                    });
+                    
+                    // 添加到歷史記錄
+                    this.addToHistory(restaurant);
+                },
+                
+                // 輪盤功能
+                renderWheel() {
+                    const wheelContainer = this.$refs.wheelContainer;
+                    if (!wheelContainer) return;
+                    
+                    wheelContainer.innerHTML = '';
+                    
+                    // 獲取符合當前篩選的餐廳
+                    const restaurants = this.filteredRestaurants.slice(0, 12); // 最多顯示12家餐廳
+                    
+                    if (restaurants.length === 0) {
+                        return;
+                    }
+                    
+                    // 設定每個扇形的角度
+                    const segmentAngle = 360 / restaurants.length;
+                    
+                    // 生成輪盤扇形
+                    restaurants.forEach((restaurant, index) => {
+                        const segment = document.createElement('div');
+                        segment.className = 'wheel-segment';
+                        
+                        // 設定顏色 (根據餐廳類型)
+                        segment.style.backgroundColor = this.getMarkerColor(restaurant.type);
+                        
+                        // 旋轉到正確位置
+                        segment.style.transform = `rotate(${index * segmentAngle}deg)`;
+                        
+                        // 添加餐廳名稱
+                        const text = document.createElement('div');
+                        text.className = 'wheel-text';
+                        text.textContent = restaurant.name;
+                        
+                        segment.appendChild(text);
+                        wheelContainer.appendChild(segment);
+                    });
+                },
+                
+                spinWheel() {
+                    // 獲取符合當前篩選的餐廳
+                    const restaurants = this.filteredRestaurants.slice(0, 12);
+                    
+                    if (restaurants.length === 0) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: '沒有符合的餐廳',
+                            text: '請調整篩選條件再試一次',
+                            confirmButtonColor: '#F8B400'
+                        });
+                        return;
+                    }
+                    
+                    this.isSpinning = true;
+                    this.showResult = false;
+                    
+                    // 隨機選擇結果
+                    const randomIndex = Math.floor(Math.random() * restaurants.length);
+                    this.selectedRestaurant = restaurants[randomIndex];
+                    
+                    // 計算旋轉角度
+                    const segmentAngle = 360 / restaurants.length;
+                    const targetAngle = 3600 + (randomIndex * segmentAngle);
+                    
+                    // 設定旋轉動畫
+                    const wheel = this.$refs.wheelContainer;
+                    wheel.style.setProperty('--spin-degree', `${targetAngle}deg`);
+                    wheel.classList.add('spinning');
+                    
+                    // 動畫結束後顯示結果
+                    setTimeout(() => {
+                        this.isSpinning = false;
+                        this.showResult = true;
+                        wheel.classList.remove('spinning');
+                        
+                        // 若啟用動畫，顯示慶祝效果
+                        if (this.settings.enableAnimations) {
+                            confetti({
+                                particleCount: 100,
+                                spread: 70,
+                                origin: { y: 0.6 }
+                            });
+                        }
+                        
+                        // 添加到歷史記錄
+                        this.addToHistory(this.selectedRestaurant);
+                    }, 3000);
+                },
+                
+                resetWheel() {
+                    this.showResult = false;
+                },
+                
+                shareResult() {
+                    const shareText = `今天我決定吃「${this.selectedRestaurant.name}」！分享自「今天想吃什麼」App`;
+                    
+                    // 檢查是否支持 Web Share API
+                    if (navigator.share) {
+                        navigator.share({
+                            title: '今天想吃什麼',
+                            text: shareText,
+                            url: window.location.href
+                        }).catch(err => {
+                            console.error('分享失敗:', err);
+                        });
+                    } else {
+                        // 不支持時顯示分享訊息
+                        Swal.fire({
+                            title: '分享你的美食選擇',
+                            text: shareText,
+                            icon: 'success',
+                            showCancelButton: true,
+                            confirmButtonText: '複製文字',
+                            cancelButtonText: '關閉'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                navigator.clipboard.writeText(shareText).then(() => {
+                                    Swal.fire({
+                                        position: 'top-end',
+                                        icon: 'success',
+                                        title: '已複製到剪貼簿',
+                                        showConfirmButton: false,
+                                        timer: 1500
+                                    });
+                                });
+                            }
+                        });
+                    }
+                },
+                
+                // 收藏和歷史功能
+                toggleFavorite(restaurantId) {
+                    const index = this.favorites.indexOf(restaurantId);
+                    if (index > -1) {
+                        this.favorites.splice(index, 1);
+                    } else {
+                        this.favorites.push(restaurantId);
+                    }
+                    
+                    // 保存到本地存儲
+                    localStorage.setItem('foodMapFavorites', JSON.stringify(this.favorites));
+                },
+                
+                isFavorite(restaurantId) {
+                    return this.favorites.includes(restaurantId);
+                },
+                
+                get favoriteRestaurants() {
+                    return this.restaurants.filter(r => this.favorites.includes(r.id));
+                },
+                
+                addToHistory(restaurant) {
+                    this.history.unshift({
+                        restaurant: restaurant,
+                        date: new Date().toISOString()
+                    });
+                    
+                    // 限制歷史記錄最多保存20條
+                    if (this.history.length > 20) {
+                        this.history = this.history.slice(0, 20);
+                    }
+                    
+                    // 保存到本地存儲
+                    localStorage.setItem('foodMapHistory', JSON.stringify(this.history));
+                },
+                
+                clearHistory() {
+                    Swal.fire({
+                        title: '確定清除？',
+                        text: '所有歷史記錄將被刪除',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: '確定清除',
+                        cancelButtonText: '取消'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            this.history = [];
+                            localStorage.removeItem('foodMapHistory');
+                        }
+                    });
+                },
+                
+                // 設定功能
+                loadLocalData() {
+                    // 載入收藏列表
+                    const savedFavorites = localStorage.getItem('foodMapFavorites');
+                    if (savedFavorites) {
+                        this.favorites = JSON.parse(savedFavorites);
+                    }
+                    
+                    // 載入歷史記錄
+                    const savedHistory = localStorage.getItem('foodMapHistory');
+                    if (savedHistory) {
+                        this.history = JSON.parse(savedHistory);
+                    }
+                    
+                    // 載入設定
+                    const savedSettings = localStorage.getItem('foodMapSettings');
+                    if (savedSettings) {
+                        this.settings = {...this.settings, ...JSON.parse(savedSettings)};
+                    }
+                },
+                
+                openSettings() {
+                    this.showSettings = true;
+                },
+                
+                saveSettings() {
+                    // 保存設定到本地存儲
+                    localStorage.setItem('foodMapSettings', JSON.stringify(this.settings));
+                    
+                    // 更新地圖和餐廳
+                    this.updateFilteredRestaurants();
+                    
+                    if (this.showDistanceCircle) {
+                        this.updateDistanceCircle();
+                    }
+                    
+                    this.showSettings = false;
+                    
+                    Swal.fire({
+                        position: 'top-end',
+                        icon: 'success',
+                        title: '設定已保存',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                },
+                
+                toggleDarkMode() {
+                    const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    });
+                    
+                    const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    });
+                    
+                    // 清除當前圖層
+                    this.map.eachLayer((layer) => {
+                        if (layer instanceof L.TileLayer) {
+                            this.map.removeLayer(layer);
+                        }
+                    });
+                    
+                    // 添加新圖層
+                    if (this.settings.darkMode) {
+                        darkLayer.addTo(this.map);
+                    } else {
+                        baseLayer.addTo(this.map);
+                    }
+                    
+                    // 保留標記和圓圈
+                    this.markerCluster.addTo(this.map);
+                    this.addCurrentLocationMarker();
+                    
+                    if (this.showDistanceCircle && this.distanceCircle) {
+                        this.distanceCircle.addTo(this.map);
+                    }
+                },
+                
+                togglePriceLevel(level) {
+                    const index = this.settings.priceLevels.indexOf(level);
+                    if (index > -1) {
+                        // 如果至少有一個價格級別，則允許刪除
+                        if (this.settings.priceLevels.length > 1) {
+                            this.settings.priceLevels.splice(index, 1);
+                        }
+                    } else {
+                        this.settings.priceLevels.push(level);
+                    }
+                },
+                
+                // 位置管理
+                addNewLocation() {
+                    Swal.fire({
+                        title: '新增位置',
+                        html: `
+                            <input id="locationName" class="swal2-input" placeholder="位置名稱（如：家、公司）">
+                            <p class="text-sm text-gray-600 mt-1">將使用你目前的位置</p>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonColor: '#F8B400',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: '儲存位置',
+                        cancelButtonText: '取消',
+                        preConfirm: () => {
+                            const name = document.getElementById('locationName').value;
+                            if (!name) {
+                                Swal.showValidationMessage('請輸入位置名稱');
+                                return false;
+                            }
+                            return { name };
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // 添加新位置
+                            this.settings.savedLocations.push({
+                                name: result.value.name,
+                                lat: this.currentLocation.lat,
+                                lng: this.currentLocation.lng
+                            });
+                            
+                            // 更新當前位置索引
+                            this.currentLocationIndex = this.settings.savedLocations.length - 1;
+                        }
+                    });
+                },
+                
+                removeSavedLocation(index) {
+                    // 刪除保存的位置
+                    this.settings.savedLocations.splice(index, 1);
+                    
+                    // 如果刪除的是當前選中的位置，重置為當前位置
+                    if (this.currentLocationIndex === index) {
+                        this.currentLocationIndex = -1;
+                        this.findMyLocation();
+                    } else if (this.currentLocationIndex > index) {
+                        // 調整索引
+                        this.currentLocationIndex--;
+                    }
+                },
+                
+                selectSavedLocation(index) {
+                    const location = this.settings.savedLocations[index];
+                    
+                    // 更新當前位置
+                    this.currentLocation = {
+                        lat: location.lat,
+                        lng: location.lng
+                    };
+                    
+                    // 更新地圖視圖
+                    this.map.setView([location.lat, location.lng], 16);
+                    
+                    // 更新當前位置標記
+                    this.addCurrentLocationMarker();
+                    
+                    // 更新餐廳距離和標記
+                    this.updateRestaurantDistances();
+                    this.updateFilteredRestaurants();
+                    this.refreshMarkers();
+                    
+                    // 更新距離圓圈
+                    if (this.showDistanceCircle) {
+                        this.updateDistanceCircle();
+                    }
+                    
+                    // 更新當前位置索引
+                    this.currentLocationIndex = index;
+                    
+                    // 關閉設定窗口
+                    this.showSettings = false;
+                },
+                
+                // 底部抽屜手勢控制
+                handleDrawerTouchStart(e) {
+                    this.drawerStartY = e.touches[0].clientY;
+                    this.drawerCurrentY = e.touches[0].clientY;
+                },
+                
+                handleDrawerTouchMove(e) {
+                    this.drawerCurrentY = e.touches[0].clientY;
+                    const diff = this.drawerCurrentY - this.drawerStartY;
+                    
+                    // 防止向上拖動過多
+                    if (diff < 0) return;
+                    
+                    // 應用變換
+                    e.currentTarget.style.transform = `translateY(${diff}px)`;
+                },
+                
+                handleDrawerTouchEnd(e) {
+                    const diff = this.drawerCurrentY - this.drawerStartY;
+                    
+                    if (diff > 100) {
+                        // 如果拖動距離足夠大，關閉抽屜
+                        this.currentView = 'map';
+                    } else {
+                        // 否則恢復原位
+                        e.currentTarget.style.transform = '';
+                    }
+                },
+                
+                // 視圖切換
+                changeView(view) {
+                    this.currentView = view;
+                    
+                    if (view === 'wheel') {
+                        this.renderWheel();
+                    } else if (view === 'favorites') {
+                        // 確保最愛列表是最新的
+                        this.updateFilteredRestaurants();
+                    }
+                },
+                
+                // 實用函數
+                formatDistance(meters) {
+                    if (meters < 1000) {
+                        return `${Math.round(meters)} 公尺`;
+                    } else {
+                        return `${(meters / 1000).toFixed(1)} 公里`;
+                    }
+                },
+                
+                formatHistoryDate(dateString) {
+                    const date = new Date(dateString);
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffMins Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMs / 3600000);
+                    const diffDays = Math.floor(diffMs / 86400000);
+                    
+                    if (diffMins < 60) {
+                        return `${diffMins} 分鐘前`;
+                    } else if (diffHours < 24) {
+                        return `${diffHours} 小時前`;
+                    } else if (diffDays < 7) {
+                        return `${diffDays} 天前`;
+                    } else {
+                        return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+                    }
+                
+
+},
+                
+                getTypeText(type) {
+                    return this.restaurantTypes[type] || '其他';
                 }
             };
         }
+        
+        // 當文檔加載完成時，設置自定義事件監聽器
+        document.addEventListener('DOMContentLoaded', () => {
+            // 設置監聽器以處理來自彈出窗口的點擊
+            document.addEventListener('showDetail', (e) => {
+                const app = Alpine.evaluate(document.querySelector('[x-data]'), 'foodMapApp');
+                const restaurantId = e.detail;
+                const restaurant = app.restaurants.find(r => r.id === restaurantId);
+                if (restaurant) {
+                    app.showRestaurantDetail(restaurant);
+                }
+            });
+        });
     </script>
 </body>
 </html>
