@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今天想吃什麼？ - 美食決定器</title>
+    <meta name="description" content="解決每天「今天不知道吃什麼」的煩惱，讓我們幫你決定！">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.3/dist/cdn.min.js"></script>
+    <!-- GSAP 動畫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Confetti 特效 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f9f7f5;
+        }
+
+        .food-wheel {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+        }
+
+        .wheel-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            border-radius: 50%;
+            border: 8px solid #f8b400;
+            box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1), 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .wheel-segment {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            clip-path: polygon(50% 50%, 0 0, 0 100%);
+            transform-origin: 50% 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .wheel-text {
+            position: absolute;
+            top: 40%;
+            left: 30%;
+            transform: rotate(60deg);
+            transform-origin: 0 0;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .wheel-marker {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 40px;
+            background-color: #d62828;
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 10;
+        }
+
+        .result-container {
+            max-width: 350px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .result-container.show {
+            transform: scale(1.05);
+        }
+
+        .food-card {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .food-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 輪盤旋轉動畫 */
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(var(--spin-degree));
+            }
+        }
+
+        .spinning {
+            animation: spin 3s cubic-bezier(0.1, 0.7, 0.1, 1) forwards;
+        }
+
+        /* 自定義 Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #68D391;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-b from-amber-50 to-orange-50 min-h-screen">
+    <div x-data="foodPicker()" x-init="initialize()" class="container mx-auto px-4 py-8">
+        <!-- 頂部導航 -->
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-amber-800">今天想吃什麼？</h1>
+            <button @click="openSettings()" class="p-2 text-gray-600 rounded-full hover:bg-gray-200 transition">
+                <i class="fas fa-cog text-xl"></i>
+            </button>
+        </header>
+
+        <!-- 主要內容 -->
+        <main class="mb-10">
+            <!-- 篩選選項 -->
+            <div class="flex flex-wrap justify-center gap-3 mb-6">
+                <button @click="filterType = 'all'" :class="{'bg-amber-500 text-white': filterType === 'all', 'bg-white text-gray-700': filterType !== 'all'}" 
+                    class="px-4 py-2 rounded-full shadow-sm font-medium transition">
+                    全部
+                </button>
+                <button @click="filterType = 'chinese'" :class="{'bg-amber-500 text-white': filterType === 'chinese', 'bg-white text-gray-700': filterType !== 'chinese'}" 
+                    class="px-4 py-2 rounded-full shadow-sm font-medium transition">
+                    中式
+                </button>
+                <button @click="filterType = 'japanese'" :class="{'bg-amber-500 text-white': filterType === 'japanese', 'bg-white text-gray-700': filterType !== 'japanese'}" 
+                    class="px-4 py-2 rounded-full shadow-sm font-medium transition">
+                    日式
+                </button>
+                <button @click="filterType = 'western'" :class="{'bg-amber-500 text-white': filterType === 'western', 'bg-white text-gray-700': filterType !== 'western'}" 
+                    class="px-4 py-2 rounded-full shadow-sm font-medium transition">
+                    西式
+                </button>
+                <button @click="filterType = 'southeast'" :class="{'bg-amber-500 text-white': filterType === 'southeast', 'bg-white text-gray-700': filterType !== 'southeast'}" 
+                    class="px-4 py-2 rounded-full shadow-sm font-medium transition">
+                    東南亞
+                </button>
+            </div>
+
+            <!-- 輪盤區域 -->
+            <div class="relative flex flex-col items-center mb-8" x-show="!showResult">
+                <div class="food-wheel">
+                    <div class="wheel-marker"></div>
+                    <div id="wheelContainer" class="wheel-container" x-ref="wheelContainer">
+                        <!-- 輪盤將由 JS 動態生成 -->
+                    </div>
+                </div>
+                <button @click="spin()" x-bind:disabled="isSpinning" 
+                    class="mt-8 px-8 py-3 bg-red-600 text-white text-xl font-bold rounded-full shadow-lg hover:bg-red-700 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="!isSpinning">轉起來！</span>
+                    <span x-show="isSpinning">轉動中...</span>
+                </button>
+            </div>
+
+            <!-- 結果展示 -->
+            <div x-show="showResult" x-transition:enter="transition ease-out duration-300" 
+                x-transition:enter-start="opacity-0 transform scale-90" 
+                x-transition:enter-end="opacity-100 transform scale-100" 
+                class="result-container p-6">
+                <div class="text-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">今天就決定吃...</h2>
+                    <h3 class="text-3xl font-bold text-red-600 mt-2" x-text="selectedFood.name"></h3>
+                </div>
+                <div class="flex justify-center mb-4">
+                    <img :src="selectedFood.image || 'https://via.placeholder.com/150?text=美食圖片'" alt="美食圖片" class="w-40 h-40 object-cover rounded-lg shadow">
+                </div>
+                <p class="text-center text-gray-600 mb-6" x-text="selectedFood.description"></p>
+                <div class="flex justify-center space-x-3">
+                    <button @click="resetAndSpin()" class="px-4 py-2 bg-amber-500 text-white rounded-lg shadow hover:bg-amber-600 transition">
+                        <i class="fas fa-redo mr-1"></i> 重新選擇
+                    </button>
+                    <button @click="shareResult()" class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition">
+                        <i class="fas fa-share-alt mr-1"></i> 分享
+                    </button>
+                </div>
+            </div>
+
+            <!-- 自訂食物區域 -->
+            <div class="mt-12" x-show="!showResult">
+                <h3 class="text-xl font-bold text-gray-700 mb-4">我的最愛美食</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    <template x-for="(food, index) in customFoods" :key="index">
+                        <div class="food-card bg-white p-3 rounded-lg shadow text-center">
+                            <div class="w-full h-24 mb-2 rounded overflow-hidden bg-gray-200">
+                                <img :src="food.image || 'https://via.placeholder.com/100?text=美食'" :alt="food.name" class="w-full h-full object-cover">
+                            </div>
+                            <h4 class="font-medium text-gray-800" x-text="food.name"></h4>
+                            <div class="flex justify-center mt-2">
+                                <button @click="removeCustomFood(index)" class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                    <div @click="addCustomFood()" class="food-card flex items-center justify-center bg-white p-3 rounded-lg shadow text-center h-full border-2 border-dashed border-gray-300 hover:border-amber-500">
+                        <div class="text-center">
+                            <i class="fas fa-plus text-gray-400 text-2xl mb-2"></i>
+                            <p class="text-gray-500">新增美食</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 設定面板 (預設隱藏) -->
+        <div x-show="showSettings" x-transition:enter="transition ease-out duration-300" 
+            x-transition:enter-start="opacity-0" 
+            x-transition:enter-end="opacity-100" 
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div @click.away="showSettings = false" class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800">設定</h3>
+                        <button @click="showSettings = false" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-6">
+                        <!-- 預算設定 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">預算範圍</h4>
+                            <div class="flex items-center space-x-2">
+                                <input x-model="settings.budget.min" type="range" min="0" max="1000" step="50" class="w-full">
+                                <span class="text-gray-700 min-w-[80px]" x-text="`${settings.budget.min}元 - ${settings.budget.max}元`"></span>
+                            </div>
+                            <div class="flex items-center space-x-2 mt-2">
+                                <input x-model="settings.budget.max" type="range" min="50" max="2000" step="50" class="w-full">
+                            </div>
+                        </div>
+                        
+                        <!-- 地區設定 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">常用地區</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="(location, index) in settings.locations" :key="index">
+                                    <div class="inline-block bg-gray-100 rounded-full px-3 py-1 text-sm font-medium text-gray-700">
+                                        <span x-text="location"></span>
+                                        <button @click="removeLocation(index)" class="ml-1 text-gray-500 hover:text-gray-700">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </template>
+                                <button @click="addLocation()" class="inline-block bg-amber-100 rounded-full px-3 py-1 text-sm font-medium text-amber-700">
+                                    <i class="fas fa-plus mr-1"></i> 新增地區
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 其他設定 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">其他設定</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-700">避免重複推薦</span>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input type="checkbox" x-model="settings.avoidDuplicates" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                        <label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-700">啟用動畫效果</span>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input type="checkbox" x-model="settings.enableAnimations" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                        <label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 歷史記錄 -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">歷史記錄</h4>
+                            <div class="bg-gray-50 p-3 rounded-lg max-h-32 overflow-y-auto">
+                                <template x-if="history.length === 0">
+                                    <p class="text-gray-500 text-center">尚無歷史記錄</p>
+                                </template>
+                                <ul class="space-y-1">
+                                    <template x-for="(item, index) in history" :key="index">
+                                        <li class="text-sm text-gray-700">
+                                            <span x-text="formatDate(item.date)"></span> - 
+                                            <span x-text="item.food.name" class="font-medium"></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                            <button @click="clearHistory()" class="mt-2 text-sm text-red-500 hover:text-red-700">
+                                清除歷史記錄
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end">
+                        <button @click="saveSettings()" class="px-4 py-2 bg-amber-500 text-white rounded-lg shadow hover:bg-amber-600 transition">
+                            保存設定
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 頁腳 -->
+        <footer class="text-center text-gray-500 text-sm mt-8">
+            <p>© 2025 今天想吃什麼 | Made with ❤️ in Taiwan</p>
+        </footer>
+    </div>
+
+    <script>
+        function foodPicker() {
+            return {
+                // 狀態變數
+                isSpinning: false,
+                showResult: false,
+                showSettings: false,
+                selectedFood: null,
+                filterType: 'all',
+                
+                // 數據
+                defaultFoods: [
+                    { name: '牛肉麵', type: 'chinese', price: 150, description: '台灣國民美食，香濃湯頭搭配軟嫩牛肉，麵條有嚼勁', image: 'https://source.unsplash.com/random/300x300/?beef,noodle' },
+                    { name: '滷肉飯', type: 'chinese', price: 60, description: '香濃醬汁滲透每一粒飯，肥而不膩的滷肉', image: 'https://source.unsplash.com/random/300x300/?braised,pork,rice' },
+                    { name: '雞肉飯', type: 'chinese', price: 80, description: '嫩煮雞肉搭配特製醬汁淋在白飯上，簡單又美味', image: 'https://source.unsplash.com/random/300x300/?chicken,rice' },
+                    { name: '滷味', type: 'chinese', price: 100, description: '多種食材在特製湯頭中入味，香辣可口', image: 'https://source.unsplash.com/random/300x300/?braised,food' },
+                    { name: '炒飯', type: 'chinese', price: 90, description: '蛋香四溢，粒粒分明的炒飯，搭配多種配料', image: 'https://source.unsplash.com/random/300x300/?fried,rice' },
+                    { name: '拉麵', type: 'japanese', price: 180, description: '日式豚骨湯底，配上彈牙麵條和溏心蛋', image: 'https://source.unsplash.com/random/300x300/?ramen' },
+                    { name: '壽司', type: 'japanese', price: 250, description: '新鮮生魚片搭配醋飯，入口即化', image: 'https://source.unsplash.com/random/300x300/?sushi' },
+                    { name: '義大利麵', type: 'western', price: 200, description: '道地義式醬汁，完美融合麵條，令人回味', image: 'https://source.unsplash.com/random/300x300/?pasta' },
+                    { name: '漢堡', type: 'western', price: 120, description: '多汁肉餅夾在鬆軟麵包中，配上新鮮蔬菜', image: 'https://source.unsplash.com/random/300x300/?burger' },
+                    { name: '泰式料理', type: 'southeast', price: 160, description: '酸辣香甜並存，道地泰國風味', image: 'https://source.unsplash.com/random/300x300/?thai,food' },
+                    { name: '越南河粉', type: 'southeast', price: 140, description: '清爽湯頭搭配寬粉和嫩牛肉，佐以香草', image: 'https://source.unsplash.com/random/300x300/?pho' },
+                    { name: '便當', type: 'chinese', price: 85, description: '多種配菜搭配主菜和白飯，營養均衡', image: 'https://source.unsplash.com/random/300x300/?bento' }
+                ],
+                customFoods: [],
+                history: [],
+                
+                // 設定
+                settings: {
+                    budget: {
+                        min: 0,
+                        max: 500
+                    },
+                    locations: ['公司附近', '家附近'],
+                    avoidDuplicates: true,
+                    enableAnimations: true
+                },
+
+                // 初始化函數
+                initialize() {
+                    this.loadFromLocalStorage();
+                    this.renderWheel();
+                },
+
+                // 資料存取函數
+                loadFromLocalStorage() {
+                    // 讀取自訂食物
+                    const savedCustomFoods = localStorage.getItem('customFoods');
+                    if (savedCustomFoods) {
+                        this.customFoods = JSON.parse(savedCustomFoods);
+                    }
+                    
+                    // 讀取歷史記錄
+                    const savedHistory = localStorage.getItem('foodHistory');
+                    if (savedHistory) {
+                        this.history = JSON.parse(savedHistory);
+                    }
+                    
+                    // 讀取設定
+                    const savedSettings = localStorage.getItem('foodSettings');
+                    if (savedSettings) {
+                        this.settings = JSON.parse(savedSettings);
+                    }
+                },
+
+                saveToLocalStorage() {
+                    localStorage.setItem('customFoods', JSON.stringify(this.customFoods));
+                    localStorage.setItem('foodHistory', JSON.stringify(this.history));
+                    localStorage.setItem('foodSettings', JSON.stringify(this.settings));
+                },
+
+                // 輪盤功能
+                renderWheel() {
+                    const wheelContainer = this.$refs.wheelContainer;
+                    wheelContainer.innerHTML = '';
+                    
+                    // 根據當前篩選條件獲取食物
+                    const foods = this.getFilteredFoods();
+                    
+                    if (foods.length === 0) {
+                        // 沒有符合條件的食物，顯示提示
+                        Swal.fire({
+                            title: '沒有符合的美食',
+                            text: '請嘗試調整篩選條件或新增自訂美食',
+                            icon: 'info',
+                            confirmButtonColor: '#f8b400',
+                        });
+                        return;
+                    }
+                    
+                    // 設定每個扇形的角度
+                    const segmentAngle = 360 / foods.length;
+                    
+                    // 生成輪盤扇形
+                    foods.forEach((food, index) => {
+                        const segment = document.createElement('div');
+                        segment.className = 'wheel-segment';
+                        
+                        // 設定顏色 (循環使用幾種顏色)
+                        const colors = ['#f8b400', '#ff6b6b', '#2f89fc', '#5fb622', '#9c5de3'];
+                        segment.style.backgroundColor = colors[index % colors.length];
+                        
+                        // 旋轉到正確位置
+                        segment.style.transform = `rotate(${index * segmentAngle}deg)`;
+                        
+                        // 添加食物名稱
+                        const text = document.createElement('div');
+                        text.className = 'wheel-text';
+                        text.textContent = food.name;
+                        
+                        segment.appendChild(text);
+                        wheelContainer.appendChild(segment);
+                    });
+                },
+
+                getFilteredFoods() {
+                    // 合併預設和自訂食物
+                    let allFoods = [...this.defaultFoods, ...this.customFoods];
+                    
+                    // 根據類型篩選
+                    if (this.filterType !== 'all') {
+                        allFoods = allFoods.filter(food => food.type === this.filterType);
+                    }
+                    
+                    // 根據預算篩選
+                    allFoods = allFoods.filter(food => 
+                        food.price >= this.settings.budget.min && 
+                        food.price <= this.settings.budget.max
+                    );
+                    
+                    // 如果設定避免重複，排除最近的選擇
+                    if (this.settings.avoidDuplicates && this.history.length > 0) {
+                        const recentFoodNames = this.history
+                            .slice(0, Math.min(3, this.history.length))
+                            .map(item => item.food.name);
+                        
+                        allFoods = allFoods.filter(food => !recentFoodNames.includes(food.name));
+                    }
+                    
+                    return allFoods;
+                },
+
+                spin() {
+                    // 確認有食物可選
+                    const foods = this.getFilteredFoods();
+                    if (foods.length === 0) return;
+                    
+                    this.isSpinning = true;
+                    this.showResult = false;
+                    
+                    // 隨機選擇結果
+                    const randomIndex = Math.floor(Math.random() * foods.length);
+                    this.selectedFood = foods[randomIndex];
+                    
+                    // 計算旋轉角度 (確保指針指向選中的扇形)
+                    const segmentAngle = 360 / foods.length;
+                    const targetAngle = 3600 + (randomIndex * segmentAngle);
+                    
+                    // 設定旋轉動畫
+                    const wheel = this.$refs.wheelContainer;
+                    wheel.style.setProperty('--spin-degree', `${targetAngle}deg`);
+                    wheel.classList.add('spinning');
+                    
+                    // 動畫結束後顯示結果
+                    setTimeout(() => {
+                        this.isSpinning = false;
+                        this.showResult = true;
+                        wheel.classList.remove('spinning');
+                        
+                        // 若啟用動畫，顯示慶祝效果
+                        if (this.settings.enableAnimations) {
+                            confetti({
+                                particleCount: 100,
+                                spread: 70,
+                                origin: { y: 0.6 }
+                            });
+                        }
+                        
+                        // 添加到歷史記錄
+                        this.addToHistory(this.selectedFood);
+                    }, 3000);
+                },
+
+                resetAndSpin() {
+                    this.showResult = false;
+                    setTimeout(() => {
+                        this.spin();
+                    }, 300);
+                },
+
+                // 自訂食物功能
+                addCustomFood() {
+                    Swal.fire({
+                        title: '新增自訂美食',
+                        html: `
+                            <input id="foodName" class="swal2-input" placeholder="美食名稱">
+                            <select id="foodType" class="swal2-select">
+                                <option value="chinese">中式</option>
+                                <option value="japanese">日式</option>
+                                <option value="western">西式</option>
+                                <option value="southeast">東南亞</option>
+                                <option value="other">其他</option>
+                            </select>
+                            <input id="foodPrice" type="number" class="swal2-input" placeholder="價格">
+                            <input id="foodDesc" class="swal2-input" placeholder="描述 (選填)">
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: '新增',
+                        cancelButtonText: '取消',
+                        preConfirm: () => {
+                            const name = document.getElementById('foodName').value;
+                            const type = document.getElementById('foodType').value;
+                            const priceStr = document.getElementById('foodPrice').value;
+                            const description = document.getElementById('foodDesc').value;
+                            
+                            if (!name) {
+                                Swal.showValidationMessage('請輸入美食名稱');
+                                return false;
+                            }
+                            
+                            if (!priceStr) {
+                                Swal.showValidationMessage('請輸入價格');
+                                return false;
+                            }
+                            
+                            const price = parseInt(priceStr);
+                            if (isNaN(price) || price < 0) {
+                                Swal.showValidationMessage('價格必須是正數');
+                                return false;
+                            }
+                            
+                            return { name, type, price, description };
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            const { name, type, price, description } = result.value;
+                            
+                            const newFood = {
+                                name,
+                                type,
+                                price,
+                                description: description || `自訂的${name}`,
+                                image: `https://source.unsplash.com/random/300x300/?${encodeURIComponent(name)},food`
+                            };
+                            
+                            this.customFoods.push(newFood);
+                            this.saveToLocalStorage();
+                            this.renderWheel();
+                            
+                            Swal.fire({
+                                position: 'top-end',
+                                icon: 'success',
+                                title: '已新增自訂美食',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                        }
+                    });
+                },
+
+                removeCustomFood(index) {
+                    Swal.fire({
+                        title: '確定刪除？',
+                        text: `是否要刪除「${this.customFoods[index].name}」？`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: '確定刪除',
+                        cancelButtonText: '取消'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            this.customFoods.splice(index, 1);
+                            this.saveToLocalStorage();
+                            this.renderWheel();
+                        }
+                    });
+                },
+
+                // 歷史記錄功能
+                addToHistory(food) {
+                    this.history.unshift({
+                        food: food,
+                        date: new Date().toISOString()
+                    });
+                    
+                    // 限制歷史記錄最多保存20條
+                    if (this.history.length > 20) {
+                        this.history = this.history.slice(0, 20);
+                    }
+                    
+                    this.saveToLocalStorage();
+                },
+
+                clearHistory() {
+                    Swal.fire({
+                        title: '確定清除？',
+                        text: '所有歷史記錄將被刪除',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: '確定清除',
+                        cancelButtonText: '取消'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            this.history = [];
+                            this.saveToLocalStorage();
+                        }
+                    });
+                },
+
+                formatDate(dateString) {
+                    const date = new Date(dateString);
+                    return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+                },
+
+                // 設定功能
+                openSettings() {
+                    this.showSettings = true;
+                },
+
+                saveSettings() {
+                    this.saveToLocalStorage();
+                    this.renderWheel();
+                    this.showSettings = false;
+                    
+                    Swal.fire({
+                        position: 'top-end',
+                        icon: 'success',
+                        title: '設定已保存',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                },
+
+                addLocation() {
+                    Swal.fire({
+                        title: '新增地區',
+                        input: 'text',
+                        inputPlaceholder: '例如: 公司附近',
+                        showCancelButton: true,
+                        inputValidator: (value) => {
+                            if (!value) {
+                                return '請輸入地區名稱';
+                            }
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value) {
+                            this.settings.locations.push(result.value);
+                        }
+                    });
+                },
+
+                removeLocation(index) {
+                    this.settings.locations.splice(index, 1);
+                },
+
+                // 分享功能
+                shareResult() {
+                    const shareText = `今天我決定吃「${this.selectedFood.name}」！來「今天想吃什麼」App，解決你的選擇困難！`;
+                    
+                    // 檢查是否支援網頁分享API
+                    if (navigator.share) {
+                        navigator.share({
+                            title: '今天想吃什麼',
+                            text: shareText,
+                            url: window.location.href
+                        }).catch(err => {
+                            console.error('分享失敗:', err);
+                        });
+                    } else {
+                        // 不支援時顯示分享連結
+                        Swal.fire({
+                            title: '分享你的美食選擇',
+                            text: shareText,
+                            icon: 'success',
+                            showCancelButton: true,
+                            confirmButtonText: '複製文字',
+                            cancelButtonText: '關閉'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                navigator.clipboard.writeText(shareText).then(() => {
+                                    Swal.fire({
+                                        position: 'top-end',
+                                        icon: 'success',
+                                        title: '已複製到剪貼簿',
+                                        showConfirmButton: false,
+                                        timer: 1500
+                                    });
+                                });
+                            }
+                        });
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>
