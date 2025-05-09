@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>石頭剪刀布遊戲</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 設定 Tailwind 配置 -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: "#f0f9ff",
+                100: "#e0f2fe",
+                200: "#bae6fd",
+                300: "#7dd3fc",
+                400: "#38bdf8",
+                500: "#0ea5e9",
+                600: "#0284c7",
+                700: "#0369a1",
+                800: "#075985",
+                900: "#0c4a6e",
+              },
+              secondary: {
+                50: "#fdf4ff",
+                100: "#fae8ff",
+                200: "#f5d0fe",
+                300: "#f0abfc",
+                400: "#e879f9",
+                500: "#d946ef",
+                600: "#c026d3",
+                700: "#a21caf",
+                800: "#86198f",
+                900: "#701a75",
+              },
+              neutral: {
+                50: "#f8fafc",
+                100: "#f1f5f9",
+                200: "#e2e8f0",
+                300: "#cbd5e1",
+                400: "#94a3b8",
+                500: "#64748b",
+                600: "#475569",
+                700: "#334155",
+                800: "#1e293b",
+                900: "#0f172a",
+              },
+            },
+            spacing: {
+              1: "0.25rem",
+              2: "0.5rem",
+              3: "0.75rem",
+              4: "1rem",
+              5: "1.25rem",
+              6: "1.5rem",
+              8: "2rem",
+              10: "2.5rem",
+              12: "3rem",
+              16: "4rem",
+              20: "5rem",
+              24: "6rem",
+              32: "8rem",
+            },
+            fontFamily: {
+              sans: ["Inter", "Noto Sans TC", "sans-serif"],
+              display: ["Noto Sans TC", "Inter", "sans-serif"],
+            },
+            keyframes: {
+              wiggle: {
+                "0%, 100%": { transform: "rotate(-3deg)" },
+                "50%": { transform: "rotate(3deg)" },
+              },
+              bounce: {
+                "0%, 100%": { transform: "translateY(-5%)" },
+                "50%": { transform: "translateY(0)" },
+              },
+            },
+            animation: {
+              wiggle: "wiggle 1s ease-in-out infinite",
+              bounce: "bounce 0.6s ease-in-out infinite",
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Remix Icon CDN -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css"
+      rel="stylesheet"
+    />
+
+    <!-- 自定義樣式 -->
+    <style>
+      /* 全局樣式 */
+      body {
+        font-family: "Noto Sans TC", "Inter", sans-serif;
+        background-color: #f8fafc;
+        color: #1e293b;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* 選項按鈕效果 */
+      .choice-btn {
+        transition: all 0.3s ease;
+        transform-origin: center;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -4px rgba(0, 0, 0, 0.1);
+      }
+
+      .choice-btn:hover {
+        transform: scale(1.05) translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      }
+
+      .choice-btn:active {
+        transform: scale(0.98);
+      }
+
+      /* 選擇結果顯示區 */
+      .result-display {
+        transition: all 0.5s ease;
+      }
+
+      /* 彩蛋按鈕 */
+      .easter-egg-btn {
+        opacity: 0.1;
+        transition: opacity 0.3s ease;
+      }
+
+      .easter-egg-btn:hover {
+        opacity: 0.3;
+      }
+
+      /* 勝利特效 */
+      @keyframes win-pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 15px rgba(14, 165, 233, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
+        }
+      }
+
+      .win-pulse {
+        animation: win-pulse 1.5s infinite;
+      }
+
+      /* 骨架屏效果 */
+      .skeleton {
+        animation: skeleton-pulse 1.5s ease-in-out 0.5s infinite;
+      }
+
+      @keyframes skeleton-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* 捲動進場效果 */
+      .fade-in-section {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      }
+
+      .fade-in-section.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* 彩蛋內容樣式 */
+      .easter-egg-content {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.85);
+        z-index: 100;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        animation: fadeIn 0.3s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* 圓形跳動動畫 */
+      .moving-circle {
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        animation: floating 3s ease-in-out infinite;
+      }
+
+      @keyframes floating {
+        0%,
+        100% {
+          transform: translateY(0) rotate(0deg);
+        }
+        50% {
+          transform: translateY(-20px) rotate(10deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="flex flex-col min-h-screen">
+    <!-- 頁首 -->
+    <header class="bg-primary-600 text-white py-4 shadow-lg">
+      <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center">
+          <h1
+            class="text-2xl md:text-3xl font-bold font-display tracking-wide flex items-center"
+          >
+            <i class="ri-gamepad-line mr-2"></i>
+            石頭剪刀布遊戲
+          </h1>
+          <nav class="hidden md:block">
+            <ul class="flex space-x-6">
+              <li>
+                <a
+                  href="#"
+                  class="hover:text-primary-200 transition duration-200"
+                  >遊戲說明</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="hover:text-primary-200 transition duration-200"
+                  >關於我們</a
+                >
+              </li>
+            </ul>
+          </nav>
+          <button class="md:hidden text-2xl" id="mobile-menu-btn">
+            <i class="ri-menu-line"></i>
+          </button>
+        </div>
+        <!-- 手機選單 (預設隱藏) -->
+        <div class="mobile-menu hidden mt-2" id="mobile-menu">
+          <ul class="space-y-2 py-2">
+            <li>
+              <a
+                href="#"
+                class="block hover:bg-primary-700 px-2 py-1 rounded transition duration-200"
+                >遊戲說明</a
+              >
+            </li>
+            <li>
+              <a
+                href="#"
+                class="block hover:bg-primary-700 px-2 py-1 rounded transition duration-200"
+                >關於我們</a
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主要內容 -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+      <!-- 遊戲說明 -->
+      <section class="fade-in-section mb-8 text-center">
+        <h2 class="text-2xl md:text-3xl font-bold mb-4 text-neutral-800">
+          來玩公平的猜拳遊戲！
+        </h2>
+        <p class="text-neutral-600 max-w-2xl mx-auto leading-relaxed">
+          選擇你的出拳方式，電腦將隨機做出選擇。石頭打剪刀，剪刀打布，布打石頭。
+          看看誰能獲得最終勝利！
+        </p>
+      </section>
+
+      <!-- 公正機制說明 -->
+      <section class="fade-in-section mb-8">
+        <div
+          class="bg-white rounded-xl shadow-lg p-6 md:p-8 max-w-4xl mx-auto border-l-4 border-primary-500"
+        >
+          <h3 class="text-xl font-bold mb-4 text-neutral-800">
+            遊戲公正性說明
+          </h3>
+          <div class="space-y-4 text-neutral-700">
+            <p>
+              <strong>1. 隨機選擇機制：</strong>電腦通過 JavaScript 的
+              <code>Math.random()</code> 函數生成介於 0 到 1
+              之間的均勻分佈隨機數，再乘以 3
+              並取整，從三個選項中選擇一個。這確保了每個選項（石頭、剪刀、布）被選中的機率完全相等，各為
+              1/3。
+            </p>
+
+            <p>
+              <strong>2. 選擇獨立性：</strong
+              >電腦的選擇在玩家做出選擇<em>之後</em>即時產生，且每次選擇都是獨立的，不會記憶或分析玩家的過往選擇模式。這消除了預測或適應玩家行為的可能性。
+            </p>
+
+            <p>
+              <strong>3. 統計驗證：</strong
+              >長期來看，如果遊戲是公平的，玩家應該獲得約 1/3 的勝率、1/3
+              的敗率和 1/3 的平局率。您可以在遊戲中進行大量回合（如 100
+              次或更多）來驗證這一點。
+            </p>
+
+            <p>
+              <strong>4. 程式碼透明：</strong
+              >遊戲的核心選擇邏輯和結果判定都在客戶端執行，您可以通過瀏覽器的開發者工具檢查源代碼，確認沒有偏好或作弊機制。
+            </p>
+
+            <p>
+              <strong>5. 時序保證：</strong
+              >電腦選擇在玩家選擇後即時生成，不存在預生成選擇的情況，排除了可能的時序攻擊。
+            </p>
+          </div>
+          <div class="mt-4 pt-4 border-t border-neutral-200">
+            <p class="text-sm text-neutral-500">
+              <strong>技術說明：</strong
+              >在理論上，真正的隨機性在計算機中是難以實現的，但現代瀏覽器的
+              <code>Math.random()</code>
+              使用的偽隨機數生成器對於這類游戲來說已足夠隨機，且不可預測。這與專業賭場使用的電子隨機數生成器原理類似，足以確保遊戲的公正性。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 分數板 -->
+      <section class="fade-in-section mb-8">
+        <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 max-w-4xl mx-auto">
+          <h3 class="text-xl font-bold mb-4 text-neutral-800 text-center">
+            目前戰況
+          </h3>
+          <div class="grid grid-cols-3 gap-4 text-center">
+            <div class="bg-primary-100 rounded-lg p-4">
+              <span class="block text-sm md:text-base text-neutral-600"
+                >玩家</span
+              >
+              <span
+                class="block text-3xl md:text-4xl font-bold text-primary-600"
+                id="player-score"
+                >0</span
+              >
+            </div>
+            <div class="bg-neutral-100 rounded-lg p-4">
+              <span class="block text-sm md:text-base text-neutral-600"
+                >平手</span
+              >
+              <span
+                class="block text-3xl md:text-4xl font-bold text-neutral-600"
+                id="tie-score"
+                >0</span
+              >
+            </div>
+            <div class="bg-secondary-100 rounded-lg p-4">
+              <span class="block text-sm md:text-base text-neutral-600"
+                >電腦</span
+              >
+              <span
+                class="block text-3xl md:text-4xl font-bold text-secondary-600"
+                id="computer-score"
+                >0</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 遊戲區域 -->
+      <section class="fade-in-section">
+        <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 max-w-4xl mx-auto">
+          <!-- 結果顯示區 -->
+          <div class="mb-8 min-h-32 result-display" id="result-display">
+            <div class="skeleton bg-neutral-100 rounded-xl p-6 text-center">
+              <p class="text-neutral-400 text-xl md:text-2xl">
+                請選擇你要出的拳...
+              </p>
+            </div>
+          </div>
+
+          <!-- 選擇區 -->
+          <h3 class="text-xl font-bold mb-4 text-neutral-800 text-center">
+            做出你的選擇
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+            <button
+              class="choice-btn bg-gradient-to-br from-neutral-50 to-neutral-200 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center"
+              data-choice="rock"
+            >
+              <div class="text-4xl md:text-5xl mb-2 text-neutral-700">
+                <i class="ri-hand-coin-line"></i>
+              </div>
+              <span class="font-medium text-neutral-800">石頭</span>
+            </button>
+            <button
+              class="choice-btn bg-gradient-to-br from-neutral-50 to-neutral-200 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center"
+              data-choice="scissors"
+            >
+              <div class="text-4xl md:text-5xl mb-2 text-neutral-700">
+                <i class="ri-scissors-line"></i>
+              </div>
+              <span class="font-medium text-neutral-800">剪刀</span>
+            </button>
+            <button
+              class="choice-btn bg-gradient-to-br from-neutral-50 to-neutral-200 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center"
+              data-choice="paper"
+            >
+              <div class="text-4xl md:text-5xl mb-2 text-neutral-700">
+                <i class="ri-file-paper-2-line"></i>
+              </div>
+              <span class="font-medium text-neutral-800">布</span>
+            </button>
+          </div>
+
+          <!-- 重置按鈕 -->
+          <div class="text-center mt-8">
+            <button
+              id="reset-btn"
+              class="bg-neutral-800 hover:bg-neutral-900 text-white font-medium py-2 px-6 rounded-lg transition duration-200 transform hover:scale-105"
+            >
+              重置遊戲
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="bg-neutral-800 text-neutral-300 py-6 mt-12">
+      <div class="container mx-auto px-4">
+        <div class="text-center">
+          <p class="mb-2">
+            &copy; 2025 石頭剪刀布遊戲 | 使用 Tailwind CSS 與純手寫 JS 打造
+          </p>
+          <p class="text-sm">
+            作為 UI/UX 設計練習，此處展示了響應式設計、互動特效與公平遊戲機制
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- 彩蛋按鈕 (隱藏在右下角) -->
+    <button
+      id="easter-egg-btn"
+      class="easter-egg-btn fixed bottom-4 right-4 bg-neutral-300 rounded-full w-6 h-6 flex items-center justify-center"
+    >
+      <i class="ri-magic-line text-xs"></i>
+    </button>
+
+    <!-- 彩蛋內容 (預設隱藏) -->
+    <div id="easter-egg-content" class="easter-egg-content">
+      <div class="relative w-full h-full">
+        <!-- 彩蛋中的浮動元素 -->
+        <div
+          class="moving-circle bg-primary-400"
+          style="top: 20%; left: 30%"
+        ></div>
+        <div
+          class="moving-circle bg-secondary-400"
+          style="top: 60%; left: 70%"
+        ></div>
+        <div
+          class="moving-circle bg-neutral-400"
+          style="top: 40%; left: 50%"
+        ></div>
+      </div>
+
+      <div
+        class="text-center text-white z-10 p-6 bg-black bg-opacity-70 rounded-xl max-w-xl"
+      >
+        <h3 class="text-3xl mb-4 font-bold">恭喜找到彩蛋！</h3>
+        <p class="mb-6 text-lg">
+          你知道嗎？在猜拳遊戲中，如果雙方都選擇最佳策略，每個選項都應該有1/3的機率被選中。
+        </p>
+        <p class="mb-6">
+          這個遊戲使用
+          <code>Math.random()</code> 確保電腦選擇完全隨機，不會有任何偏好。
+        </p>
+        <p id="egg-counter" class="text-xl font-bold mb-8">彩蛋已觸發 1 次</p>
+        <button
+          id="close-easter-egg"
+          class="bg-white text-black font-bold py-2 px-6 rounded-lg hover:bg-gray-200 transition duration-200"
+        >
+          關閉彩蛋
+        </button>
+      </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+      // 等待DOM載入完成
+      document.addEventListener("DOMContentLoaded", function () {
+        // 遊戲變數初始化
+        let scores = {
+          player: 0,
+          computer: 0,
+          tie: 0,
+        };
+        let consecutiveWins = 0;
+        let eggCounter = 0;
+        let eggClickCount = 0;
+
+        // 取得DOM元素
+        const playerScoreEl = document.getElementById("player-score");
+        const computerScoreEl = document.getElementById("computer-score");
+        const tieScoreEl = document.getElementById("tie-score");
+        const resultDisplayEl = document.getElementById("result-display");
+        const choiceBtns = document.querySelectorAll(".choice-btn");
+        const resetBtn = document.getElementById("reset-btn");
+        const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+        const mobileMenu = document.getElementById("mobile-menu");
+        const easterEggBtn = document.getElementById("easter-egg-btn");
+        const easterEggContent = document.getElementById("easter-egg-content");
+        const closeEasterEggBtn = document.getElementById("close-easter-egg");
+        const eggCounterEl = document.getElementById("egg-counter");
+
+        // 選擇對應的圖示
+        const choiceIcons = {
+          rock: "ri-hand-coin-line",
+          scissors: "ri-scissors-line",
+          paper: "ri-file-paper-2-line",
+        };
+
+        // 選擇對應的中文名稱
+        const choiceNames = {
+          rock: "石頭",
+          scissors: "剪刀",
+          paper: "布",
+        };
+
+        // 初始化頁面進場動畫
+        initFadeInSections();
+
+        // 事件監聽
+        choiceBtns.forEach((btn) => {
+          btn.addEventListener("click", () => handleChoice(btn.dataset.choice));
+        });
+
+        resetBtn.addEventListener("click", resetGame);
+        mobileMenuBtn.addEventListener("click", toggleMobileMenu);
+        easterEggBtn.addEventListener("click", handleEasterEggClick);
+        closeEasterEggBtn.addEventListener("click", closeEasterEgg);
+
+        // 鍵盤組合監聽 (按下 E+G+G 觸發彩蛋)
+        const eggKeys = [];
+        document.addEventListener("keydown", (e) => {
+          eggKeys.push(e.key.toLowerCase());
+          if (eggKeys.length > 3) {
+            eggKeys.shift();
+          }
+
+          if (eggKeys.join("") === "egg") {
+            showEasterEgg();
+          }
+        });
+
+        /**
+         * 處理玩家選擇
+         * @param {string} playerChoice - 玩家選擇 (rock/scissors/paper)
+         */
+        function handleChoice(playerChoice) {
+          // 移除骨架屏效果
+          resultDisplayEl.querySelector("div").classList.remove("skeleton");
+
+          // 生成電腦選擇 (完全隨機，確保公平性)
+          const choices = ["rock", "scissors", "paper"];
+          const computerChoice =
+            choices[Math.floor(Math.random() * choices.length)];
+
+          // 判斷結果
+          let result;
+          if (playerChoice === computerChoice) {
+            result = "tie";
+          } else if (
+            (playerChoice === "rock" && computerChoice === "scissors") ||
+            (playerChoice === "scissors" && computerChoice === "paper") ||
+            (playerChoice === "paper" && computerChoice === "rock")
+          ) {
+            result = "win";
+            consecutiveWins++;
+
+            // 連勝三次觸發彩蛋
+            if (consecutiveWins >= 3) {
+              // 延遲顯示彩蛋，讓玩家能先看到勝利結果
+              setTimeout(showEasterEgg, 1000);
+              consecutiveWins = 0;
+            }
+          } else {
+            result = "lose";
+            consecutiveWins = 0;
+          }
+
+          // 更新分數
+          updateScore(result);
+
+          // 顯示結果
+          showResult(playerChoice, computerChoice, result);
+
+          // 更新UI
+          updateScoreDisplay();
+        }
+
+        /**
+         * 更新分數
+         * @param {string} result - 結果 (win/lose/tie)
+         */
+        function updateScore(result) {
+          if (result === "win") {
+            scores.player++;
+          } else if (result === "lose") {
+            scores.computer++;
+          } else {
+            scores.tie++;
+          }
+        }
+
+        /**
+         * 更新分數顯示
+         */
+        function updateScoreDisplay() {
+          playerScoreEl.textContent = scores.player;
+          computerScoreEl.textContent = scores.computer;
+          tieScoreEl.textContent = scores.tie;
+        }
+
+        /**
+         * 顯示結果
+         * @param {string} playerChoice - 玩家選擇
+         * @param {string} computerChoice - 電腦選擇
+         * @param {string} result - 結果 (win/lose/tie)
+         */
+        function showResult(playerChoice, computerChoice, result) {
+          // 準備結果HTML
+          let resultClass, resultText;
+
+          if (result === "win") {
+            resultClass = "bg-primary-100 border-primary-300 text-primary-800";
+            resultText = "恭喜你獲勝！";
+          } else if (result === "lose") {
+            resultClass =
+              "bg-secondary-100 border-secondary-300 text-secondary-800";
+            resultText = "很遺憾，你輸了！";
+          } else {
+            resultClass = "bg-neutral-100 border-neutral-300 text-neutral-700";
+            resultText = "平局！";
+          }
+
+          // 淡出當前結果
+          resultDisplayEl.style.opacity = "0";
+
+          // 短暫延遲後更新並淡入新結果
+          setTimeout(() => {
+            // 更新結果內容
+            resultDisplayEl.innerHTML = `
+                        <div class="${resultClass} rounded-xl p-6 border text-center">
+                            <h3 class="text-xl md:text-2xl font-bold mb-4">${resultText}</h3>
+                            <div class="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                                <div class="bg-white p-4 rounded-lg shadow-md">
+                                    <p class="text-neutral-600 mb-2">你的選擇</p>
+                                    <div class="text-4xl mb-2">
+                                        <i class="${choiceIcons[playerChoice]}"></i>
+                                    </div>
+                                    <p class="font-medium">${choiceNames[playerChoice]}</p>
+                                </div>
+                                <div class="bg-white p-4 rounded-lg shadow-md">
+                                    <p class="text-neutral-600 mb-2">電腦的選擇</p>
+                                    <div class="text-4xl mb-2">
+                                        <i class="${choiceIcons[computerChoice]}"></i>
+                                    </div>
+                                    <p class="font-medium">${choiceNames[computerChoice]}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+            // 為勝利添加特效
+            if (result === "win") {
+              resultDisplayEl.querySelector("div").classList.add("win-pulse");
+            }
+
+            // 淡入新結果
+            resultDisplayEl.style.opacity = "1";
+          }, 300);
+        }
+
+        /**
+         * 重置遊戲
+         */
+        function resetGame() {
+          // 重置分數
+          scores = {
+            player: 0,
+            computer: 0,
+            tie: 0,
+          };
+          consecutiveWins = 0;
+
+          // 更新顯示
+          updateScoreDisplay();
+
+          // 重置結果區域
+          resultDisplayEl.innerHTML = `
+                    <div class="skeleton bg-neutral-100 rounded-xl p-6 text-center">
+                        <p class="text-neutral-400 text-xl md:text-2xl">
+                            請選擇你要出的拳...
+                        </p>
+                    </div>
+                `;
+
+          // 顯示重置提示
+          showToast("遊戲已重置！");
+        }
+
+        /**
+         * 顯示提示訊息
+         * @param {string} message - 提示訊息
+         */
+        function showToast(message) {
+          // 建立提示元素
+          const toast = document.createElement("div");
+          toast.className =
+            "fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-neutral-800 text-white px-4 py-2 rounded-lg shadow-lg z-50";
+          toast.textContent = message;
+
+          // 添加到頁面
+          document.body.appendChild(toast);
+
+          // 動畫效果
+          toast.style.opacity = "0";
+          toast.style.transform = "translate(-50%, 20px)";
+          toast.style.transition = "all 0.3s ease";
+
+          setTimeout(() => {
+            toast.style.opacity = "1";
+            toast.style.transform = "translate(-50%, 0)";
+          }, 10);
+
+          // 自動消失
+          setTimeout(() => {
+            toast.style.opacity = "0";
+            toast.style.transform = "translate(-50%, -20px)";
+
+            setTimeout(() => {
+              document.body.removeChild(toast);
+            }, 300);
+          }, 3000);
+        }
+
+        /**
+         * 切換手機選單
+         */
+        function toggleMobileMenu() {
+          // 切換選單顯示
+          mobileMenu.classList.toggle("hidden");
+
+          // 切換圖示
+          const icon = mobileMenuBtn.querySelector("i");
+          if (mobileMenu.classList.contains("hidden")) {
+            icon.className = "ri-menu-line";
+          } else {
+            icon.className = "ri-close-line";
+          }
+        }
+
+        /**
+         * 初始化頁面進場動畫
+         */
+        function initFadeInSections() {
+          const sections = document.querySelectorAll(".fade-in-section");
+
+          // 觀察器選項
+          const options = {
+            root: null,
+            rootMargin: "0px",
+            threshold: 0.1,
+          };
+
+          // 建立觀察器
+          const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("is-visible");
+                observer.unobserve(entry.target);
+              }
+            });
+          }, options);
+
+          // 觀察所有區塊
+          sections.forEach((section) => {
+            observer.observe(section);
+          });
+        }
+
+        /**
+         * 處理彩蛋按鈕點擊
+         * (需連續點擊三次才觸發)
+         */
+        function handleEasterEggClick() {
+          eggClickCount++;
+
+          // 設定重置計數的定時器
+          clearTimeout(window.eggClickTimer);
+          window.eggClickTimer = setTimeout(() => {
+            eggClickCount = 0;
+          }, 1000);
+
+          // 連續點擊三次觸發彩蛋
+          if (eggClickCount >= 3) {
+            eggClickCount = 0;
+            showEasterEgg();
+          }
+        }
+
+        /**
+         * 顯示彩蛋內容
+         */
+        function showEasterEgg() {
+          eggCounter++;
+          eggCounterEl.textContent = `彩蛋已觸發 ${eggCounter} 次`;
+          easterEggContent.style.display = "flex";
+
+          // 設置浮動元素的隨機位置和大小
+          const circles = document.querySelectorAll(".moving-circle");
+          circles.forEach((circle) => {
+            // 隨機大小
+            const size = 40 + Math.random() * 60;
+            circle.style.width = `${size}px`;
+            circle.style.height = `${size}px`;
+
+            // 隨機位置
+            circle.style.left = `${Math.random() * 90}%`;
+            circle.style.top = `${Math.random() * 90}%`;
+
+            // 隨機動畫延遲
+            circle.style.animationDelay = `${Math.random() * 2}s`;
+          });
+        }
+
+        /**
+         * 關閉彩蛋內容
+         */
+        function closeEasterEgg() {
+          easterEggContent.style.display = "none";
+        }
+      });
+    </script>
+  </body>
+</html>

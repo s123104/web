@@ -1,0 +1,1531 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP 提示產生器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #e0eafc, #cfdef3);
+            --panel-bg: rgba(255, 255, 255, 0.95);
+            --text-color: #2d3748;
+            --accent-color: #4299e1;
+            --button-bg: linear-gradient(to right, #48bb78, #38a169);
+            --button-hover-bg: linear-gradient(to right, #38a169, #2f855a);
+            --border-color: #cbd5e0;
+        }
+        [data-theme="dark"] {
+            --bg-gradient: linear-gradient(135deg, #2d3748, #1a202c);
+            --panel-bg: rgba(45, 55, 72, 0.95);
+            --text-color: #e2e8f0;
+            --accent-color: #63b3ed;
+            --button-bg: linear-gradient(to right, #68d391, #4caf50);
+            --button-hover-bg: linear-gradient(to right, #4caf50, #388e3c);
+            --border-color: #4a5568;
+        }
+        body {
+            font-family: 'Noto Sans TC', 'Noto Serif TC', sans-serif;
+            background: var(--bg-gradient);
+            margin: 0;
+            padding: 30px;
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        h1, h2, h3 {
+            color: #2b6cb0;
+            font-weight: 700;
+        }
+        [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3 {
+            color: #63b3ed;
+        }
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .panel {
+            background: var(--panel-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, background 0.3s ease;
+            flex: 1;
+            min-width: 300px;
+        }
+        .panel:hover {
+            transform: translateY(-3px);
+        }
+        #server-selection-panel {
+            flex-basis: 25%;
+        }
+        #parameter-panel {
+            flex-basis: 30%;
+            position: relative;
+        }
+        #prompt-assembly-panel {
+            flex-basis: 40%;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 700;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+        label.required::after {
+            content: '*';
+            color: #e53e3e;
+            margin-left: 4px;
+        }
+        select, input[type="text"], input[type="number"], input[type="url"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: 'Noto Sans TC', 'Noto Serif TC', sans-serif;
+            font-size: 14px;
+            background: #f7fafc;
+            transition: border-color 0.2s ease, background 0.3s ease;
+        }
+        [data-theme="dark"] select, [data-theme="dark"] input, [data-theme="dark"] textarea {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+        select:focus, input:focus, textarea:focus {
+            border-color: var(--accent-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+        }
+        textarea {
+            resize: vertical;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 8px 4px;
+            border: none;
+            border-radius: 6px;
+            background: var(--button-bg);
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+        button:hover:not(:disabled) {
+            background: var(--button-hover-bg);
+            transform: scale(1.03);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #server-instructions, #tools-description {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e9f1ff;
+            border-left: 4px solid var(--accent-color);
+            border-radius: 4px;
+            font-size: 0.9em;
+            transition: background 0.3s ease;
+        }
+        [data-theme="dark"] #server-instructions, [data-theme="dark"] #tools-description {
+            background: #2d3748;
+        }
+        #tools-description ul {
+            padding-left: 20px;
+            margin: 0;
+        }
+        #tools-description li {
+            margin-bottom: 8px;
+        }
+        .tools-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .tool-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        [data-theme="dark"] .tool-card {
+            background: #4a5568;
+        }
+        .tool-card:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: scale(1.02);
+        }
+        .tool-card.selected {
+            border-color: var(--accent-color);
+            background: #e9f1ff;
+        }
+        [data-theme="dark"] .tool-card.selected {
+            background: #2d3748;
+        }
+        .tool-card input[type="checkbox"] {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            margin: 0;
+        }
+        .tool-card .icon {
+            font-size: 1.5em;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+            transition: color 0.2s ease;
+        }
+        .tool-card:hover .icon {
+            color: #2b6cb0;
+        }
+        [data-theme="dark"] .tool-card:hover .icon {
+            color: #63b3ed;
+        }
+        .tool-card h4 {
+            margin: 0 0 8px;
+            font-size: 1em;
+            color: var(--text-color);
+        }
+        .tool-card p {
+            margin: 0;
+            font-size: 0.85em;
+            color: #718096;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        [data-theme="dark"] .tool-card p {
+            color: #a0aec0;
+        }
+        .param-group {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+        .param-group h4 {
+            margin: 0 0 10px;
+            font-size: 1.1em;
+            color: var(--text-color);
+        }
+        .param-group:last-child {
+            border-bottom: none;
+        }
+        .checkbox-label-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .checkbox-label-container input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+        .checkbox-label-container label {
+            display: inline;
+            margin-bottom: 0;
+            font-weight: normal;
+            font-size: 14px;
+        }
+        #steps-list {
+            list-style: none;
+            padding: 10px;
+            margin-bottom: 15px;
+            max-height: 380px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            position: relative;
+        }
+        #steps-list li {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95em;
+            cursor: move;
+            transition: opacity 0.2s ease;
+        }
+        [data-theme="dark"] #steps-list li {
+            background: #4a5568;
+        }
+        #steps-list li.dragging {
+            opacity: 0.5;
+        }
+        #steps-list li.drop-target::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-color);
+            top: -2px;
+        }
+        #steps-list li span {
+            flex-grow: 1;
+            margin-right: 10px;
+            word-break: break-all;
+        }
+        #steps-list li i {
+            margin-right: 8px;
+            color: var(--accent-color);
+        }
+        #steps-list li button {
+            background: #e53e3e;
+            padding: 3px 8px;
+            font-size: 0.8em;
+        }
+        #steps-list li button:hover {
+            background: #c53030;
+        }
+        #steps-list li button.copy-step-btn {
+            background: #4299e1;
+            margin-right: 5px;
+        }
+        #steps-list li button.copy-step-btn:hover {
+            background: #2b6cb0;
+        }
+        #steps-list li button.edit-step-btn {
+            background: #f6ad55;
+            margin-right: 5px;
+        }
+        #steps-list li button.edit-step-btn:hover {
+            background: #ed9b40;
+        }
+        .prompt-section {
+            margin-bottom: 20px;
+        }
+        .output-section {
+            margin-top: 20px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+        }
+        #markdown-output {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace, 'Noto Sans TC';
+            font-size: 0.9em;
+            transition: background 0.3s ease;
+        }
+        [data-theme="dark"] #markdown-output {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+        #markdown-output code {
+            display: block;
+            font-family: inherit;
+        }
+        .welcome-message {
+            padding: 15px;
+            background: #e9f1ff;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+        [data-theme="dark"] .welcome-message {
+            background: #2d3748;
+        }
+        .welcome-message button {
+            margin-top: 10px;
+        }
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            color: var(--text-color);
+            cursor: pointer;
+        }
+        .autocomplete-suggestions {
+            position: absolute;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 100;
+            top: 100%;
+            left: 0;
+            max-width: calc(100% - 20px);
+        }
+        [data-theme="dark"] .autocomplete-suggestions {
+            background: #2d3748;
+        }
+        .autocomplete-suggestions div {
+            padding: 8px;
+            cursor: pointer;
+        }
+        .autocomplete-suggestions div:hover {
+            background: #e9f1ff;
+        }
+        [data-theme="dark"] .autocomplete-suggestions div:hover {
+            background: #4a5568;
+        }
+        .config-tooltip {
+            position: absolute;
+            background: #2d3748;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .config-tooltip.show {
+            opacity: 1;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 999;
+        }
+        .modal h3 {
+            margin-top: 0;
+        }
+        .modal .button-group {
+            text-align: right;
+        }
+        .modal button {
+            margin-left: 10px;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .panel {
+                min-width: 100%;
+            }
+            .tools-container {
+                grid-template-columns: 1fr;
+            }
+            .modal {
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" aria-label="切換主題"><i class="fas fa-moon"></i></button>
+    <h1>MCP 提示產生器</h1>
+    <div class="container">
+        <!-- 伺服器選擇 -->
+        <div class="panel" id="server-selection-panel">
+            <h2>1. 選擇伺服器</h2>
+            <select id="server-selector" aria-label="選擇伺服器">
+                <option value="">-- 請選擇伺服器 --</option>
+                <option value="filesystem"><i class="fas fa-folder"></i> Filesystem</option>
+                <option value="brave-search"><i class="fas fa-search"></i> Brave Search</option>
+                <option value="fetch"><i class="fas fa-download"></i> Fetch</option>
+                <option value="puppeteer"><i class="fas fa-robot"></i> Puppeteer</option>
+                <option value="memory"><i class="fas fa-brain"></i> Memory</option>
+                <option value="time"><i class="fas fa-clock"></i> Time</option>
+                <option value="everything"><i class="fas fa-toolbox"></i> Everything</option>
+            </select>
+            <div id="server-instructions">
+                <p>請選擇一個伺服器以查看其功能與提示指示。</p>
+            </div>
+            <div id="tools-description">
+                <p>請選擇一個伺服器以查看其工具功能介紹。</p>
+            </div>
+        </div>
+
+        <!-- 參數設定 -->
+        <div class="panel" id="parameter-panel">
+            <h2>2. 設定參數</h2>
+            <div id="parameter-form">
+                <p>請先選擇一個伺服器。</p>
+            </div>
+            <div class="button-group">
+                <button id="add-step-button" disabled>新增步驟到提示</button>
+                <button id="save-module-button" disabled>儲存模塊</button>
+                <button id="save-project-config-button" style="position: relative;">
+                    儲存專案設定
+                    <span class="config-tooltip" id="save-config-tooltip"></span>
+                </button>
+                <button id="load-project-config-button" style="position: relative;">
+                    載入專案設定
+                    <span class="config-tooltip" id="load-config-tooltip"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 提示組裝與輸出 -->
+        <div class="panel" id="prompt-assembly-panel">
+            <h2>3. 組裝與產生提示</h2>
+            <div class="prompt-section">
+                <label for="overall-goal">整體目標 / 背景說明:</label>
+                <textarea id="overall-goal" rows="4" placeholder="描述您請求的主要目標..." aria-label="整體目標"></textarea>
+            </div>
+            <div class="prompt-section">
+                <h3>已組裝的步驟:</h3>
+                <ul id="steps-list"></ul>
+                <div class="welcome-message" id="welcome-message" style="display: none;">
+                    <p>尚未新增步驟！點擊下方按鈕開始建立您的工作流。</p>
+                    <button id="load-template-button">載入範例模板</button>
+                </div>
+                <button id="clear-steps-button">清除所有步驟</button>
+                <button id="save-workflow-button">儲存工作流</button>
+            </div>
+            <div class="prompt-section">
+                <label for="final-instructions">最終指示 / 細節要求:</label>
+                <textarea id="final-instructions" rows="4" placeholder="加入任何最終請求、格式說明或限制..." aria-label="最終指示"></textarea>
+            </div>
+            <div class="prompt-section output-section">
+                <h3>產生的 Markdown 提示:</h3>
+                <pre id="markdown-output"><code>您產生的提示將顯示於此。</code></pre>
+                <button id="copy-prompt-button">複製提示</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模態窗 -->
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="modal" id="edit-step-modal">
+        <h3>編輯步驟</h3>
+        <div id="edit-step-form"></div>
+        <div class="button-group">
+            <button id="cancel-edit-button">取消</button>
+            <button id="save-edit-button">儲存</button>
+        </div>
+    </div>
+
+    <script>
+        const serverData = [
+            {
+                name: "filesystem",
+                displayName: "Filesystem",
+                description: "管理檔案與目錄，支援建立、讀取、編輯、移動等操作。",
+                instructions: "用於檔案系統操作，可選擇特定工具（如 'create_directory'）並設定參數（如路徑、內容）。未選工具時執行通用檔案操作。",
+                params: [
+                    { name: "path", type: "text", label: "路徑", required: false, placeholder: "例如: projects/new_folder", autocomplete: true },
+                    { name: "content", type: "textarea", label: "內容", required: false, placeholder: "檔案內容或編輯指令" }
+                ],
+                tools: [
+                    { name: "create_directory", description: "建立新目錄或確保目錄存在。", usage: "創建項目子目錄。", icon: "fa-folder-plus" },
+                    { name: "directory_tree", description: "以 JSON 格式取得檔案和目錄的樹狀檢視。", usage: "檢查目錄結構。", icon: "fa-sitemap" },
+                    { name: "edit_file", description: "對文字檔進行基於行的編輯，回傳 git 風格差異。", usage: "修改程式碼或配置文件。", icon: "fa-file-pen" },
+                    { name: "get_file_info", description: "擷取檔案或目錄的中繼資料。", usage: "檢查檔案屬性。", icon: "fa-file-circle-info" },
+                    { name: "list_allowed_directories", description: "回傳允許存取的目錄清單。", usage: "設定工作環境。", icon: "fa-folder-open" },
+                    { name: "list_directory", description: "取得目錄中檔案和目錄的詳細列表。", usage: "檢查項目文件清單。", icon: "fa-folder" },
+                    { name: "move_file", description: "移動或重新命名檔案和目錄。", usage: "重新整理文件結構。", icon: "fa-file-arrow-right" },
+                    { name: "read_file", description: "讀取檔案的完整內容。", usage: "讀取日誌或配置文件。", icon: "fa-file-lines" },
+                    { name: "read_multiple_files", description: "同時讀取多個檔案的內容。", usage: "批量處理文件。", icon: "fa-files" },
+                    { name: "search_files", description: "遞迴搜尋符合模式的檔案和目錄。", usage: "查找特定文件。", icon: "fa-magnifying-glass" },
+                    { name: "write_file", description: "建立新檔案或覆寫現有檔案。", usage: "生成報告文件。", icon: "fa-file-circle-plus" }
+                ],
+                icon: "fa-folder"
+            },
+            {
+                name: "brave-search",
+                displayName: "Brave Search",
+                description: "執行網路或本地搜尋，支援關鍵字查詢與地理定位。",
+                instructions: "用於搜尋網路資訊或本地商家，可選擇工具（如 'brave_web_search'）並設定查詢與地理參數。",
+                params: [
+                    { name: "query", type: "text", label: "搜尋查詢", required: true, placeholder: "例如: 附近的咖啡店" },
+                    { name: "latitude", type: "number", label: "緯度", required: false },
+                    { name: "longitude", type: "number", label: "經度", required: false }
+                ],
+                tools: [
+                    { name: "brave_local_search", description: "搜尋本地商家和地點。", usage: "查找餐廳或商店。", icon: "fa-map-location-dot" },
+                    { name: "brave_web_search", description: "執行網頁搜尋。", usage: "查找技術文章。", icon: "fa-globe" }
+                ],
+                icon: "fa-search"
+            },
+            {
+                name: "fetch",
+                displayName: "Fetch",
+                description: "從網路擷取網頁內容，可轉為 Markdown 格式。",
+                instructions: "用於抓取網頁資料，可選擇 'fetch' 工具並設定 URL 與格式。",
+                params: [
+                    { name: "url", type: "url", label: "目標 URL", required: true, placeholder: "例如: https://example.com", autocomplete: true },
+                    { name: "extract_markdown", type: "checkbox", label: "轉為 Markdown", required: false, checked: true }
+                ],
+                tools: [
+                    { name: "fetch", description: "擷取 URL 內容並可轉為 Markdown。", usage: "提取文章進行整理。", icon: "fa-download" }
+                ],
+                icon: "fa-download"
+            },
+            {
+                name: "puppeteer",
+                displayName: "Puppeteer",
+                description: "自動化瀏覽器操作，如點擊、填表、截圖等。",
+                instructions: "用於模擬瀏覽器行為，可選擇工具（如 'puppeteer_click'）並設定選擇器或 URL。",
+                params: [
+                    { name: "selector", type: "text", label: "CSS 選擇器", required: false, placeholder: "例如: button#submit" },
+                    { name: "url", type: "url", label: "目標 URL", required: false, placeholder: "例如: https://example.com", autocomplete: true },
+                    { name: "resolution", type: "text", label: "解析度", required: false, placeholder: "例如: 1800x1200", default: "1920x1080" },
+                    { name: "content", type: "textarea", label: "內容", required: false, placeholder: "例如: JavaScript 程式碼" }
+                ],
+                tools: [
+                    { name: "puppeteer_click", description: "點擊頁面元素。", usage: "提交表單。", icon: "fa-mouse-pointer" },
+                    { name: "puppeteer_evaluate", description: "執行 JavaScript 程式碼。", usage: "提取頁面標題。", icon: "fa-code" },
+                    { name: "puppeteer_fill", description: "填寫輸入欄位。", usage: "輸入登錄資訊。", icon: "fa-i-cursor" },
+                    { name: "puppeteer_hover", description: "將滑鼠懸停在元素上。", usage: "顯示下拉菜單。", icon: "fa-hand-pointer" },
+                    { name: "puppeteer_navigate", description: "導覽至指定 URL。", usage: "進行測試或截圖。", icon: "fa-arrow-pointer" },
+                    { name: "puppeteer_screenshot", description: "擷取頁面或元素截圖。", usage: "記錄測試結果。", icon: "fa-camera" },
+                    { name: "puppeteer_select", description: "選擇 <select> 元素選項。", usage: "設定表單參數。", icon: "fa-list-check" }
+                ],
+                icon: "fa-robot"
+            },
+            {
+                name: "memory",
+                displayName: "Memory",
+                description: "管理知識圖譜，支援實體與關係的建立、查詢與刪除。",
+                instructions: "用於知識圖譜操作，可選擇工具（如 'create_entities'）並設定 JSON 資料。",
+                params: [
+                    { name: "data", type: "textarea", label: "資料（JSON 格式）", required: false, placeholder: "例如: ['entity1', 'entity2']" }
+                ],
+                tools: [
+                    { name: "add_observations", description: "向實體添加觀察結果。", usage: "更新客戶數據。", icon: "fa-plus-circle" },
+                    { name: "create_entities", description: "建立多個新實體。", usage: "添加新用戶。", icon: "fa-square-plus" },
+                    { name: "create_relations", description: "建立實體間關係。", usage: "記錄人際關係。", icon: "fa-link" },
+                    { name: "delete_entities", description: "刪除實體及其關係。", usage: "移除過期實體。", icon: "fa-trash" },
+                    { name: "delete_observations", description: "刪除特定觀察結果。", usage: "修正錯誤數據。", icon: "fa-minus-circle" },
+                    { name: "delete_relations", description: "刪除多個關係。", usage: "取消舊關係。", icon: "fa-unlink" },
+                    { name: "open_nodes", description: "開啟知識圖譜節點。", usage: "檢查實體詳情。", icon: "fa-diagram-project" },
+                    { name: "read_graph", description: "讀取整個知識圖譜。", usage: "進行數據分析。", icon: "fa-chart-network" },
+                    { name: "search_nodes", description: "搜尋知識圖譜節點。", usage: "搜尋特定主題。", icon: "fa-magnifying-glass" }
+                ],
+                icon: "fa-brain"
+            },
+            {
+                name: "time",
+                displayName: "Time",
+                description: "處理時間相關操作，如時區轉換與當前時間獲取。",
+                instructions: "用於時間管理，可選擇工具（如 'convert_time'）並設定時間或時區。",
+                params: [
+                    { name: "time_string", type: "text", label: "時間字串", required: false, placeholder: "例如: 2023-10-27 10:00:00" },
+                    { name: "timezone", type: "text", label: "時區", required: false, placeholder: "例如: Asia/Taipei" }
+                ],
+                tools: [
+                    { name: "convert_time", description: "在不同時區間轉換時間。", usage: "跨時區協調會議。", icon: "fa-arrows-rotate" },
+                    { name: "get_current_time", description: "取得特定時區的當前時間。", usage: "記錄日誌時間。", icon: "fa-clock" }
+                ],
+                icon: "fa-clock"
+            },
+            {
+                name: "everything",
+                displayName: "Everything",
+                description: "通用工具集，包含計算、回傳訊息與 LLM 取樣等。",
+                instructions: "用於通用操作，可選擇工具（如 'add'）並設定參數。",
+                params: [
+                    { name: "input", type: "textarea", label: "輸入內容", required: false, placeholder: "例如: num1=5, num2=10" }
+                ],
+                tools: [
+                    { name: "add", description: "將兩個數字相加。", usage: "合計費用。", icon: "fa-plus" },
+                    { name: "echo", description: "回傳輸入內容。", usage: "驗證數據。", icon: "fa-arrow-left-long" },
+                    { name: "sampleLLM", description: "從 LLM 取樣。", usage: "自動撰寫回覆。", icon: "fa-robot" },
+                    { name: "sequentialthinking", description: "透過思考步驟解決問題。", usage: "分析複雜任務。", icon: "fa-list-ol" },
+                    { name: "printEnv", description: "印出環境變數。", usage: "調試配置。", icon: "fa-terminal" },
+                    { name: "annotatedMessage", description: "示範註解使用。", usage: "教學用途。", icon: "fa-comment-dots" },
+                    { name: "getResourceReference", description: "回傳資源參考。", usage: "引用文件。", icon: "fa-book" },
+                    { name: "getTinyImage", description: "回傳小圖像。", usage: "測試圖片功能。", icon: "fa-image" },
+                    { name: "longRunningOperation", description: "示範長時間操作。", usage: "模擬後台處理。", icon: "fa-spinner" }
+                ],
+                icon: "fa-toolbox"
+            }
+        ];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            // DOM 元素
+            const serverSelector = document.getElementById("server-selector");
+            const serverInstructions = document.getElementById("server-instructions");
+            const toolsDescription = document.getElementById("tools-description");
+            const parameterForm = document.getElementById("parameter-form");
+            const addStepButton = document.getElementById("add-step-button");
+            const saveModuleButton = document.getElementById("save-module-button");
+            const saveProjectConfigButton = document.getElementById("save-project-config-button");
+            const loadProjectConfigButton = document.getElementById("load-project-config-button");
+            const stepsList = document.getElementById("steps-list");
+            const welcomeMessage = document.getElementById("welcome-message");
+            const loadTemplateButton = document.getElementById("load-template-button");
+            const clearStepsButton = document.getElementById("clear-steps-button");
+            const saveWorkflowButton = document.getElementById("save-workflow-button");
+            const overallGoalInput = document.getElementById("overall-goal");
+            const finalInstructionsInput = document.getElementById("final-instructions");
+            const markdownOutput = document.getElementById("markdown-output").querySelector("code");
+            const copyPromptButton = document.getElementById("copy-prompt-button");
+            const themeToggle = document.querySelector(".theme-toggle");
+            const saveConfigTooltip = document.getElementById("save-config-tooltip");
+            const loadConfigTooltip = document.getElementById("load-config-tooltip");
+            const modalOverlay = document.getElementById("modal-overlay");
+            const editStepModal = document.getElementById("edit-step-modal");
+            const editStepForm = document.getElementById("edit-step-form");
+            const cancelEditButton = document.getElementById("cancel-edit-button");
+            const saveEditButton = document.getElementById("save-edit-button");
+
+            // 狀態變數
+            let currentSelectedServer = null;
+            let promptSteps = [];
+            let projectConfig = null;
+            let autocompleteHistory = JSON.parse(localStorage.getItem("autocompleteHistory")) || { path: [], url: [] };
+            let currentEditStepId = null;
+
+            // 範例工作流（不指定工具）
+            const exampleWorkflow = [
+                {
+                    server: "filesystem",
+                    params: { path: "projects/llm_quotes_hub/README.md" },
+                    id: Date.now()
+                },
+                {
+                    server: "puppeteer",
+                    params: { url: "http://localhost:8080/llm_quotes_hub/", resolution: "1800x1200" },
+                    id: Date.now() + 1
+                },
+                {
+                    server: "puppeteer",
+                    params: { url: "http://localhost:8080/llm_quotes_hub/", resolution: "320x568,768x1024,1920x1080" },
+                    id: Date.now() + 2
+                },
+                {
+                    server: "puppeteer",
+                    params: { url: "http://localhost:8080/llm_quotes_hub/?action=my_quotes", content: "if (!document.querySelector('.quotes-list')) { document.querySelector('.main-content').innerHTML = '<div class=\"quotes-list\">Loading quotes...</div>'; }" },
+                    id: Date.now() + 3
+                },
+                {
+                    server: "puppeteer",
+                    params: { selector: ".hamburger-menu", url: "http://localhost:8080/llm_quotes_hub/" },
+                    id: Date.now() + 4
+                },
+                {
+                    server: "filesystem",
+                    params: { path: "projects/llm_quotes_hub/style.css", content: "@media (max-width: 768px) {\n  .hamburger-menu { pointer-events: auto; }\n  .nav-menu { display: none; }\n  .nav-menu.active { display: block; }\n}" },
+                    id: Date.now() + 5
+                },
+                {
+                    server: "filesystem",
+                    params: { path: "projects/llm_quotes_hub/TEST_CHECKLIST.md" },
+                    id: Date.now() + 6
+                },
+                {
+                    server: "filesystem",
+                    params: { path: "projects/llm_quotes_hub/index.js", content: "// Add missing features from TEST_CHECKLIST.md\n// Ensure file < 800 lines\n// Example: add quote fetching logic\nfunction fetchQuotes() {\n  // Implementation\n}" },
+                    id: Date.now() + 7
+                },
+                {
+                    server: "filesystem",
+                    params: { path: "projects/llm_quotes_hub/README.md", content: "# LLM Quotes Hub\nUpdated with RWD fixes and missing features." },
+                    id: Date.now() + 8
+                }
+            ];
+
+            // 初始化
+            function initialize() {
+                serverSelector.addEventListener("change", handleServerChange);
+                addStepButton.addEventListener("click", handleAddStep);
+                saveModuleButton.addEventListener("click", handleSaveModule);
+                saveProjectConfigButton.addEventListener("click", handleSaveProjectConfig);
+                loadProjectConfigButton.addEventListener("click", handleLoadProjectConfig);
+                clearStepsButton.addEventListener("click", handleClearSteps);
+                saveWorkflowButton.addEventListener("click", handleSaveWorkflow);
+                stepsList.addEventListener("click", handleStepActions);
+                loadTemplateButton.addEventListener("click", handleLoadTemplate);
+                copyPromptButton.addEventListener("click", handleCopyPrompt);
+                themeToggle.addEventListener("click", toggleTheme);
+                overallGoalInput.addEventListener("input", generateMarkdownPreview);
+                finalInstructionsInput.addEventListener("input", generateMarkdownPreview);
+                parameterForm.addEventListener("click", handleToolCardClick);
+                // 拖曳事件
+                stepsList.addEventListener("dragstart", handleDragStart);
+                stepsList.addEventListener("dragover", handleDragOver);
+                stepsList.addEventListener("dragenter", handleDragEnter);
+                stepsList.addEventListener("dragleave", handleDragLeave);
+                stepsList.addEventListener("drop", handleDrop);
+                // 鍵盤事件
+                stepsList.addEventListener("keydown", handleStepKeydown);
+                // 自動完成
+                parameterForm.addEventListener("input", handleAutocomplete);
+                parameterForm.addEventListener("click", handleAutocompleteSelect);
+                // 模態窗事件
+                cancelEditButton.addEventListener("click", closeEditModal);
+                saveEditButton.addEventListener("click", handleSaveEditStep);
+                modalOverlay.addEventListener("click", closeEditModal);
+
+                // 載入主題
+                const savedTheme = localStorage.getItem("theme") || "light";
+                document.body.dataset.theme = savedTheme;
+                updateThemeIcon(savedTheme);
+
+                // 初始化步驟
+                updateWelcomeMessage();
+                renderStepsList();
+                generateMarkdownPreview();
+            }
+
+            // 主題切換
+            function toggleTheme() {
+                const currentTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
+                document.body.dataset.theme = currentTheme;
+                localStorage.setItem("theme", currentTheme);
+                updateThemeIcon(currentTheme);
+            }
+
+            function updateThemeIcon(theme) {
+                themeToggle.innerHTML = `<i class="fas fa-${theme === "dark" ? "sun" : "moon"}"></i>`;
+                themeToggle.setAttribute("aria-label", `切換至${theme === "dark" ? "亮色" : "深色"}模式`);
+            }
+
+            // 顯示浮動提示
+            function showTooltip(element, message) {
+                element.textContent = message;
+                element.classList.add("show");
+                setTimeout(() => {
+                    element.classList.remove("show");
+                }, 2000);
+            }
+
+            // 處理伺服器變更
+            function handleServerChange() {
+                const selectedServerName = serverSelector.value;
+                parameterForm.innerHTML = "<p>請選擇一個伺服器。</p>";
+                serverInstructions.innerHTML = "<p>請選擇一個伺服器以查看其功能與提示指示。</p>";
+                toolsDescription.innerHTML = "<p>請選擇一個伺服器以查看其工具功能介紹。</p>";
+                addStepButton.disabled = true;
+                saveModuleButton.disabled = true;
+                currentSelectedServer = null;
+
+                if (selectedServerName) {
+                    currentSelectedServer = serverData.find(server => server.name === selectedServerName);
+                    if (currentSelectedServer) {
+                        serverInstructions.innerHTML = `<p><strong>${currentSelectedServer.displayName}</strong>: ${currentSelectedServer.description}</p><p><em>提示指示</em>: ${currentSelectedServer.instructions}</p>`;
+                        renderToolsDescription(currentSelectedServer);
+                        renderParameterForm(currentSelectedServer);
+                        addStepButton.disabled = false;
+                        saveModuleButton.disabled = false;
+                    }
+                }
+                generateMarkdownPreview();
+            }
+
+            // 處理工具卡片點擊
+            function handleToolCardClick(event) {
+                const card = event.target.closest('.tool-card');
+                if (card) {
+                    const checkbox = card.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                    card.classList.toggle('selected', checkbox.checked);
+                    updateToolSelectionButtons();
+                }
+            }
+
+            // 更新工具選擇按鈕（全選/反選）
+            function updateToolSelectionButtons() {
+                const checkboxes = parameterForm.querySelectorAll('input[name="tools"]');
+                const selectAllBtn = parameterForm.querySelector('#select-all-tools');
+                const deselectAllBtn = parameterForm.querySelector('#deselect-all-tools');
+                if (checkboxes.length > 0) {
+                    selectAllBtn.disabled = Array.from(checkboxes).every(cb => cb.checked);
+                    deselectAllBtn.disabled = Array.from(checkboxes).every(cb => !cb.checked);
+                }
+            }
+
+            // 渲染工具功能介紹
+            function renderToolsDescription(server) {
+                if (!server.tools || server.tools.length === 0) {
+                    toolsDescription.innerHTML = "<p>此伺服器無可用工具。</p>";
+                    return;
+                }
+                let html = `<p><strong>工具功能介紹</strong>:</p><ul>`;
+                server.tools.forEach(tool => {
+                    html += `<li><strong>${tool.name}</strong>: ${tool.description} <em>(用途: ${tool.usage})</em></li>`;
+                });
+                html += `</ul>`;
+                toolsDescription.innerHTML = html;
+            }
+
+            // 渲染參數表單
+            function renderParameterForm(server, targetContainer = parameterForm, stepData = null) {
+                targetContainer.innerHTML = "";
+
+                // 工具名稱多選（卡片式）
+                if (server.tools && server.tools.length > 0) {
+                    const group = document.createElement("div");
+                    group.classList.add("param-group");
+                    const title = document.createElement("h4");
+                    title.textContent = "工具參數";
+                    group.appendChild(title);
+                    const toolsContainer = document.createElement("div");
+                    toolsContainer.classList.add("tools-container");
+                    server.tools.forEach(tool => {
+                        const card = document.createElement("div");
+                        card.classList.add("tool-card");
+                        card.innerHTML = `
+                            <input type="checkbox" id="tool-${tool.name}" name="tools" value="${tool.name}" aria-label="${tool.name}" ${stepData?.params.tools?.includes(tool.name) ? "checked" : ""}>
+                            <i class="fas ${tool.icon} icon"></i>
+                            <h4>${tool.name}</h4>
+                            <p>${tool.description}</p>
+                        `;
+                        toolsContainer.appendChild(card);
+                    });
+                    group.appendChild(toolsContainer);
+                    const buttons = document.createElement("div");
+                    buttons.innerHTML = `
+                        <button id="select-all-tools" aria-label="全選工具">全選</button>
+                        <button id="deselect-all-tools" aria-label="取消全選工具">取消全選</button>
+                    `;
+                    group.appendChild(buttons);
+                    targetContainer.appendChild(group);
+
+                    // 全選/反選事件
+                    buttons.querySelector("#select-all-tools").addEventListener("click", () => {
+                        toolsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                            cb.checked = true;
+                            cb.closest('.tool-card').classList.add('selected');
+                        });
+                        updateToolSelectionButtons();
+                    });
+                    buttons.querySelector("#deselect-all-tools").addEventListener("click", () => {
+                        toolsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                            cb.checked = false;
+                            cb.closest('.tool-card').classList.remove('selected');
+                        });
+                        updateToolSelectionButtons();
+                    });
+                    updateToolSelectionButtons();
+                }
+
+                // 通用參數
+                if (server.params && server.params.length > 0) {
+                    const group = document.createElement("div");
+                    group.classList.add("param-group");
+                    const title = document.createElement("h4");
+                    title.textContent = "通用參數";
+                    group.appendChild(title);
+                    server.params.forEach(param => {
+                        const paramDiv = document.createElement("div");
+                        paramDiv.style.marginBottom = "10px";
+                        if (param.type === "checkbox") {
+                            const checkboxContainer = document.createElement("div");
+                            checkboxContainer.classList.add("checkbox-label-container");
+                            const input = document.createElement("input");
+                            input.type = "checkbox";
+                            input.id = `param-${param.name}`;
+                            input.name = param.name;
+                            if (stepData?.params[param.name] || param.checked) input.checked = true;
+                            input.setAttribute("aria-label", param.label);
+                            const label = document.createElement("label");
+                            label.htmlFor = `param-${param.name}`;
+                            label.textContent = ` ${param.label}`;
+                            if (param.required) label.classList.add("required");
+                            checkboxContainer.appendChild(input);
+                            checkboxContainer.appendChild(label);
+                            paramDiv.appendChild(checkboxContainer);
+                        } else {
+                            const label = document.createElement("label");
+                            label.htmlFor = `param-${param.name}`;
+                            label.textContent = `${param.label}`;
+                            if (param.required) label.classList.add("required");
+                            let input;
+                            if (param.type === "textarea") {
+                                input = document.createElement("textarea");
+                                input.rows = 3;
+                            } else {
+                                input = document.createElement("input");
+                                input.type = param.type || "text";
+                            }
+                            input.id = `param-${param.name}`;
+                            input.name = param.name;
+                            if (param.placeholder) input.placeholder = param.placeholder;
+                            if (param.required) input.required = true;
+                            if (stepData?.params[param.name] !== undefined) {
+                                input.value = stepData.params[param.name];
+                            } else if (param.default) {
+                                input.value = param.default;
+                            }
+                            if (param.autocomplete) input.setAttribute("autocomplete", "off");
+                            input.setAttribute("aria-label", param.label);
+                            paramDiv.appendChild(label);
+                            paramDiv.appendChild(input);
+                            if (param.autocomplete) {
+                                const suggestions = document.createElement("div");
+                                suggestions.classList.add("autocomplete-suggestions");
+                                suggestions.id = `suggestions-${param.name}`;
+                                paramDiv.appendChild(suggestions);
+                            }
+                        }
+                        group.appendChild(paramDiv);
+                    });
+                    targetContainer.appendChild(group);
+                }
+
+                // 自動填入專案設定
+                if (!stepData && projectConfig && currentSelectedServer) {
+                    const inputs = targetContainer.querySelectorAll("input, textarea");
+                    inputs.forEach(input => {
+                        if (input.name === "path" && projectConfig.projectPath) {
+                            input.value = projectConfig.projectPath;
+                        } else if (input.name === "url" && projectConfig.baseUrl) {
+                            input.value = projectConfig.baseUrl;
+                        } else if (input.name === "resolution" && projectConfig.defaultResolution) {
+                            input.value = projectConfig.defaultResolution;
+                        }
+                    });
+                }
+            }
+
+            // 自動完成
+            function handleAutocomplete(event) {
+                const input = event.target;
+                if (!input.matches('[autocomplete="off"]')) return;
+                const paramName = input.name;
+                const suggestionsDiv = document.getElementById(`suggestions-${paramName}`);
+                if (!suggestionsDiv) return;
+
+                const value = input.value.toLowerCase();
+                suggestionsDiv.innerHTML = "";
+                if (value.length < 1) return;
+
+                const suggestions = autocompleteHistory[paramName]?.filter(item => item.toLowerCase().includes(value)) || [];
+                suggestions.forEach(suggestion => {
+                    const div = document.createElement("div");
+                    div.textContent = suggestion;
+                    div.dataset.value = suggestion;
+                    suggestionsDiv.appendChild(div);
+                });
+            }
+
+            function handleAutocompleteSelect(event) {
+                const suggestion = event.target.closest('.autocomplete-suggestions div');
+                if (!suggestion) return;
+                const paramName = suggestion.parentElement.id.replace('suggestions-', '');
+                const input = document.getElementById(`param-${paramName}`);
+                input.value = suggestion.dataset.value;
+                suggestion.parentElement.innerHTML = "";
+            }
+
+            // 處理新增步驟
+            function handleAddStep() {
+                if (!currentSelectedServer) return;
+
+                const stepData = {
+                    server: currentSelectedServer.name,
+                    params: {},
+                    id: Date.now()
+                };
+
+                let formIsValid = true;
+
+                // 收集選中的工具
+                const selectedTools = Array.from(parameterForm.querySelectorAll('input[name="tools"]:checked')).map(input => input.value);
+                if (selectedTools.length > 0) {
+                    stepData.params.tools = selectedTools;
+                }
+
+                // 收集其他參數
+                currentSelectedServer.params.forEach(param => {
+                    const inputElement = document.getElementById(`param-${param.name}`);
+                    if (inputElement) {
+                        let value = inputElement.type === "checkbox" ? inputElement.checked : inputElement.value.trim();
+                        if (param.required && !value && inputElement.type !== "checkbox") {
+                            alert(`參數 "${param.label}" 是必要的。`);
+                            inputElement.style.borderColor = "red";
+                            formIsValid = false;
+                            return;
+                        } else if (inputElement.type !== "checkbox") {
+                            inputElement.style.borderColor = "";
+                        }
+                        if (value !== "" || inputElement.type === "checkbox") {
+                            stepData.params[param.name] = value;
+                            // 儲存自動完成歷史
+                            if (param.autocomplete && value && !autocompleteHistory[param.name]?.includes(value)) {
+                                autocompleteHistory[param.name] = autocompleteHistory[param.name] || [];
+                                autocompleteHistory[param.name].unshift(value);
+                                if (autocompleteHistory[param.name].length > 10) autocompleteHistory[param.name].pop();
+                                localStorage.setItem("autocompleteHistory", JSON.stringify(autocompleteHistory));
+                            }
+                        }
+                    } else if (param.required) {
+                        console.error(`找不到必要參數的輸入元素: ${param.name}`);
+                        formIsValid = false;
+                    }
+                });
+
+                if (formIsValid) {
+                    promptSteps.push(stepData);
+                    renderStepsList();
+                    generateMarkdownPreview();
+                    updateWelcomeMessage();
+                    parameterForm.querySelectorAll("input, textarea").forEach(el => {
+                        if (el.type === "checkbox") {
+                            el.checked = false;
+                            const card = el.closest('.tool-card');
+                            if (card) card.classList.remove('selected');
+                        } else if (!el.default) {
+                            el.value = "";
+                        }
+                        el.style.borderColor = "";
+                    });
+                    // 動畫
+                    const lastStep = stepsList.lastElementChild;
+                    if (lastStep) {
+                        lastStep.style.opacity = "0";
+                        setTimeout(() => {
+                            lastStep.style.transition = "opacity 0.3s ease";
+                            lastStep.style.opacity = "1";
+                        }, 10);
+                    }
+                }
+            }
+
+            // 處理步驟操作（移除/複製/編輯）
+            function handleStepActions(event) {
+                if (event.target.classList.contains("remove-step-btn")) {
+                    const stepIdToRemove = parseInt(event.target.dataset.stepId, 10);
+                    const li = event.target.closest('li');
+                    li.style.opacity = "0";
+                    setTimeout(() => {
+                        promptSteps = promptSteps.filter(step => step.id !== stepIdToRemove);
+                        renderStepsList();
+                        generateMarkdownPreview();
+                        updateWelcomeMessage();
+                    }, 300);
+                } else if (event.target.classList.contains("copy-step-btn")) {
+                    const stepIdToCopy = parseInt(event.target.dataset.stepId, 10);
+                    const stepToCopy = promptSteps.find(step => step.id === stepIdToCopy);
+                    if (stepToCopy) {
+                        const newStep = { ...stepToCopy, id: Date.now() };
+                        promptSteps.push(newStep);
+                        renderStepsList();
+                        generateMarkdownPreview();
+                        updateWelcomeMessage();
+                    }
+                } else if (event.target.classList.contains("edit-step-btn")) {
+                    const stepIdToEdit = parseInt(event.target.dataset.stepId, 10);
+                    openEditModal(stepIdToEdit);
+                }
+            }
+
+            // 開啟編輯模態窗
+            function openEditModal(stepId) {
+                currentEditStepId = stepId;
+                const step = promptSteps.find(s => s.id === stepId);
+                if (!step) return;
+
+                const server = serverData.find(s => s.name === step.server);
+                if (!server) return;
+
+                renderParameterForm(server, editStepForm, step);
+                editStepForm.addEventListener("input", handleAutocomplete);
+                editStepForm.addEventListener("click", handleAutocompleteSelect);
+
+                modalOverlay.style.display = "block";
+                editStepModal.style.display = "block";
+            }
+
+            // 關閉編輯模態窗
+            function closeEditModal() {
+                modalOverlay.style.display = "none";
+                editStepModal.style.display = "none";
+                editStepForm.innerHTML = "";
+                currentEditStepId = null;
+            }
+
+            // 儲存編輯步驟
+            function handleSaveEditStep() {
+                if (!currentEditStepId) return;
+
+                const stepIndex = promptSteps.findIndex(s => s.id === currentEditStepId);
+                if (stepIndex === -1) return;
+
+                const server = serverData.find(s => s.name === promptSteps[stepIndex].server);
+                if (!server) return;
+
+                const stepData = {
+                    server: server.name,
+                    params: {},
+                    id: currentEditStepId
+                };
+
+                let formIsValid = true;
+
+                // 收集選中的工具
+                const selectedTools = Array.from(editStepForm.querySelectorAll('input[name="tools"]:checked')).map(input => input.value);
+                if (selectedTools.length > 0) {
+                    stepData.params.tools = selectedTools;
+                }
+
+                // 收集其他參數
+                server.params.forEach(param => {
+                    const inputElement = editStepForm.querySelector(`#param-${param.name}`);
+                    if (inputElement) {
+                        let value = inputElement.type === "checkbox" ? inputElement.checked : inputElement.value.trim();
+                        if (param.required && !value && inputElement.type !== "checkbox") {
+                            alert(`參數 "${param.label}" 是必要的。`);
+                            inputElement.style.borderColor = "red";
+                            formIsValid = false;
+                            return;
+                        } else if (inputElement.type !== "checkbox") {
+                            inputElement.style.borderColor = "";
+                        }
+                        if (value !== "" || inputElement.type === "checkbox") {
+                            stepData.params[param.name] = value;
+                            if (param.autocomplete && value && !autocompleteHistory[param.name]?.includes(value)) {
+                                autocompleteHistory[param.name] = autocompleteHistory[param.name] || [];
+                                autocompleteHistory[param.name].unshift(value);
+                                if (autocompleteHistory[param.name].length > 10) autocompleteHistory[param.name].pop();
+                                localStorage.setItem("autocompleteHistory", JSON.stringify(autocompleteHistory));
+                            }
+                        }
+                    } else if (param.required) {
+                        console.error(`找不到必要參數的輸入元素: ${param.name}`);
+                        formIsValid = false;
+                    }
+                });
+
+                if (formIsValid) {
+                    promptSteps[stepIndex] = stepData;
+                    renderStepsList();
+                    generateMarkdownPreview();
+                    closeEditModal();
+                }
+            }
+
+            // 處理儲存模塊
+            function handleSaveModule() {
+                if (!currentSelectedServer) return;
+                const params = {};
+                const selectedTools = Array.from(parameterForm.querySelectorAll('input[name="tools"]:checked')).map(input => input.value);
+                if (selectedTools.length > 0) {
+                    params.tools = selectedTools;
+                }
+                parameterForm.querySelectorAll("input:not([name='tools']), textarea").forEach(input => {
+                    params[input.name] = input.type === "checkbox" ? input.checked : input.value;
+                });
+                const module = { server: currentSelectedServer.name, params };
+                alert(`模塊已儲存：${JSON.stringify(module)}`);
+            }
+
+            // 處理儲存專案設定
+            function handleSaveProjectConfig() {
+                const projectPath = parameterForm.querySelector('input[name="path"]')?.value || "";
+                const baseUrl = parameterForm.querySelector('input[name="url"]')?.value || "";
+                const defaultResolution = parameterForm.querySelector('input[name="resolution"]')?.value || "";
+                projectConfig = {
+                    projectPath: projectPath || "projects/llm_quotes_hub",
+                    baseUrl: baseUrl || "http://localhost:8080/llm_quotes_hub/",
+                    defaultResolution: defaultResolution || "1920x1080"
+                };
+                localStorage.setItem("projectConfig", JSON.stringify(projectConfig));
+                showTooltip(saveConfigTooltip, `已儲存專案設定：${projectConfig.projectPath}`);
+            }
+
+            // 處理載入專案設定
+            function handleLoadProjectConfig() {
+                const savedConfig = localStorage.getItem("projectConfig");
+                if (savedConfig) {
+                    projectConfig = JSON.parse(savedConfig);
+                    showTooltip(loadConfigTooltip, `已載入專案設定：${projectConfig.projectPath}`);
+                    if (currentSelectedServer) {
+                        renderParameterForm(currentSelectedServer);
+                    }
+                } else {
+                    showTooltip(loadConfigTooltip, "無儲存的專案設定。");
+                }
+            }
+
+            // 處理清除步驟
+            function handleClearSteps() {
+                promptSteps = [];
+                renderStepsList();
+                generateMarkdownPreview();
+                updateWelcomeMessage();
+            }
+
+            // 處理載入模板
+            function handleLoadTemplate() {
+                promptSteps = [...exampleWorkflow];
+                overallGoalInput.value = "作為 UI/UX 專家，優化 llm_quotes_hub 專案，修復 RWD 問題並完成未實現功能。";
+                finalInstructionsInput.value = "確保程式碼單檔不超過 800 行，修改後更新 README.md，輸出詳細的 Markdown 報告。";
+                renderStepsList();
+                generateMarkdownPreview();
+                updateWelcomeMessage();
+            }
+
+            // 處理儲存工作流
+            function handleSaveWorkflow() {
+                if (promptSteps.length > 0) {
+                    const workflow = {
+                        steps: promptSteps,
+                        overallGoal: overallGoalInput.value,
+                        finalInstructions: finalInstructionsInput.value,
+                        projectConfig
+                    };
+                    alert(`工作流已儲存：${JSON.stringify(workflow)}`);
+                } else {
+                    alert("目前沒有步驟可儲存。");
+                }
+            }
+
+            // 處理複製提示
+            function handleCopyPrompt() {
+                const markdownText = generateMarkdown(
+                    overallGoalInput.value,
+                    promptSteps,
+                    finalInstructionsInput.value
+                );
+                navigator.clipboard.writeText(markdownText).then(() => {
+                    copyPromptButton.textContent = "已複製!";
+                    setTimeout(() => copyPromptButton.textContent = "複製提示", 2000);
+                }).catch(err => {
+                    console.error("複製文字失敗: ", err);
+                    alert("複製提示失敗。請手動複製。");
+                });
+            }
+
+            // 拖曳事件處理
+            function handleDragStart(event) {
+                const li = event.target.closest('li');
+                if (li) {
+                    event.dataTransfer.setData('text/plain', li.dataset.stepId);
+                    li.classList.add('dragging');
+                }
+            }
+
+            function handleDragOver(event) {
+                event.preventDefault();
+            }
+
+            function handleDragEnter(event) {
+                const li = event.target.closest('li');
+                if (li) {
+                    li.classList.add('drop-target');
+                }
+            }
+
+            function handleDragLeave(event) {
+                const li = event.target.closest('li');
+                if (li) {
+                    li.classList.remove('drop-target');
+                }
+            }
+
+            function handleDrop(event) {
+                event.preventDefault();
+                const draggedId = parseInt(event.dataTransfer.getData('text/plain'), 10);
+                const targetLi = event.target.closest('li');
+                if (!targetLi) return;
+
+                const targetId = parseInt(targetLi.dataset.stepId, 10);
+                const draggedIndex = promptSteps.findIndex(step => step.id === draggedId);
+                const targetIndex = promptSteps.findIndex(step => step.id === targetId);
+
+                if (draggedIndex !== -1 && targetIndex !== -1) {
+                    const [draggedStep] = promptSteps.splice(draggedIndex, 1);
+                    promptSteps.splice(targetIndex, 0, draggedStep);
+                    renderStepsList();
+                    generateMarkdownPreview();
+                }
+
+                document.querySelectorAll('#steps-list li').forEach(li => {
+                    li.classList.remove('dragging');
+                    li.classList.remove('drop-target');
+                });
+            }
+
+            // 鍵盤移動步驟
+            function handleStepKeydown(event) {
+                const li = event.target.closest('li');
+                if (!li) return;
+                const stepId = parseInt(li.dataset.stepId, 10);
+                const index = promptSteps.findIndex(step => step.id === stepId);
+                if (index === -1) return;
+
+                if (event.key === "ArrowUp" && index > 0) {
+                    event.preventDefault();
+                    [promptSteps[index], promptSteps[index - 1]] = [promptSteps[index - 1], promptSteps[index]];
+                    renderStepsList();
+                    generateMarkdownPreview();
+                    stepsList.children[index - 1].focus();
+                } else if (event.key === "ArrowDown" && index < promptSteps.length - 1) {
+                    event.preventDefault();
+                    [promptSteps[index], promptSteps[index + 1]] = [promptSteps[index + 1], promptSteps[index]];
+                    renderStepsList();
+                    generateMarkdownPreview();
+                    stepsList.children[index + 1].focus();
+                }
+            }
+
+            // 更新歡迎訊息
+            function updateWelcomeMessage() {
+                welcomeMessage.style.display = promptSteps.length === 0 ? "block" : "none";
+            }
+
+            // 渲染步驟列表
+            function renderStepsList() {
+                stepsList.innerHTML = "";
+                promptSteps.forEach((step, index) => {
+                    const li = document.createElement("li");
+                    li.setAttribute("draggable", "true");
+                    li.dataset.stepId = step.id;
+                    li.tabIndex = 0;
+                    const stepDesc = document.createElement("span");
+                    const server = serverData.find(s => s.name === step.server);
+                    let paramsDesc = Object.entries(step.params)
+                        .map(([key, value]) => {
+                            let displayValue = value;
+                            if (key === "tools") {
+                                displayValue = value.join(", ");
+                            } else if (typeof value === "string" && value.length > 30) {
+                                displayValue = `"${value.substring(0, 27)}..."`;
+                            } else if (typeof value === "string") {
+                                displayValue = `"${value}"`;
+                            }
+                            return `${key}=${displayValue}`;
+                        })
+                        .join(", ");
+                    if (paramsDesc.length > 60) paramsDesc = paramsDesc.substring(0, 57) + "...";
+                    stepDesc.innerHTML = `<i class="fas ${server.icon}"></i>${index + 1}. ${server.displayName}${paramsDesc ? ` (${paramsDesc})` : ""}`;
+                    li.appendChild(stepDesc);
+                    const buttons = document.createElement("div");
+                    buttons.innerHTML = `
+                        <button class="edit-step-btn" data-step-id="${step.id}" aria-label="編輯步驟">編輯</button>
+                        <button class="copy-step-btn" data-step-id="${step.id}" aria-label="複製步驟">複製</button>
+                        <button class="remove-step-btn" data-step-id="${step.id}" aria-label="移除步驟">移除</button>
+                    `;
+                    li.appendChild(buttons);
+                    stepsList.appendChild(li);
+                });
+            }
+
+            // 產生 Markdown
+            function generateMarkdown(overallGoal, steps, finalInstructions) {
+                let md = "";
+                if (overallGoal.trim()) {
+                    md += `## 整體目標\n${overallGoal.trim()}\n\n`;
+                } else {
+                    md += `## 整體目標\n(未指定)\n\n`;
+                }
+                if (steps.length > 0) {
+                    md += `## 伺服器步驟\n\n`;
+                    steps.forEach((step, index) => {
+                        const server = serverData.find(s => s.name === step.server);
+                        md += `${index + 1}. **伺服器:** \`${server.displayName}\`\n`;
+                        const params = Object.entries(step.params);
+                        if (params.length > 0) {
+                            md += `    *   **參數:**\n`;
+                            params.forEach(([key, value]) => {
+                                if (key === "tools") {
+                                    md += `        *   \`tools\`: \`${value.join(", ")}\`\n`;
+                                } else if (typeof value === "string" && value.includes("\n")) {
+                                    md += `        *   \`${key}\`:\n            \`\`\`\n${value}\n            \`\`\`\n`;
+                                } else {
+                                    md += `        *   \`${key}\`: \`${value}\`\n`;
+                                }
+                            });
+                        } else {
+                            md += `    *   (無參數)\n`;
+                        }
+                        md += "\n";
+                    });
+                } else {
+                    md += `## 伺服器步驟\n\n(未新增伺服器步驟)\n\n`;
+                }
+                if (finalInstructions.trim()) {
+                    md += `## 最終指示 & 細節要求\n${finalInstructions.trim()}\n`;
+                }
+                return md.trim();
+            }
+
+            // 更新 Markdown 預覽
+            function generateMarkdownPreview() {
+                const markdown = generateMarkdown(
+                    overallGoalInput.value,
+                    promptSteps,
+                    finalInstructionsInput.value
+                );
+                markdownOutput.textContent = markdown;
+            }
+
+            // 啟動應用程式
+            initialize();
+        });
+    </script>
+</body>
+</html>
