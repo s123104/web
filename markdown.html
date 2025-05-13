@@ -125,6 +125,10 @@
         left: 0;
         top: var(--header-height);
         overflow-y: auto;
+        resize: horizontal;
+        overflow: auto;
+        min-width: 200px;
+        max-width: 500px;
         transition: var(--transition);
       }
       /* 於桌機狀態下採用原本樣式，於手機則以抽屜方式出現 */
@@ -219,6 +223,14 @@
         transition: var(--transition);
       }
       .sidebar-hidden .content-area {
+        margin-left: 0;
+      }
+
+      /* 收折側邊欄 */
+      .app-container.sidebar-hidden .sidebar {
+        left: calc(-1 * var(--sidebar-width));
+      }
+      .app-container.sidebar-hidden .content-area {
         margin-left: 0;
       }
 
@@ -985,6 +997,9 @@
               state.categories = [];
             }
           }
+          if (state.categories.length === 0) {
+            state.categories = ["筆記", "教學", "專案"];
+          }
         }
         function saveData() {
           localStorage.setItem(
@@ -1005,6 +1020,12 @@
           const hh = String(d.getHours()).padStart(2, "0");
           const mm = String(d.getMinutes()).padStart(2, "0");
           return `${y}/${m}/${day} ${hh}:${mm}`;
+        }
+
+        // 取得 markdown 第一行標題
+        function getTitleFromContent(content) {
+          const match = content.match(/^#\s+(.*)/m);
+          return match ? match[1] : "";
         }
 
         // 渲染 sidebar 文件列表
@@ -1043,18 +1064,25 @@
             const li = document.createElement("li");
             li.className = "doc-item";
             if (doc.id === state.activeDocId) li.classList.add("active");
-            const displayTitle = doc.title || getDateString(doc.id);
+            const displayTitle =
+              doc.title ||
+              getTitleFromContent(doc.content) ||
+              getDateString(doc.id);
             li.innerHTML = `
             <div class="doc-item-header">
               <span class="doc-item-title">${displayTitle}</span>
-              <div class="doc-actions">
-                <span class="doc-action edit-btn" title="編輯"><i class="fas fa-edit"></i></span>
-                <span class="doc-action delete-btn" title="刪除"><i class="fas fa-trash-alt"></i></span>
-              </div>
             </div>
             <div class="doc-item-date">${
               doc.category ? doc.category + " | " : ""
             }${getDateString(doc.id)}</div>
+            <div class="doc-actions" style="margin-top:0.5rem; justify-content:flex-start;">
+              <span class="doc-action edit-btn" title="編輯">
+                <i class="fas fa-edit"></i>
+              </span>
+              <span class="doc-action delete-btn" title="刪除">
+                <i class="fas fa-trash-alt"></i>
+              </span>
+            </div>
           `;
             li.addEventListener("click", (e) => {
               if (
@@ -1101,7 +1129,10 @@
           if (arr.length === 0) return;
           let htmlStr = "";
           arr.forEach((doc) => {
-            const displayTitle = doc.title || getDateString(doc.id);
+            const displayTitle =
+              doc.title ||
+              getTitleFromContent(doc.content) ||
+              getDateString(doc.id);
             htmlStr += `
             <div class="homepage-doc-card" data-id="${doc.id}">
               <div>
@@ -1137,12 +1168,19 @@
             showHome();
             return;
           }
-          const html = marked.parse(doc.content || "");
+          const raw = doc.content || "";
+          const stripped =
+            doc.title && raw.startsWith("# ")
+              ? raw.replace(/^# .*\n/, "")
+              : raw;
+          const html = marked.parse(stripped);
           const safeHTML = DOMPurify.sanitize(html);
           els.contentArea.innerHTML = `
           <div class="md-actions"><div></div><div></div></div>
           <div class="document-container">
-            <h2 class="md-title">${doc.title || "(未命名文件)"}</h2>
+            <h2 class="md-title">${
+              doc.title || getTitleFromContent(doc.content) || "(未命名文件)"
+            }</h2>
             ${
               doc.category
                 ? `<div class="category-tag">${doc.category}</div>`
@@ -1160,6 +1198,24 @@
             </button>
           </div>
         `;
+          // append copy buttons to code blocks
+          document.querySelectorAll(".md-content pre").forEach((pre) => {
+            const btn = document.createElement("button");
+            btn.textContent = "複製";
+            btn.className = "copy-code-btn";
+            btn.style.position = "absolute";
+            btn.style.top = "0.5rem";
+            btn.style.right = "0.5rem";
+            btn.style.padding = "0.25rem 0.5rem";
+            btn.style.fontSize = "0.75rem";
+            pre.style.position = "relative";
+            pre.appendChild(btn);
+            btn.addEventListener("click", async () => {
+              await navigator.clipboard.writeText(pre.innerText);
+              btn.textContent = "已複製";
+              setTimeout(() => (btn.textContent = "複製"), 1500);
+            });
+          });
           const bottomBtn = document.getElementById(
             "clipboardPasteBottomDocBtn"
           );
@@ -1362,7 +1418,7 @@
           els.toggleSidebar.addEventListener("click", () => {
             document
               .querySelector(".app-container")
-              .classList.toggle("sidebar-open");
+              .classList.toggle("sidebar-hidden");
           });
           // 上排貼上匯入按鈕
           els.clipboardPasteTopBtn.addEventListener("click", () => {
@@ -1425,6 +1481,21 @@
               renderDocList();
               if (state.isHome) renderHomeGrid();
             });
+          });
+          // global keydown: Ctrl+E opens edit, Ctrl+S saves when editing
+          document.addEventListener("keydown", (e) => {
+            if (e.ctrlKey && e.key === "e") {
+              e.preventDefault();
+              if (state.activeDocId) openEditModal(state.activeDocId);
+            }
+            if (
+              e.ctrlKey &&
+              e.key === "s" &&
+              document.getElementById("editModal").classList.contains("active")
+            ) {
+              e.preventDefault();
+              updateDocument();
+            }
           });
         }
 
