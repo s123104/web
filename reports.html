@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DealDeck 銷售報表</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- 自訂 Tailwind 配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f0f4ff',
+              100: '#d9e2ff',
+              200: '#bccaff',
+              300: '#94a6ff',
+              400: '#7380ff',
+              500: '#5d5df7',
+              600: '#4947e5',
+              700: '#3e39c6',
+              800: '#3232a0',
+              900: '#2d2d7e',
+            },
+            secondary: {
+              500: '#10b981',
+            },
+            danger: {
+              500: '#ef4444',
+            },
+            neutral: {
+              50: '#f9fafb',
+              100: '#f3f4f6',
+              200: '#e5e7eb',
+              300: '#d1d5db',
+              400: '#9ca3af',
+              500: '#6b7280',
+              600: '#4b5563',
+              700: '#374151',
+              800: '#1f2937',
+              900: '#111827',
+            }
+          },
+          spacing: {
+            '0.25': '0.25rem',
+            '0.5': '0.5rem',
+            '0.75': '0.75rem',
+            '1': '1rem',
+            '1.5': '1.5rem',
+            '2': '2rem',
+            '2.5': '2.5rem',
+            '3': '3rem',
+            '4': '4rem',
+            '5': '5rem',
+            '6': '6rem',
+            '8': '8rem',
+            '10': '10rem',
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+          },
+          borderRadius: {
+            'xl': '1rem',
+            '2xl': '1.5rem',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- GSAP 動畫庫 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  
+  <!-- 自訂 CSS -->
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans TC', sans-serif;
+      background-color: #eff1f7;
+    }
+    
+    /* 側邊欄選單項目活躍狀態 */
+    .sidebar-item.active {
+      background-color: #4947e5;
+      color: white;
+    }
+    
+    /* 圓形進度條 */
+    .circular-progress {
+      position: relative;
+      height: 220px;
+      width: 220px;
+    }
+    
+    .circular-progress .circle {
+      fill: none;
+      stroke-width: 20;
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    
+    .circle-bg {
+      stroke: #e5e7eb;
+    }
+    
+    .circle-progress-1 {
+      stroke: #4947e5;
+      stroke-dasharray: 628;
+      stroke-dashoffset: 180; /* 調整這個值來改變進度 */
+    }
+    
+    .circle-progress-2 {
+      stroke: #5d5df7;
+      stroke-dasharray: 628;
+      stroke-dashoffset: 320; /* 調整這個值來改變進度 */
+    }
+    
+    .circle-progress-3 {
+      stroke: #ef4444;
+      stroke-dasharray: 628;
+      stroke-dashoffset: 480; /* 調整這個值來改變進度 */
+    }
+    
+    /* 條形圖 */
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      height: 160px;
+      width: 100%;
+      gap: 12px;
+      position: relative;
+    }
+    
+    .bar {
+      flex: 1;
+      background-color: #e5e7eb;
+      border-radius: 6px;
+      position: relative;
+    }
+    
+    .bar-blue {
+      background-color: #4947e5;
+    }
+    
+    .bar-tooltip {
+      position: absolute;
+      top: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+      z-index: 10;
+    }
+    
+    .bar:hover .bar-tooltip {
+      display: block;
+    }
+    
+    /* 彩蛋按鈕及內容 */
+    .easter-egg-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 50;
+    }
+    
+    .easter-egg-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+    
+    .easter-egg-content {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      z-index: 100;
+      width: 80%;
+      max-width: 500px;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .easter-egg-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    
+    /* 泡泡圖 */
+    .bubble-chart {
+      position: relative;
+      height: 200px;
+      width: 100%;
+    }
+    
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background-color: #4947e5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 4px 8px rgba(73, 71, 229, 0.3);
+    }
+    
+    /* 數據增減的標籤 */
+    .change-label {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .change-label.positive {
+      background-color: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+    }
+    
+    .change-label.negative {
+      background-color: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+    }
+    
+    /* 卡片懸停效果 */
+    .stat-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.06);
+    }
+    
+    /* 滾動進場動畫用類 */
+    .hidden-initially {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    
+    /* 自定義滾動條 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
+    }
+    
+    /* 響應式設計輔助 */
+    @media (max-width: 768px) {
+      .circular-progress {
+        height: 160px;
+        width: 160px;
+      }
+      
+      .sidebar {
+        transform: translateX(-100%);
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        z-index: 40;
+        transition: transform 0.3s ease;
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .mobile-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 30;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+      
+      .mobile-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 移動裝置選單覆層 -->
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+
+  <div class="flex min-h-screen">
+    <!-- 側邊欄 -->
+    <aside class="sidebar bg-white w-64 p-4 flex flex-col" id="sidebar">
+      <!-- Logo -->
+      <div class="flex items-center mb-8 pl-2">
+        <div class="bg-primary-600 text-white rounded-lg p-2 mr-2">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <span class="text-lg font-semibold">DealDeck</span>
+      </div>
+      
+      <!-- 主選單 -->
+      <div class="mb-8">
+        <h5 class="text-xs font-semibold text-neutral-500 mb-4 ml-2">MENU</h5>
+        <nav>
+          <a href="#" class="sidebar-item flex items-center text-neutral-700 hover:bg-neutral-100 p-3 rounded-lg mb-1 transition duration-200">
+            <i class="fas fa-home mr-3 text-neutral-500"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="#" class="sidebar-item active flex items-center p-3 rounded-lg mb-1 transition duration-200">
+            <i class="fas fa-chart-bar mr-3"></i>
+            <span>Report</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center text-neutral-700 hover:bg-neutral-100 p-3 rounded-lg mb-1 transition duration-200">
+            <i class="fas fa-box mr-3 text-neutral-500"></i>
+            <span>Products</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center text-neutral-700 hover:bg-neutral-100 p-3 rounded-lg mb-1 transition duration-200">
+            <i class="fas fa-users mr-3 text-neutral-500"></i>
+            <span>Consumer</span>
+          </a>
+        </nav>
+      </div>
+      
+      <!-- 財務選單 -->
+      <div class="mb-8">
+        <h5 class="text-xs font-semibold text-neutral-500 mb-4 ml-2">FINANCIAL</h5>
+        <nav>
+          <a href="#" class="sidebar-item flex items-center text-neutral-700 hover:bg-neutral-100 p-3 rounded-lg mb-1 transition duration-200">
+            <i class="fas fa-exchange-alt mr-3 text-neutral-500"></i>
+            <span>Transactions</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center text-neutral-700 hover:bg-neutral-100 p-3 rounded-lg mb-1 transition duration-200">
+            <i class="fas fa-file-invoice mr-3 text-neutral-500"></i>
+            <span>Invoices</span>
+          </a>
+        </nav>
+      </div>
+      
+      <!-- 工具選單 -->
+      <div class="mb-8">
+        <h5 class="text-xs font-semibold text-neutral-500 mb-4 ml-2">TOOLS</h5>
+        <nav>
+          <a href="#" class="sidebar-item flex items-center text-neutral-700 hover:bg-neutral-100 p-3 rounded-lg mb-1 transition duration-200">
+            <i class="fas fa-cog mr-3 text-neutral-500"></i>
+            <span>Settings</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center text-neutral-700 hover:bg-neutral-100 p-3 rounded-lg mb-1 transition duration-200">
+            <i class="fas fa-comment mr-3 text-neutral-500"></i>
+            <span>Feedback</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center text-neutral-700 hover:bg-neutral-100 p-3 rounded-lg mb-1 transition duration-200">
+            <i class="fas fa-question-circle mr-3 text-neutral-500"></i>
+            <span>Help</span>
+          </a>
+        </nav>
+      </div>
+      
+      <!-- 升級提示卡片 -->
+      <div class="mt-auto p-4 bg-neutral-900 text-white rounded-xl">
+        <div class="rounded-full bg-white w-8 h-8 flex items-center justify-center mb-3">
+          <i class="fas fa-crown text-neutral-900"></i>
+        </div>
+        <h3 class="text-lg font-semibold mb-1">Upgrade Pro</h3>
+        <p class="text-neutral-400 text-sm mb-4">Discover the benefits of an upgraded account</p>
+        <button class="bg-primary-600 text-white w-full py-2 rounded-lg font-medium hover:bg-primary-700 transition duration-200">
+          Upgrade $30
+        </button>
+      </div>
+    </aside>
+    
+    <!-- 主要內容區域 -->
+    <div class="flex-1 p-4 md:p-6">
+      <!-- 頂部導航 -->
+      <header class="flex justify-between items-center mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-neutral-900 mb-1">Sales Report</h1>
+          <p class="text-neutral-500">Friday, December 15th 2023</p>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+          <!-- 手機版菜單按鈕 -->
+          <button id="menuToggle" class="md:hidden text-neutral-700 hover:bg-neutral-100 p-2 rounded-lg transition">
+            <i class="fas fa-bars"></i>
+          </button>
+          
+          <!-- 搜索按鈕 -->
+          <button class="bg-white p-3 rounded-full shadow-sm text-neutral-700 hover:bg-neutral-50 transition">
+            <i class="fas fa-search"></i>
+          </button>
+          
+          <!-- 通知按鈕 -->
+          <button class="bg-white p-3 rounded-full shadow-sm text-neutral-700 hover:bg-neutral-50 transition">
+            <i class="fas fa-bell"></i>
+          </button>
+          
+          <!-- 用戶資料 -->
+          <div class="flex items-center bg-white rounded-full py-1 pl-1 pr-4 shadow-sm">
+            <img src="https://i.pravatar.cc/300?img=27" alt="User" class="w-8 h-8 rounded-full mr-2">
+            <div class="hidden md:block">
+              <h3 class="text-sm font-medium text-neutral-900">Ferra Alexandra</h3>
+              <p class="text-xs text-neutral-500">Admin store</p>
+            </div>
+          </div>
+        </div>
+      </header>
+      
+      <!-- 統計卡片區域 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <!-- 總銷售額卡片 -->
+        <div class="stat-card hidden-initially bg-primary-600 text-white rounded-xl p-4 shadow-md">
+          <div class="flex justify-between items-start mb-6">
+            <div class="p-2 bg-primary-700 rounded-lg">
+              <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="change-label positive">
+              +2.08%
+            </div>
+          </div>
+          <h3 class="text-sm font-medium mb-1">Total Sales</h3>
+          <div class="flex items-baseline">
+            <span class="text-3xl font-bold">$612.917</span>
+          </div>
+          <p class="text-xs mt-2 text-primary-200">Products vs last month</p>
+        </div>
+        
+        <!-- 總訂單數卡片 -->
+        <div class="stat-card hidden-initially bg-white rounded-xl p-4 shadow-md">
+          <div class="flex justify-between items-start mb-6">
+            <div class="p-2 bg-neutral-100 rounded-lg text-neutral-700">
+              <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div class="change-label positive">
+              +2.4%
+            </div>
+          </div>
+          <h3 class="text-sm font-medium text-neutral-600 mb-1">Total Orders</h3>
+          <div class="flex items-baseline">
+            <span class="text-3xl font-bold text-neutral-900">34.760</span>
+          </div>
+          <p class="text-xs mt-2 text-neutral-500">Orders vs last month</p>
+        </div>
+        
+        <!-- 訪客數卡片 -->
+        <div class="stat-card hidden-initially bg-white rounded-xl p-4 shadow-md">
+          <div class="flex justify-between items-start mb-6">
+            <div class="p-2 bg-neutral-100 rounded-lg text-neutral-700">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="change-label negative">
+              -2.08%
+            </div>
+          </div>
+          <h3 class="text-sm font-medium text-neutral-600 mb-1">Visitor</h3>
+          <div class="flex items-baseline">
+            <span class="text-3xl font-bold text-neutral-900">14.987</span>
+          </div>
+          <p class="text-xs mt-2 text-neutral-500">Users vs last month</p>
+        </div>
+        
+        <!-- 商品銷售數卡片 -->
+        <div class="stat-card hidden-initially bg-white rounded-xl p-4 shadow-md">
+          <div class="flex justify-between items-start mb-6">
+            <div class="p-2 bg-neutral-100 rounded-lg text-neutral-700">
+              <i class="fas fa-box"></i>
+            </div>
+            <div class="change-label positive">
+              +2.4%
+            </div>
+          </div>
+          <h3 class="text-sm font-medium text-neutral-600 mb-1">Total Sold Products</h3>
+          <div class="flex items-baseline">
+            <span class="text-3xl font-bold text-neutral-900">12.987</span>
+          </div>
+          <p class="text-xs mt-2 text-neutral-500">Products vs last month</p>
+        </div>
+      </div>
+      
+      <!-- 主要資料儀表板區域 -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 左側：客戶行為圖表區 -->
+        <div class="lg:col-span-2">
+          <!-- 客戶習慣卡片 -->
+          <div class="bg-white rounded-xl p-6 shadow-md mb-6 hidden-initially">
+            <div class="flex justify-between items-center mb-8">
+              <div>
+                <h3 class="text-lg font-semibold text-neutral-900">Customer Habits</h3>
+                <p class="text-sm text-neutral-500">Track your customer habits</p>
+              </div>
+              <button class="flex items-center bg-white border border-neutral-200 text-neutral-600 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-neutral-50 transition">
+                This year
+                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+              </button>
+            </div>
+            
+            <!-- 圖表區域 -->
+            <div class="mb-4 flex items-center space-x-4">
+              <div class="flex items-center">
+                <div class="w-3 h-3 bg-neutral-300 rounded-full mr-2"></div>
+                <span class="text-sm text-neutral-500">Seen product</span>
+              </div>
+              <div class="flex items-center">
+                <div class="w-3 h-3 bg-primary-600 rounded-full mr-2"></div>
+                <span class="text-sm text-neutral-500">Sales</span>
+              </div>
+            </div>
+            
+            <!-- 條形圖 -->
+            <div class="bar-chart">
+              <!-- 1月 -->
+              <div class="bar" style="height: 50%;">
+                <div class="bar bar-blue" style="height: 80%; width: 100%;">
+                  <div class="bar-tooltip">43.787 Products</div>
+                </div>
+                <div class="text-xs text-center text-neutral-500 mt-2">Jan</div>
+              </div>
+              
+              <!-- 2月 -->
+              <div class="bar" style="height: 70%;">
+                <div class="bar bar-blue" style="height: 50%; width: 100%;">
+                  <div class="bar-tooltip">39.784 Products</div>
+                </div>
+                <div class="text-xs text-center text-neutral-500 mt-2">Feb</div>
+              </div>
+              
+              <!-- 3月 -->
+              <div class="bar" style="height: 30%;">
+                <div class="bar bar-blue" style="height: 60%; width: 100%;">
+                  <div class="bar-tooltip">28.932 Products</div>
+                </div>
+                <div class="text-xs text-center text-neutral-500 mt-2">Mar</div>
+              </div>
+              
+              <!-- 4月 -->
+              <div class="bar" style="height: 65%;">
+                <div class="bar bar-blue" style="height: 30%; width: 100%;">
+                  <div class="bar-tooltip">35.621 Products</div>
+                </div>
+                <div class="text-xs text-center text-neutral-500 mt-2">Apr</div>
+              </div>
+              
+              <!-- 5月 -->
+              <div class="bar" style="height: 45%;">
+                <div class="bar bar-blue" style="height: 70%; width: 100%;">
+                  <div class="bar-tooltip">31.465 Products</div>
+                </div>
+                <div class="text-xs text-center text-neutral-500 mt-2">May</div>
+              </div>
+              
+              <!-- 6月 -->
+              <div class="bar" style="height: 80%;">
+                <div class="bar bar-blue" style="height: 40%; width: 100%;">
+                  <div class="bar-tooltip">46.327 Products</div>
+                </div>
+                <div class="text-xs text-center text-neutral-500 mt-2">Jun</div>
+              </div>
+              
+              <!-- 7月 -->
+              <div class="bar" style="height: 60%;">
+                <div class="bar bar-blue" style="height: 55%; width: 100%;">
+                  <div class="bar-tooltip">41.023 Products</div>
+                </div>
+                <div class="text-xs text-center text-neutral-500 mt-2">Jul</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 右側：產品統計與客戶分布區 -->
+        <div class="lg:col-span-1">
+          <!-- 產品統計卡片 -->
+          <div class="bg-white rounded-xl p-6 shadow-md mb-6 hidden-initially">
+            <div class="flex justify-between items-center mb-4">
+              <div>
+                <h3 class="text-lg font-semibold text-neutral-900">Product Statistic</h3>
+                <p class="text-sm text-neutral-500">Track your product sales</p>
+              </div>
+              <button class="flex items-center bg-white border border-neutral-200 text-neutral-600 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-neutral-50 transition">
+                Today
+                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+              </button>
+            </div>
+            
+            <!-- 環形進度圖 -->
+            <div class="flex justify-center mb-6">
+              <div class="circular-progress">
+                <svg viewBox="0 0 100 100">
+                  <circle class="circle circle-bg" cx="50" cy="50" r="40"></circle>
+                  <circle class="circle circle-progress-1" cx="50" cy="50" r="40"></circle>
+                  <circle class="circle circle-progress-2" cx="50" cy="50" r="40"></circle>
+                  <circle class="circle circle-progress-3" cx="50" cy="50" r="40"></circle>
+                </svg>
+                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                  <div class="text-3xl font-bold text-neutral-900">9.829</div>
+                  <div class="text-sm text-neutral-500">Products Sales</div>
+                  <div class="change-label positive mt-2">+5.34%</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 產品類別統計 -->
+            <div class="space-y-4">
+              <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                  <i class="fas fa-laptop-code text-neutral-600 mr-3"></i>
+                  <span class="font-medium">Electronic</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="font-semibold mr-2">2.487</span>
+                  <div class="change-label positive">+1.8%</div>
+                </div>
+              </div>
+              
+              <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                  <i class="fas fa-gamepad text-neutral-600 mr-3"></i>
+                  <span class="font-medium">Games</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="font-semibold mr-2">1.828</span>
+                  <div class="change-label positive">+2.3%</div>
+                </div>
+              </div>
+              
+              <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                  <i class="fas fa-couch text-neutral-600 mr-3"></i>
+                  <span class="font-medium">Furniture</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="font-semibold mr-2">1.463</span>
+                  <div class="change-label negative">-4.9%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 客戶分布卡片 -->
+          <div class="bg-white rounded-xl p-6 shadow-md hidden-initially">
+            <div class="flex justify-between items-center mb-4">
+              <div>
+                <h3 class="text-lg font-semibold text-neutral-900">Customer Growth</h3>
+                <p class="text-sm text-neutral-500">Track customer by locations</p>
+              </div>
+              <button class="flex items-center bg-white border border-neutral-200 text-neutral-600 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-neutral-50 transition">
+                Today
+                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+              </button>
+            </div>
+            
+            <!-- 泡泡圖 -->
+            <div class="bubble-chart">
+              <!-- 美國 -->
+              <div class="bubble" style="top: 30px; left: 20px; width: 120px; height: 120px;">
+                <div class="flex flex-col items-center">
+                  <i class="fas fa-flag-usa mb-1"></i>
+                  <span>2.417</span>
+                </div>
+              </div>
+              
+              <!-- 德國 -->
+              <div class="bubble" style="top: 90px; left: 160px; width: 80px; height: 80px; background-color: #6366f1;">
+                <div class="flex flex-col items-center">
+                  <span>987</span>
+                </div>
+              </div>
+              
+              <!-- 澳洲 -->
+              <div class="bubble" style="top: 40px; right: 20px; width: 70px; height: 70px; background-color: #8b5cf6;">
+                <div class="flex flex-col items-center">
+                  <span>812</span>
+                </div>
+              </div>
+              
+              <!-- 法國 -->
+              <div class="bubble" style="bottom: 10px; right: 90px; width: 60px; height: 60px; background-color: #f43f5e;">
+                <div class="flex flex-col items-center">
+                  <span>287</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 彩蛋按鈕 -->
+  <div class="easter-egg-btn" id="easterEggBtn">
+    <i class="fas fa-gift text-primary-500"></i>
+  </div>
+  
+  <!-- 彩蛋內容 -->
+  <div class="easter-egg-overlay" id="easterEggOverlay"></div>
+  <div class="easter-egg-content" id="easterEggContent">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="text-xl font-bold text-neutral-900">🎉 彩蛋啟動！</h3>
+      <button id="closeEasterEgg" class="text-neutral-500 hover:text-neutral-700">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <p class="text-neutral-700 mb-4">恭喜你發現了隱藏彩蛋！這是一個簡易的銷售預測器遊戲，試試你能否猜對下個月的銷售額？</p>
+    
+    <div class="bg-neutral-50 p-4 rounded-lg mb-6" id="gameContent">
+      <p class="text-neutral-600 mb-4">根據歷史數據，猜一猜下個月的銷售額會是多少？</p>
+      <div class="text-center text-2xl font-bold text-primary-600 mb-6">$612.917</div>
+      
+      <div class="flex space-x-4 mb-4">
+        <button class="flex-1 py-2 px-4 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 transition" data-prediction="increase">
+          <i class="fas fa-arrow-up text-green-500 mr-2"></i>增加
+        </button>
+        <button class="flex-1 py-2 px-4 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 transition" data-prediction="decrease">
+          <i class="fas fa-arrow-down text-red-500 mr-2"></i>減少
+        </button>
+        <button class="flex-1 py-2 px-4 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 transition" data-prediction="same">
+          <i class="fas fa-equals text-blue-500 mr-2"></i>持平
+        </button>
+      </div>
+      
+      <div id="predictionResult" class="hidden text-center p-3 rounded-lg mb-4"></div>
+      
+      <div class="text-center">
+        <button id="playAgain" class="hidden bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition">再玩一次</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- JavaScript -->
+  <script>
+    // DOM 元素參考
+    const sidebar = document.getElementById('sidebar');
+    const menuToggle = document.getElementById('menuToggle');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    const easterEggBtn = document.getElementById('easterEggBtn');
+    const easterEggContent = document.getElementById('easterEggContent');
+    const easterEggOverlay = document.getElementById('easterEggOverlay');
+    const closeEasterEgg = document.getElementById('closeEasterEgg');
+    const predictionBtns = document.querySelectorAll('[data-prediction]');
+    const predictionResult = document.getElementById('predictionResult');
+    const playAgainBtn = document.getElementById('playAgain');
+    
+    // ========== 彩蛋功能 ==========
+    // 變數跟踪點擊次數
+    let easterEggClicks = 0;
+    
+    // 彩蛋按鈕點擊處理
+    easterEggBtn.addEventListener('click', () => {
+      easterEggClicks++;
+      
+      // 連續點擊三次才會啟動彩蛋
+      if (easterEggClicks >= 3) {
+        showEasterEgg();
+        easterEggClicks = 0; // 重置點擊計數
+      }
+    });
+    
+    // 顯示彩蛋內容
+    function showEasterEgg() {
+      easterEggOverlay.style.opacity = '1';
+      easterEggOverlay.style.pointerEvents = 'auto';
+      easterEggContent.style.transform = 'translate(-50%, -50%) scale(1)';
+    }
+    
+    // 關閉彩蛋內容
+    function hideEasterEgg() {
+      easterEggOverlay.style.opacity = '0';
+      easterEggOverlay.style.pointerEvents = 'none';
+      easterEggContent.style.transform = 'translate(-50%, -50%) scale(0)';
+    }
+    
+    // 關閉按鈕事件
+    closeEasterEgg.addEventListener('click', hideEasterEgg);
+    easterEggOverlay.addEventListener('click', hideEasterEgg);
+    
+    // 鍵盤彩蛋 - 輸入 "dealdesk" 顯示彩蛋
+    let keySequence = '';
+    const secretCode = 'dealdeck';
+    
+    document.addEventListener('keydown', (e) => {
+      // 添加按鍵到序列
+      keySequence += e.key.toLowerCase();
+      
+      // 如果序列變長，就只保留最後 N 個字符（N 是秘密代碼的長度）
+      if (keySequence.length > secretCode.length) {
+        keySequence = keySequence.substring(keySequence.length - secretCode.length);
+      }
+      
+      // 檢查是否匹配秘密代碼
+      if (keySequence === secretCode) {
+        showEasterEgg();
+        keySequence = ''; // 重置序列
+      }
+    });
+    
+    // 預測遊戲邏輯
+    predictionBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const prediction = btn.getAttribute('data-prediction');
+        const random = Math.random();
+        let result = '';
+        let isCorrect = false;
+        
+        // 隨機決定結果
+        if (random < 0.4) {
+          result = 'increase';
+        } else if (random < 0.7) {
+          result = 'decrease';
+        } else {
+          result = 'same';
+        }
+        
+        // 檢查預測是否正確
+        isCorrect = prediction === result;
+        
+        // 顯示結果
+        if (isCorrect) {
+          predictionResult.innerHTML = `<div class="text-green-600 font-medium"><i class="fas fa-check-circle mr-2"></i>太神啦！你猜對了！下月銷售額${result === 'increase' ? '上升' : (result === 'decrease' ? '下降' : '持平')}。</div>`;
+          predictionResult.className = 'text-center p-3 rounded-lg mb-4 bg-green-50';
+        } else {
+          predictionResult.innerHTML = `<div class="text-red-600 font-medium"><i class="fas fa-times-circle mr-2"></i>很可惜！預測錯誤。下月銷售額${result === 'increase' ? '上升' : (result === 'decrease' ? '下降' : '持平')}。</div>`;
+          predictionResult.className = 'text-center p-3 rounded-lg mb-4 bg-red-50';
+        }
+        
+        // 顯示結果和重玩按鈕
+        predictionResult.classList.remove('hidden');
+        playAgainBtn.classList.remove('hidden');
+        
+        // 禁用預測按鈕
+        predictionBtns.forEach(b => {
+          b.disabled = true;
+          b.classList.add('opacity-50', 'cursor-not-allowed');
+        });
+      });
+    });
+    
+    // 重玩按鈕
+    playAgainBtn.addEventListener('click', () => {
+      predictionResult.classList.add('hidden');
+      playAgainBtn.classList.add('hidden');
+      
+      // 重新啟用預測按鈕
+      predictionBtns.forEach(b => {
+        b.disabled = false;
+        b.classList.remove('opacity-50', 'cursor-not-allowed');
+      });
+    });
+    
+    // ========== 響應式設計 ==========
+    // 手機版選單開關
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      mobileOverlay.classList.toggle('active');
+    });
+    
+    // 點擊遮罩關閉選單
+    mobileOverlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      mobileOverlay.classList.remove('active');
+    });
+    
+    // ========== 滾動進場動畫 ==========
+    function handleScrollAnimations() {
+      const elements = document.querySelectorAll('.hidden-initially');
+      
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            // 設置延遲時間，讓元素逐一顯示
+            setTimeout(() => {
+              entry.target.style.opacity = '1';
+              entry.target.style.transform = 'translateY(0)';
+              entry.target.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            }, 100 * Array.from(elements).indexOf(entry.target));
+            
+            // 一旦元素顯示後，不再觀察它
+            observer.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.1 // 當元素10%進入視窗時觸發
+      });
+      
+      // 觀察每個元素
+      elements.forEach(element => {
+        observer.observe(element);
+      });
+    }
+    
+    // 頁面加載完成後初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      handleScrollAnimations();
+      
+      // 為條形圖添加動畫
+      animateBarChart();
+    });
+    
+    // 條形圖動畫
+    function animateBarChart() {
+      const bars = document.querySelectorAll('.bar');
+      
+      bars.forEach((bar, index) => {
+        setTimeout(() => {
+          const height = bar.style.height;
+          bar.style.height = '0%';
+          
+          setTimeout(() => {
+            bar.style.height = height;
+            bar.style.transition = 'height 1s ease-out';
+          }, 100);
+        }, index * 100);
+      });
+    }
+  </script>
+</body>
+</html>
