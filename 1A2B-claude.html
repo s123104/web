@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>可愛風格1A2B猜數字遊戲</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+            secondary: {
+              50: '#fdf2f8',
+              100: '#fce7f3',
+              200: '#fbcfe8',
+              300: '#f9a8d4',
+              400: '#f472b6',
+              500: '#ec4899',
+              600: '#db2777',
+              700: '#be185d',
+              800: '#9d174d',
+              900: '#831843',
+            },
+            neutral: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+            },
+            accent: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              200: '#ddd6fe',
+              300: '#c4b5fd',
+              400: '#a78bfa',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+              800: '#5b21b6',
+              900: '#4c1d95',
+            },
+            pastel: {
+              pink: '#FFC8DD',
+              blue: '#BDE0FE',
+              purple: '#CDB4DB',
+              yellow: '#FDFDBD',
+              green: '#B6E2A1',
+            }
+          },
+          spacing: {
+            '0.25': '0.25rem',
+            '0.5': '0.5rem',
+            '0.75': '0.75rem',
+            '1': '1rem',
+            '1.25': '1.25rem',
+            '1.5': '1.5rem',
+            '2': '2rem',
+            '2.5': '2.5rem',
+            '3': '3rem',
+            '4': '4rem',
+            '5': '5rem',
+            '6': '6rem',
+            '8': '8rem',
+            '10': '10rem',
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+            cute: ['Noto Sans TC', 'Inter', 'sans-serif'],
+          },
+          animation: {
+            'bounce-slow': 'bounce 2s infinite',
+            'pulse-slow': 'pulse 3s infinite',
+            'wiggle': 'wiggle 1s ease-in-out infinite',
+            'float': 'float 3s ease-in-out infinite',
+          },
+          keyframes: {
+            wiggle: {
+              '0%, 100%': { transform: 'rotate(-3deg)' },
+              '50%': { transform: 'rotate(3deg)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-10px)' },
+            }
+          },
+          borderRadius: {
+            'bubble': '1.5rem 1.5rem 1.5rem 0.25rem',
+            'user-bubble': '1.5rem 1.5rem 0.25rem 1.5rem',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 自定義樣式 */
+    body {
+      background-color: #f8fafc;
+      background-image: 
+        radial-gradient(#bde0fe 1px, transparent 1px),
+        radial-gradient(#ffc8dd 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: 0 0, 20px 20px;
+      overflow-x: hidden;
+    }
+    
+    /* 氣泡訊息動畫 */
+    .message-bubble {
+      transition: all 0.3s ease-out;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    
+    .message-bubble.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* 輸入框發光效果 */
+    .input-glow:focus {
+      box-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+    }
+    
+    /* 數字按鈕按下效果 */
+    .number-btn {
+      transition: all 0.2s ease;
+    }
+    
+    .number-btn:active {
+      transform: scale(0.9);
+    }
+    
+    /* 禁用的數字按鈕 */
+    .number-btn.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    
+    /* 歷史記錄淡入淡出 */
+    .history-item {
+      transition: all 0.5s ease;
+      animation: fadeIn 0.5s ease forwards;
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    /* 勝利動畫 */
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: #f472b6;
+      border-radius: 0;
+      animation: fall 4s linear infinite;
+    }
+    
+    @keyframes fall {
+      0% {
+        transform: translateY(-50px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+    
+    /* 可愛貓咪動畫 */
+    .cat-ears {
+      transition: all 0.3s ease;
+    }
+    
+    .cat-avatar:hover .cat-ears {
+      transform: rotate(-10deg);
+    }
+    
+    /* 脈動光暈效果 */
+    .pulsing-glow {
+      box-shadow: 0 0 0 0 rgba(14, 165, 233, 1);
+      animation: pulse-ring 2s infinite;
+    }
+    
+    @keyframes pulse-ring {
+      0% {
+        box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
+      }
+    }
+    
+    /* 隱藏彩蛋效果 */
+    .easter-egg-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      z-index: 50;
+    }
+    
+    .easter-egg-modal.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    
+    .easter-egg-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      max-width: 90%;
+      width: 400px;
+      transform: scale(0.8);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .easter-egg-modal.active .easter-egg-content {
+      transform: scale(1);
+    }
+    
+    /* 氣泡尾巴效果 */
+    .bubble-tail {
+      position: absolute;
+      bottom: -12px;
+      left: 15px;
+      width: 20px;
+      height: 20px;
+      background-color: inherit;
+      transform: rotate(45deg);
+      z-index: -1;
+    }
+    
+    .user-bubble-tail {
+      position: absolute;
+      bottom: -12px;
+      right: 15px;
+      width: 20px;
+      height: 20px;
+      background-color: inherit;
+      transform: rotate(45deg);
+      z-index: -1;
+    }
+    
+    /* 數字鍵盤波浪效果 */
+    .number-btn:after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.8);
+      opacity: 0;
+      border-radius: 100%;
+      transform: scale(1, 1) translate(-50%);
+      transform-origin: 50% 50%;
+    }
+
+    @keyframes ripple {
+      0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(20, 20);
+        opacity: 0;
+      }
+    }
+
+    .number-btn:focus:not(:active)::after {
+      animation: ripple 0.8s ease-out;
+    }
+    
+    /* 飄浮動畫 */
+    @keyframes float-animation {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+    
+    /* 聚焦輸入框時，使用純手寫CSS覆蓋Tailwind樣式 */
+    .number-display:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+    }
+    
+    /* 提示類型標籤 */
+    .hint-label {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      margin-right: 0.5rem;
+    }
+    
+    .hint-a {
+      background-color: #bae6fd;
+      color: #0c4a6e;
+    }
+    
+    .hint-b {
+      background-color: #fce7f3;
+      color: #831843;
+    }
+    
+    /* 手寫數字效果 */
+    .handwritten {
+      font-family: 'Noto Sans TC', cursive;
+      letter-spacing: 0.05em;
+    }
+    
+    /* 開場動畫 */
+    .intro-animation {
+      animation: slideUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    
+    @keyframes slideUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* 不同延遲的介紹動畫 */
+    .delay-1 { animation-delay: 0.2s; }
+    .delay-2 { animation-delay: 0.4s; }
+    .delay-3 { animation-delay: 0.6s; }
+    .delay-4 { animation-delay: 0.8s; }
+    .delay-5 { animation-delay: 1s; }
+    
+    /* 自訂捲動條 */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #bae6fd;
+      border-radius: 10px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #7dd3fc;
+    }
+  </style>
+</head>
+<body class="font-cute text-neutral-700 min-h-screen flex flex-col">
+
+  <!-- 頂部區域 -->
+  <header class="bg-white shadow-sm py-4 px-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold text-primary-600 flex items-center">
+        <i class="fas fa-gamepad mr-2"></i>
+        <span>1A2B猜數字</span>
+      </h1>
+      <div class="flex items-center">
+        <button id="resetBtn" class="bg-primary-100 text-primary-700 p-2 rounded-full hover:bg-primary-200 transition transform duration-200 hover:scale-105">
+          <i class="fas fa-redo-alt"></i>
+        </button>
+        <button id="helpBtn" class="bg-primary-100 text-primary-700 p-2 rounded-full hover:bg-primary-200 transition transform duration-200 hover:scale-105 ml-2">
+          <i class="fas fa-question"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主遊戲區域 -->
+  <main class="flex-grow px-4 py-6 container mx-auto max-w-md flex flex-col h-full">
+    
+    <!-- 遊戲狀態區 -->
+    <div id="gameStatus" class="text-center mb-4 intro-animation delay-1">
+      <span id="statusText" class="inline-block bg-pastel-blue text-primary-700 px-4 py-2 rounded-full font-medium">
+        準備開始遊戲...
+      </span>
+    </div>
+    
+    <!-- 對話區域 -->
+    <div id="chatArea" class="flex-grow mb-4 overflow-y-auto custom-scrollbar" style="max-height: calc(100vh - 330px);">
+      <!-- 歡迎訊息 -->
+      <div class="flex mb-4 intro-animation delay-2">
+        <div class="cat-avatar flex-shrink-0 w-10 h-10 rounded-full bg-primary-200 flex items-center justify-center mr-2 cursor-pointer" id="catAvatar">
+          <div class="relative">
+            <i class="fas fa-cat text-primary-600"></i>
+            <div class="cat-ears absolute -top-2 -left-3 w-2 h-3 bg-primary-200 rounded-tl-full"></div>
+            <div class="cat-ears absolute -top-2 -right-3 w-2 h-3 bg-primary-200 rounded-tr-full"></div>
+          </div>
+        </div>
+        <div class="message-bubble show relative bg-primary-100 text-primary-800 p-3 rounded-bubble max-w-[80%]">
+          <div class="bubble-tail bg-primary-100"></div>
+          <p>嗨！我是數字貓，和我一起玩1A2B猜數字遊戲吧！😺</p>
+        </div>
+      </div>
+      
+      <div class="flex mb-4 intro-animation delay-3">
+        <div class="cat-avatar flex-shrink-0 w-10 h-10 rounded-full bg-primary-200 flex items-center justify-center mr-2">
+          <div class="relative">
+            <i class="fas fa-cat text-primary-600"></i>
+            <div class="cat-ears absolute -top-2 -left-3 w-2 h-3 bg-primary-200 rounded-tl-full"></div>
+            <div class="cat-ears absolute -top-2 -right-3 w-2 h-3 bg-primary-200 rounded-tr-full"></div>
+          </div>
+        </div>
+        <div class="message-bubble show relative bg-primary-100 text-primary-800 p-3 rounded-bubble max-w-[80%]">
+          <div class="bubble-tail bg-primary-100"></div>
+          <p>我已經想好了一個<strong>4位數字</strong>，每個數字都不重複！<br>來試試看能不能猜中喵～</p>
+        </div>
+      </div>
+      
+      <div class="flex mb-4 intro-animation delay-4">
+        <div class="cat-avatar flex-shrink-0 w-10 h-10 rounded-full bg-primary-200 flex items-center justify-center mr-2">
+          <div class="relative">
+            <i class="fas fa-cat text-primary-600"></i>
+            <div class="cat-ears absolute -top-2 -left-3 w-2 h-3 bg-primary-200 rounded-tl-full"></div>
+            <div class="cat-ears absolute -top-2 -right-3 w-2 h-3 bg-primary-200 rounded-tr-full"></div>
+          </div>
+        </div>
+        <div class="message-bubble show relative bg-primary-100 text-primary-800 p-3 rounded-bubble max-w-[80%]">
+          <div class="bubble-tail bg-primary-100"></div>
+          <p>提示說明：<br>
+          <span class="hint-label hint-a">A</span>數字和位置都對<br>
+          <span class="hint-label hint-b">B</span>數字對但位置不對</p>
+        </div>
+      </div>
+      
+      <!-- 歷史訊息將被動態插入這裡 -->
+    </div>
+    
+    <!-- 輸入區域 -->
+    <div class="p-4 bg-white rounded-xl shadow-md intro-animation delay-5">
+      <div class="text-center mb-2">
+        <p class="text-neutral-500 text-sm">輸入您的猜測：</p>
+      </div>
+      
+      <!-- 數字顯示區 -->
+      <div class="flex justify-center mb-4">
+        <div id="numberDisplay" class="flex justify-center gap-2">
+          <div class="number-display w-10 h-12 border-2 border-primary-200 rounded-lg flex items-center justify-center text-xl font-bold text-primary-700 bg-primary-50">-</div>
+          <div class="number-display w-10 h-12 border-2 border-primary-200 rounded-lg flex items-center justify-center text-xl font-bold text-primary-700 bg-primary-50">-</div>
+          <div class="number-display w-10 h-12 border-2 border-primary-200 rounded-lg flex items-center justify-center text-xl font-bold text-primary-700 bg-primary-50">-</div>
+          <div class="number-display w-10 h-12 border-2 border-primary-200 rounded-lg flex items-center justify-center text-xl font-bold text-primary-700 bg-primary-50">-</div>
+        </div>
+      </div>
+      
+      <!-- 數字鍵盤 -->
+      <div class="grid grid-cols-5 gap-2 mb-4">
+        <button class="number-btn bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg h-12 flex items-center justify-center font-bold text-lg transition transform duration-200 hover:scale-105 relative overflow-hidden" data-number="1">1</button>
+        <button class="number-btn bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg h-12 flex items-center justify-center font-bold text-lg transition transform duration-200 hover:scale-105 relative overflow-hidden" data-number="2">2</button>
+        <button class="number-btn bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg h-12 flex items-center justify-center font-bold text-lg transition transform duration-200 hover:scale-105 relative overflow-hidden" data-number="3">3</button>
+        <button class="number-btn bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg h-12 flex items-center justify-center font-bold text-lg transition transform duration-200 hover:scale-105 relative overflow-hidden" data-number="4">4</button>
+        <button class="number-btn bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg h-12 flex items-center justify-center font-bold text-lg transition transform duration-200 hover:scale-105 relative overflow-hidden" data-number="5">5</button>
+        <button class="number-btn bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg h-12 flex items-center justify-center font-bold text-lg transition transform duration-200 hover:scale-105 relative overflow-hidden" data-number="6">6</button>
+        <button class="number-btn bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg h-12 flex items-center justify-center font-bold text-lg transition transform duration-200 hover:scale-105 relative overflow-hidden" data-number="7">7</button>
+        <button class="number-btn bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg h-12 flex items-center justify-center font-bold text-lg transition transform duration-200 hover:scale-105 relative overflow-hidden" data-number="8">8</button>
+        <button class="number-btn bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg h-12 flex items-center justify-center font-bold text-lg transition transform duration-200 hover:scale-105 relative overflow-hidden" data-number="9">9</button>
+        <button class="number-btn bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-lg h-12 flex items-center justify-center font-bold text-lg transition transform duration-200 hover:scale-105 relative overflow-hidden" data-number="0">0</button>
+      </div>
+      
+      <!-- 控制按鈕 -->
+      <div class="flex gap-2">
+        <button id="clearBtn" class="flex-grow bg-neutral-100 hover:bg-neutral-200 text-neutral-700 py-3 rounded-lg font-medium transition transform duration-200 hover:scale-105">
+          <i class="fas fa-backspace mr-1"></i> 清除
+        </button>
+        <button id="submitBtn" class="flex-grow bg-primary-600 hover:bg-primary-700 text-white py-3 rounded-lg font-medium transition transform duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" disabled>
+          <i class="fas fa-paper-plane mr-1"></i> 提交
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 頁尾區域 -->
+  <footer class="bg-white py-3 px-4 text-center text-neutral-500 text-sm shadow-inner">
+    <p>© 2025 數字貓貓 | <a href="#" class="text-primary-600 hover:underline">遊戲規則</a></p>
+  </footer>
+
+  <!-- 隱藏彩蛋 -->
+  <div id="easterEgg" class="easter-egg-modal">
+    <div class="easter-egg-content">
+      <div class="text-center mb-4">
+        <div class="inline-block animate-float p-3 bg-primary-100 rounded-full text-primary-600 text-3xl mb-2">
+          <i class="fas fa-cat"></i>
+        </div>
+        <h3 class="text-xl font-bold text-neutral-800">喵～發現祕密啦！</h3>
+      </div>
+      <p class="text-neutral-600 mb-4">猜猜看我的祕密是什麼？我告訴你一個小技巧：</p>
+      <div class="bg-pastel-yellow p-3 rounded-lg mb-4">
+        <p class="text-neutral-700 italic">「數字的總和是<span class="font-bold" id="sumHint">XX</span>，而且其中一個數字是<span class="font-bold" id="digitHint">X</span>喔！」</p>
+      </div>
+      <div class="text-center">
+        <button id="closeEasterEgg" class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition transform duration-200 hover:scale-105">
+          謝謝喵～
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 遊戲規則說明 Modal -->
+  <div id="helpModal" class="easter-egg-modal">
+    <div class="easter-egg-content">
+      <div class="text-center mb-4">
+        <div class="inline-block animate-float p-3 bg-primary-100 rounded-full text-primary-600 text-3xl mb-2">
+          <i class="fas fa-question-circle"></i>
+        </div>
+        <h3 class="text-xl font-bold text-neutral-800">遊戲規則說明</h3>
+      </div>
+      <div class="text-neutral-600 mb-4">
+        <p class="mb-2">1A2B是一個猜數字的遊戲：</p>
+        <ul class="list-disc pl-5 space-y-1 mb-3">
+          <li>電腦會隨機想出一個4位數字，每個數字都不重複</li>
+          <li>玩家需要猜出這個4位數字</li>
+          <li>每次猜測後，電腦會給出結果：</li>
+        </ul>
+        <div class="bg-neutral-100 p-3 rounded-lg mb-3">
+          <p><span class="hint-label hint-a">A</span> 表示數字和位置都正確的數量</p>
+          <p><span class="hint-label hint-b">B</span> 表示數字正確但位置不對的數量</p>
+        </div>
+        <p class="mb-2">例如：答案是 1234</p>
+        <ul class="list-disc pl-5 space-y-1">
+          <li>如果猜 1567，結果是 <span class="hint-label hint-a">1A</span>（1的位置和數字都對）</li>
+          <li>如果猜 5678，結果是 <span class="hint-label hint-b">0B</span>（沒有任何數字對）</li>
+          <li>如果猜 4321，結果是 <span class="hint-label hint-a">0A</span><span class="hint-label hint-b">4B</span>（四個數字都對，但位置都不對）</li>
+        </ul>
+      </div>
+      <div class="text-center">
+        <button id="closeHelpModal" class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition transform duration-200 hover:scale-105">
+          我明白了！
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript 部分 -->
+  <script>
+    // 遊戲邏輯模組
+    const Game = (function() {
+      let answer = []; // 答案數字陣列
+      let guesses = []; // 玩家猜測的歷史記錄
+      let currentGuess = []; // 當前猜測
+      let isGameOver = false; // 遊戲結束標記
+      
+      // 生成不重複的4位數字
+      function generateAnswer() {
+        const nums = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        answer = [];
+        
+        // 使用洗牌演算法隨機排列數字
+        for (let i = nums.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [nums[i], nums[j]] = [nums[j], nums[i]];
+        }
+        
+        // 取前4個數字作為答案
+        answer = nums.slice(0, 4);
+        
+        console.log('答案生成：', answer); // 僅測試用
+        return answer;
+      }
+      
+      // 清空當前猜測
+      function clearCurrentGuess() {
+        currentGuess = [];
+        updateNumberDisplay();
+      }
+      
+      // 更新數字顯示
+      function updateNumberDisplay() {
+        const displays = document.querySelectorAll('#numberDisplay .number-display');
+        displays.forEach((display, index) => {
+          if (currentGuess[index] !== undefined) {
+            display.textContent = currentGuess[index];
+            display.classList.add('bg-primary-100');
+            display.classList.remove('bg-primary-50');
+          } else {
+            display.textContent = '-';
+            display.classList.add('bg-primary-50');
+            display.classList.remove('bg-primary-100');
+          }
+        });
+        
+        // 更新提交按鈕狀態
+        document.getElementById('submitBtn').disabled = currentGuess.length !== 4;
+      }
+      
+      // 添加數字到當前猜測
+      function addDigit(digit) {
+        if (currentGuess.length < 4 && !currentGuess.includes(parseInt(digit))) {
+          currentGuess.push(parseInt(digit));
+          updateNumberDisplay();
+        } else {
+          // 數字已滿或重複，給予視覺反饋
+          UI.showToast('數字不能重複！', 'warning');
+        }
+      }
+      
+      // 計算A和B的數量
+      function calculateAB(guess) {
+        let a = 0, b = 0;
+        
+        // 計算A (位置和數字都正確)
+        for (let i = 0; i < 4; i++) {
+          if (guess[i] === answer[i]) {
+            a++;
+          }
+        }
+        
+        // 計算B (數字正確但位置不對)
+        for (let i = 0; i < 4; i++) {
+          if (answer.includes(guess[i]) && guess[i] !== answer[i]) {
+            b++;
+          }
+        }
+        
+        return { a, b };
+      }
+      
+      // 提交猜測
+      function submitGuess() {
+        if (currentGuess.length !== 4) return;
+        
+        const result = calculateAB(currentGuess);
+        const guessNumber = currentGuess.join('');
+        const guessObj = {
+          number: guessNumber,
+          a: result.a,
+          b: result.b
+        };
+        
+        guesses.push(guessObj);
+        
+        // 判斷遊戲是否結束
+        if (result.a === 4) {
+          isGameOver = true;
+          UI.updateGameStatus('贏了！');
+          UI.showVictoryAnimation();
+          UI.addSystemMessage(`恭喜你！猜對了！答案就是 ${guessNumber}！只花了 ${guesses.length} 次猜測！🎉`);
+        } else {
+          UI.addUserMessage(guessNumber);
+          UI.addSystemMessage(`提示：<span class="hint-label hint-a">${result.a}A</span><span class="hint-label hint-b">${result.b}B</span>`, `${result.a}A${result.b}B`);
+          
+          // 提供鼓勵訊息
+          if (guesses.length % 3 === 0) {
+            const encouragements = [
+              "繼續加油！你可以的！",
+              "別灰心，再試一次！",
+              "你正在接近答案！",
+              "思考一下規律，你會找到答案的！"
+            ];
+            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+            setTimeout(() => {
+              UI.addSystemMessage(randomEncouragement);
+            }, 1000);
+          }
+        }
+        
+        clearCurrentGuess();
+        UI.updateGuessHistory(guesses);
+      }
+      
+      // 重置遊戲
+      function resetGame() {
+        answer = generateAnswer();
+        guesses = [];
+        currentGuess = [];
+        isGameOver = false;
+        
+        UI.updateGameStatus('遊戲開始！');
+        UI.clearChatArea();
+        UI.addSystemMessage("我已經想好了一個新的4位數字！來猜猜看吧～");
+        updateNumberDisplay();
+      }
+      
+      // 取得答案的某一位數字（用於彩蛋）
+      function getRandomDigitHint() {
+        const randomIndex = Math.floor(Math.random() * 4);
+        return answer[randomIndex];
+      }
+      
+      // 計算答案的總和（用於彩蛋）
+      function getAnswerSum() {
+        return answer.reduce((sum, digit) => sum + digit, 0);
+      }
+      
+      return {
+        init: function() {
+          generateAnswer();
+          updateNumberDisplay();
+        },
+        addDigit,
+        clearCurrentGuess,
+        submitGuess,
+        resetGame,
+        getRandomDigitHint,
+        getAnswerSum
+      };
+    })();
+    
+    // UI控制模組
+    const UI = (function() {
+      // 添加系統訊息
+      function addSystemMessage(message, abResult = '') {
+        const chatArea = document.getElementById('chatArea');
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'flex mb-4';
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'flex-shrink-0 w-10 h-10 rounded-full bg-primary-200 flex items-center justify-center mr-2';
+        avatar.innerHTML = `
+          <div class="relative">
+            <i class="fas fa-cat text-primary-600"></i>
+            <div class="cat-ears absolute -top-2 -left-3 w-2 h-3 bg-primary-200 rounded-tl-full"></div>
+            <div class="cat-ears absolute -top-2 -right-3 w-2 h-3 bg-primary-200 rounded-tr-full"></div>
+          </div>
+        `;
+        
+        // 根據結果添加不同的表情
+        let emoji = '';
+        if (abResult) {
+          const [a, b] = abResult.split('A')[0] === '4' ? [4, 0] : abResult.match(/(\d+)A(\d+)B/).slice(1);
+          if (a === 4) {
+            emoji = '🎉';
+          } else if (a >= 2) {
+            emoji = '😺';
+          } else if (a >= 1) {
+            emoji = '🙂';
+          } else if (b >= 2) {
+            emoji = '🤔';
+          } else {
+            emoji = '😢';
+          }
+        }
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-bubble relative bg-primary-100 text-primary-800 p-3 rounded-bubble max-w-[80%]';
+        messageContent.innerHTML = `
+          <div class="bubble-tail bg-primary-100"></div>
+          <p>${message} ${emoji}</p>
+        `;
+        
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(messageContent);
+        chatArea.appendChild(messageDiv);
+        
+        // 觸發進入動畫
+        setTimeout(() => {
+          messageContent.classList.add('show');
+        }, 50);
+        
+        // 捲動到最新消息
+        chatArea.scrollTop = chatArea.scrollHeight;
+      }
+      
+      // 添加用戶訊息
+      function addUserMessage(message) {
+        const chatArea = document.getElementById('chatArea');
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'flex mb-4 justify-end';
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-bubble relative bg-secondary-100 text-secondary-800 p-3 rounded-user-bubble max-w-[80%]';
+        messageContent.innerHTML = `
+          <div class="user-bubble-tail bg-secondary-100"></div>
+          <p class="handwritten text-lg">${message}</p>
+        `;
+        
+        messageDiv.appendChild(messageContent);
+        chatArea.appendChild(messageDiv);
+        
+        // 觸發進入動畫
+        setTimeout(() => {
+          messageContent.classList.add('show');
+        }, 50);
+        
+        // 捲動到最新消息
+        chatArea.scrollTop = chatArea.scrollHeight;
+      }
+      
+      // 更新遊戲狀態
+      function updateGameStatus(status) {
+        const statusText = document.getElementById('statusText');
+        
+        if (status === '遊戲開始！') {
+          statusText.textContent = status;
+          statusText.className = 'inline-block bg-pastel-blue text-primary-700 px-4 py-2 rounded-full font-medium';
+        } else if (status === '贏了！') {
+          statusText.textContent = '恭喜獲勝！';
+          statusText.className = 'inline-block bg-pastel-green text-green-700 px-4 py-2 rounded-full font-medium';
+        }
+      }
+      
+      // 顯示勝利動畫
+      function showVictoryAnimation() {
+        // 添加彩帶效果
+        for (let i = 0; i < 50; i++) {
+          createConfetti();
+        }
+        
+        // 播放勝利音效（如果需要）
+        // const victorySound = new Audio('victory.mp3');
+        // victorySound.play();
+      }
+      
+      // 創建彩帶
+      function createConfetti() {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        
+        // 隨機顏色
+        const colors = ['#FFC8DD', '#BDE0FE', '#A2D2FF', '#CDB4DB', '#FDFDBD', '#B6E2A1'];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.backgroundColor = randomColor;
+        
+        // 隨機形狀
+        const shapes = ['circle', 'square'];
+        const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
+        if (randomShape === 'circle') {
+          confetti.style.borderRadius = '50%';
+        }
+        
+        // 隨機位置
+        confetti.style.left = Math.random() * 100 + 'vw';
+        
+        // 隨機大小
+        const size = Math.random() * 10 + 5;
+        confetti.style.width = size + 'px';
+        confetti.style.height = size + 'px';
+        
+        // 隨機動畫延遲
+        confetti.style.animationDelay = Math.random() * 2 + 's';
+        confetti.style.animationDuration = Math.random() * 3 + 2 + 's';
+        
+        document.body.appendChild(confetti);
+        
+        // 動畫結束後移除
+        setTimeout(() => {
+          confetti.remove();
+        }, 5000);
+      }
+      
+      // 顯示簡短提示
+      function showToast(message, type = 'info') {
+        // 檢查是否已有 toast
+        let toast = document.getElementById('toast');
+        if (toast) {
+          toast.remove();
+        }
+        
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        
+        // 根據類型設置樣式
+        let bgColor, textColor;
+        if (type === 'warning') {
+          bgColor = 'bg-pastel-yellow';
+          textColor = 'text-yellow-800';
+        } else if (type === 'error') {
+          bgColor = 'bg-red-100';
+          textColor = 'text-red-800';
+        } else {
+          bgColor = 'bg-primary-100';
+          textColor = 'text-primary-800';
+        }
+        
+        toast.className = `fixed top-4 left-1/2 transform -translate-x-1/2 ${bgColor} ${textColor} px-4 py-2 rounded-full text-sm font-medium shadow-md z-50 animate__animated animate__fadeInDown`;
+        toast.textContent = message;
+        
+        document.body.appendChild(toast);
+        
+        // 2 秒後移除
+        setTimeout(() => {
+          toast.classList.remove('animate__fadeInDown');
+          toast.classList.add('animate__fadeOutUp');
+          
+          setTimeout(() => {
+            toast.remove();
+          }, 500);
+        }, 2000);
+      }
+      
+      // 清空聊天區域
+      function clearChatArea() {
+        const chatArea = document.getElementById('chatArea');
+        chatArea.innerHTML = '';
+      }
+      
+      // 更新猜測歷史
+      function updateGuessHistory(guesses) {
+        // 這裡可以實現一個歷史記錄面板
+        // 這個遊戲中我們直接使用對話形式顯示
+      }
+      
+      return {
+        addSystemMessage,
+        addUserMessage,
+        updateGameStatus,
+        showVictoryAnimation,
+        showToast,
+        clearChatArea,
+        updateGuessHistory
+      };
+    })();
+    
+    // 事件處理模組
+    const EventHandler = (function() {
+      function init() {
+        // 數字按鈕事件
+        document.querySelectorAll('.number-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const digit = this.getAttribute('data-number');
+            Game.addDigit(digit);
+          });
+        });
+        
+        // 清除按鈕事件
+        document.getElementById('clearBtn').addEventListener('click', function() {
+          Game.clearCurrentGuess();
+        });
+        
+        // 提交按鈕事件
+        document.getElementById('submitBtn').addEventListener('click', function() {
+          if (!this.disabled) {
+            Game.submitGuess();
+          }
+        });
+        
+        // 重置遊戲按鈕事件
+        document.getElementById('resetBtn').addEventListener('click', function() {
+          if (confirm('確定要重新開始遊戲嗎？')) {
+            Game.resetGame();
+          }
+        });
+        
+        // 幫助按鈕事件
+        document.getElementById('helpBtn').addEventListener('click', function() {
+          document.getElementById('helpModal').classList.add('active');
+        });
+        
+        // 關閉幫助視窗
+        document.getElementById('closeHelpModal').addEventListener('click', function() {
+          document.getElementById('helpModal').classList.remove('active');
+        });
+        
+        // 貓咪頭像點擊彩蛋
+        let catClickCount = 0;
+        document.getElementById('catAvatar').addEventListener('click', function() {
+          catClickCount++;
+          
+          if (catClickCount === 3) {
+            // 彩蛋：連續點擊貓咪頭像三次
+            const easterEgg = document.getElementById('easterEgg');
+            easterEgg.classList.add('active');
+            
+            // 設置彩蛋提示
+            document.getElementById('sumHint').textContent = Game.getAnswerSum();
+            document.getElementById('digitHint').textContent = Game.getRandomDigitHint();
+            
+            catClickCount = 0;
+          }
+        });
+        
+        // 關閉彩蛋視窗
+        document.getElementById('closeEasterEgg').addEventListener('click', function() {
+          document.getElementById('easterEgg').classList.remove('active');
+        });
+        
+        // 鍵盤支持
+        document.addEventListener('keydown', function(event) {
+          const key = event.key;
+          
+          // 數字鍵 0-9
+          if (/^[0-9]$/.test(key)) {
+            Game.addDigit(key);
+          } 
+          // 退格鍵或刪除鍵
+          else if (key === 'Backspace' || key === 'Delete') {
+            Game.clearCurrentGuess();
+          } 
+          // Enter 鍵提交
+          else if (key === 'Enter') {
+            const submitBtn = document.getElementById('submitBtn');
+            if (!submitBtn.disabled) {
+              Game.submitGuess();
+            }
+          }
+        });
+      }
+      
+      return { init };
+    })();
+    
+    // 初始化遊戲
+    document.addEventListener('DOMContentLoaded', function() {
+      Game.init();
+      EventHandler.init();
+      UI.updateGameStatus('遊戲開始！');
+    });
+  </script>
+</body>
+</html>
