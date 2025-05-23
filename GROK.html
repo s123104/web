@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grok Live Search 功能與指南</title>
+
+  <!-- Google Fonts: Inter and Noto Sans TC -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Animate.css for scroll animations -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            // UI/UX: WCAG AA-compliant colors for readability and brand consistency
+            primary: { light: '#60A5FA', DEFAULT: '#3B82F6', dark: '#2563EB' },
+            secondary: { light: '#FCD34D', DEFAULT: '#F59E0B', dark: '#D97706' },
+            neutral: { lightest: '#F9FAFB', lighter: '#F3F4F6', light: '#E5E7EB', DEFAULT: '#6B7280', dark: '#374151', darker: '#1F2937', darkest: '#111827' },
+            accent: { DEFAULT: '#10B981', dark: '#059669' },
+            success: '#22C55E',
+            danger: '#EF4444'
+          },
+          spacing: {
+            // UI/UX: Consistent spacing scale for visual rhythm
+            '0.25': '0.0625rem', '18': '4.5rem', '22': '5.5rem',
+            'section-py': 'clamp(2.5rem, 6vw, 5rem)',
+            'container-px': 'clamp(1rem, 5vw, 3rem)'
+          },
+          fontFamily: {
+            // UI/UX: Modern fonts with Chinese support for readability
+            sans: ['Inter', 'Noto Sans TC', 'system-ui', 'sans-serif']
+          },
+          gridTemplateColumns: {
+            '12': 'repeat(12, minmax(0, 1fr))'
+          },
+          animation: {
+            fadeInUp: 'fadeInUp 0.5s ease-out forwards'
+          },
+          keyframes: {
+            fadeInUp: {
+              '0%': { opacity: '0', transform: 'translateY(20px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' }
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Custom CSS -->
+  <style>
+    body {
+      font-family: theme('fontFamily.sans');
+      background-color: theme('colors.neutral.lighter');
+      color: theme('colors.neutral.darker');
+      -webkit-font-smoothing: antialiased;
+      padding-top: 4rem; /* Account for fixed header */
+    }
+    @media (min-width: 768px) { body { padding-top: 5rem; } }
+
+    /* Code block styling */
+    pre {
+      @apply bg-neutral-darkest text-neutral-lighter p-4 rounded-lg shadow-md overflow-x-auto relative font-mono text-sm;
+    }
+    pre code {
+      @apply block whitespace-pre-wrap break-words;
+    }
+    .copy-button {
+      @apply absolute top-3 right-3 bg-neutral-dark hover:bg-neutral-DEFAULT text-white text-xs py-1 px-3 rounded-md transition-all duration-200 ease-out;
+    }
+    .copy-button:hover { transform: scale(1.05); }
+
+    /* Scrollbar styling */
+    pre::-webkit-scrollbar {
+      height: 6px;
+      width: 8px;
+    }
+    pre::-webkit-scrollbar-thumb {
+      background: theme('colors.primary.DEFAULT');
+      border-radius: 4px;
+    }
+
+    /* Hamburger menu animation */
+    .hamburger div {
+      @apply w-6 h-0.5 bg-neutral-darkest my-1 transition-all duration-300;
+    }
+    .hamburger.open div:nth-child(1) { @apply rotate-45 translate-y-[6px]; }
+    .hamburger.open div:nth-child(2) { @apply opacity-0; }
+    .hamburger.open div:nth-child(3) { @apply -rotate-45 -translate-y-[6px]; }
+
+    /* Typography hierarchy */
+    h1 { @apply text-3xl md:text-4xl font-bold text-primary-dark mb-6; }
+    h2 { @apply text-2xl md:text-3xl font-semibold text-primary-dark mt-10 mb-4; }
+    h3 { @apply text-xl font-medium text-neutral-dark mt-6 mb-3; }
+    .prose p { @apply mb-4 leading-relaxed text-neutral-darker; }
+    .prose ul, .prose ol { @apply list-disc pl-5 mb-4 space-y-1; }
+    .prose code { @apply bg-neutral-light text-primary-dark px-1.5 py-0.5 rounded; }
+
+    /* Easter egg modal */
+    .easter-egg-modal {
+      @apply fixed inset-0 bg-neutral-darkest bg-opacity-75 flex items-center justify-center z-[9999] p-4;
+    }
+    .easter-egg-modal-content {
+      @apply bg-white p-6 rounded-xl shadow-2xl max-w-md w-full;
+      animation: modalEnter 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes modalEnter {
+      0% { transform: scale(0.7) translateY(20px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header: Fixed navigation with mobile toggle -->
+  <header class="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
+    <div class="container mx-auto px-container-px h-16 md:h-20 flex items-center justify-between">
+      <a href="#" class="text-2xl md:text-3xl font-bold text-primary-DEFAULT flex items-center">
+        <i class="fas fa-bolt mr-2"></i> Grok Live Search
+      </a>
+      <nav class="hidden md:flex space-x-6 items-center">
+        <a href="#overview" class="text-neutral-dark hover:text-primary-DEFAULT">功能概述</a>
+        <a href="#quick-start" class="text-neutral-dark hover:text-primary-DEFAULT">快速開始</a>
+        <a href="#api-params" class="text-neutral-dark hover:text-primary-DEFAULT">API 參數</a>
+        <a href="#use-cases" class="text-neutral-dark hover:text-primary-DEFAULT">使用場景</a>
+        <a href="https://x.ai/api" target="_blank" rel="noopener noreferrer" class="bg-primary-DEFAULT hover:bg-primary-dark text-white py-2 px-4 rounded-lg transition transform duration-200 hover:scale-105">
+          申請 API <i class="fas fa-external-link-alt ml-1 text-xs"></i>
+        </a>
+      </nav>
+      <button id="hamburgerBtn" class="md:hidden hamburger p-2 focus:outline-none">
+        <div></div><div></div><div></div>
+      </button>
+    </div>
+    <nav id="mobileMenu" class="md:hidden hidden bg-white shadow-lg absolute top-16 left-0 right-0 animate__fadeInDown">
+      <a href="#overview" class="block py-2 px-4 hover:bg-neutral-lighter">功能概述</a>
+      <a href="#quick-start" class="block py-2 px-4 hover:bg-neutral-lighter">快速開始</a>
+      <a href="#api-params" class="block py-2 px-4 hover:bg-neutral-lighter">API 參數</a>
+      <a href="#use-cases" class="block py-2 px-4 hover:bg-neutral-lighter">使用場景</a>
+      <a href="https://x.ai/api" target="_blank" rel="noopener noreferrer" class="block py-2 px-4 bg-primary-DEFAULT hover:bg-primary-dark text-white text-center">申請 API</a>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container mx-auto px-container-px py-section-py prose max-w-4xl">
+    <!-- Hero Section -->
+    <section id="intro" class="scroll-target text-center">
+      <h1>Grok Live Search 功能與指南</h1>
+      <p class="text-lg text-neutral-DEFAULT mb-8">由 xAI 推出的即時搜尋功能，讓您的應用程式與最新資訊同步。</p>
+      <div class="bg-primary-lightest border-l-4 border-primary-DEFAULT p-4 rounded-r-lg mb-8">
+        <div class="flex">
+          <i class="fas fa-info-circle mr-3 text-2xl text-primary-DEFAULT"></i>
+          <div>
+            <p class="font-bold">Beta 測試階段</p>
+            <p class="text-sm">免費使用至 2025 年 6 月 5 日。使用即表示同意 xAI 收集搜尋資料以改進服務。建議使用獨立 API 金鑰。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Overview -->
+    <section id="overview" class="scroll-target">
+      <h2><i class="fas fa-binoculars mr-2 text-primary-DEFAULT"></i>功能概述</h2>
+      <p>Grok Live Search 是 xAI 推出的即時搜尋功能，支援 Grok 3 模型（<code>grok-3-latest</code>）從 X 平台、網頁、新聞及 RSS 資訊源獲取最新資料，確保回應即時且相關。適用於即時新聞、天氣、社群趨勢等場景。</p>
+      <h3>關鍵特性</h3>
+      <ul>
+        <li><strong>即時整合</strong>：自動查詢外部資料，無需手動更新知識庫。</li>
+        <li><strong>靈活模式</strong>：支援 <code>off</code>、<code>auto</code>（預設）、<code>on</code> 三種搜尋模式。</li>
+        <li><strong>多語言支援</strong>：Grok 3 增強多語言能力，適用於全球應用。</li>
+      </ul>
+    </section>
+
+    <!-- Quick Start -->
+    <section id="quick-start" class="scroll-target">
+      <h2><i class="fas fa-rocket mr-2 text-primary-DEFAULT"></i>快速開始</h2>
+      <div class="grid sm:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white p-4 rounded-lg shadow space-y-2">
+          <i class="fas fa-key text-3xl text-primary-DEFAULT"></i>
+          <h3 class="font-bold">1. 申請金鑰</h3>
+          <p>在 <a href="https://x.ai/api" target="_blank" rel="noopener noreferrer" class="text-accent-DEFAULT hover:text-accent-dark">xAI 平台</a>註冊並獲取 API 金鑰，設定 <code>XAI_API_KEY</code>。</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow space-y-2">
+          <i class="fas fa-code text-3xl text-primary-DEFAULT"></i>
+          <h3 class="font-bold">2. 構建請求</h3>
+          <p>在 Chat Completions API 中加入 <code>search_parameters</code> 啟用搜尋。</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow space-y-2">
+          <i class="fas fa-rocket text-3xl text-primary-DEFAULT"></i>
+          <h3 class="font-bold">3. 測試功能</h3>
+          <p>使用即時問題（如「今日科技新聞」）驗證搜尋效果。</p>
+        </div>
+      </div>
+      <h3>Python 範例</h3>
+      <div class="relative">
+        <button onclick="copyToClipboard(this, 'quickStartCode')" class="copy-button">複製</button>
+        <pre id="quickStartCode" class="language-python"><code>import requests
+import os
+
+XAI_API_KEY = os.getenv("XAI_API_KEY")
+API_URL = "https://api.x.ai/experimental/chat/completions"
+headers = {"Authorization": f"Bearer {XAI_API_KEY}"}
+
+payload = {
+    "model": "grok-3-latest",
+    "messages": [{"role": "user", "content": "今天科技界發生哪些大事？"}],
+    "search_parameters": {
+        "mode": "auto",
+        "return_citations": true,
+        "max_search_results": 10,
+        "country": "TW"
+    }
+}
+
+response = requests.post(API_URL, headers=headers, json=payload)
+print(response.json())
+</code></pre>
+      </div>
+    </section>
+
+    <!-- API Parameters -->
+    <section id="api-params" class="scroll-target">
+      <h2><i class="fas fa-sliders-h mr-2 text-primary-DEFAULT"></i>API 參數</h2>
+      <p>使用 <code>search_parameters</code> 客製搜尋行為：</p>
+      <ul>
+        <li><code>mode</code>：搜尋模式 (<code>"off"</code>, <code>"auto"</code>, <code>"on"</code>)</li>
+        <li><code>sources</code>：限定來源，如 <code>{"type": "web", "websites": ["example.com"]}</code></li>
+        <li><code>from_date</code>/<code>to_date</code>：日期範圍 (YYYY-MM-DD)</li>
+        <li><code>max_search_results</code>：結果數 (1-50，建議 10-20)</li>
+        <li><code>country</code>：地區過濾 (如 <code>"TW"</code>)</li>
+        <li><code>safe_search</code>：安全搜尋 (預設 <code>true</code>)</li>
+        <li><code>return_citations</code>：返回引用來源</li>
+      </ul>
+      <div class="relative">
+        <button onclick="copyToClipboard(this, 'apiParamsCode')" class="copy-button">複製</button>
+        <pre id="apiParamsCode" class="language-json"><code>"search_parameters": {
+    "mode": "auto",
+    "sources": [{"type": "web", "excluded_websites": ["wikipedia.org"]}, {"type": "x", "x_handles": ["elonmusk"]}],
+    "from_date": "2025-01-01",
+    "to_date": "2025-01-31",
+    "max_search_results": 10,
+    "country": "TW",
+    "safe_search": true,
+    "return_citations": true
+}</code></pre>
+      </div>
+    </section>
+
+    <!-- Use Cases -->
+    <section id="use-cases" class="scroll-target">
+      <h2><i class="fas fa-lightbulb mr-2 text-primary-DEFAULT"></i>使用場景</h2>
+      <ol>
+        <li><strong>即時資訊監控</strong>：追蹤市場動態或社群輿情。</li>
+        <li><strong>智慧助理</strong>：增強聊天機器人即時問答能力。</li>
+        <li><strong>內容創作</strong>：蒐集最新素材支援文章或影片。</li>
+        <li><strong>學術研究</strong>：檢索最新論文或學術新聞。</li>
+      </ol>
+      <h3>最佳實踐</h3>
+      <ul>
+        <li>使用 <code>auto</code> 模式讓模型自行判斷搜尋需求。</li>
+        <li>從小 <code>max_search_results</code> (5-10) 開始測試。</li>
+        <li>記錄日誌以提供 xAI 反饋，優化 Beta 體驗。</li>
+      </ul>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-neutral-darkest text-neutral-light py-8 text-center">
+    <div class="container mx-auto px-container-px">
+      <div class="mb-4">
+        <a href="https://x.ai" target="_blank" rel="noopener noreferrer" class="text-neutral-light hover:text-primary-light mx-2">xAI</a>
+        <a href="https://x.ai/terms" class="text-neutral-light hover:text-primary-light mx-2">服務條款</a>
+        <a href="https://x.ai/privacy" class="text-neutral-light hover:text-primary-light mx-2">隱私政策</a>
+      </div>
+      <p>© 2025 xAI. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Easter Egg Button -->
+  <button id="easterEggBtn" title="點我三次試試！" class="fixed bottom-5 right-5 p-3 bg-secondary-DEFAULT hover:bg-secondary-dark text-white rounded-full shadow-lg z-40 transition transform hover:scale-110">
+    <i class="fas fa-ghost text-xl"></i>
+  </button>
+
+  <!-- JavaScript -->
+  <script>
+    // Mobile Menu Toggle
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    hamburgerBtn.addEventListener('click', () => {
+      hamburgerBtn.classList.toggle('open');
+      mobileMenu.classList.toggle('hidden');
+      mobileMenu.classList.toggle('animate__fadeInDown');
+    });
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        hamburgerBtn.classList.remove('open');
+        mobileMenu.classList.add('hidden');
+      });
+    });
+
+    // Smooth Scrolling
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = anchor.getAttribute('href');
+        const target = document.querySelector(targetId);
+        if (target) {
+          const headerOffset = document.querySelector('header').offsetHeight;
+          const elementPosition = target.getBoundingClientRect().top + window.pageYOffset;
+          window.scrollTo({ top: elementPosition - headerOffset, behavior: 'smooth' });
+        }
+      });
+    });
+
+    // Copy to Clipboard
+    function copyToClipboard(button, elementId) {
+      const text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        button.innerText = '已複製!';
+        button.classList.add('bg-success');
+        setTimeout(() => {
+          button.innerText = '複製';
+          button.classList.remove('bg-success');
+        }, 2000);
+      });
+    }
+
+    // Scroll Animations
+    const scrollTargets = document.querySelectorAll('.scroll-target');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate__animated', 'animate__fadeInUp');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    scrollTargets.forEach(target => observer.observe(target));
+
+    // Easter Egg
+    let clickCount = 0;
+    const easterEggBtn = document.getElementById('easterEggBtn');
+    easterEggBtn.addEventListener('click', () => {
+      clickCount++;
+      if (clickCount >= 3) {
+        const modal = document.createElement('div');
+        modal.className = 'easter-egg-modal';
+        modal.innerHTML = `
+          <div class="easter-egg-modal-content">
+            <button class="absolute top-3 right-4 text-neutral-DEFAULT hover:text-neutral-dark text-2xl" aria-label="關閉">×</button>
+            <div class="text-6xl mb-6 animate__animated animate__tada">👻</div>
+            <h3 class="text-2xl font-bold text-primary-DEFAULT mb-4">你找到我啦！</h3>
+            <p class="mb-6">Grok 說：「有了 Live Search，我的知識就像宇宙一樣膨脹！🚀」</p>
+            <button class="bg-primary-DEFAULT hover:bg-primary-dark text-white py-2 px-6 rounded-lg">太棒了！</button>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelectorAll('button').forEach(btn => {
+          btn.addEventListener('click', () => {
+            modal.classList.add('animate__fadeOut');
+            modal.addEventListener('animationend', () => modal.remove());
+          });
+        });
+        clickCount = 0;
+      }
+      setTimeout(() => clickCount = 0, 1000);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'g') {
+        easterEggBtn.click();
+        easterEggBtn.click();
+        easterEggBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
