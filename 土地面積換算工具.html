@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🏡 Premium 土地面積換算工具</title>
     
     <!-- Tailwind CSS CDN -->
@@ -75,6 +75,12 @@
                         'pulse-slow': 'pulse 3s infinite',
                         'shimmer': 'shimmer 2s linear infinite',
                         'rainbow': 'rainbow 3s ease-in-out infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'wiggle': 'wiggle 1s ease-in-out infinite',
+                        'heartbeat': 'heartbeat 1.5s ease-in-out infinite',
+                        'sparkle': 'sparkle 1s ease-in-out infinite',
+                        'notification-slide': 'notificationSlide 0.5s ease-out',
+                        'notification-hide': 'notificationHide 0.5s ease-in',
                     },
                     keyframes: {
                         fadeIn: {
@@ -100,9 +106,36 @@
                         rainbow: {
                             '0%, 100%': { backgroundPosition: '0% 50%' },
                             '50%': { backgroundPosition: '100% 50%' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        wiggle: {
+                            '0%, 100%': { transform: 'rotate(-3deg)' },
+                            '50%': { transform: 'rotate(3deg)' },
+                        },
+                        heartbeat: {
+                            '0%, 100%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(1.1)' },
+                        },
+                        sparkle: {
+                            '0%, 100%': { transform: 'scale(1) rotate(0deg)' },
+                            '50%': { transform: 'scale(1.2) rotate(180deg)' },
+                        },
+                        notificationSlide: {
+                            '0%': { transform: 'translate(-50%, -120%)', opacity: '0' },
+                            '100%': { transform: 'translate(-50%, 0)', opacity: '1' },
+                        },
+                        notificationHide: {
+                            '0%': { transform: 'translate(-50%, 0)', opacity: '1' },
+                            '100%': { transform: 'translate(-50%, -120%)', opacity: '0' },
                         }
                     },
                     boxShadow: {
+                        'apple': '0 4px 20px rgba(0, 0, 0, 0.08)',
+                        'apple-lg': '0 8px 30px rgba(0, 0, 0, 0.12)',
+                        'apple-hover': '0 8px 25px rgba(0, 0, 0, 0.15)',
                         'glow': '0 0 20px rgba(34, 197, 94, 0.3)',
                         'glow-lg': '0 0 40px rgba(34, 197, 94, 0.4)',
                         'inner-glow': 'inset 0 0 20px rgba(34, 197, 94, 0.1)',
@@ -113,88 +146,113 @@
     </script>
     
     <style>
-        /* 玻璃擬態效果 */
-        .glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        /* Apple風格玻璃擬態效果 */
+        .apple-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.125);
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
         }
         
-        .glass-card {
+        .apple-input {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1.5px solid rgba(0, 0, 0, 0.06);
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        /* 漸層背景 */
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .gradient-mesh {
-            background: 
-                radial-gradient(at 40% 20%, hsla(28,100%,74%,1) 0px, transparent 50%),
-                radial-gradient(at 80% 0%, hsla(189,100%,56%,1) 0px, transparent 50%),
-                radial-gradient(at 0% 50%, hsla(355,100%,93%,1) 0px, transparent 50%),
-                radial-gradient(at 80% 50%, hsla(340,100%,76%,1) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, hsla(22,100%,77%,1) 0px, transparent 50%),
-                radial-gradient(at 80% 100%, hsla(242,100%,70%,1) 0px, transparent 50%),
-                radial-gradient(at 0% 0%, hsla(343,100%,76%,1) 0px, transparent 50%);
-        }
-        
-        /* 自定義輸入框樣式 */
-        .input-enhanced {
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        .input-enhanced:focus-within {
+        .apple-input:focus-within {
+            border-color: rgba(34, 197, 94, 0.5);
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1), 0 4px 20px rgba(0, 0, 0, 0.08);
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
         
-        .input-enhanced.active {
-            background: linear-gradient(135deg, #fef7cd 0%, #fef3c7 100%);
-            border-color: #22c55e;
-            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+        .apple-input.active {
+            background: linear-gradient(135deg, rgba(255, 248, 225, 0.95) 0%, rgba(254, 243, 199, 0.95) 100%);
+            border-color: rgba(34, 197, 94, 0.4);
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15), 0 8px 25px rgba(0, 0, 0, 0.1);
         }
         
-        .input-enhanced.calculating {
-            background: linear-gradient(45deg, transparent 25%, rgba(59, 130, 246, 0.1) 25%, rgba(59, 130, 246, 0.1) 50%, transparent 50%, transparent 75%, rgba(59, 130, 246, 0.1) 75%);
+        .apple-input.calculating {
+            background: linear-gradient(45deg, transparent 25%, rgba(59, 130, 246, 0.08) 25%, rgba(59, 130, 246, 0.08) 50%, transparent 50%, transparent 75%, rgba(59, 130, 246, 0.08) 75%);
             background-size: 20px 20px;
             animation: shimmer 1.5s linear infinite;
         }
         
-        /* 按鈕增強樣式 */
-        .btn-enhanced {
+        /* Apple風格按鈕 */
+        .apple-btn {
             position: relative;
             overflow: hidden;
-            transform: translateZ(0);
+            border-radius: 16px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
         }
         
-        .btn-enhanced::before {
+        .apple-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .apple-btn:active {
+            transform: translateY(0);
+        }
+        
+        .apple-btn-primary {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
+        
+        .apple-btn-secondary {
+            background: rgba(255, 255, 255, 0.9);
+            color: #374151;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
+        }
+        
+        .apple-btn-accent {
+            background: linear-gradient(135deg, #d946ef 0%, #c026d3 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(217, 70, 239, 0.3);
+        }
+        
+        /* 光澤效果 */
+        .apple-btn::before {
             content: '';
             position: absolute;
             top: 0;
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        .btn-enhanced:hover::before {
+        .apple-btn:hover::before {
             left: 100%;
         }
         
-        /* 卡片懸停效果 */
-        .card-hover {
-            transition: all 0.3s ease;
+        /* 結果卡片效果 */
+        .result-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        .card-hover:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        .result-card:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        }
+        
+        .result-card.active {
+            background: linear-gradient(135deg, rgba(255, 248, 225, 0.95) 0%, rgba(254, 243, 199, 0.95) 100%);
+            border-color: rgba(34, 197, 94, 0.3);
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2), 0 8px 25px rgba(0, 0, 0, 0.1);
         }
         
         /* 脈衝動畫 */
@@ -219,23 +277,42 @@
                 opacity: 1;
             }
             100% {
-                transform: scale(1.2);
+                transform: scale(1.3);
                 opacity: 0;
             }
         }
         
+        /* 自定義滾動條 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+        }
+        
         /* 響應式優化 */
         @media (max-width: 768px) {
-            .mobile-full {
+            .mobile-2-cols {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            .mobile-full-width {
                 width: 100% !important;
             }
             
-            .mobile-p-4 {
-                padding: 1rem !important;
-            }
-            
-            .mobile-text-lg {
-                font-size: 1.125rem !important;
+            .mobile-text-sm {
+                font-size: 0.875rem !important;
             }
         }
         
@@ -248,31 +325,101 @@
             }
         }
         
-        /* 自定義滾動條 */
-        ::-webkit-scrollbar {
-            width: 8px;
+        /* 通知系統優化 */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translate(-50%, -120%);
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 10px;
+        .notification-container.show {
+            transform: translate(-50%, 0);
+            opacity: 1;
         }
         
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            border-radius: 10px;
+        .notification-container.hide {
+            transform: translate(-50%, -120%);
+            opacity: 0;
         }
         
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #16a34a, #15803d);
+        /* 彩蛋動畫效果 */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7);
+            animation: confetti-fall 3s linear infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        .firework {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, #ff6b6b 0%, transparent 70%);
+            border-radius: 50%;
+            animation: firework 1s ease-out forwards;
+            pointer-events: none;
+        }
+        
+        @keyframes firework {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+        
+        /* 輸入聚焦時防止縮放 */
+        input[type="number"] {
+            font-size: 16px;
+        }
+        
+        /* 漸層背景 */
+        .gradient-mesh {
+            background: 
+                radial-gradient(at 40% 20%, hsla(28,100%,74%,0.1) 0px, transparent 50%),
+                radial-gradient(at 80% 0%, hsla(189,100%,56%,0.1) 0px, transparent 50%),
+                radial-gradient(at 0% 50%, hsla(355,100%,93%,0.1) 0px, transparent 50%),
+                radial-gradient(at 80% 50%, hsla(340,100%,76%,0.1) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(22,100%,77%,0.1) 0px, transparent 50%),
+                radial-gradient(at 80% 100%, hsla(242,100%,70%,0.1) 0px, transparent 50%),
+                linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         }
     </style>
 </head>
 
-<body class="font-sans bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
+<body class="font-sans gradient-mesh min-h-screen">
     <!-- 隱藏彩蛋按鈕 -->
-    <div id="easterEgg" class="fixed top-6 right-6 w-12 h-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full shadow-lg cursor-pointer z-50 flex items-center justify-center text-white hover:scale-110 transition-all duration-300 pulse-ring" title="點擊3次解鎖隱藏功能！">
-        <i class="fas fa-magic text-lg"></i>
+    <div id="easterEgg" class="fixed top-6 right-6 w-12 h-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full shadow-apple cursor-pointer z-50 flex items-center justify-center text-white hover:scale-110 transition-all duration-300 pulse-ring animate-float" title="點擊3次解鎖隱藏功能！">
+        <i class="fas fa-magic text-lg animate-sparkle"></i>
+    </div>
+    
+    <!-- 智能助手按鈕 -->
+    <div id="aiAssistant" class="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-full shadow-apple cursor-pointer z-50 flex items-center justify-center text-white hover:scale-110 transition-all duration-300" title="AI智能建議">
+        <i class="fas fa-robot text-lg animate-pulse"></i>
     </div>
     
     <!-- 主要容器 -->
@@ -281,23 +428,26 @@
         <header class="container mx-auto px-4 py-8 text-center animate-fade-in">
             <div class="max-w-4xl mx-auto">
                 <h1 class="text-4xl md:text-6xl font-bold text-gray-800 mb-4">
-                    🏡 <span class="bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">Premium</span> 
+                    🏡 <span class="bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent animate-pulse-slow">Premium</span> 
                     <br class="md:hidden"> 土地面積換算工具
                 </h1>
                 <p class="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto">
-                    專業級土地測量與面積單位轉換，支援常用單位的高精度即時計算
+                    採用Apple設計語言的專業級土地測量工具，支援即時換算與智能建議
                 </p>
                 
                 <!-- 特色標籤 -->
                 <div class="flex flex-wrap justify-center gap-3 mb-8">
-                    <span class="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-sm font-semibold text-primary-700 border border-primary-200">
-                        <i class="fas fa-bolt mr-2 text-yellow-500"></i>即時換算
+                    <span class="inline-flex items-center px-4 py-2 apple-card text-sm font-semibold text-primary-700">
+                        <i class="fas fa-bolt mr-2 text-yellow-500 animate-wiggle"></i>即時換算
                     </span>
-                    <span class="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-sm font-semibold text-secondary-700 border border-secondary-200">
-                        <i class="fas fa-calculator mr-2 text-blue-500"></i>高精度計算
+                    <span class="inline-flex items-center px-4 py-2 apple-card text-sm font-semibold text-secondary-700">
+                        <i class="fas fa-calculator mr-2 text-blue-500 animate-bounce-soft"></i>高精度計算
                     </span>
-                    <span class="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-sm font-semibold text-accent-700 border border-accent-200">
-                        <i class="fas fa-mobile-alt mr-2 text-purple-500"></i>響應式設計
+                    <span class="inline-flex items-center px-4 py-2 apple-card text-sm font-semibold text-accent-700">
+                        <i class="fas fa-mobile-alt mr-2 text-purple-500 animate-heartbeat"></i>Apple設計
+                    </span>
+                    <span class="inline-flex items-center px-4 py-2 apple-card text-sm font-semibold text-green-700">
+                        <i class="fas fa-brain mr-2 text-green-500 animate-pulse"></i>AI智能
                     </span>
                 </div>
             </div>
@@ -307,9 +457,9 @@
         <main class="flex-1 container mx-auto px-4 pb-8">
             <!-- 使用說明卡片 -->
             <div class="max-w-6xl mx-auto mb-8 animate-slide-up">
-                <div class="glass-card rounded-3xl p-6 md:p-8 shadow-xl">
+                <div class="apple-card p-6 md:p-8">
                     <div class="flex flex-col md:flex-row items-start gap-6">
-                        <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-apple animate-bounce-soft">
                             <i class="fas fa-lightbulb text-2xl text-white"></i>
                         </div>
                         <div class="flex-1">
@@ -317,10 +467,10 @@
                                 🚀 智能即時換算系統
                             </h2>
                             <p class="text-gray-600 text-lg leading-relaxed">
-                                在任一欄位輸入數值，系統將自動計算並即時顯示所有其他單位的對應值。
-                                當前輸入的欄位會以 
-                                <span class="inline-block px-3 py-1 bg-yellow-200 rounded-lg font-semibold text-yellow-800 mx-1">黃色高亮</span> 
-                                標示，讓您清楚掌握換算來源。
+                                採用Apple風格設計的換算界面，在任一欄位輸入數值即可自動計算。
+                                當前輸入來源會以 
+                                <span class="inline-block px-3 py-1 bg-yellow-200 rounded-lg font-semibold text-yellow-800 mx-1 animate-pulse">黃色高亮</span> 
+                                標示，並提供AI智能建議與實用工具。
                             </p>
                         </div>
                     </div>
@@ -329,33 +479,33 @@
             
             <!-- 面積換算器主體 -->
             <div class="max-w-6xl mx-auto animate-scale-in">
-                <div class="glass-card rounded-3xl p-6 md:p-10 shadow-2xl">
+                <div class="apple-card p-6 md:p-10">
                     <!-- 換算器標題 -->
                     <div class="text-center mb-10">
-                        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-2xl mb-4 shadow-glow">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-2xl mb-4 shadow-glow animate-float">
                             <i class="fas fa-expand-arrows-alt text-2xl text-white"></i>
                         </div>
                         <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-3">面積單位換算器</h3>
-                        <p class="text-gray-600 text-lg">支援8種常用面積單位的精確互相轉換</p>
+                        <p class="text-gray-600 text-lg">Apple風格設計，支援8種常用面積單位的精確轉換</p>
                     </div>
                     
-                    <!-- 換算表單 -->
-                    <form id="converterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                    <!-- 換算表單 - Apple風格網格布局 -->
+                    <form id="converterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mobile-2-cols gap-4 mb-10">
                         <!-- 平方公尺 -->
                         <div class="space-y-3">
                             <label for="sqm" class="flex items-center text-sm font-semibold text-gray-700">
-                                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-3 shadow-md">
-                                    <i class="fas fa-square text-white text-sm"></i>
+                                <div class="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mr-3 shadow-md">
+                                    <i class="fas fa-square text-white text-xs"></i>
                                 </div>
                                 平方公尺
                             </label>
-                            <div class="input-enhanced bg-white border-2 border-gray-200 rounded-2xl p-4 shadow-md">
+                            <div class="apple-input p-4">
                                 <div class="relative">
-                                    <input type="number" id="sqm" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none" placeholder="輸入數值" step="any" inputmode="decimal">
-                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-3 py-1 rounded-lg text-sm">
+                                    <input type="number" id="sqm" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none mobile-text-sm" placeholder="輸入數值" step="any" inputmode="decimal">
+                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded-lg text-xs">
                                         ㎡
                                     </div>
-                                    <div id="spinner-sqm" class="absolute right-12 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
+                                    <div id="spinner-sqm" class="absolute right-8 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </div>
                                 </div>
@@ -365,18 +515,18 @@
                         <!-- 坪 -->
                         <div class="space-y-3">
                             <label for="ping" class="flex items-center text-sm font-semibold text-gray-700">
-                                <div class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mr-3 shadow-md">
-                                    <i class="fas fa-home text-white text-sm"></i>
+                                <div class="w-6 h-6 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center mr-3 shadow-md">
+                                    <i class="fas fa-home text-white text-xs"></i>
                                 </div>
                                 坪
                             </label>
-                            <div class="input-enhanced bg-white border-2 border-gray-200 rounded-2xl p-4 shadow-md">
+                            <div class="apple-input p-4">
                                 <div class="relative">
-                                    <input type="number" id="ping" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none" placeholder="輸入數值" step="any" inputmode="decimal">
-                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-3 py-1 rounded-lg text-sm">
+                                    <input type="number" id="ping" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none mobile-text-sm" placeholder="輸入數值" step="any" inputmode="decimal">
+                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded-lg text-xs">
                                         坪
                                     </div>
-                                    <div id="spinner-ping" class="absolute right-12 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
+                                    <div id="spinner-ping" class="absolute right-8 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </div>
                                 </div>
@@ -386,18 +536,18 @@
                         <!-- 公頃 -->
                         <div class="space-y-3">
                             <label for="hectare" class="flex items-center text-sm font-semibold text-gray-700">
-                                <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mr-3 shadow-md">
-                                    <i class="fas fa-mountain text-white text-sm"></i>
+                                <div class="w-6 h-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center mr-3 shadow-md">
+                                    <i class="fas fa-mountain text-white text-xs"></i>
                                 </div>
                                 公頃
                             </label>
-                            <div class="input-enhanced bg-white border-2 border-gray-200 rounded-2xl p-4 shadow-md">
+                            <div class="apple-input p-4">
                                 <div class="relative">
-                                    <input type="number" id="hectare" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none" placeholder="輸入數值" step="any" inputmode="decimal">
-                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-3 py-1 rounded-lg text-sm">
+                                    <input type="number" id="hectare" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none mobile-text-sm" placeholder="輸入數值" step="any" inputmode="decimal">
+                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded-lg text-xs">
                                         ha
                                     </div>
-                                    <div id="spinner-hectare" class="absolute right-12 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
+                                    <div id="spinner-hectare" class="absolute right-8 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </div>
                                 </div>
@@ -407,18 +557,18 @@
                         <!-- 甲 -->
                         <div class="space-y-3">
                             <label for="jia" class="flex items-center text-sm font-semibold text-gray-700">
-                                <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mr-3 shadow-md">
-                                    <i class="fas fa-seedling text-white text-sm"></i>
+                                <div class="w-6 h-6 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center mr-3 shadow-md">
+                                    <i class="fas fa-seedling text-white text-xs"></i>
                                 </div>
                                 甲
                             </label>
-                            <div class="input-enhanced bg-white border-2 border-gray-200 rounded-2xl p-4 shadow-md">
+                            <div class="apple-input p-4">
                                 <div class="relative">
-                                    <input type="number" id="jia" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none" placeholder="輸入數值" step="any" inputmode="decimal">
-                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-3 py-1 rounded-lg text-sm">
+                                    <input type="number" id="jia" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none mobile-text-sm" placeholder="輸入數值" step="any" inputmode="decimal">
+                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded-lg text-xs">
                                         甲
                                     </div>
-                                    <div id="spinner-jia" class="absolute right-12 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
+                                    <div id="spinner-jia" class="absolute right-8 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </div>
                                 </div>
@@ -428,18 +578,18 @@
                         <!-- 分 -->
                         <div class="space-y-3">
                             <label for="fen" class="flex items-center text-sm font-semibold text-gray-700">
-                                <div class="w-8 h-8 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center mr-3 shadow-md">
-                                    <i class="fas fa-divide text-white text-sm"></i>
+                                <div class="w-6 h-6 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg flex items-center justify-center mr-3 shadow-md">
+                                    <i class="fas fa-divide text-white text-xs"></i>
                                 </div>
                                 分
                             </label>
-                            <div class="input-enhanced bg-white border-2 border-gray-200 rounded-2xl p-4 shadow-md">
+                            <div class="apple-input p-4">
                                 <div class="relative">
-                                    <input type="number" id="fen" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none" placeholder="輸入數值" step="any" inputmode="decimal">
-                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-3 py-1 rounded-lg text-sm">
+                                    <input type="number" id="fen" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none mobile-text-sm" placeholder="輸入數值" step="any" inputmode="decimal">
+                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded-lg text-xs">
                                         分
                                     </div>
-                                    <div id="spinner-fen" class="absolute right-12 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
+                                    <div id="spinner-fen" class="absolute right-8 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </div>
                                 </div>
@@ -449,18 +599,18 @@
                         <!-- 公畝 -->
                         <div class="space-y-3">
                             <label for="are" class="flex items-center text-sm font-semibold text-gray-700">
-                                <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mr-3 shadow-md">
-                                    <i class="fas fa-th-large text-white text-sm"></i>
+                                <div class="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mr-3 shadow-md">
+                                    <i class="fas fa-th-large text-white text-xs"></i>
                                 </div>
                                 公畝
                             </label>
-                            <div class="input-enhanced bg-white border-2 border-gray-200 rounded-2xl p-4 shadow-md">
+                            <div class="apple-input p-4">
                                 <div class="relative">
-                                    <input type="number" id="are" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none" placeholder="輸入數值" step="any" inputmode="decimal">
-                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-3 py-1 rounded-lg text-sm">
+                                    <input type="number" id="are" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none mobile-text-sm" placeholder="輸入數值" step="any" inputmode="decimal">
+                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded-lg text-xs">
                                         a
                                     </div>
-                                    <div id="spinner-are" class="absolute right-12 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
+                                    <div id="spinner-are" class="absolute right-8 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </div>
                                 </div>
@@ -470,18 +620,18 @@
                         <!-- 英畝 -->
                         <div class="space-y-3">
                             <label for="acre" class="flex items-center text-sm font-semibold text-gray-700">
-                                <div class="w-8 h-8 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center mr-3 shadow-md">
-                                    <i class="fas fa-flag text-white text-sm"></i>
+                                <div class="w-6 h-6 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center mr-3 shadow-md">
+                                    <i class="fas fa-flag text-white text-xs"></i>
                                 </div>
                                 英畝
                             </label>
-                            <div class="input-enhanced bg-white border-2 border-gray-200 rounded-2xl p-4 shadow-md">
+                            <div class="apple-input p-4">
                                 <div class="relative">
-                                    <input type="number" id="acre" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none" placeholder="輸入數值" step="any" inputmode="decimal">
-                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-3 py-1 rounded-lg text-sm">
+                                    <input type="number" id="acre" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none mobile-text-sm" placeholder="輸入數值" step="any" inputmode="decimal">
+                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded-lg text-xs">
                                         acre
                                     </div>
-                                    <div id="spinner-acre" class="absolute right-12 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
+                                    <div id="spinner-acre" class="absolute right-8 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </div>
                                 </div>
@@ -491,18 +641,18 @@
                         <!-- 市畝 -->
                         <div class="space-y-3">
                             <label for="mu" class="flex items-center text-sm font-semibold text-gray-700">
-                                <div class="w-8 h-8 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mr-3 shadow-md">
-                                    <i class="fas fa-yin-yang text-white text-sm"></i>
+                                <div class="w-6 h-6 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center mr-3 shadow-md">
+                                    <i class="fas fa-yin-yang text-white text-xs"></i>
                                 </div>
                                 市畝
                             </label>
-                            <div class="input-enhanced bg-white border-2 border-gray-200 rounded-2xl p-4 shadow-md">
+                            <div class="apple-input p-4">
                                 <div class="relative">
-                                    <input type="number" id="mu" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none" placeholder="輸入數值" step="any" inputmode="decimal">
-                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-3 py-1 rounded-lg text-sm">
+                                    <input type="number" id="mu" class="w-full text-lg font-semibold text-gray-800 bg-transparent outline-none mobile-text-sm" placeholder="輸入數值" step="any" inputmode="decimal">
+                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded-lg text-xs">
                                         市畝
                                     </div>
-                                    <div id="spinner-mu" class="absolute right-12 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
+                                    <div id="spinner-mu" class="absolute right-8 top-1/2 transform -translate-y-1/2 text-secondary-500 hidden">
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </div>
                                 </div>
@@ -511,33 +661,37 @@
                     </form>
                     
                     <!-- 操作按鈕 -->
-                    <div class="flex flex-col sm:flex-row gap-4 mb-8">
-                        <button id="clearBtn" class="btn-enhanced flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                        <button id="clearBtn" class="apple-btn apple-btn-secondary py-4 px-6 flex items-center justify-center">
                             <i class="fas fa-eraser mr-3"></i>
-                            清除所有數值
+                            清除數值
                         </button>
-                        <button id="copyBtn" class="btn-enhanced flex-1 bg-gradient-to-r from-secondary-500 to-secondary-600 hover:from-secondary-600 hover:to-secondary-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <button id="copyBtn" class="apple-btn apple-btn-primary py-4 px-6 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                             <i class="fas fa-copy mr-3"></i>
-                            複製換算結果
+                            複製結果
                         </button>
-                        <button id="calculateBtn" class="btn-enhanced flex-1 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg">
-                            <i class="fas fa-calculator mr-3"></i>
-                            重新計算
+                        <button id="simulateBtn" class="apple-btn apple-btn-accent py-4 px-6 flex items-center justify-center">
+                            <i class="fas fa-dice mr-3"></i>
+                            隨機模擬
                         </button>
-                        <button id="referenceBtn" class="btn-enhanced bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg">
+                        <button id="referenceBtn" class="apple-btn apple-btn-secondary py-4 px-6 flex items-center justify-center">
                             <i class="fas fa-book-open mr-3"></i>
                             參考表
                         </button>
+                        <button id="compareBtn" class="apple-btn apple-btn-secondary py-4 px-6 flex items-center justify-center">
+                            <i class="fas fa-chart-bar mr-3"></i>
+                            面積比較
+                        </button>
                     </div>
                     
-                    <!-- 換算結果預覽 -->
+                    <!-- 換算結果預覽 - Apple風格設計 -->
                     <div id="resultsPreview" class="hidden">
-                        <div class="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-6 border border-gray-200">
-                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                                <i class="fas fa-chart-bar text-primary-500 mr-3"></i>
+                        <div class="apple-card p-6 bg-gradient-to-r from-gray-50/50 to-blue-50/50">
+                            <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                                <i class="fas fa-chart-bar text-primary-500 mr-3 animate-bounce-soft"></i>
                                 換算結果預覽
                             </h3>
-                            <div id="resultsContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+                            <div id="resultsContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mobile-2-cols gap-4"></div>
                         </div>
                     </div>
                 </div>
@@ -546,33 +700,33 @@
     </div>
     
     <!-- 換算參考表 Modal -->
-    <div id="referenceModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="glass-card rounded-3xl max-w-4xl w-full max-h-90vh overflow-y-auto shadow-2xl animate-scale-in">
+    <div id="referenceModal" class="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="apple-card max-w-4xl w-full max-h-90vh overflow-y-auto animate-scale-in">
             <div class="p-6 md:p-8">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
                         <i class="fas fa-table text-primary-500 mr-3"></i>
                         📊 面積單位換算參考表
                     </h3>
-                    <button id="closeReference" class="p-3 hover:bg-gray-100 rounded-xl transition-all duration-300">
-                        <i class="fas fa-times text-gray-600 text-xl"></i>
+                    <button id="closeReference" class="apple-btn apple-btn-secondary p-3">
+                        <i class="fas fa-times text-gray-600"></i>
                     </button>
                 </div>
                 
                 <div class="space-y-6">
                     <!-- 基本換算 -->
-                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6">
+                    <div class="apple-card p-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
                         <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
                             <span class="w-4 h-4 bg-blue-500 rounded mr-3"></span>
                             基本單位換算
                         </h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-white/60 rounded-xl p-4 border border-blue-200">
+                            <div class="apple-card p-4">
                                 <div class="text-sm text-gray-600 mb-1">平方公尺 ⇄ 坪</div>
                                 <div class="font-semibold text-gray-800">1 ㎡ = 0.3025 坪</div>
                                 <div class="font-semibold text-gray-800">1 坪 = 3.3058 ㎡</div>
                             </div>
-                            <div class="bg-white/60 rounded-xl p-4 border border-blue-200">
+                            <div class="apple-card p-4">
                                 <div class="text-sm text-gray-600 mb-1">公頃換算</div>
                                 <div class="font-semibold text-gray-800">1 公頃 = 10,000 ㎡</div>
                                 <div class="font-semibold text-gray-800">1 公頃 = 3,025 坪</div>
@@ -581,18 +735,18 @@
                     </div>
                     
                     <!-- 傳統單位 -->
-                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6">
+                    <div class="apple-card p-6 bg-gradient-to-r from-green-50/50 to-emerald-50/50">
                         <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
                             <span class="w-4 h-4 bg-green-500 rounded mr-3"></span>
                             台灣傳統單位
                         </h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-white/60 rounded-xl p-4 border border-green-200">
+                            <div class="apple-card p-4">
                                 <div class="text-sm text-gray-600 mb-1">甲、分換算</div>
                                 <div class="font-semibold text-green-800">1 甲 = 3,305.785 ㎡</div>
                                 <div class="font-semibold text-green-800">1 分 = 330.578 ㎡</div>
                             </div>
-                            <div class="bg-white/60 rounded-xl p-4 border border-green-200">
+                            <div class="apple-card p-4">
                                 <div class="text-sm text-gray-600 mb-1">市畝換算</div>
                                 <div class="font-semibold text-green-800">1 市畝 ≈ 666.667 ㎡</div>
                                 <div class="font-semibold text-green-800">1 市畝 ≈ 201.67 坪</div>
@@ -600,35 +754,14 @@
                         </div>
                     </div>
                     
-                    <!-- 國際單位 -->
-                    <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6">
-                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <span class="w-4 h-4 bg-purple-500 rounded mr-3"></span>
-                            國際常用單位
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-white/60 rounded-xl p-4 border border-purple-200">
-                                <div class="text-sm text-gray-600 mb-1">公畝、英畝</div>
-                                <div class="font-semibold text-purple-800">1 公畝 = 100 ㎡</div>
-                                <div class="font-semibold text-purple-800">1 英畝 ≈ 4,046.856 ㎡</div>
-                            </div>
-                            <div class="bg-white/60 rounded-xl p-4 border border-purple-200">
-                                <div class="text-sm text-gray-600 mb-1">換算關係</div>
-                                <div class="font-semibold text-purple-800">1 英畝 ≈ 1,224.17 坪</div>
-                                <div class="font-semibold text-purple-800">1 英畝 ≈ 0.405 公頃</div>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <!-- 注意事項 -->
-                    <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-6 border border-yellow-200">
+                    <div class="apple-card p-6 bg-gradient-to-r from-yellow-50/50 to-orange-50/50 border border-yellow-200">
                         <div class="flex items-start">
-                            <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mr-3 mt-1"></i>
+                            <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mr-3 mt-1 animate-bounce-soft"></i>
                             <div>
                                 <h4 class="font-bold text-yellow-800 mb-2">⚠️ 重要提醒</h4>
                                 <p class="text-sm text-yellow-700 leading-relaxed">
-                                    本工具所使用的換算係數為常用標準值。實際土地測量應用時，請以當地地政機關規定的正式換算標準為準。
-                                    甲、分等傳統單位在不同地區可能存在細微差異。
+                                    本工具採用標準換算係數，實際應用請以當地地政機關規定為準。
                                 </p>
                             </div>
                         </div>
@@ -638,37 +771,90 @@
         </div>
     </div>
     
+    <!-- 面積比較 Modal -->
+    <div id="compareModal" class="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="apple-card max-w-2xl w-full max-h-90vh overflow-y-auto animate-scale-in">
+            <div class="p-6 md:p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800 flex items-center">
+                        <i class="fas fa-chart-bar text-primary-500 mr-3"></i>
+                        🏟️ 面積實物比較
+                    </h3>
+                    <button id="closeCompare" class="apple-btn apple-btn-secondary p-3">
+                        <i class="fas fa-times text-gray-600"></i>
+                    </button>
+                </div>
+                
+                <div id="compareContent" class="space-y-4">
+                    <div class="text-center text-gray-600">
+                        請先進行面積換算以查看實物比較
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI助手 Modal -->
+    <div id="aiModal" class="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="apple-card max-w-md w-full animate-scale-in">
+            <div class="p-6 md:p-8 text-center">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-secondary-500 to-secondary-600 flex items-center justify-center animate-heartbeat">
+                    <i class="fas fa-robot text-3xl text-white"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">🤖 AI智能助手</h3>
+                <div id="aiSuggestion" class="apple-card p-4 mb-6 text-left">
+                    <p class="text-gray-700 leading-relaxed">點擊下方按鈕獲取智能建議...</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button id="getTip" class="apple-btn apple-btn-primary py-3 px-4 text-sm">
+                        <i class="fas fa-lightbulb mr-2"></i>
+                        使用技巧
+                    </button>
+                    <button id="getTrivia" class="apple-btn apple-btn-secondary py-3 px-4 text-sm">
+                        <i class="fas fa-graduation-cap mr-2"></i>
+                        知識小測
+                    </button>
+                </div>
+                
+                <button id="closeAi" class="apple-btn apple-btn-secondary py-3 px-6">
+                    <i class="fas fa-times mr-2"></i>
+                    關閉
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <!-- 彩蛋 Modal -->
-    <div id="easterModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="glass-card rounded-3xl max-w-md w-full shadow-2xl animate-scale-in">
+    <div id="easterModal" class="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="apple-card max-w-md w-full animate-scale-in">
             <div class="p-8 text-center">
-                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center animate-bounce-soft">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center animate-sparkle">
                     <i class="fas fa-star text-3xl text-white"></i>
                 </div>
                 <h3 class="text-2xl font-bold text-gray-800 mb-4">🎉 發現隱藏功能！</h3>
                 <p class="text-gray-600 mb-6 leading-relaxed">
-                    恭喜您發現了開發者的小驚喜！這裡有一個有趣的面積知識分享：
+                    恭喜發現開發者的驚喜！這裡有個有趣的面積知識：
                 </p>
                 
-                <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 mb-6 text-left">
+                <div class="apple-card p-6 mb-6 text-left bg-gradient-to-br from-blue-50/50 to-purple-50/50">
                     <h4 class="font-bold text-gray-800 mb-3 flex items-center">
-                        <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+                        <i class="fas fa-lightbulb text-yellow-500 mr-2 animate-bounce-soft"></i>
                         💡 面積小知識
                     </h4>
-                    <p class="text-sm text-gray-700 leading-relaxed">
-                        台北101大樓的基地面積約為 <span class="font-bold text-primary-600">3,056 坪</span>，
-                        換算為平方公尺約 <span class="font-bold text-primary-600">10,100 ㎡</span>，
-                        相當於 <span class="font-bold text-primary-600">1.01 公頃</span>！
-                        這樣的面積大約等於1.5個足球場大小。
+                    <p class="text-sm text-gray-700 leading-relaxed" id="easterKnowledge">
+                        台北101大樓基地約 <span class="font-bold text-primary-600">3,056 坪</span>，
+                        相當於 <span class="font-bold text-primary-600">10,100 ㎡</span>，
+                        約等於 <span class="font-bold text-primary-600">1.5個足球場</span>大小！
                     </p>
                 </div>
                 
                 <div class="flex gap-3">
-                    <button id="randomBtn" class="btn-enhanced flex-1 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center">
+                    <button id="randomBtn" class="apple-btn apple-btn-primary flex-1 py-3 px-6">
                         <i class="fas fa-dice mr-2"></i>
                         隨機換算
                     </button>
-                    <button id="closeEaster" class="btn-enhanced flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center">
+                    <button id="closeEaster" class="apple-btn apple-btn-secondary flex-1 py-3 px-6">
                         <i class="fas fa-times mr-2"></i>
                         關閉
                     </button>
@@ -678,8 +864,8 @@
     </div>
     
     <!-- 通知系統 -->
-    <div id="notification" class="fixed top-6 left-1/2 transform -translate-x-1/2 -translate-y-full transition-all duration-500 z-50">
-        <div class="glass-card rounded-2xl px-6 py-4 shadow-xl border border-white/30">
+    <div id="notification" class="notification-container">
+        <div class="apple-card px-6 py-4 min-w-80">
             <div class="flex items-center space-x-3">
                 <div id="notificationIcon" class="flex-shrink-0"></div>
                 <div class="flex-1">
@@ -696,13 +882,13 @@
         // ===== 換算係數定義 =====
         const CONVERSION_FACTORS = {
             sqm: 1,
-            ping: 1 / 0.3025,  // 1坪 = 3.3058㎡
+            ping: 1 / 0.3025,
             hectare: 10000,
-            jia: 3305.785,      // 1甲 = 3305.785㎡
-            fen: 330.578,       // 1分 = 330.578㎡
-            are: 100,           // 1公畝 = 100㎡
-            acre: 4046.8564224, // 1英畝 = 4046.8564224㎡
-            mu: 666.6667        // 1市畝 ≈ 666.667㎡
+            jia: 3305.785,
+            fen: 330.578,
+            are: 100,
+            acre: 4046.8564224,
+            mu: 666.6667
         };
         
         const UNIT_NAMES = {
@@ -727,11 +913,43 @@
             mu: '市畝'
         };
         
+        // ===== 實物比較資料 =====
+        const COMPARISON_DATA = [
+            { name: '標準籃球場', sqm: 420, icon: '🏀' },
+            { name: '標準足球場', sqm: 7140, icon: '⚽' },
+            { name: '標準網球場', sqm: 261, icon: '🎾' },
+            { name: '台北101基地', sqm: 10100, icon: '🏢' },
+            { name: '大安森林公園', sqm: 259000, icon: '🌳' },
+            { name: '台北車站', sqm: 46000, icon: '🚆' },
+            { name: '標準停車位', sqm: 12.5, icon: '🚗' },
+            { name: '便利商店', sqm: 100, icon: '🏪' }
+        ];
+        
+        // ===== AI建議資料 =====
+        const AI_TIPS = [
+            "💡 輸入任一單位，其他單位會自動計算，這樣更高效！",
+            "💡 使用Ctrl+C可以快速複製所有換算結果到剪貼簿。",
+            "💡 手機用戶可以橫向滑動查看所有換算結果。",
+            "💡 點擊參考表按鈕可以查看詳細的換算關係說明。",
+            "💡 面積比較功能可以幫您理解換算結果的實際大小。",
+            "💡 隨機模擬功能可以幫您學習不同單位間的換算關係。"
+        ];
+        
+        const AI_TRIVIA = [
+            "🧠 您知道嗎？一坪約等於兩個標準榻榻米的大小！",
+            "🧠 一公頃等於一個邊長100公尺的正方形面積。",
+            "🧠 台灣的「甲」來自日治時期，約等於現在的0.97公頃。",
+            "🧠 英畝源自中世紀，是一頭牛一天能耕作的土地面積。",
+            "🧠 全世界最小的國家梵蒂岡，面積只有0.44平方公里！",
+            "🧠 一個標準足球場約0.714公頃，您計算對了嗎？"
+        ];
+        
         // ===== 系統狀態變數 =====
         let currentActiveInput = null;
         let lastCalculatedValues = {};
         let debounceTimers = {};
         let isCalculating = false;
+        let notificationTimeout = null;
         
         // ===== DOM 元素引用 =====
         const inputs = {};
@@ -742,23 +960,34 @@
         Object.keys(CONVERSION_FACTORS).forEach(unit => {
             inputs[unit] = document.getElementById(unit);
             spinners[unit] = document.getElementById(`spinner-${unit}`);
-            inputContainers[unit] = inputs[unit]?.closest('.input-enhanced');
+            inputContainers[unit] = inputs[unit]?.closest('.apple-input');
         });
         
         const clearBtn = document.getElementById('clearBtn');
         const copyBtn = document.getElementById('copyBtn');
-        const calculateBtn = document.getElementById('calculateBtn');
+        const simulateBtn = document.getElementById('simulateBtn');
         const referenceBtn = document.getElementById('referenceBtn');
+        const compareBtn = document.getElementById('compareBtn');
         const resultsPreview = document.getElementById('resultsPreview');
         const resultsContent = document.getElementById('resultsContent');
         
         // Modal 元素
         const referenceModal = document.getElementById('referenceModal');
         const closeReference = document.getElementById('closeReference');
+        const compareModal = document.getElementById('compareModal');
+        const closeCompare = document.getElementById('closeCompare');
+        const compareContent = document.getElementById('compareContent');
+        const aiModal = document.getElementById('aiModal');
+        const aiAssistant = document.getElementById('aiAssistant');
+        const closeAi = document.getElementById('closeAi');
+        const getTip = document.getElementById('getTip');
+        const getTrivia = document.getElementById('getTrivia');
+        const aiSuggestion = document.getElementById('aiSuggestion');
         const easterEgg = document.getElementById('easterEgg');
         const easterModal = document.getElementById('easterModal');
         const closeEaster = document.getElementById('closeEaster');
         const randomBtn = document.getElementById('randomBtn');
+        const easterKnowledge = document.getElementById('easterKnowledge');
         
         // 通知系統
         const notification = document.getElementById('notification');
@@ -826,7 +1055,6 @@
                 return value.toExponential(3);
             }
             
-            // 去除不必要的小數點後的零
             const formatted = parseFloat(value.toFixed(precision));
             return formatted.toString();
         }
@@ -840,10 +1068,10 @@
                     clearOtherInputs(sourceUnit);
                     hideCalculating(sourceUnit);
                     updateResultsPreview({});
+                    updateCompareContent(0);
                     return;
                 }
                 
-                // 模擬計算延遲，提升用戶體驗
                 setTimeout(() => {
                     const sqmValue = sourceValue * CONVERSION_FACTORS[sourceUnit];
                     const results = {};
@@ -861,6 +1089,7 @@
                     hideCalculating(sourceUnit);
                     updateButtonStates();
                     updateResultsPreview(results);
+                    updateCompareContent(sqmValue);
                     showNotification('換算完成！', 'success');
                 }, 300);
                 
@@ -878,14 +1107,12 @@
                     const formattedValue = formatNumber(results[unit]);
                     const handler = inputHandlers[unit];
                     
-                    // 暫時移除事件監聽器，避免循環觸發
                     if (handler) {
                         inputs[unit].removeEventListener('input', handler);
                     }
                     
                     inputs[unit].value = formattedValue;
                     
-                    // 重新添加事件監聽器
                     if (handler) {
                         inputs[unit].addEventListener('input', handler);
                     }
@@ -939,14 +1166,12 @@
             Object.entries(results).forEach(([unit, value]) => {
                 const isActive = unit === currentActiveInput;
                 const resultItem = document.createElement('div');
-                resultItem.className = `bg-white rounded-xl p-4 border transition-all duration-300 hover:shadow-lg card-hover ${
-                    isActive ? 'ring-2 ring-primary-200 bg-yellow-50 border-primary-300' : 'border-gray-200'
-                }`;
+                resultItem.className = `result-card p-4 ${isActive ? 'active' : ''}`;
                 
                 resultItem.innerHTML = `
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-sm font-medium text-gray-600">${UNIT_NAMES[unit]}</span>
-                        <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">${UNIT_SYMBOLS[unit]}</span>
+                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">${UNIT_SYMBOLS[unit]}</span>
                     </div>
                     <div class="text-lg font-bold text-gray-800 mb-1">
                         ${formatNumber(value)}
@@ -959,6 +1184,50 @@
             
             resultsPreview.classList.remove('hidden');
             resultsPreview.classList.add('animate-scale-in');
+        }
+        
+        // 更新面積比較內容
+        function updateCompareContent(sqmValue) {
+            if (!compareContent || sqmValue <= 0) return;
+            
+            compareContent.innerHTML = '';
+            
+            // 找出最接近的實物比較
+            const sortedComparisons = COMPARISON_DATA
+                .map(item => ({
+                    ...item,
+                    ratio: sqmValue / item.sqm,
+                    difference: Math.abs(sqmValue - item.sqm)
+                }))
+                .sort((a, b) => a.difference - b.difference)
+                .slice(0, 4);
+            
+            sortedComparisons.forEach(item => {
+                const comparisonItem = document.createElement('div');
+                comparisonItem.className = 'apple-card p-4 flex items-center justify-between hover:shadow-apple-hover transition-all duration-300';
+                
+                let description = '';
+                if (item.ratio > 1) {
+                    description = `約等於 ${formatNumber(item.ratio, 2)} 個${item.name}`;
+                } else {
+                    description = `約為 ${item.name} 的 ${formatNumber(item.ratio * 100, 1)}%`;
+                }
+                
+                comparisonItem.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="text-2xl mr-3">${item.icon}</span>
+                        <div>
+                            <div class="font-semibold text-gray-800">${item.name}</div>
+                            <div class="text-sm text-gray-600">${description}</div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        ${formatNumber(item.sqm)} ㎡
+                    </div>
+                `;
+                
+                compareContent.appendChild(comparisonItem);
+            });
         }
         
         // ===== 事件處理器 =====
@@ -982,6 +1251,7 @@
                         lastCalculatedValues = {};
                         updateButtonStates();
                         updateResultsPreview({});
+                        updateCompareContent(0);
                         return;
                     }
                     
@@ -997,12 +1267,10 @@
                 inputHandlers[unit] = inputHandler;
                 input.addEventListener('input', inputHandler);
                 
-                // 焦點事件
                 input.addEventListener('focus', () => {
                     setActiveInput(unit);
                 });
                 
-                // 鍵盤事件
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -1020,15 +1288,11 @@
         // 清除所有數值
         function clearAll() {
             Object.values(inputs).forEach(input => {
-                if (input) {
-                    input.value = '';
-                }
+                if (input) input.value = '';
             });
             
             Object.values(inputContainers).forEach(container => {
-                if (container) {
-                    container.classList.remove('active', 'calculating');
-                }
+                if (container) container.classList.remove('active', 'calculating');
             });
             
             Object.keys(debounceTimers).forEach(key => {
@@ -1046,8 +1310,8 @@
             
             updateButtonStates();
             updateResultsPreview({});
+            updateCompareContent(0);
             
-            // 設定焦點到第一個輸入框
             if (inputs.sqm) {
                 inputs.sqm.focus();
             }
@@ -1055,20 +1319,26 @@
             showNotification('已清除所有數值', 'info');
         }
         
-        // 手動重新計算
-        function manualCalculate() {
-            if (!currentActiveInput || !inputs[currentActiveInput]) {
-                showNotification('請先選擇一個欄位並輸入數值', 'warning');
-                return;
-            }
+        // 隨機模擬
+        function randomSimulate() {
+            const units = Object.keys(inputs);
+            const randomUnit = units[Math.floor(Math.random() * units.length)];
+            const randomValue = parseFloat((Math.random() * 9999 + 1).toFixed(2));
             
-            const value = parseFloat(inputs[currentActiveInput].value);
-            if (isNaN(value) || value <= 0) {
-                showNotification('請輸入有效的正數值', 'warning');
-                return;
-            }
+            clearAll();
             
-            calculateConversions(currentActiveInput, value);
+            // 觸發彩蛋動畫
+            createConfetti();
+            
+            setTimeout(() => {
+                if (inputs[randomUnit]) {
+                    inputs[randomUnit].value = randomValue;
+                    setActiveInput(randomUnit);
+                    calculateConversions(randomUnit, randomValue);
+                }
+                
+                showNotification(`🎲 隨機模擬：${randomValue} ${UNIT_NAMES[randomUnit]}`, 'success');
+            }, 100);
         }
         
         // 複製結果到剪貼簿
@@ -1098,7 +1368,7 @@
                 resultText += `計算時間：${new Date().toLocaleString('zh-TW')}`;
                 
                 await navigator.clipboard.writeText(resultText);
-                showNotification('換算結果已複製到剪貼簿！', 'success');
+                showNotification('📋 換算結果已複製到剪貼簿！', 'success');
                 
             } catch (err) {
                 console.error('複製失敗:', err);
@@ -1110,6 +1380,11 @@
         function showNotification(message, type = 'info') {
             if (!notification || !notificationIcon || !notificationMessage) return;
             
+            // 清除之前的超時
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+            }
+            
             const icons = {
                 success: '<i class="fas fa-check-circle text-green-500"></i>',
                 error: '<i class="fas fa-exclamation-circle text-red-500"></i>',
@@ -1120,39 +1395,74 @@
             notificationIcon.innerHTML = icons[type] || icons.info;
             notificationMessage.textContent = message;
             
-            // 顯示通知
-            notification.style.transform = 'translate(-50%, 0)';
+            // 先移除所有類別
+            notification.classList.remove('show', 'hide');
             
-            // 3秒後自動隱藏
+            // 顯示通知
             setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            // 4秒後自動隱藏
+            notificationTimeout = setTimeout(() => {
                 hideNotification();
-            }, 3000);
+            }, 4000);
         }
         
         function hideNotification() {
             if (notification) {
-                notification.style.transform = 'translate(-50%, -100%)';
+                notification.classList.remove('show');
+                notification.classList.add('hide');
+                
+                // 隱藏動畫完成後移除hide類別
+                setTimeout(() => {
+                    notification.classList.remove('hide');
+                }, 500);
+            }
+            
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+                notificationTimeout = null;
             }
         }
         
         // ===== Modal 控制 =====
-        function showReferenceModal() {
-            if (referenceModal) {
-                referenceModal.classList.remove('hidden');
+        function showModal(modal) {
+            if (modal) {
+                modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
             }
         }
         
-        function hideReferenceModal() {
-            if (referenceModal) {
-                referenceModal.classList.add('hidden');
+        function hideModal(modal) {
+            if (modal) {
+                modal.classList.add('hidden');
                 document.body.style.overflow = '';
             }
+        }
+        
+        // ===== AI助手功能 =====
+        function showAiTip() {
+            const randomTip = AI_TIPS[Math.floor(Math.random() * AI_TIPS.length)];
+            aiSuggestion.innerHTML = `<p class="text-gray-700 leading-relaxed">${randomTip}</p>`;
+        }
+        
+        function showAiTrivia() {
+            const randomTrivia = AI_TRIVIA[Math.floor(Math.random() * AI_TRIVIA.length)];
+            aiSuggestion.innerHTML = `<p class="text-gray-700 leading-relaxed">${randomTrivia}</p>`;
         }
         
         // ===== 彩蛋功能 =====
         let easterEggClicks = 0;
         let easterEggTimeout;
+        
+        const EASTER_KNOWLEDGE = [
+            "台北101大樓基地約 <span class='font-bold text-primary-600'>3,056 坪</span>，相當於 <span class='font-bold text-primary-600'>10,100 ㎡</span>，約等於 <span class='font-bold text-primary-600'>1.5個足球場</span>大小！",
+            "一個標準籃球場 <span class='font-bold text-secondary-600'>420 ㎡</span>，約等於 <span class='font-bold text-secondary-600'>127 坪</span>，可以停放 <span class='font-bold text-secondary-600'>33 輛汽車</span>！",
+            "大安森林公園面積 <span class='font-bold text-accent-600'>25.9 公頃</span>，相當於 <span class='font-bold text-accent-600'>78,355 坪</span>，約 <span class='font-bold text-accent-600'>36 個足球場</span>大小！",
+            "一個標準停車位 <span class='font-bold text-green-600'>12.5 ㎡</span>，約 <span class='font-bold text-green-600'>3.8 坪</span>，相當於一個小房間的大小！",
+            "台北車站總樓地板面積 <span class='font-bold text-blue-600'>46,000 ㎡</span>，約 <span class='font-bold text-blue-600'>13,915 坪</span>，可容納 <span class='font-bold text-blue-600'>460 家便利商店</span>！"
+        ];
         
         function handleEasterEggClick() {
             easterEggClicks++;
@@ -1162,7 +1472,6 @@
                 showEasterEgg();
                 easterEggClicks = 0;
             } else {
-                // 如果1秒內沒有繼續點擊，重置計數
                 easterEggTimeout = setTimeout(() => {
                     easterEggClicks = 0;
                 }, 1000);
@@ -1170,60 +1479,75 @@
         }
         
         function showEasterEgg() {
-            if (easterModal) {
-                easterModal.classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
+            // 隨機顯示知識
+            const randomKnowledge = EASTER_KNOWLEDGE[Math.floor(Math.random() * EASTER_KNOWLEDGE.length)];
+            easterKnowledge.innerHTML = randomKnowledge;
+            
+            // 觸發煙火效果
+            createFireworks();
+            
+            showModal(easterModal);
+        }
+        
+        // ===== 動畫彩蛋效果 =====
+        function createConfetti() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dda0dd'];
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * window.innerWidth + 'px';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDuration = (Math.random() * 2 + 1) + 's';
+                    confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                    
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 3000);
+                }, i * 50);
             }
         }
         
-        function closeEasterEgg() {
-            if (easterModal) {
-                easterModal.classList.add('hidden');
-                document.body.style.overflow = '';
+        function createFireworks() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dda0dd'];
+            
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const firework = document.createElement('div');
+                    firework.className = 'firework';
+                    firework.style.left = Math.random() * window.innerWidth + 'px';
+                    firework.style.top = Math.random() * window.innerHeight + 'px';
+                    firework.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    document.body.appendChild(firework);
+                    
+                    setTimeout(() => {
+                        firework.remove();
+                    }, 1000);
+                }, i * 100);
             }
-        }
-        
-        function randomConversion() {
-            const units = Object.keys(inputs);
-            const randomUnit = units[Math.floor(Math.random() * units.length)];
-            const randomValue = parseFloat((Math.random() * 9999 + 1).toFixed(2));
-            
-            clearAll();
-            
-            setTimeout(() => {
-                if (inputs[randomUnit]) {
-                    inputs[randomUnit].value = randomValue;
-                    setActiveInput(randomUnit);
-                    calculateConversions(randomUnit, randomValue);
-                }
-                
-                closeEasterEgg();
-                showNotification(`隨機示範：${randomValue} ${UNIT_NAMES[randomUnit]}`, 'info');
-            }, 100);
         }
         
         // ===== 鍵盤快捷鍵支援 =====
         function handleKeyboardEvents(e) {
-            // 如果當前焦點在輸入框上，不處理快捷鍵
             if (e.target.tagName.toLowerCase() === 'input') return;
             
-            // ESC 鍵關閉 Modal
             if (e.key === 'Escape') {
-                hideReferenceModal();
-                closeEasterEgg();
+                hideModal(referenceModal);
+                hideModal(compareModal);
+                hideModal(aiModal);
+                hideModal(easterModal);
                 hideNotification();
             }
             
-            // Ctrl + 組合鍵
             if (e.ctrlKey || e.metaKey) {
                 switch (e.key.toLowerCase()) {
                     case 'd':
                         e.preventDefault();
                         clearAll();
-                        break;
-                    case 'enter':
-                        e.preventDefault();
-                        manualCalculate();
                         break;
                     case 'c':
                         if (Object.keys(lastCalculatedValues).length > 0) {
@@ -1233,12 +1557,11 @@
                         break;
                     case 'r':
                         e.preventDefault();
-                        showReferenceModal();
+                        showModal(referenceModal);
                         break;
                 }
             }
             
-            // 彩蛋觸發 - 連續輸入 "area"
             handleEasterEggKeyboard(e);
         }
         
@@ -1289,26 +1612,36 @@
             // 主要功能按鈕
             if (clearBtn) clearBtn.addEventListener('click', clearAll);
             if (copyBtn) copyBtn.addEventListener('click', copyResults);
-            if (calculateBtn) calculateBtn.addEventListener('click', manualCalculate);
-            if (referenceBtn) referenceBtn.addEventListener('click', showReferenceModal);
+            if (simulateBtn) simulateBtn.addEventListener('click', randomSimulate);
+            if (referenceBtn) referenceBtn.addEventListener('click', () => showModal(referenceModal));
+            if (compareBtn) compareBtn.addEventListener('click', () => showModal(compareModal));
             
             // Modal 控制
-            if (closeReference) closeReference.addEventListener('click', hideReferenceModal);
-            if (referenceModal) {
-                referenceModal.addEventListener('click', (e) => {
-                    if (e.target === referenceModal) hideReferenceModal();
-                });
-            }
+            if (closeReference) closeReference.addEventListener('click', () => hideModal(referenceModal));
+            if (closeCompare) closeCompare.addEventListener('click', () => hideModal(compareModal));
+            if (closeAi) closeAi.addEventListener('click', () => hideModal(aiModal));
+            if (closeEaster) closeEaster.addEventListener('click', () => hideModal(easterModal));
+            
+            // Modal 背景點擊關閉
+            [referenceModal, compareModal, aiModal, easterModal].forEach(modal => {
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) hideModal(modal);
+                    });
+                }
+            });
+            
+            // AI助手功能
+            if (aiAssistant) aiAssistant.addEventListener('click', () => showModal(aiModal));
+            if (getTip) getTip.addEventListener('click', showAiTip);
+            if (getTrivia) getTrivia.addEventListener('click', showAiTrivia);
             
             // 彩蛋功能
             if (easterEgg) easterEgg.addEventListener('click', handleEasterEggClick);
-            if (closeEaster) closeEaster.addEventListener('click', closeEasterEgg);
-            if (randomBtn) randomBtn.addEventListener('click', randomConversion);
-            if (easterModal) {
-                easterModal.addEventListener('click', (e) => {
-                    if (e.target === easterModal) closeEasterEgg();
-                });
-            }
+            if (randomBtn) randomBtn.addEventListener('click', () => {
+                hideModal(easterModal);
+                randomSimulate();
+            });
             
             // 通知系統
             if (closeNotification) closeNotification.addEventListener('click', hideNotification);
@@ -1321,14 +1654,13 @@
             if (form) {
                 form.addEventListener('submit', (e) => {
                     e.preventDefault();
-                    manualCalculate();
                 });
             }
         }
         
         // ===== 初始化函數 =====
         function initialize() {
-            console.log('🏡 Premium 土地面積換算工具初始化中...');
+            console.log('🏡 Premium 土地面積換算工具（Apple風格版）初始化中...');
             
             // 基礎功能初始化
             initializeInputHandlers();
@@ -1337,6 +1669,7 @@
             
             // 設定初始狀態
             updateButtonStates();
+            updateCompareContent(0);
             
             // 設定焦點
             if (inputs.sqm && !currentActiveInput) {
@@ -1344,14 +1677,15 @@
                 setActiveInput('sqm');
             }
             
-            // 顯示歡迎訊息
+            // 延遲顯示歡迎訊息，確保完全初始化後顯示
             setTimeout(() => {
-                showNotification('🎉 歡迎使用 Premium 面積換算工具！輸入任一數值即可開始換算', 'info');
-            }, 1000);
+                showNotification('🎉 歡迎使用 Premium Apple風格面積換算工具！', 'info');
+            }, 1500);
             
             console.log('✅ Premium 土地面積換算工具已就緒！');
             console.log('🎯 快捷鍵：Ctrl+D 清除、Ctrl+C 複製、Ctrl+R 參考表、ESC 關閉');
             console.log('🎮 彩蛋：點擊右上角魔法棒3次、連續輸入"area"');
+            console.log('🤖 AI助手：點擊右下角機器人獲取智能建議');
         }
         
         // ===== 頁面載入完成執行 =====
@@ -1367,13 +1701,17 @@
                 calculate: calculateConversions,
                 clear: clearAll,
                 copy: copyResults,
+                simulate: randomSimulate,
                 getCurrentInput: () => currentActiveInput,
                 getResults: () => lastCalculatedValues,
                 formatNumber,
                 showNotification,
+                createConfetti,
+                createFireworks,
                 CONVERSION_FACTORS,
                 UNIT_NAMES,
-                UNIT_SYMBOLS
+                UNIT_SYMBOLS,
+                COMPARISON_DATA
             };
             console.log('🔧 開發模式：window.AreaConverterAPI 已可用');
         }
