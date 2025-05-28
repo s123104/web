@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>銷售儀表板 - Sales Dashboard</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Remix Icon -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.0.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <!-- ApexCharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
+    
+    <!-- Tailwind 自訂配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5B5CE6',
+                        secondary: '#E8E8FB',
+                        accent: '#FF6B6B',
+                        success: '#4ECDC4',
+                        neutral: {
+                            50: '#FAFAFA',
+                            100: '#F5F5F5',
+                            200: '#E5E5E5',
+                            300: '#D4D4D4',
+                            400: '#A3A3A3',
+                            500: '#737373',
+                            600: '#525252',
+                            700: '#404040',
+                            800: '#262626',
+                            900: '#171717',
+                        }
+                    },
+                    spacing: {
+                        '18': '4.5rem',
+                        '88': '22rem',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'Noto Sans TC', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'bounce-in': 'bounceIn 0.6s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        bounceIn: {
+                            '0%': { transform: 'scale(0.3)', opacity: '0' },
+                            '50%': { transform: 'scale(1.05)' },
+                            '70%': { transform: 'scale(0.9)' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* 自訂樣式補充 */
+        .card-shadow {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-shadow-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-shadow-hover:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 6px 10px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+        
+        /* 捲動進場動畫 */
+        .scroll-animate {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease-out;
+        }
+        
+        .scroll-animate.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 彩蛋按鈕樣式 */
+        .easter-egg-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0.3;
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+        
+        .easter-egg-btn:hover {
+            opacity: 1;
+            transform: scale(1.1) rotate(180deg);
+        }
+        
+        /* 彩蛋內容 */
+        .easter-egg-content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .easter-egg-content.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        /* 遮罩層 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 998;
+        }
+        
+        .overlay.show {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 font-sans">
+    <!-- 主容器 -->
+    <div class="min-h-screen flex">
+        
+        <!-- 側邊欄 - 桌面版顯示，手機版隱藏 -->
+        <aside id="sidebar" class="w-64 bg-white shadow-lg fixed inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+            <div class="p-6 border-b border-neutral-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                        <i class="ri-dashboard-3-line text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-neutral-800">DealDesk</h1>
+                </div>
+            </div>
+            
+            <!-- 導航選單 -->
+            <nav class="p-4 space-y-2">
+                <span class="text-xs text-neutral-400 font-medium uppercase tracking-wider px-3">選單</span>
+                
+                <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 hover:bg-neutral-100 text-neutral-600 hover:text-primary">
+                    <i class="ri-home-4-line text-xl"></i>
+                    <span>儀表板</span>
+                </a>
+                
+                <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-primary text-white">
+                    <i class="ri-file-chart-line text-xl"></i>
+                    <span>報表</span>
+                </a>
+                
+                <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 hover:bg-neutral-100 text-neutral-600 hover:text-primary">
+                    <i class="ri-shopping-bag-3-line text-xl"></i>
+                    <span>產品</span>
+                </a>
+                
+                <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 hover:bg-neutral-100 text-neutral-600 hover:text-primary">
+                    <i class="ri-user-3-line text-xl"></i>
+                    <span>顧客</span>
+                </a>
+                
+                <div class="pt-6">
+                    <span class="text-xs text-neutral-400 font-medium uppercase tracking-wider px-3">財務</span>
+                </div>
+                
+                <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 hover:bg-neutral-100 text-neutral-600 hover:text-primary">
+                    <i class="ri-exchange-dollar-line text-xl"></i>
+                    <span>交易</span>
+                </a>
+                
+                <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 hover:bg-neutral-100 text-neutral-600 hover:text-primary">
+                    <i class="ri-file-text-line text-xl"></i>
+                    <span>發票</span>
+                </a>
+                
+                <div class="pt-6">
+                    <span class="text-xs text-neutral-400 font-medium uppercase tracking-wider px-3">工具</span>
+                </div>
+                
+                <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 hover:bg-neutral-100 text-neutral-600 hover:text-primary">
+                    <i class="ri-settings-3-line text-xl"></i>
+                    <span>設定</span>
+                </a>
+                
+                <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 hover:bg-neutral-100 text-neutral-600 hover:text-primary">
+                    <i class="ri-feedback-line text-xl"></i>
+                    <span>意見回饋</span>
+                </a>
+                
+                <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 hover:bg-neutral-100 text-neutral-600 hover:text-primary">
+                    <i class="ri-question-line text-xl"></i>
+                    <span>說明</span>
+                </a>
+            </nav>
+            
+            <!-- 升級提示 -->
+            <div class="absolute bottom-6 left-4 right-4">
+                <div class="bg-neutral-900 rounded-xl p-4 text-white">
+                    <div class="flex items-center justify-center mb-2">
+                        <i class="ri-vip-crown-line text-3xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-center mb-1">升級至專業版</h3>
+                    <p class="text-xs text-neutral-300 text-center mb-3">探索升級帳戶的優勢</p>
+                    <button class="w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                        升級 $30
+                    </button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- 主要內容區 -->
+        <div class="flex-1 lg:ml-64">
+            <!-- 頂部標題欄 -->
+            <header class="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-40">
+                <div class="px-4 sm:px-6 lg:px-8 py-4">
+                    <div class="flex items-center justify-between">
+                        <!-- 漢堡選單按鈕 - 僅手機版顯示 -->
+                        <button id="menuToggle" class="lg:hidden p-2 rounded-lg hover:bg-neutral-100 transition-colors duration-200">
+                            <i class="ri-menu-line text-xl text-neutral-600"></i>
+                        </button>
+                        
+                        <div class="flex-1 lg:flex-none">
+                            <h2 class="text-2xl font-bold text-neutral-800">銷售報表</h2>
+                            <p class="text-sm text-neutral-500">2023年12月15日，星期五</p>
+                        </div>
+                        
+                        <!-- 右側工具列 -->
+                        <div class="flex items-center space-x-4">
+                            <button class="p-2 rounded-lg hover:bg-neutral-100 transition-colors duration-200">
+                                <i class="ri-search-line text-xl text-neutral-600"></i>
+                            </button>
+                            
+                            <button class="p-2 rounded-lg hover:bg-neutral-100 transition-colors duration-200 relative">
+                                <i class="ri-notification-3-line text-xl text-neutral-600"></i>
+                                <span class="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full"></span>
+                            </button>
+                            
+                            <div class="flex items-center space-x-3 pl-4 border-l border-neutral-200">
+                                <img src="https://ui-avatars.com/api/?name=Ferra+Alexandra&background=5B5CE6&color=fff" alt="使用者頭像" class="w-10 h-10 rounded-full">
+                                <div class="hidden sm:block">
+                                    <p class="text-sm font-medium text-neutral-800">Ferra Alexandra</p>
+                                    <p class="text-xs text-neutral-500">管理員</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- 主要內容 -->
+            <main class="p-4 sm:p-6 lg:p-8">
+                <!-- KPI 卡片區 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+                    <!-- 總銷售額卡片 -->
+                    <div class="bg-primary rounded-2xl p-6 text-white card-shadow-hover scroll-animate">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-3 bg-white/20 rounded-xl">
+                                <i class="ri-shopping-cart-2-line text-2xl"></i>
+                            </div>
+                            <span class="text-sm bg-white/20 px-3 py-1 rounded-full">+2.05%</span>
+                        </div>
+                        <p class="text-white/80 text-sm mb-1">總銷售額</p>
+                        <h3 class="text-3xl font-bold">$612,917</h3>
+                        <p class="text-xs text-white/70 mt-2">相較上月產品</p>
+                    </div>
+                    
+                    <!-- 總訂單卡片 -->
+                    <div class="bg-white rounded-2xl p-6 card-shadow card-shadow-hover scroll-animate">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-3 bg-secondary rounded-xl">
+                                <i class="ri-file-list-3-line text-2xl text-primary"></i>
+                            </div>
+                            <span class="text-sm bg-success/20 text-success px-3 py-1 rounded-full">+15.4%</span>
+                        </div>
+                        <p class="text-neutral-600 text-sm mb-1">總訂單</p>
+                        <h3 class="text-3xl font-bold text-neutral-800">34,760</h3>
+                        <p class="text-xs text-neutral-500 mt-2">相較上月訂單</p>
+                    </div>
+                    
+                    <!-- 訪客卡片 -->
+                    <div class="bg-white rounded-2xl p-6 card-shadow card-shadow-hover scroll-animate">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-3 bg-secondary rounded-xl">
+                                <i class="ri-user-3-line text-2xl text-primary"></i>
+                            </div>
+                            <span class="text-sm bg-accent/20 text-accent px-3 py-1 rounded-full">-5.09%</span>
+                        </div>
+                        <p class="text-neutral-600 text-sm mb-1">訪客</p>
+                        <h3 class="text-3xl font-bold text-neutral-800">14,987</h3>
+                        <p class="text-xs text-neutral-500 mt-2">相較上月用戶</p>
+                    </div>
+                    
+                    <!-- 已售產品卡片 -->
+                    <div class="bg-white rounded-2xl p-6 card-shadow card-shadow-hover scroll-animate">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="p-3 bg-secondary rounded-xl">
+                                <i class="ri-shopping-bag-3-line text-2xl text-primary"></i>
+                            </div>
+                            <span class="text-sm bg-success/20 text-success px-3 py-1 rounded-full">+12.1%</span>
+                        </div>
+                        <p class="text-neutral-600 text-sm mb-1">已售產品總數</p>
+                        <h3 class="text-3xl font-bold text-neutral-800">12,987</h3>
+                        <p class="text-xs text-neutral-500 mt-2">相較上月產品</p>
+                    </div>
+                </div>
+                
+                <!-- 圖表區 -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-8">
+                    <!-- 客戶習慣圖表 -->
+                    <div class="lg:col-span-2 bg-white rounded-2xl p-6 card-shadow scroll-animate">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-lg font-semibold text-neutral-800">客戶習慣</h3>
+                                <p class="text-sm text-neutral-500">追蹤您的客戶習慣</p>
+                            </div>
+                            <select class="text-sm border border-neutral-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                                <option>今年</option>
+                                <option>本月</option>
+                                <option>本週</option>
+                            </select>
+                        </div>
+                        <div id="customerChart"></div>
+                        
+                        <!-- 圖例 -->
+                        <div class="flex items-center justify-center space-x-6 mt-4">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-primary rounded-full"></div>
+                                <span class="text-sm text-neutral-600">銷售產品</span>
+                                <span class="text-sm font-semibold text-neutral-800">43,787</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-neutral-300 rounded-full"></div>
+                                <span class="text-sm text-neutral-600">銷售</span>
+                                <span class="text-sm font-semibold text-neutral-800">39,754</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 產品統計圖表 -->
+                    <div class="bg-white rounded-2xl p-6 card-shadow scroll-animate">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-lg font-semibold text-neutral-800">產品統計</h3>
+                                <p class="text-sm text-neutral-500">追蹤您的產品銷售</p>
+                            </div>
+                            <select class="text-sm border border-neutral-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                                <option>今天</option>
+                                <option>本週</option>
+                                <option>本月</option>
+                            </select>
+                        </div>
+                        
+                        <div class="relative">
+                            <div id="productChart"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="text-center">
+                                    <p class="text-3xl font-bold text-neutral-800">9,829</p>
+                                    <p class="text-sm text-neutral-500">產品銷售</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 產品列表 -->
+                        <div class="space-y-3 mt-6">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ri-computer-line text-xl text-neutral-600"></i>
+                                    <span class="text-sm font-medium text-neutral-700">電子產品</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm font-semibold text-neutral-800">2,487</span>
+                                    <span class="text-xs bg-success/20 text-success px-2 py-0.5 rounded-full">+1.8%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ri-gamepad-line text-xl text-neutral-600"></i>
+                                    <span class="text-sm font-medium text-neutral-700">遊戲</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm font-semibold text-neutral-800">1,826</span>
+                                    <span class="text-xs bg-success/20 text-success px-2 py-0.5 rounded-full">+2.3%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ri-home-smile-line text-xl text-neutral-600"></i>
+                                    <span class="text-sm font-medium text-neutral-700">傢俱</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm font-semibold text-neutral-800">1,463</span>
+                                    <span class="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">-1.2%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 客戶成長區塊 -->
+                <div class="bg-white rounded-2xl p-6 card-shadow scroll-animate">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+                        <div>
+                            <h3 class="text-lg font-semibold text-neutral-800">客戶成長</h3>
+                            <p class="text-sm text-neutral-500">按地區追蹤客戶</p>
+                        </div>
+                        <select class="mt-3 lg:mt-0 text-sm border border-neutral-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                            <option>今天</option>
+                            <option>本週</option>
+                            <option>本月</option>
+                        </select>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- 地區圖表 -->
+                        <div id="regionChart"></div>
+                        
+                        <!-- 國家列表 -->
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-2xl">🇺🇸</span>
+                                    <div>
+                                        <p class="text-sm font-medium text-neutral-800">美國</p>
+                                        <p class="text-xs text-neutral-500">2,417 客戶</p>
+                                    </div>
+                                </div>
+                                <span class="text-sm font-semibold text-primary">287</span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-2xl">🇩🇪</span>
+                                    <div>
+                                        <p class="text-sm font-medium text-neutral-800">德國</p>
+                                        <p class="text-xs text-neutral-500">2,281 客戶</p>
+                                    </div>
+                                </div>
+                                <span class="text-sm font-semibold text-neutral-600">2,281</span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-2xl">🇦🇺</span>
+                                    <div>
+                                        <p class="text-sm font-medium text-neutral-800">澳洲</p>
+                                        <p class="text-xs text-neutral-500">812 客戶</p>
+                                    </div>
+                                </div>
+                                <span class="text-sm font-semibold text-neutral-600">812</span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-2xl">🇫🇷</span>
+                                    <div>
+                                        <p class="text-sm font-medium text-neutral-800">法國</p>
+                                        <p class="text-xs text-neutral-500">656 客戶</p>
+                                    </div>
+                                </div>
+                                <span class="text-sm font-semibold text-neutral-600">656</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            
+            <!-- 頁尾 -->
+            <footer class="bg-white border-t border-neutral-200 py-4 px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col sm:flex-row items-center justify-between">
+                    <p class="text-sm text-neutral-500">© 2023 DealDesk. 保留所有權利。</p>
+                    <p class="text-sm text-neutral-500 mt-2 sm:mt-0">由 UI/UX 設計團隊精心打造</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+    
+    <!-- 彩蛋按鈕 -->
+    <div class="easter-egg-btn" id="easterEggBtn">
+        <i class="ri-sparkles-line text-white"></i>
+    </div>
+    
+    <!-- 彩蛋內容 -->
+    <div class="easter-egg-content" id="easterEggContent">
+        <h3 class="text-2xl font-bold text-center mb-4 text-primary">🎉 恭喜發現彩蛋！</h3>
+        <p class="text-neutral-600 mb-4">你找到了隱藏的驚喜！這個儀表板是用愛心和細節打造的。</p>
+        <div class="space-y-2 text-sm text-neutral-500">
+            <p>💡 小提示：試試看 Ctrl+Shift+D 開啟深色模式</p>
+            <p>🎯 成就解鎖：好奇寶寶</p>
+            <p>🏆 獲得點數：+100 XP</p>
+        </div>
+        <button class="mt-6 w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-lg font-medium transition-colors duration-200" onclick="closeEasterEgg()">
+            太棒了！
+        </button>
+    </div>
+    
+    <!-- 遮罩層 -->
+    <div class="overlay" id="overlay"></div>
+    
+    <script>
+        // 初始化變數
+        let clickCount = 0;
+        let clickTimer = null;
+        
+        // 側邊欄開關功能
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        });
+        
+        // 捲動進場動畫
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('show');
+                }
+            });
+        }, observerOptions);
+        
+        // 觀察所有需要動畫的元素
+        document.querySelectorAll('.scroll-animate').forEach(el => {
+            observer.observe(el);
+        });
+        
+        // 彩蛋功能 - 連點三次觸發
+        document.getElementById('easterEggBtn').addEventListener('click', function() {
+            clickCount++;
+            
+            // 清除之前的計時器
+            if (clickTimer) {
+                clearTimeout(clickTimer);
+            }
+            
+            // 設定新的計時器，2秒後重置點擊次數
+            clickTimer = setTimeout(() => {
+                clickCount = 0;
+            }, 2000);
+            
+            // 連點三次觸發彩蛋
+            if (clickCount === 3) {
+                showEasterEgg();
+                clickCount = 0;
+            }
+        });
+        
+        // 顯示彩蛋
+        function showEasterEgg() {
+            document.getElementById('overlay').classList.add('show');
+            document.getElementById('easterEggContent').classList.add('show');
+            
+            // 播放小動畫
+            confetti();
+        }
+        
+        // 關閉彩蛋
+        function closeEasterEgg() {
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('easterEggContent').classList.remove('show');
+        }
+        
+        // 點擊遮罩層關閉彩蛋
+        document.getElementById('overlay').addEventListener('click', closeEasterEgg);
+        
+        // 簡單的煙火效果
+        function confetti() {
+            const colors = ['#5B5CE6', '#4ECDC4', '#FF6B6B', '#FFD93D'];
+            const confettiCount = 50;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                const confettiPiece = document.createElement('div');
+                confettiPiece.style.position = 'fixed';
+                confettiPiece.style.width = '10px';
+                confettiPiece.style.height = '10px';
+                confettiPiece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confettiPiece.style.left = Math.random() * 100 + '%';
+                confettiPiece.style.top = '-10px';
+                confettiPiece.style.opacity = '1';
+                confettiPiece.style.transform = `rotate(${Math.random() * 360}deg)`;
+                confettiPiece.style.transition = 'all 1s ease-out';
+                confettiPiece.style.zIndex = '1001';
+                
+                document.body.appendChild(confettiPiece);
+                
+                // 動畫
+                setTimeout(() => {
+                    confettiPiece.style.top = '100vh';
+                    confettiPiece.style.opacity = '0';
+                    confettiPiece.style.transform = `rotate(${Math.random() * 720}deg)`;
+                }, 10);
+                
+                // 移除元素
+                setTimeout(() => {
+                    confettiPiece.remove();
+                }, 1000);
+            }
+        }
+        
+        // 鍵盤快捷鍵 - Ctrl+Shift+D 觸發深色模式提示
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+                e.preventDefault();
+                alert('深色模式功能即將推出！敬請期待 🌙');
+            }
+        });
+        
+        // 初始化圖表
+        document.addEventListener('DOMContentLoaded', function() {
+            // 客戶習慣圖表配置
+            const customerOptions = {
+                series: [{
+                    name: '銷售產品',
+                    data: [31, 40, 28, 51, 42, 39, 48]
+                }, {
+                    name: '銷售',
+                    data: [24, 32, 24, 43, 35, 31, 40]
+                }],
+                chart: {
+                    type: 'bar',
+                    height: 300,
+                    toolbar: {
+                        show: false
+                    },
+                    fontFamily: 'Inter, sans-serif'
+                },
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        columnWidth: '55%',
+                        borderRadius: 8,
+                        dataLabels: {
+                            position: 'top'
+                        }
+                    }
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                stroke: {
+                    show: true,
+                    width: 2,
+                    colors: ['transparent']
+                },
+                xaxis: {
+                    categories: ['一月', '二月', '三月', '四月', '五月', '六月', '七月'],
+                    labels: {
+                        style: {
+                            colors: '#737373',
+                            fontSize: '12px'
+                        }
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        style: {
+                            colors: '#737373',
+                            fontSize: '12px'
+                        },
+                        formatter: function(val) {
+                            return val + "K";
+                        }
+                    }
+                },
+                fill: {
+                    opacity: 1,
+                    colors: ['#5B5CE6', '#E5E5E5']
+                },
+                tooltip: {
+                    y: {
+                        formatter: function(val) {
+                            return val + " 千件產品"
+                        }
+                    }
+                },
+                grid: {
+                    borderColor: '#F5F5F5',
+                    strokeDashArray: 3,
+                    yaxis: {
+                        lines: {
+                            show: true
+                        }
+                    },
+                    xaxis: {
+                        lines: {
+                            show: false
+                        }
+                    }
+                }
+            };
+            
+            const customerChart = new ApexCharts(document.querySelector("#customerChart"), customerOptions);
+            customerChart.render();
+            
+            // 產品統計圓環圖配置
+            const productOptions = {
+                series: [35, 28, 37],
+                chart: {
+                    type: 'donut',
+                    height: 280,
+                    fontFamily: 'Inter, sans-serif'
+                },
+                labels: ['電子產品', '遊戲', '傢俱'],
+                colors: ['#5B5CE6', '#4ECDC4', '#FF6B6B'],
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '75%',
+                            labels: {
+                                show: false
+                            }
+                        }
+                    }
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                legend: {
+                    show: false
+                },
+                stroke: {
+                    width: 0
+                },
+                responsive: [{
+                    breakpoint: 480,
+                    options: {
+                        chart: {
+                            height: 200
+                        }
+                    }
+                }]
+            };
+            
+            const productChart = new ApexCharts(document.querySelector("#productChart"), productOptions);
+            productChart.render();
+            
+            // 地區分布圖表配置
+            const regionOptions = {
+                series: [{
+                    name: '客戶數',
+                    data: [287, 2281, 812, 656]
+                }],
+                chart: {
+                    type: 'area',
+                    height: 250,
+                    toolbar: {
+                        show: false
+                    },
+                    fontFamily: 'Inter, sans-serif'
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                stroke: {
+                    curve: 'smooth',
+                    width: 3,
+                    colors: ['#5B5CE6']
+                },
+                xaxis: {
+                    categories: ['美國', '德國', '澳洲', '法國'],
+                    labels: {
+                        style: {
+                            colors: '#737373',
+                            fontSize: '12px'
+                        }
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        style: {
+                            colors: '#737373',
+                            fontSize: '12px'
+                        }
+                    }
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.4,
+                        opacityTo: 0.1,
+                        stops: [0, 90, 100],
+                        colorStops: [{
+                            offset: 0,
+                            color: '#5B5CE6',
+                            opacity: 0.4
+                        }, {
+                            offset: 100,
+                            color: '#5B5CE6',
+                            opacity: 0.1
+                        }]
+                    }
+                },
+                tooltip: {
+                    y: {
+                        formatter: function(val) {
+                            return val + " 位客戶"
+                        }
+                    }
+                },
+                grid: {
+                    borderColor: '#F5F5F5',
+                    strokeDashArray: 3,
+                    yaxis: {
+                        lines: {
+                            show: true
+                        }
+                    },
+                    xaxis: {
+                        lines: {
+                            show: false
+                        }
+                    }
+                }
+            };
+            
+            const regionChart = new ApexCharts(document.querySelector("#regionChart"), regionOptions);
+            regionChart.render();
+            
+            // 響應式調整
+            window.addEventListener('resize', function() {
+                customerChart.updateOptions({
+                    chart: {
+                        height: window.innerWidth < 768 ? 250 : 300
+                    }
+                });
+                
+                productChart.updateOptions({
+                    chart: {
+                        height: window.innerWidth < 768 ? 220 : 280
+                    }
+                });
+                
+                regionChart.updateOptions({
+                    chart: {
+                        height: window.innerWidth < 768 ? 200 : 250
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
