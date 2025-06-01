@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>動物性格測驗 | 發現你的內在動物朋友</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1'
+                        },
+                        secondary: {
+                            50: '#fdf4ff',
+                            100: '#fae8ff',
+                            500: '#a855f7',
+                            600: '#9333ea'
+                        },
+                        neutral: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a'
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'Noto Sans TC', 'system-ui', 'sans-serif']
+                    },
+                    spacing: {
+                        '18': '4.5rem',
+                        '22': '5.5rem'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.6s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                        'bounce-gentle': 'bounceGentle 2s infinite',
+                        'pulse-soft': 'pulseSoft 3s ease-in-out infinite'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* 自定義動畫與微調樣式 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes bounceGentle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        
+        @keyframes pulseSoft {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        /* 選項卡片的懸停效果 */
+        .option-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .option-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        /* 進度條動畫 */
+        .progress-fill {
+            transition: width 0.5s ease-out;
+        }
+        
+        /* 隱藏彩蛋按鈕樣式 */
+        .easter-egg {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 3rem;
+            height: 3rem;
+            opacity: 0.3;
+            transition: all 0.3s ease;
+        }
+        
+        .easter-egg:hover {
+            opacity: 0.8;
+            transform: rotate(15deg) scale(1.1);
+        }
+        
+        /* 結果動物圖示動畫 */
+        .result-animal {
+            animation: bounceGentle 2s infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-primary-50 via-white to-secondary-50 min-h-screen font-sans">
+    <!-- Header Section -->
+    <header class="w-full py-6 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto text-center">
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-neutral-800 tracking-tight mb-2">
+                <i class="fas fa-paw text-primary-500 mr-3"></i>
+                動物性格測驗
+            </h1>
+            <p class="text-lg sm:text-xl text-neutral-600 font-light leading-relaxed">
+                發現你內在的動物朋友，了解真實的自己
+            </p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <!-- 進度指示器 -->
+        <div class="mb-8 sm:mb-12">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-sm font-medium text-neutral-600">測驗進度</span>
+                <span id="progress-text" class="text-sm font-medium text-primary-600">0 / 3</span>
+            </div>
+            <div class="w-full bg-neutral-200 rounded-full h-2">
+                <div id="progress-bar" class="progress-fill bg-gradient-to-r from-primary-500 to-secondary-500 h-2 rounded-full w-0"></div>
+            </div>
+        </div>
+
+        <!-- 開始畫面 -->
+        <section id="start-screen" class="text-center py-12 sm:py-16 animate-fade-in">
+            <div class="mb-8">
+                <div class="text-6xl sm:text-8xl mb-6 animate-pulse-soft">
+                    🐱🐶🦊🐻
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-semibold text-neutral-800 mb-4">
+                    準備好發現你的動物性格了嗎？
+                </h2>
+                <p class="text-neutral-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto mb-8">
+                    透過三個簡單問題，我們將揭示你內在的動物特質。每種動物都有獨特的魅力與智慧。
+                </p>
+            </div>
+            <button 
+                id="start-btn" 
+                class="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-primary-200"
+            >
+                <i class="fas fa-play mr-2"></i>
+                開始測驗
+            </button>
+        </section>
+
+        <!-- 問題區域 -->
+        <section id="question-area" class="hidden">
+            <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-8 animate-slide-up">
+                <div class="text-center mb-6">
+                    <div id="question-icon" class="text-4xl mb-4">❓</div>
+                    <h3 id="question-title" class="text-xl sm:text-2xl font-semibold text-neutral-800 mb-2"></h3>
+                    <p id="question-text" class="text-neutral-600 text-base sm:text-lg"></p>
+                </div>
+                
+                <!-- 選項網格 -->
+                <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <!-- 選項將由 JavaScript 動態生成 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 結果畫面 -->
+        <section id="result-screen" class="hidden text-center py-12 animate-fade-in">
+            <div class="bg-white rounded-2xl shadow-xl p-8 sm:p-12">
+                <div id="result-animal" class="text-8xl sm:text-9xl mb-6 result-animal">🐱</div>
+                <h2 id="result-title" class="text-2xl sm:text-3xl font-bold text-neutral-800 mb-4"></h2>
+                <p id="result-description" class="text-neutral-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto mb-8"></p>
+                
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button 
+                        id="restart-btn" 
+                        class="bg-gradient-to-r from-secondary-500 to-secondary-600 hover:from-secondary-600 hover:to-secondary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-secondary-200"
+                    >
+                        <i class="fas fa-redo mr-2"></i>
+                        重新測驗
+                    </button>
+                    <button 
+                        id="share-btn" 
+                        class="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-primary-200"
+                    >
+                        <i class="fas fa-share mr-2"></i>
+                        分享結果
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-8 px-4 text-neutral-500 text-sm">
+        <p>&copy; 2025 動物性格測驗. 用愛與科技打造的心理小測驗</p>
+    </footer>
+
+    <!-- 隱藏彩蛋按鈕 -->
+    <button id="easter-egg-btn" class="easter-egg bg-yellow-400 hover:bg-yellow-500 rounded-full flex items-center justify-center text-xl">
+        🎉
+    </button>
+
+    <!-- 彩蛋彈窗 -->
+    <div id="easter-egg-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-md mx-auto text-center animate-slide-up">
+            <div class="text-6xl mb-4">🎭</div>
+            <h3 class="text-2xl font-bold text-neutral-800 mb-4">恭喜發現隱藏彩蛋！</h3>
+            <p class="text-neutral-600 mb-6">你是一個觀察力敏銳的人呢！這裡有個小秘密：每種動物其實都有隱藏特質等你發現...</p>
+            <button id="close-modal" class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-semibold py-2 px-6 rounded-xl hover:shadow-lg transition-all duration-200">
+                關閉
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 測驗資料結構
+        const testData = {
+            questions: [
+                {
+                    id: 1,
+                    icon: '🏖️',
+                    title: '假日時光',
+                    text: '你假日最想做什麼？',
+                    options: [
+                        { text: '窩在家看劇', animal: 'cat', icon: '🏠' },
+                        { text: '跟朋友出門玩', animal: 'dog', icon: '👥' },
+                        { text: '一個人安靜走走', animal: 'fox', icon: '🚶' },
+                        { text: '睡一整天', animal: 'bear', icon: '💤' }
+                    ]
+                },
+                {
+                    id: 2,
+                    icon: '😰',
+                    title: '壓力應對',
+                    text: '遇到壓力你會？',
+                    options: [
+                        { text: '躲起來', animal: 'fox', icon: '🙈' },
+                        { text: '吃東西紓壓', animal: 'bear', icon: '🍯' },
+                        { text: '找朋友聊天', animal: 'dog', icon: '💬' },
+                        { text: '自己放空', animal: 'cat', icon: '🧘' }
+                    ]
+                },
+                {
+                    id: 3,
+                    icon: '🎭',
+                    title: '性格特質',
+                    text: '你覺得自己個性比較像？',
+                    options: [
+                        { text: '聰明但冷靜', animal: 'fox', icon: '🧠' },
+                        { text: '忠誠又熱情', animal: 'dog', icon: '❤️' },
+                        { text: '愛自由有個性', animal: 'cat', icon: '🗽' },
+                        { text: '溫暖老實型', animal: 'bear', icon: '🤗' }
+                    ]
+                }
+            ],
+            animals: {
+                cat: {
+                    emoji: '🐱',
+                    name: '優雅貓咪',
+                    description: '你是一個獨立自主、有個性的人。喜歡按照自己的節奏生活，既聰明又神秘。你珍惜自己的私人空間，但對信任的人會展現溫暖的一面。'
+                },
+                dog: {
+                    emoji: '🐶',
+                    name: '忠誠小狗',
+                    description: '你是一個熱情開朗、重視友誼的人。總是願意為朋友付出，擁有強烈的同理心。你喜歡團體活動，是大家眼中可靠的好夥伴。'
+                },
+                fox: {
+                    emoji: '🦊',
+                    name: '聰慧狐狸',
+                    description: '你是一個機智聰明、適應力強的人。面對挑戰時能冷靜分析，找到最佳解決方案。你既獨立又有魅力，總能在關鍵時刻發光發熱。'
+                },
+                bear: {
+                    emoji: '🐻',
+                    name: '溫暖熊熊',
+                    description: '你是一個溫和穩重、值得信賴的人。給人安全感和溫暖，是朋友們的避風港。你喜歡簡單純樸的生活，重視內心的平靜與滿足。'
+                }
+            }
+        };
+
+        // 測驗狀態管理
+        let currentQuestion = 0;
+        let scores = { cat: 0, dog: 0, fox: 0, bear: 0 };
+        let easterEggClicks = 0;
+
+        // DOM 元素
+        const elements = {
+            startScreen: document.getElementById('start-screen'),
+            questionArea: document.getElementById('question-area'),
+            resultScreen: document.getElementById('result-screen'),
+            progressBar: document.getElementById('progress-bar'),
+            progressText: document.getElementById('progress-text'),
+            questionIcon: document.getElementById('question-icon'),
+            questionTitle: document.getElementById('question-title'),
+            questionText: document.getElementById('question-text'),
+            optionsContainer: document.getElementById('options-container'),
+            resultAnimal: document.getElementById('result-animal'),
+            resultTitle: document.getElementById('result-title'),
+            resultDescription: document.getElementById('result-description'),
+            startBtn: document.getElementById('start-btn'),
+            restartBtn: document.getElementById('restart-btn'),
+            shareBtn: document.getElementById('share-btn'),
+            easterEggBtn: document.getElementById('easter-egg-btn'),
+            easterEggModal: document.getElementById('easter-egg-modal'),
+            closeModal: document.getElementById('close-modal')
+        };
+
+        // 顯示指定區域，隱藏其他區域
+        function showSection(section) {
+            elements.startScreen.classList.add('hidden');
+            elements.questionArea.classList.add('hidden');
+            elements.resultScreen.classList.add('hidden');
+            
+            section.classList.remove('hidden');
+            
+            // 觸發重新動畫
+            section.classList.remove('animate-fade-in', 'animate-slide-up');
+            setTimeout(() => {
+                section.classList.add('animate-fade-in');
+            }, 50);
+        }
+
+        // 更新進度條
+        function updateProgress() {
+            const progress = (currentQuestion / testData.questions.length) * 100;
+            elements.progressBar.style.width = `${progress}%`;
+            elements.progressText.textContent = `${currentQuestion} / ${testData.questions.length}`;
+        }
+
+        // 顯示問題
+        function showQuestion() {
+            if (currentQuestion >= testData.questions.length) {
+                showResult();
+                return;
+            }
+
+            const question = testData.questions[currentQuestion];
+            
+            elements.questionIcon.textContent = question.icon;
+            elements.questionTitle.textContent = question.title;
+            elements.questionText.textContent = question.text;
+            
+            // 清空並重新生成選項
+            elements.optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option-card bg-neutral-50 hover:bg-primary-50 border-2 border-neutral-200 hover:border-primary-300 rounded-xl p-6 cursor-pointer transition-all duration-200';
+                optionElement.innerHTML = `
+                    <div class="text-3xl mb-3">${option.icon}</div>
+                    <div class="text-neutral-800 font-medium">${option.text}</div>
+                `;
+                
+                optionElement.addEventListener('click', () => selectOption(option.animal));
+                elements.optionsContainer.appendChild(optionElement);
+                
+                // 漸入動畫
+                setTimeout(() => {
+                    optionElement.classList.add('animate-slide-up');
+                }, index * 100);
+            });
+            
+            showSection(elements.questionArea);
+            updateProgress();
+        }
+
+        // 選擇答案
+        function selectOption(animal) {
+            scores[animal]++;
+            currentQuestion++;
+            
+            setTimeout(() => {
+                showQuestion();
+            }, 300);
+        }
+
+        // 顯示結果
+        function showResult() {
+            // 找出得分最高的動物
+            let maxScore = 0;
+            let resultAnimal = 'cat';
+            
+            for (const animal in scores) {
+                if (scores[animal] > maxScore) {
+                    maxScore = scores[animal];
+                    resultAnimal = animal;
+                }
+            }
+            
+            const result = testData.animals[resultAnimal];
+            
+            elements.resultAnimal.textContent = result.emoji;
+            elements.resultTitle.textContent = `你是 ${result.name}！`;
+            elements.resultDescription.textContent = result.description;
+            
+            showSection(elements.resultScreen);
+            updateProgress();
+        }
+
+        // 重置測驗
+        function resetTest() {
+            currentQuestion = 0;
+            scores = { cat: 0, dog: 0, fox: 0, bear: 0 };
+            showSection(elements.startScreen);
+            updateProgress();
+        }
+
+        // 分享結果
+        function shareResult() {
+            if (navigator.share) {
+                navigator.share({
+                    title: '動物性格測驗結果',
+                    text: elements.resultTitle.textContent + ' ' + elements.resultDescription.textContent,
+                    url: window.location.href
+                });
+            } else {
+                // 備用：複製到剪貼板
+                const textToCopy = `${elements.resultTitle.textContent}\n\n${elements.resultDescription.textContent}\n\n來測試你的動物性格：${window.location.href}`;
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    alert('結果已複製到剪貼板！');
+                });
+            }
+        }
+
+        // 彩蛋功能
+        function handleEasterEgg() {
+            easterEggClicks++;
+            
+            if (easterEggClicks >= 3) {
+                elements.easterEggModal.classList.remove('hidden');
+                easterEggClicks = 0;
+            }
+            
+            // 視覺回饋
+            elements.easterEggBtn.style.transform = 'scale(1.2) rotate(360deg)';
+            setTimeout(() => {
+                elements.easterEggBtn.style.transform = '';
+            }, 300);
+        }
+
+        // 鍵盤快捷鍵彩蛋
+        let konami = [];
+        const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown'];
+        
+        document.addEventListener('keydown', (e) => {
+            konami.push(e.key);
+            if (konami.length > konamiCode.length) {
+                konami.shift();
+            }
+            
+            if (konami.join('') === konamiCode.join('')) {
+                handleEasterEgg();
+                konami = [];
+            }
+        });
+
+        // 事件監聽器
+        elements.startBtn.addEventListener('click', showQuestion);
+        elements.restartBtn.addEventListener('click', resetTest);
+        elements.shareBtn.addEventListener('click', shareResult);
+        elements.easterEggBtn.addEventListener('click', handleEasterEgg);
+        elements.closeModal.addEventListener('click', () => {
+            elements.easterEggModal.classList.add('hidden');
+        });
+
+        // 點擊模態框外部關閉
+        elements.easterEggModal.addEventListener('click', (e) => {
+            if (e.target === elements.easterEggModal) {
+                elements.easterEggModal.classList.add('hidden');
+            }
+        });
+
+        // 滾動動畫觸發
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-fade-in');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            updateProgress();
+            
+            // 觀察需要動畫的元素
+            document.querySelectorAll('section').forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html>
