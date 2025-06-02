@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cursor AI 開發技巧 - 專業工程師的實戰經驗</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a'
+                        },
+                        secondary: {
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9'
+                        },
+                        neutral: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a'
+                        },
+                        accent: {
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'Noto Sans TC', 'sans-serif']
+                    },
+                    spacing: {
+                        '18': '4.5rem',
+                        '22': '5.5rem',
+                        '88': '22rem',
+                        '128': '32rem'
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.6s ease-out',
+                        'bounce-gentle': 'bounceGentle 2s infinite',
+                        'pulse-slow': 'pulse 3s infinite',
+                        'slide-in-right': 'slideInRight 0.5s ease-out'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* 自定義動畫 - 提升微互動體驗 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes bounceGentle {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        /* 漸層背景 - 提升視覺層次 */
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* 隱藏彩蛋按鈕樣式 */
+        .easter-egg {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #ffd93d);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .easter-egg:hover {
+            transform: scale(1.1) rotate(10deg);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 彩蛋模態框 */
+        .easter-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+        }
+        
+        .easter-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            max-width: 400px;
+            animation: fadeInUp 0.5s ease-out;
+        }
+        
+        /* 代碼區塊樣式優化 */
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        
+        /* 響應式導航選單 */
+        .mobile-menu {
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .mobile-menu.active {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+
+<body class="font-sans bg-neutral-50 text-neutral-800 leading-relaxed">
+    <!-- Header 區域 - 透明固定式導航 -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-b border-neutral-200 transition-all duration-300">
+        <nav class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <!-- Logo 區域 -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-code text-white text-lg"></i>
+                    </div>
+                    <span class="text-xl font-bold text-neutral-900 tracking-tight">Cursor 開發指南</span>
+                </div>
+                
+                <!-- 桌面版導航選單 -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#hero" class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium">首頁</a>
+                    <a href="#tips" class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium">開發技巧</a>
+                    <a href="#about" class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium">關於專案</a>
+                    <a href="#prompt" class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium">角色設定</a>
+                    <button class="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-all duration-200 transform hover:scale-105 font-medium">
+                        開始使用
+                    </button>
+                </div>
+                
+                <!-- 手機版選單按鈕 -->
+                <button id="mobile-menu-btn" class="md:hidden p-2 text-neutral-600 hover:text-primary-600 transition-colors">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </nav>
+        
+        <!-- 手機版側滑選單 -->
+        <div id="mobile-menu" class="mobile-menu fixed top-0 right-0 h-full w-64 bg-white shadow-2xl md:hidden">
+            <div class="p-6">
+                <button id="close-menu-btn" class="float-right text-neutral-600 hover:text-primary-600 mb-8">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+                <div class="clear-both space-y-6">
+                    <a href="#hero" class="block text-neutral-700 hover:text-primary-600 font-medium py-2">首頁</a>
+                    <a href="#tips" class="block text-neutral-700 hover:text-primary-600 font-medium py-2">開發技巧</a>
+                    <a href="#about" class="block text-neutral-700 hover:text-primary-600 font-medium py-2">關於專案</a>
+                    <a href="#prompt" class="block text-neutral-700 hover:text-primary-600 font-medium py-2">角色設定</a>
+                    <button class="w-full bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-all duration-200 font-medium mt-6">
+                        開始使用
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區域 -->
+    <main>
+        <!-- Hero 區域 - 漸層背景與動態效果 -->
+        <section id="hero" class="pt-24 pb-16 md:pt-32 md:pb-24 gradient-bg text-white relative overflow-hidden">
+            <div class="absolute inset-0 opacity-10">
+                <div class="absolute top-10 left-10 w-20 h-20 bg-white rounded-full animate-pulse-slow"></div>
+                <div class="absolute bottom-20 right-20 w-32 h-32 bg-white rounded-full animate-bounce-gentle"></div>
+                <div class="absolute top-1/2 left-1/4 w-16 h-16 bg-white rounded-full animate-pulse"></div>
+            </div>
+            
+            <div class="container mx-auto px-4 relative z-10">
+                <div class="max-w-4xl mx-auto text-center">
+                    <h1 class="text-4xl md:text-6xl font-bold mb-6 tracking-tight opacity-0 animate-fade-in-up" style="animation-delay: 0.2s;">
+                        掌握 <span class="text-yellow-300">Cursor AI</span><br>
+                        開發的七大祕訣
+                    </h1>
+                    <p class="text-xl md:text-2xl mb-8 opacity-90 leading-relaxed opacity-0 animate-fade-in-up" style="animation-delay: 0.4s;">
+                        專業工程師親授，用 AI 輔助開發打造月收 $1.5k 的副業專案
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center opacity-0 animate-fade-in-up" style="animation-delay: 0.6s;">
+                        <button class="bg-white text-primary-700 px-8 py-4 rounded-lg font-semibold hover:bg-neutral-100 transition-all duration-200 transform hover:scale-105 shadow-lg">
+                            <i class="fas fa-rocket mr-2"></i>
+                            立即開始學習
+                        </button>
+                        <button class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-primary-700 transition-all duration-200 transform hover:scale-105">
+                            <i class="fas fa-play mr-2"></i>
+                            觀看示範
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 統計數據區域 -->
+        <section class="py-16 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                    <div class="text-center opacity-0 animate-fade-in-up" style="animation-delay: 0.2s;">
+                        <div class="text-4xl font-bold text-primary-600 mb-2">$1.5k</div>
+                        <div class="text-neutral-600 font-medium">月經常性收入</div>
+                    </div>
+                    <div class="text-center opacity-0 animate-fade-in-up" style="animation-delay: 0.4s;">
+                        <div class="text-4xl font-bold text-accent-emerald mb-2">90%</div>
+                        <div class="text-neutral-600 font-medium">AI 自動生成代碼</div>
+                    </div>
+                    <div class="text-center opacity-0 animate-fade-in-up" style="animation-delay: 0.6s;">
+                        <div class="text-4xl font-bold text-accent-amber mb-2">3</div>
+                        <div class="text-neutral-600 font-medium">週完成開發</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 開發技巧區域 -->
+        <section id="tips" class="py-20 bg-neutral-50">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">七大核心開發技巧</h2>
+                    <p class="text-xl text-neutral-600 max-w-2xl mx-auto leading-relaxed">
+                        從架構設計到實作細節，這些經驗談將幫助您最大化 Cursor AI 的開發效率
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+                    <!-- 技巧卡片 1 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-neutral-100">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                1
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold text-neutral-900 mb-3">自上而下的提示策略</h3>
+                                <p class="text-neutral-600 leading-relaxed mb-4">
+                                    從大局視角開始，逐步深入到實作細節。先闡述用戶目標和整體架構，再細化到資料模型、API 端點，最後到 UI 組件，讓 AI 理解完整脈絡。
+                                </p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">架構設計</span>
+                                    <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">系統思維</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 技巧卡片 2 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-neutral-100">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-accent-emerald to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                2
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold text-neutral-900 mb-3">測試驅動開發</h3>
+                                <p class="text-neutral-600 leading-relaxed mb-4">
+                                    先撰寫完整的測試案例，明確定義預期行為，然後要求 AI「讓這些測試通過」。這比用文字描述複雜需求更精確有效。
+                                </p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">TDD</span>
+                                    <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">品質保證</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 技巧卡片 3 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-neutral-100">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-secondary-500 to-secondary-600 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                3
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold text-neutral-900 mb-3">制定開發規則</h3>
+                                <p class="text-neutral-600 leading-relaxed mb-4">
+                                    建立涵蓋程式語言、框架、程式庫使用、命名慣例、測試方法和架構模式的規則檔案。保持實用性和具體範例，避免抽象理論。
+                                </p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">編碼規範</span>
+                                    <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">團隊協作</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 技巧卡片 4 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-neutral-100">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-accent-amber to-yellow-600 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                4
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold text-neutral-900 mb-3">使用工作區統整</h3>
+                                <p class="text-neutral-600 leading-relaxed mb-4">
+                                    將前端和後端放在同一個 Cursor 工作區中，讓 AI 能夠同時理解整個技術堆疊，追蹤 API 調用並發現前後端的不一致性。
+                                </p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">全端開發</span>
+                                    <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">統一視角</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 技巧卡片 5 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-neutral-100">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-accent-rose to-red-600 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                5
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold text-neutral-900 mb-3">善用 MCP 擴充</h3>
+                                <p class="text-neutral-600 leading-relaxed mb-4">
+                                    適度使用 MCP 伺服器連接外部資料和工具，如 Context7 文件、GitHub、資料庫等，但避免過度依賴，保持開發流程的簡潔性。
+                                </p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-sm font-medium">工具整合</span>
+                                    <span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-sm font-medium">效率提升</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 技巧卡片 6 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-neutral-100">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                6
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold text-neutral-900 mb-3">模型混合使用</h3>
+                                <p class="text-neutral-600 leading-relaxed mb-4">
+                                    Claude 4 用於功能規劃和架構決策，Gemini 2.5 Pro 處理大量上下文的快速程式生成，o3 用於處理複雜難題。
+                                </p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">模型選擇</span>
+                                    <span class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">適材適用</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 技巧卡片 7 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-neutral-100 lg:col-span-2">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-teal-500 to-teal-600 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                7
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold text-neutral-900 mb-3">維持工程最佳實務</h3>
+                                <p class="text-neutral-600 leading-relaxed mb-4">
+                                    堅持經典的軟體工程原則：將問題分解為小而專注的模組、維持關注點分離、設計模組化組件。AI 在解決具體且定義明確的問題時表現最佳，而非處理大型整體式的提示。記住要擁抱迭代開發的方法，慢慢來才能走得快。
+                                </p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm font-medium">軟體工程</span>
+                                    <span class="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm font-medium">模組化</span>
+                                    <span class="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm font-medium">迭代開發</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 關於專案區域 -->
+        <section id="about" class="py-20 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="max-w-4xl mx-auto">
+                    <div class="text-center mb-16">
+                        <h2 class="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">關於 Junk Mail Cleaner</h2>
+                        <p class="text-xl text-neutral-600 leading-relaxed">
+                            一個月收入 $1.5k 的副業專案，展示 AI 輔助開發的實際威力
+                        </p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-neutral-50 to-neutral-100 rounded-2xl p-8 md:p-12">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                            <div>
+                                <h3 class="text-2xl font-bold text-neutral-900 mb-4">專案成果</h3>
+                                <ul class="space-y-3 text-neutral-700 leading-relaxed">
+                                    <li class="flex items-start space-x-3">
+                                        <i class="fas fa-check-circle text-accent-emerald mt-1"></i>
+                                        <span>透過口碑行銷和 Google 廣告達成 $1.5k 月經常性收入</span>
+                                    </li>
+                                    <li class="flex items-start space-x-3">
+                                        <i class="fas fa-check-circle text-accent-emerald mt-1"></i>
+                                        <span>90% 的程式碼由 Cursor AI 自動生成</span>
+                                    </li>
+                                    <li class="flex items-start space-x-3">
+                                        <i class="fas fa-check-circle text-accent-emerald mt-1"></i>
+                                        <span>僅花費數週時間從概念到上線</span>
+                                    </li>
+                                    <li class="flex items-start space-x-3">
+                                        <i class="fas fa-check-circle text-accent-emerald mt-1"></i>
+                                        <span>大幅提升開發效率和程式碼品質</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="text-center">
+                                <div class="bg-white rounded-xl p-6 shadow-lg inline-block">
+                                    <div class="text-4xl mb-4">📧</div>
+                                    <h4 class="text-lg font-semibold text-neutral-900 mb-2">Junk Mail Cleaner</h4>
+                                    <p class="text-neutral-600 text-sm">智慧郵件清理工具</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-12 text-center">
+                        <p class="text-lg text-neutral-600 leading-relaxed max-w-2xl mx-auto">
+                            這個專案證明了 AI 工具如何改變軟體開發的遊戲規則。重點不是讓 AI 一次完成所有工作，而是學會如何與 AI 協作，維持良好的工程實務，並且享受開發過程。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 角色設定 Prompt 區域 -->
+        <section id="prompt" class="py-20 bg-neutral-900 text-white">
+            <div class="container mx-auto px-4">
+                <div class="max-w-4xl mx-auto">
+                    <div class="text-center mb-16">
+                        <h2 class="text-3xl md:text-4xl font-bold mb-4">UI/UX 全端設計師角色設定</h2>
+                        <p class="text-xl text-neutral-300 leading-relaxed">
+                            完整的角色設定 Prompt，可直接複製使用於任何 AI 開發助理
+                        </p>
+                    </div>
+
+                    <div class="bg-neutral-800 rounded-2xl p-8 relative">
+                        <button id="copy-prompt" class="absolute top-4 right-4 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+                            <i class="fas fa-copy"></i>
+                            <span>複製</span>
+                        </button>
+                        
+                        <div class="code-block" id="role-prompt">
+# UI/UX 全端設計師助理 - 角色設定 Prompt
+
+## 核心身份
+你是一位專業的 UI/UX 全端設計師助理，專精於打造極致用戶體驗的響應式網頁應用程式。你的使命是結合設計美學、用戶體驗原則與前端開發技術，創造出既美觀又實用的數位產品。
+
+## 專業技能範疇
+
+### 設計思維 (Design Thinking)
+- 以用戶為中心的設計方法
+- 資訊架構 (Information Architecture) 規劃
+- 互動設計 (Interaction Design) 原則
+- 視覺層次 (Visual Hierarchy) 建立
+- 可用性 (Usability) 與無障礙性 (Accessibility) 考量
+
+### 技術實作能力
+- **前端技術棧**: HTML5, CSS3, JavaScript (ES6+)
+- **CSS 框架**: Tailwind CSS, Bootstrap
+- **響應式設計**: Mobile-first 設計原則, Flexbox, CSS Grid
+- **動畫與互動**: CSS Transitions, Transforms, JavaScript 動畫
+- **開發工具**: Git, Webpack, 瀏覽器開發者工具
+
+### 設計系統建構
+- 色彩理論與配色方案
+- 字體排印 (Typography) 設計
+- 間距與留白管理
+- 組件化設計 (Component-based Design)
+- 設計令牌 (Design Tokens) 管理
+
+## 工作流程標準
+
+### 1. 需求分析階段
+- 理解用戶目標與業務需求
+- 分析目標用戶群體與使用情境
+- 確定技術限制與性能要求
+- 制定設計與開發里程碑
+
+### 2. 設計規劃階段
+- 建立資訊架構與用戶流程
+- 制定視覺風格指南
+- 設計響應式斷點策略
+- 規劃組件重用性
+
+### 3. 實作開發階段
+- 採用 Mobile-first 響應式開發
+- 實作漸進增強 (Progressive Enhancement)
+- 確保跨瀏覽器相容性
+- 優化載入性能與 SEO
+
+### 4. 測試與優化階段
+- 進行可用性測試
+- 檢查無障礙性標準 (WCAG)
+- 性能監控與優化
+- 持續改進用戶體驗
+
+## 輸出規格要求
+
+### 程式碼品質標準
+- **語義化 HTML**: 使用適當的 HTML 標籤，確保結構清晰
+- **模組化 CSS**: 採用 BEM 命名或 Tailwind 工具類別
+- **高效能 JavaScript**: 避免記憶體洩漏，優化執行效率
+- **註解與文件**: 提供清晰的程式碼註解與使用說明
+
+### 響應式設計要求
+- **斷點管理**: sm (640px), md (768px), lg (1024px), xl (1280px)
+- **觸控友善**: 最小觸控目標 44px, 適當的手勢支援
+- **載入優化**: 圖片懶載入, 漸進式渲染
+- **性能指標**: 首次內容繪製 (FCP) < 2s, 累積版面偏移 (CLS) < 0.1
+
+### 無障礙性標準
+- **鍵盤導航**: 支援 Tab 鍵導航, Focus 指示器
+- **螢幕閱讀器**: 適當的 ARIA 標籤, alt 文字
+- **色彩對比**: WCAG AA 級別 (4.5:1), AAA 級別 (7:1)
+- **文字縮放**: 支援 200% 縮放而不影響功能
+
+## 溝通與協作原則
+
+### 與用戶互動
+- 主動詢問需求細節與偏好
+- 提供設計決策的理由說明
+- 展示替代方案與權衡考量
+- 收集回饋並快速迭代
+
+### 技術說明方式
+- 使用清晰的技術術語解釋
+- 提供視覺化示例與程式碼片段
+- 說明最佳實務的應用原因
+- 分享相關學習資源
+
+### 問題解決方法
+- 分析問題根本原因
+- 提供多種解決方案選項
+- 評估方案的利弊得失
+- 協助制定實作計畫
+
+## 持續學習與改進
+
+### 技術趨勢追蹤
+- 關注最新的 Web 標準與瀏覽器支援
+- 學習新興的設計工具與技術
+- 參與設計與開發社群討論
+- 分析優秀產品的設計模式
+
+### 作品集管理
+- 記錄設計決策過程
+- 收集用戶反饋與使用數據
+- 分析設計效果與改進空間
+- 建立可重用的設計模式庫
+
+## 使用指南
+
+使用此角色設定時，請：
+1. 在對話開始時明確你的專案需求
+2. 提供目標用戶與使用情境資訊
+3. 說明技術限制與偏好設定
+4. 對產出的設計與程式碼提供回饋
+5. 隨時詢問設計決策的理由
+
+記住：優秀的 UI/UX 設計不僅要美觀，更要解決真實的用戶問題，創造有意義的數位體驗。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer 區域 -->
+    <footer class="bg-neutral-900 text-white py-12 border-t border-neutral-800">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-code text-white text-sm"></i>
+                        </div>
+                        <span class="text-lg font-bold">Cursor 開發指南</span>
+                    </div>
+                    <p class="text-neutral-400 leading-relaxed">
+                        專業工程師分享的 AI 輔助開發實戰經驗，助你提升開發效率與程式品質。
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">相關資源</h4>
+                    <ul class="space-y-2 text-neutral-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Cursor 官方網站</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">OpenAI API 文件</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Tailwind CSS 指南</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">響應式設計原則</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">聯絡資訊</h4>
+                    <div class="space-y-2 text-neutral-400">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-envelope"></i>
+                            <span>contact@example.com</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <i class="fab fa-github"></i>
+                            <span>github.com/example</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <i class="fab fa-twitter"></i>
+                            <span>@example</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-neutral-800 mt-8 pt-8 text-center text-neutral-400">
+                <p>&copy; 2025 Cursor 開發指南. 所有權利保留.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 隱藏彩蛋按鈕 -->
+    <button id="easter-egg-btn" class="easter-egg" title="隱藏彩蛋 - 連點三次試試看！">
+        <i class="fas fa-magic"></i>
+    </button>
+
+    <!-- 彩蛋模態框 -->
+    <div id="easter-modal" class="easter-modal">
+        <div class="easter-content">
+            <h3 class="text-2xl font-bold text-neutral-900 mb-4">🎉 你發現了隱藏彩蛋！</h3>
+            <p class="text-neutral-600 mb-4">
+                恭喜你！這展示了良好的 UI/UX 設計中微互動的重要性。<br>
+                小細節往往能創造驚喜的用戶體驗！
+            </p>
+            <div class="text-6xl mb-4 animate-bounce-gentle">🚀</div>
+            <button id="close-easter" class="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                太棒了！
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript 功能實作 -->
+    <script>
+        // DOM 載入完成後執行
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 手機版選單功能
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const closeMenuBtn = document.getElementById('close-menu-btn');
+            
+            mobileMenuBtn.addEventListener('click', function() {
+                mobileMenu.classList.add('active');
+            });
+            
+            closeMenuBtn.addEventListener('click', function() {
+                mobileMenu.classList.remove('active');
+            });
+            
+            // 點擊選單外部關閉選單
+            mobileMenu.addEventListener('click', function(e) {
+                if (e.target === mobileMenu) {
+                    mobileMenu.classList.remove('active');
+                }
+            });
+
+            // 平滑捲動功能
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        // 關閉手機版選單
+                        mobileMenu.classList.remove('active');
+                        
+                        // 平滑捲動到目標位置
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // 捲動進場動畫 - Intersection Observer
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate-fade-in-up');
+                        entry.target.style.opacity = '1';
+                    }
+                });
+            }, observerOptions);
+
+            // 監聽需要動畫的元素
+            document.querySelectorAll('.opacity-0').forEach(el => {
+                observer.observe(el);
+            });
+
+            // 隱藏彩蛋功能 - 連點三次觸發
+            const easterEggBtn = document.getElementById('easter-egg-btn');
+            const easterModal = document.getElementById('easter-modal');
+            const closeEasterBtn = document.getElementById('close-easter');
+            let clickCount = 0;
+            let clickTimer = null;
+
+            easterEggBtn.addEventListener('click', function() {
+                clickCount++;
+                
+                // 重設計時器
+                if (clickTimer) {
+                    clearTimeout(clickTimer);
+                }
+                
+                // 三秒內三次點擊才觸發彩蛋
+                if (clickCount === 3) {
+                    easterModal.style.display = 'block';
+                    clickCount = 0;
+                } else {
+                    clickTimer = setTimeout(() => {
+                        clickCount = 0;
+                    }, 3000);
+                }
+            });
+
+            // 關閉彩蛋模態框
+            closeEasterBtn.addEventListener('click', function() {
+                easterModal.style.display = 'none';
+            });
+
+            // 點擊模態框外部關閉
+            easterModal.addEventListener('click', function(e) {
+                if (e.target === easterModal) {
+                    easterModal.style.display = 'none';
+                }
+            });
+
+            // ESC 鍵關閉模態框
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && easterModal.style.display === 'block') {
+                    easterModal.style.display = 'none';
+                }
+            });
+
+            // 複製 Prompt 功能
+            const copyPromptBtn = document.getElementById('copy-prompt');
+            const rolePrompt = document.getElementById('role-prompt');
+
+            copyPromptBtn.addEventListener('click', async function() {
+                try {
+                    await navigator.clipboard.writeText(rolePrompt.textContent);
+                    
+                    // 視覺回饋
+                    const originalText = copyPromptBtn.innerHTML;
+                    copyPromptBtn.innerHTML = '<i class="fas fa-check"></i><span>已複製！</span>';
+                    copyPromptBtn.classList.add('bg-emerald-600');
+                    
+                    setTimeout(() => {
+                        copyPromptBtn.innerHTML = originalText;
+                        copyPromptBtn.classList.remove('bg-emerald-600');
+                    }, 2000);
+                    
+                } catch (err) {
+                    console.error('複製失敗:', err);
+                    // 備用方案：選取文字
+                    const range = document.createRange();
+                    range.selectNodeContents(rolePrompt);
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            });
+
+            // Header 背景透明度調整
+            const header = document.querySelector('header');
+            let lastScrollY = window.scrollY;
+
+            window.addEventListener('scroll', function() {
+                const currentScrollY = window.scrollY;
+                
+                // 根據捲動位置調整透明度
+                if (currentScrollY > 100) {
+                    header.classList.add('bg-white/95');
+                    header.classList.remove('bg-white/90');
+                } else {
+                    header.classList.add('bg-white/90');
+                    header.classList.remove('bg-white/95');
+                }
+                
+                lastScrollY = currentScrollY;
+            });
+
+            // 卡片懸浮效果優化
+            document.querySelectorAll('.hover\\:shadow-xl').forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-8px) scale(1.02)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            // 載入完成後淡入動畫
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.5s ease-in-out';
+            
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100);
+
+            console.log('🎨 UI/UX 設計師助理已準備就緒！');
+            console.log('💡 試試看連點右下角的魔法按鈕三次！');
+        });
+    </script>
+</body>
+</html>
