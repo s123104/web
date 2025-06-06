@@ -5,8 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#1e40af">
-    <title>ElevatorSim - 貨物電梯模擬系統</title>
-    <meta name="description" content="專業的貨物電梯空間模擬工具，支援 3D 視覺化與旋轉碰撞檢測">
+    <title>ElevatorSim Pro - 三軸旋轉優化貨物電梯模擬系統</title>
+    <meta name="description" content="先進的三軸旋轉貨物電梯空間模擬工具，支援 OBB 碰撞檢測與遺傳算法優化">
+
+
 <!-- CDN 套件載入 -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -28,7 +30,8 @@
                     },
                     success: '#10b981',
                     warning: '#f59e0b',
-                    error: '#ef4444'
+                    error: '#ef4444',
+                    accent: '#8b5cf6'
                 },
                 fontFamily: {
                     'mono': ['SF Mono', 'Monaco', 'Cascadia Code', 'monospace']
@@ -39,7 +42,6 @@
 </script>
 
 <style>
-    /* 自定義動畫與效果 */
     .glass-effect {
         backdrop-filter: blur(10px);
         background: rgba(255, 255, 255, 0.1);
@@ -84,6 +86,22 @@
         from { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
         to { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
     }
+    
+    .optimization-progress {
+        transition: width 0.3s ease-in-out;
+    }
+    
+    .stability-indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    
+    .stability-stable { background-color: #10b981; }
+    .stability-warning { background-color: #f59e0b; }
+    .stability-unstable { background-color: #ef4444; }
 </style>
 
 </head>
@@ -98,18 +116,22 @@
                         <i class="fas fa-cube text-white text-xl"></i>
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold text-white">ElevatorSim</h1>
-                        <p class="text-blue-100">貨物電梯空間模擬系統</p>
+                        <h1 class="text-2xl font-bold text-white">ElevatorSim Pro</h1>
+                        <p class="text-blue-100">三軸旋轉優化貨物電梯模擬系統</p>
                     </div>
                 </div>
                 <div class="hidden md:flex items-center space-x-6 text-blue-100">
                     <div class="text-center">
-                        <div class="text-lg font-semibold">精準模擬</div>
-                        <div class="text-sm opacity-80">3D 碰撞檢測</div>
+                        <div class="text-lg font-semibold">OBB 碰撞檢測</div>
+                        <div class="text-sm opacity-80">精確空間計算</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-lg font-semibold">即時計算</div>
-                        <div class="text-sm opacity-80">向量數學運算</div>
+                        <div class="text-lg font-semibold">遺傳算法優化</div>
+                        <div class="text-sm opacity-80">AI 智能配置</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-semibold">穩定性分析</div>
+                        <div class="text-sm opacity-80">重心計算</div>
                     </div>
                 </div>
             </div>
@@ -118,114 +140,166 @@
 
 <!-- 主要內容區 -->
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
         <!-- 左側：輸入參數面板 -->
-        <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl border border-white border-opacity-20 p-6">
-            <div class="flex items-center mb-6">
-                <i class="fas fa-cogs text-primary-300 text-xl mr-3"></i>
-                <h2 class="text-xl font-bold text-white">模擬參數設定</h2>
-            </div>
-            
-            <form id="simulationForm" class="space-y-6">
-                <!-- 電梯尺寸輸入 -->
-                <div class="glass-effect rounded-xl p-4 border border-white border-opacity-10">
-                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
-                        <i class="fas fa-building text-primary-300 mr-2"></i>
-                        電梯尺寸 (公分)
-                    </h3>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-blue-100 text-sm font-medium mb-2">長度</label>
-                            <input type="number" id="elevatorLength" value="200" min="50" max="500" 
-                                   class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
-                        </div>
-                        <div>
-                            <label class="block text-blue-100 text-sm font-medium mb-2">寬度</label>
-                            <input type="number" id="elevatorWidth" value="150" min="50" max="400" 
-                                   class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
-                        </div>
-                        <div>
-                            <label class="block text-blue-100 text-sm font-medium mb-2">高度</label>
-                            <input type="number" id="elevatorHeight" value="220" min="50" max="400" 
-                                   class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
-                        </div>
-                    </div>
+        <div class="xl:col-span-1 space-y-6">
+            <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl border border-white border-opacity-20 p-6">
+                <div class="flex items-center mb-6">
+                    <i class="fas fa-cogs text-primary-300 text-xl mr-3"></i>
+                    <h2 class="text-xl font-bold text-white">模擬參數設定</h2>
                 </div>
                 
-                <!-- 貨物尺寸輸入 -->
-                <div class="glass-effect rounded-xl p-4 border border-white border-opacity-10">
-                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
-                        <i class="fas fa-box text-warning mr-2"></i>
-                        貨物尺寸 (公分)
-                    </h3>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-blue-100 text-sm font-medium mb-2">長度</label>
-                            <input type="number" id="cargoLength" value="180" min="10" max="1000" 
-                                   class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
-                        </div>
-                        <div>
-                            <label class="block text-blue-100 text-sm font-medium mb-2">寬度</label>
-                            <input type="number" id="cargoWidth" value="120" min="10" max="1000" 
-                                   class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
-                        </div>
-                        <div>
-                            <label class="block text-blue-100 text-sm font-medium mb-2">高度</label>
-                            <input type="number" id="cargoHeight" value="100" min="10" max="1000" 
-                                   class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 旋轉參數設定 -->
-                <div class="glass-effect rounded-xl p-4 border border-white border-opacity-10">
-                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
-                        <i class="fas fa-sync-alt text-success mr-2"></i>
-                        旋轉參數
-                    </h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-blue-100 text-sm font-medium mb-2">Y軸旋轉角度 (度)</label>
-                            <input type="range" id="rotationY" min="0" max="90" value="0" step="1"
-                                   class="w-full h-2 bg-white bg-opacity-20 rounded-lg appearance-none cursor-pointer">
-                            <div class="flex justify-between text-blue-200 text-xs mt-1">
-                                <span>0°</span>
-                                <span id="rotationYValue">0°</span>
-                                <span>90°</span>
+                <form id="simulationForm" class="space-y-6">
+                    <!-- 電梯尺寸輸入 -->
+                    <div class="glass-effect rounded-xl p-4 border border-white border-opacity-10">
+                        <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                            <i class="fas fa-building text-primary-300 mr-2"></i>
+                            電梯尺寸 (公分)
+                        </h3>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-blue-100 text-sm font-medium mb-2">長度</label>
+                                <input type="number" id="elevatorLength" value="200" min="50" max="500" 
+                                       class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
+                            </div>
+                            <div>
+                                <label class="block text-blue-100 text-sm font-medium mb-2">寬度</label>
+                                <input type="number" id="elevatorWidth" value="150" min="50" max="400" 
+                                       class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
+                            </div>
+                            <div>
+                                <label class="block text-blue-100 text-sm font-medium mb-2">高度</label>
+                                <input type="number" id="elevatorHeight" value="220" min="50" max="400" 
+                                       class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
                             </div>
                         </div>
-                        <div>
-                            <label class="flex items-center text-blue-100 text-sm font-medium mb-4">
-                                <input type="checkbox" id="autoOptimize" class="mr-2 rounded">
-                                自動尋找最佳角度
-                            </label>
-                            <div id="optimizeProgress" class="hidden">
-                                <div class="w-full bg-white bg-opacity-20 rounded-full h-2">
-                                    <div id="progressBar" class="bg-primary-400 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        <div class="mt-4">
+                            <label class="block text-blue-100 text-sm font-medium mb-2">門寬度 (公分)</label>
+                            <input type="number" id="doorWidth" value="120" min="50" max="300" 
+                                   class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
+                        </div>
+                    </div>
+                    
+                    <!-- 貨物尺寸輸入 -->
+                    <div class="glass-effect rounded-xl p-4 border border-white border-opacity-10">
+                        <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                            <i class="fas fa-box text-warning mr-2"></i>
+                            貨物尺寸 (公分)
+                        </h3>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-blue-100 text-sm font-medium mb-2">長度</label>
+                                <input type="number" id="cargoLength" value="180" min="10" max="1000" 
+                                       class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
+                            </div>
+                            <div>
+                                <label class="block text-blue-100 text-sm font-medium mb-2">寬度</label>
+                                <input type="number" id="cargoWidth" value="120" min="10" max="1000" 
+                                       class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
+                            </div>
+                            <div>
+                                <label class="block text-blue-100 text-sm font-medium mb-2">高度</label>
+                                <input type="number" id="cargoHeight" value="100" min="10" max="1000" 
+                                       class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-blue-100 text-sm font-medium mb-2">重量 (公斤)</label>
+                            <input type="number" id="cargoWeight" value="500" min="1" max="10000" 
+                                   class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
+                        </div>
+                    </div>
+                    
+                    <!-- 三軸旋轉參數設定 -->
+                    <div class="glass-effect rounded-xl p-4 border border-white border-opacity-10">
+                        <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                            <i class="fas fa-sync-alt text-success mr-2"></i>
+                            三軸旋轉參數
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-blue-100 text-sm font-medium mb-2">X軸旋轉 (俯仰角，度)</label>
+                                <input type="range" id="rotationX" min="0" max="90" value="0" step="5"
+                                       class="w-full h-2 bg-white bg-opacity-20 rounded-lg appearance-none cursor-pointer">
+                                <div class="flex justify-between text-blue-200 text-xs mt-1">
+                                    <span>0°</span>
+                                    <span id="rotationXValue">0°</span>
+                                    <span>90°</span>
                                 </div>
-                                <div class="text-blue-200 text-xs mt-1">搜尋最佳角度中...</div>
+                            </div>
+                            <div>
+                                <label class="block text-blue-100 text-sm font-medium mb-2">Y軸旋轉 (偏航角，度)</label>
+                                <input type="range" id="rotationY" min="0" max="90" value="0" step="5"
+                                       class="w-full h-2 bg-white bg-opacity-20 rounded-lg appearance-none cursor-pointer">
+                                <div class="flex justify-between text-blue-200 text-xs mt-1">
+                                    <span>0°</span>
+                                    <span id="rotationYValue">0°</span>
+                                    <span>90°</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-blue-100 text-sm font-medium mb-2">Z軸旋轉 (滾轉角，度)</label>
+                                <input type="range" id="rotationZ" min="0" max="90" value="0" step="5"
+                                       class="w-full h-2 bg-white bg-opacity-20 rounded-lg appearance-none cursor-pointer">
+                                <div class="flex justify-between text-blue-200 text-xs mt-1">
+                                    <span>0°</span>
+                                    <span id="rotationZValue">0°</span>
+                                    <span>90°</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- 控制按鈕 -->
-                <div class="flex space-x-4">
-                    <button type="submit" id="simulateBtn" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 pulse-glow">
-                        <i class="fas fa-play"></i>
-                        <span>開始模擬</span>
-                    </button>
-                    <button type="button" id="resetBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center">
-                        <i class="fas fa-redo"></i>
-                    </button>
-                </div>
-            </form>
+                    
+                    <!-- 優化設定 -->
+                    <div class="glass-effect rounded-xl p-4 border border-white border-opacity-10">
+                        <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                            <i class="fas fa-brain text-accent mr-2"></i>
+                            AI 優化設定
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="flex items-center text-blue-100 text-sm font-medium">
+                                    <input type="checkbox" id="enableGeneticAlgorithm" class="mr-2 rounded">
+                                    啟用遺傳算法優化
+                                </label>
+                            </div>
+                            <div>
+                                <label class="flex items-center text-blue-100 text-sm font-medium">
+                                    <input type="checkbox" id="enableStabilityCheck" checked class="mr-2 rounded">
+                                    穩定性檢查
+                                </label>
+                            </div>
+                            <div>
+                                <label class="flex items-center text-blue-100 text-sm font-medium">
+                                    <input type="checkbox" id="enableDoorEntry" checked class="mr-2 rounded">
+                                    門口通過檢查
+                                </label>
+                            </div>
+                            <div id="gaParameters" class="hidden">
+                                <label class="block text-blue-100 text-sm font-medium mb-2">遺傳算法代數</label>
+                                <input type="number" id="gaGenerations" value="50" min="10" max="200" 
+                                       class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-primary-400">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 控制按鈕 -->
+                    <div class="flex space-x-3">
+                        <button type="submit" id="simulateBtn" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 pulse-glow">
+                            <i class="fas fa-play"></i>
+                            <span>開始模擬</span>
+                        </button>
+                        <button type="button" id="resetBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
         
-        <!-- 右側：3D 視覺化與結果顯示 -->
-        <div class="space-y-6">
-            <!-- 3D 視覺化區域 -->
+        <!-- 中間：3D 視覺化 -->
+        <div class="xl:col-span-1">
             <div class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl border border-white border-opacity-20 p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-bold text-white flex items-center">
@@ -239,9 +313,12 @@
                         <button id="toggleWireframeBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-all duration-200">
                             <i class="fas fa-border-style text-sm"></i>
                         </button>
+                        <button id="toggleOBBBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-all duration-200">
+                            <i class="fas fa-cube text-sm"></i>
+                        </button>
                     </div>
                 </div>
-                <div id="threejsContainer" class="w-full h-80 bg-gray-900 rounded-xl relative overflow-hidden">
+                <div id="threejsContainer" class="w-full h-96 bg-gray-900 rounded-xl relative overflow-hidden">
                     <div id="loadingIndicator" class="absolute inset-0 flex items-center justify-center">
                         <div class="text-white text-center">
                             <i class="fas fa-spinner loading-spinner text-2xl mb-2"></i>
@@ -249,8 +326,22 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- 優化進度顯示 -->
+                <div id="optimizationProgress" class="mt-4 hidden">
+                    <div class="flex justify-between text-blue-100 text-sm mb-2">
+                        <span>遺傳算法優化進度</span>
+                        <span id="progressText">0%</span>
+                    </div>
+                    <div class="w-full bg-white bg-opacity-20 rounded-full h-2">
+                        <div id="progressBar" class="bg-accent h-2 rounded-full optimization-progress" style="width: 0%"></div>
+                    </div>
+                </div>
             </div>
-            
+        </div>
+        
+        <!-- 右側：結果與分析 -->
+        <div class="xl:col-span-1 space-y-6">
             <!-- 模擬結果顯示 -->
             <div id="resultPanel" class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl border border-white border-opacity-20 p-6 hidden fade-in">
                 <h2 class="text-xl font-bold text-white mb-4 flex items-center">
@@ -260,11 +351,20 @@
                 <div id="resultContent"></div>
             </div>
             
-            <!-- 建議與提示 -->
+            <!-- 穩定性分析 -->
+            <div id="stabilityPanel" class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl border border-white border-opacity-20 p-6 hidden fade-in">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-balance-scale text-success mr-3"></i>
+                    穩定性分析
+                </h2>
+                <div id="stabilityContent"></div>
+            </div>
+            
+            <!-- 優化建議 -->
             <div id="suggestionsPanel" class="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl border border-white border-opacity-20 p-6 hidden fade-in">
                 <h2 class="text-xl font-bold text-white mb-4 flex items-center">
                     <i class="fas fa-lightbulb text-warning mr-3"></i>
-                    建議與提示
+                    AI 優化建議
                 </h2>
                 <div id="suggestionsContent"></div>
             </div>
@@ -277,11 +377,11 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div class="flex flex-col md:flex-row justify-between items-center">
             <div class="text-blue-100 text-sm">
-                © 2024 ElevatorSim - 專業貨物電梯模擬系統
+                © 2024 ElevatorSim Pro - 三軸旋轉優化貨物電梯模擬系統
             </div>
             <div class="flex items-center space-x-4 mt-4 md:mt-0">
                 <span class="text-blue-200 text-sm">技術支援:</span>
-                <span class="text-blue-100 text-sm">Three.js • Math.js • Tailwind CSS</span>
+                <span class="text-blue-100 text-sm">Three.js • Math.js • OBB Collision • Genetic Algorithm</span>
             </div>
         </div>
     </div>
@@ -289,103 +389,458 @@
 
 <script>
     /**
-     * ElevatorSim - 貨物電梯模擬系統
-     * 主要功能模組化 JavaScript 實作
+     * ElevatorSim Pro - 三軸旋轉優化貨物電梯模擬系統
+     * 基於深度研究報告的先進數學優化方法實作
      */
     
     // 全域變數與配置
-    const ElevatorSim = {
+    const ElevatorSimPro = {
         scene: null,
         camera: null,
         renderer: null,
         elevator: null,
         cargo: null,
-        controls: null,
+        obbHelper: null,
         animationId: null,
         isSimulating: false,
         
         // 模擬參數
         config: {
             elevatorDimensions: { length: 200, width: 150, height: 220 },
+            doorWidth: 120,
             cargoDimensions: { length: 180, width: 120, height: 100 },
+            cargoWeight: 500,
+            rotationX: 0,
             rotationY: 0,
-            autoOptimize: false
+            rotationZ: 0,
+            enableGeneticAlgorithm: false,
+            enableStabilityCheck: true,
+            enableDoorEntry: true,
+            gaGenerations: 50
         },
         
         // 模擬結果
         results: {
             canFit: false,
-            optimalAngle: 0,
-            rotatedDimensions: {},
+            optimalRotation: { x: 0, y: 0, z: 0 },
+            spaceUtilization: 0,
+            stabilityScore: 0,
+            centerOfGravity: { x: 0, y: 0, z: 0 },
+            doorEntryFeasible: false,
+            optimizationHistory: [],
             errorMessage: ''
         }
     };
     
     /**
-     * 向量數學工具類別
-     * 處理 3D 空間中的旋轉、碰撞檢測等計算
+     * 三維向量數學工具類別
+     * 處理三軸旋轉、OBB 碰撞檢測等進階計算
      */
-    class VectorMath {
+    class Vector3DMath {
         /**
-         * 計算物體在 Y 軸旋轉後的包圍盒
-         * @param {Object} dimensions - 原始尺寸 {length, width, height}
-         * @param {number} angleY - Y軸旋轉角度（弧度）
-         * @returns {Object} 旋轉後的包圍盒尺寸
+         * 創建旋轉矩陣（歐拉角）
+         * @param {number} phi - X軸旋轉角度（弧度）
+         * @param {number} theta - Y軸旋轉角度（弧度）
+         * @param {number} psi - Z軸旋轉角度（弧度）
+         * @returns {THREE.Matrix4} 組合旋轉矩陣
          */
-        static getRotatedBoundingBox(dimensions, angleY) {
+        static createRotationMatrix(phi, theta, psi) {
+            const rx = new THREE.Matrix4().makeRotationX(phi);
+            const ry = new THREE.Matrix4().makeRotationY(theta);
+            const rz = new THREE.Matrix4().makeRotationZ(psi);
+            
+            // ZYX 歐拉角序列
+            return new THREE.Matrix4().multiplyMatrices(rz, 
+                new THREE.Matrix4().multiplyMatrices(ry, rx));
+        }
+        
+        /**
+         * 計算旋轉後的三軸對齊邊界框
+         * @param {Object} dimensions - 原始尺寸 {length, width, height}
+         * @param {number} phi - X軸旋轉角度（弧度）
+         * @param {number} theta - Y軸旋轉角度（弧度）
+         * @param {number} psi - Z軸旋轉角度（弧度）
+         * @returns {Object} 旋轉後的 AABB 尺寸
+         */
+        static getRotatedAABB(dimensions, phi, theta, psi) {
             const { length, width, height } = dimensions;
-            const cos = Math.abs(Math.cos(angleY));
-            const sin = Math.abs(Math.sin(angleY));
+            const halfL = length / 2, halfW = width / 2, halfH = height / 2;
+            
+            // 原始頂點
+            const vertices = [
+                new THREE.Vector3(-halfL, -halfW, -halfH),
+                new THREE.Vector3(halfL, -halfW, -halfH),
+                new THREE.Vector3(-halfL, halfW, -halfH),
+                new THREE.Vector3(halfL, halfW, -halfH),
+                new THREE.Vector3(-halfL, -halfW, halfH),
+                new THREE.Vector3(halfL, -halfW, halfH),
+                new THREE.Vector3(-halfL, halfW, halfH),
+                new THREE.Vector3(halfL, halfW, halfH)
+            ];
+            
+            // 應用旋轉矩陣
+            const rotationMatrix = this.createRotationMatrix(phi, theta, psi);
+            const rotatedVertices = vertices.map(v => v.clone().applyMatrix4(rotationMatrix));
+            
+            // 計算新的 AABB
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+            let minZ = Infinity, maxZ = -Infinity;
+            
+            rotatedVertices.forEach(v => {
+                minX = Math.min(minX, v.x);
+                maxX = Math.max(maxX, v.x);
+                minY = Math.min(minY, v.y);
+                maxY = Math.max(maxY, v.y);
+                minZ = Math.min(minZ, v.z);
+                maxZ = Math.max(maxZ, v.z);
+            });
             
             return {
-                length: length * cos + width * sin,
-                width: length * sin + width * cos,
-                height: height  // Y軸旋轉不影響高度
+                length: maxX - minX,
+                width: maxY - minY,
+                height: maxZ - minZ
             };
         }
         
         /**
-         * 檢查貨物是否能夠放入電梯
-         * @param {Object} elevatorDims - 電梯尺寸
-         * @param {Object} cargoDims - 貨物尺寸
-         * @returns {boolean} 是否能夠放入
+         * OBB-AABB 碰撞檢測（分離軸定理）
+         * @param {Object} obbDims - OBB 尺寸和旋轉
+         * @param {Object} aabbDims - AABB 尺寸
+         * @returns {boolean} 是否發生碰撞
          */
-        static checkFit(elevatorDims, cargoDims) {
-            return cargoDims.length <= elevatorDims.length &&
-                   cargoDims.width <= elevatorDims.width &&
-                   cargoDims.height <= elevatorDims.height;
+        static checkOBBAABBCollision(obbDims, aabbDims) {
+            const rotatedAABB = this.getRotatedAABB(
+                obbDims.dimensions, 
+                obbDims.rotation.x, 
+                obbDims.rotation.y, 
+                obbDims.rotation.z
+            );
+            
+            return rotatedAABB.length <= aabbDims.length &&
+                   rotatedAABB.width <= aabbDims.width &&
+                   rotatedAABB.height <= aabbDims.height;
         }
         
         /**
-         * 尋找最佳旋轉角度
-         * @param {Object} elevatorDims - 電梯尺寸
-         * @param {Object} originalCargoDims - 原始貨物尺寸
-         * @returns {Object} 包含最佳角度和是否成功的結果
+         * 計算重心位置
+         * @param {Array} items - 物品陣列，包含位置、尺寸、重量
+         * @returns {Object} 重心座標 {x, y, z}
          */
-        static findOptimalAngle(elevatorDims, originalCargoDims) {
-            const stepSize = 1; // 1度步進
-            let bestAngle = 0;
-            let found = false;
+        static calculateCenterOfGravity(items) {
+            let totalWeight = 0;
+            let weightedX = 0, weightedY = 0, weightedZ = 0;
             
-            for (let angle = 0; angle <= 90; angle += stepSize) {
-                const radians = angle * Math.PI / 180;
-                const rotatedDims = this.getRotatedBoundingBox(originalCargoDims, radians);
-                
-                if (this.checkFit(elevatorDims, rotatedDims)) {
-                    bestAngle = angle;
-                    found = true;
-                    break;
-                }
+            items.forEach(item => {
+                totalWeight += item.weight;
+                weightedX += item.position.x * item.weight;
+                weightedY += item.position.y * item.weight;
+                weightedZ += item.position.z * item.weight;
+            });
+            
+            if (totalWeight === 0) return { x: 0, y: 0, z: 0 };
+            
+            return {
+                x: weightedX / totalWeight,
+                y: weightedY / totalWeight,
+                z: weightedZ / totalWeight
+            };
+        }
+        
+        /**
+         * 檢查穩定性（重心是否在支撐基底內）
+         * @param {Object} centerOfGravity - 重心位置
+         * @param {Object} supportBase - 支撐基底尺寸
+         * @returns {Object} 穩定性分析結果
+         */
+        static checkStability(centerOfGravity, supportBase) {
+            const marginX = Math.abs(centerOfGravity.x) / (supportBase.length / 2);
+            const marginY = Math.abs(centerOfGravity.y) / (supportBase.width / 2);
+            
+            const maxMargin = Math.max(marginX, marginY);
+            const isStable = maxMargin <= 1.0;
+            
+            let stabilityLevel;
+            if (maxMargin <= 0.7) stabilityLevel = 'stable';
+            else if (maxMargin <= 1.0) stabilityLevel = 'warning';
+            else stabilityLevel = 'unstable';
+            
+            return {
+                isStable,
+                stabilityLevel,
+                stabilityScore: Math.max(0, 1 - maxMargin),
+                marginX,
+                marginY
+            };
+        }
+        
+        /**
+         * 檢查門口通過可行性（對角線進入策略）
+         * @param {Object} cargoDims - 貨物尺寸
+         * @param {number} doorWidth - 門寬度
+         * @returns {Object} 門口通過分析結果
+         */
+        static checkDoorEntry(cargoDims, doorWidth) {
+            const { length, width, height } = cargoDims;
+            
+            // 直接通過檢查
+            if (Math.max(length, width) <= doorWidth) {
+                return {
+                    canPass: true,
+                    strategy: 'direct',
+                    requiredAngle: 0,
+                    notes: '可直接通過門口'
+                };
             }
             
-            return { angle: bestAngle, found };
+            // 對角線通過檢查
+            const diagonalLength = Math.sqrt(length * length + width * width);
+            if (diagonalLength <= doorWidth) {
+                const requiredAngle = Math.acos(doorWidth / diagonalLength) * 180 / Math.PI;
+                return {
+                    canPass: true,
+                    strategy: 'diagonal',
+                    requiredAngle,
+                    notes: `需要以 ${requiredAngle.toFixed(1)}° 角度斜向進入`
+                };
+            }
+            
+            return {
+                canPass: false,
+                strategy: 'impossible',
+                requiredAngle: 0,
+                notes: '尺寸過大，無法通過門口'
+            };
         }
     }
     
     /**
-     * Three.js 3D 視覺化管理器
+     * 遺傳算法優化引擎
+     * 實現多目標優化，尋找最佳旋轉角度組合
      */
-    class ThreeJSManager {
+    class GeneticAlgorithm {
+        constructor(elevatorDims, cargoDims, cargoWeight, doorWidth, options = {}) {
+            this.elevatorDims = elevatorDims;
+            this.cargoDims = cargoDims;
+            this.cargoWeight = cargoWeight;
+            this.doorWidth = doorWidth;
+            
+            // 遺傳算法參數
+            this.populationSize = options.populationSize || 50;
+            this.generations = options.generations || 50;
+            this.crossoverRate = options.crossoverRate || 0.8;
+            this.mutationRate = options.mutationRate || 0.02;
+            this.eliteSize = options.eliteSize || Math.floor(this.populationSize * 0.1);
+            
+            this.population = [];
+            this.fitnessHistory = [];
+            this.bestSolution = null;
+        }
+        
+        /**
+         * 初始化種群
+         */
+        initializePopulation() {
+            this.population = [];
+            for (let i = 0; i < this.populationSize; i++) {
+                this.population.push({
+                    x: Math.random() * Math.PI / 2,  // 0-90度
+                    y: Math.random() * Math.PI / 2,
+                    z: Math.random() * Math.PI / 2,
+                    fitness: 0
+                });
+            }
+        }
+        
+        /**
+         * 計算適應度函數（多目標優化）
+         * @param {Object} individual - 個體（旋轉角度組合）
+         * @returns {number} 適應度分數
+         */
+        calculateFitness(individual) {
+            const { x, y, z } = individual;
+            
+            // 1. 空間適配性檢查
+            const canFit = Vector3DMath.checkOBBAABBCollision(
+                { dimensions: this.cargoDims, rotation: { x, y, z } },
+                this.elevatorDims
+            );
+            
+            if (!canFit) return 0; // 不能放入則適應度為 0
+            
+            // 2. 空間利用率計算
+            const rotatedAABB = Vector3DMath.getRotatedAABB(this.cargoDims, x, y, z);
+            const cargoVolume = this.cargoDims.length * this.cargoDims.width * this.cargoDims.height;
+            const elevatorVolume = this.elevatorDims.length * this.elevatorDims.width * this.elevatorDims.height;
+            const spaceUtilization = cargoVolume / elevatorVolume;
+            
+            // 3. 穩定性評估
+            const mockItem = {
+                position: { x: 0, y: 0, z: rotatedAABB.height / 2 },
+                weight: this.cargoWeight
+            };
+            const centerOfGravity = Vector3DMath.calculateCenterOfGravity([mockItem]);
+            const stabilityResult = Vector3DMath.checkStability(centerOfGravity, this.elevatorDims);
+            
+            // 4. 門口通過性檢查
+            const doorEntry = Vector3DMath.checkDoorEntry(rotatedAABB, this.doorWidth);
+            
+            // 5. 旋轉複雜度懲罰
+            const rotationComplexity = (x + y + z) / (3 * Math.PI / 2);
+            
+            // 多目標適應度函數
+            let fitness = 0;
+            fitness += spaceUtilization * 0.3;              // 空間利用率 (30%)
+            fitness += stabilityResult.stabilityScore * 0.3; // 穩定性 (30%)
+            fitness += (doorEntry.canPass ? 1 : 0) * 0.2;   // 門口通過性 (20%)
+            fitness += (1 - rotationComplexity) * 0.2;      // 旋轉簡單性 (20%)
+            
+            return Math.max(0, fitness);
+        }
+        
+        /**
+         * 選擇操作（錦標賽選擇）
+         */
+        selection() {
+            const tournamentSize = 3;
+            const selected = [];
+            
+            for (let i = 0; i < this.populationSize; i++) {
+                const tournament = [];
+                for (let j = 0; j < tournamentSize; j++) {
+                    const randomIndex = Math.floor(Math.random() * this.populationSize);
+                    tournament.push(this.population[randomIndex]);
+                }
+                
+                tournament.sort((a, b) => b.fitness - a.fitness);
+                selected.push(tournament[0]);
+            }
+            
+            return selected;
+        }
+        
+        /**
+         * 交叉操作（算術交叉）
+         */
+        crossover(parent1, parent2) {
+            if (Math.random() > this.crossoverRate) {
+                return [parent1, parent2];
+            }
+            
+            const alpha = Math.random();
+            const child1 = {
+                x: alpha * parent1.x + (1 - alpha) * parent2.x,
+                y: alpha * parent1.y + (1 - alpha) * parent2.y,
+                z: alpha * parent1.z + (1 - alpha) * parent2.z,
+                fitness: 0
+            };
+            
+            const child2 = {
+                x: (1 - alpha) * parent1.x + alpha * parent2.x,
+                y: (1 - alpha) * parent1.y + alpha * parent2.y,
+                z: (1 - alpha) * parent1.z + alpha * parent2.z,
+                fitness: 0
+            };
+            
+            return [child1, child2];
+        }
+        
+        /**
+         * 突變操作（高斯突變）
+         */
+        mutation(individual) {
+            const mutationStrength = 0.1;
+            
+            if (Math.random() < this.mutationRate) {
+                individual.x += (Math.random() - 0.5) * mutationStrength;
+                individual.x = Math.max(0, Math.min(Math.PI / 2, individual.x));
+            }
+            
+            if (Math.random() < this.mutationRate) {
+                individual.y += (Math.random() - 0.5) * mutationStrength;
+                individual.y = Math.max(0, Math.min(Math.PI / 2, individual.y));
+            }
+            
+            if (Math.random() < this.mutationRate) {
+                individual.z += (Math.random() - 0.5) * mutationStrength;
+                individual.z = Math.max(0, Math.min(Math.PI / 2, individual.z));
+            }
+            
+            return individual;
+        }
+        
+        /**
+         * 執行遺傳算法優化
+         * @param {Function} progressCallback - 進度回調函數
+         * @returns {Promise<Object>} 最佳解決方案
+         */
+        async optimize(progressCallback) {
+            this.initializePopulation();
+            
+            for (let generation = 0; generation < this.generations; generation++) {
+                // 計算適應度
+                for (let individual of this.population) {
+                    individual.fitness = this.calculateFitness(individual);
+                }
+                
+                // 排序並記錄最佳解
+                this.population.sort((a, b) => b.fitness - a.fitness);
+                
+                if (!this.bestSolution || this.population[0].fitness > this.bestSolution.fitness) {
+                    this.bestSolution = { ...this.population[0] };
+                }
+                
+                this.fitnessHistory.push({
+                    generation,
+                    bestFitness: this.population[0].fitness,
+                    averageFitness: this.population.reduce((sum, ind) => sum + ind.fitness, 0) / this.populationSize
+                });
+                
+                // 更新進度
+                if (progressCallback) {
+                    const progress = ((generation + 1) / this.generations) * 100;
+                    progressCallback(progress, this.bestSolution, this.fitnessHistory[this.fitnessHistory.length - 1]);
+                }
+                
+                // 提前終止條件
+                if (this.population[0].fitness > 0.95) break;
+                
+                // 新一代種群生成
+                const newPopulation = [];
+                
+                // 精英保留
+                for (let i = 0; i < this.eliteSize; i++) {
+                    newPopulation.push({ ...this.population[i] });
+                }
+                
+                // 選擇、交叉、突變
+                const selected = this.selection();
+                for (let i = this.eliteSize; i < this.populationSize; i += 2) {
+                    const parent1 = selected[Math.floor(Math.random() * selected.length)];
+                    const parent2 = selected[Math.floor(Math.random() * selected.length)];
+                    
+                    const [child1, child2] = this.crossover(parent1, parent2);
+                    
+                    newPopulation.push(this.mutation(child1));
+                    if (newPopulation.length < this.populationSize) {
+                        newPopulation.push(this.mutation(child2));
+                    }
+                }
+                
+                this.population = newPopulation;
+                
+                // 非同步延遲以保持 UI 響應性
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            
+            return this.bestSolution;
+        }
+    }
+    
+    /**
+     * Three.js 3D 視覺化管理器（升級版）
+     */
+    class ThreeJSManagerPro {
         constructor(containerId) {
             this.container = document.getElementById(containerId);
             this.init();
@@ -396,27 +851,28 @@
          */
         init() {
             // 創建場景
-            ElevatorSim.scene = new THREE.Scene();
-            ElevatorSim.scene.background = new THREE.Color(0x1a1a2e);
+            ElevatorSimPro.scene = new THREE.Scene();
+            ElevatorSimPro.scene.background = new THREE.Color(0x1a1a2e);
             
             // 創建相機
             const aspect = this.container.clientWidth / this.container.clientHeight;
-            ElevatorSim.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-            ElevatorSim.camera.position.set(300, 200, 300);
+            ElevatorSimPro.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+            ElevatorSimPro.camera.position.set(400, 300, 400);
             
             // 創建渲染器
-            ElevatorSim.renderer = new THREE.WebGLRenderer({ antialias: true });
-            ElevatorSim.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
-            ElevatorSim.renderer.shadowMap.enabled = true;
-            ElevatorSim.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            ElevatorSimPro.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            ElevatorSimPro.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+            ElevatorSimPro.renderer.shadowMap.enabled = true;
+            ElevatorSimPro.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            ElevatorSimPro.renderer.outputEncoding = THREE.sRGBEncoding;
             
             // 添加到容器
-            this.container.appendChild(ElevatorSim.renderer.domElement);
+            this.container.appendChild(ElevatorSimPro.renderer.domElement);
             
             // 添加燈光
             this.setupLighting();
             
-            // 添加網格線
+            // 添加網格線和座標軸
             this.setupGrid();
             
             // 創建電梯和貨物
@@ -434,78 +890,140 @@
         }
         
         /**
-         * 設置場景燈光
+         * 設置場景燈光（改進版）
          */
         setupLighting() {
             // 環境光
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-            ElevatorSim.scene.add(ambientLight);
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            ElevatorSimPro.scene.add(ambientLight);
             
             // 主要方向光
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(200, 300, 200);
+            directionalLight.position.set(300, 400, 300);
             directionalLight.castShadow = true;
             directionalLight.shadow.mapSize.width = 2048;
             directionalLight.shadow.mapSize.height = 2048;
-            ElevatorSim.scene.add(directionalLight);
+            directionalLight.shadow.camera.near = 0.1;
+            directionalLight.shadow.camera.far = 1000;
+            directionalLight.shadow.camera.left = -500;
+            directionalLight.shadow.camera.right = 500;
+            directionalLight.shadow.camera.top = 500;
+            directionalLight.shadow.camera.bottom = -500;
+            ElevatorSimPro.scene.add(directionalLight);
             
             // 補充光源
-            const spotLight = new THREE.SpotLight(0x4a90e2, 0.5);
-            spotLight.position.set(-200, 200, 100);
-            ElevatorSim.scene.add(spotLight);
+            const spotLight1 = new THREE.SpotLight(0x4a90e2, 0.5);
+            spotLight1.position.set(-200, 200, 100);
+            ElevatorSimPro.scene.add(spotLight1);
+            
+            const spotLight2 = new THREE.SpotLight(0x8b5cf6, 0.3);
+            spotLight2.position.set(200, 150, -100);
+            ElevatorSimPro.scene.add(spotLight2);
         }
         
         /**
-         * 設置網格線
+         * 設置網格線和座標軸
          */
         setupGrid() {
-            const gridHelper = new THREE.GridHelper(600, 20, 0x444444, 0x444444);
+            // 網格線
+            const gridHelper = new THREE.GridHelper(800, 20, 0x444444, 0x444444);
             gridHelper.position.y = 0;
-            ElevatorSim.scene.add(gridHelper);
+            ElevatorSimPro.scene.add(gridHelper);
+            
+            // 座標軸
+            const axesHelper = new THREE.AxesHelper(200);
+            ElevatorSimPro.scene.add(axesHelper);
         }
         
         /**
-         * 創建電梯 3D 模型
+         * 創建電梯 3D 模型（改進版）
          */
         createElevator() {
-            const dims = ElevatorSim.config.elevatorDimensions;
+            const dims = ElevatorSimPro.config.elevatorDimensions;
+            
+            // 移除舊的電梯模型
+            if (ElevatorSimPro.elevator) {
+                ElevatorSimPro.scene.remove(ElevatorSimPro.elevator);
+            }
+            
+            // 電梯群組
+            ElevatorSimPro.elevator = new THREE.Group();
             
             // 電梯外框（線框模式）
             const geometry = new THREE.BoxGeometry(dims.length, dims.height, dims.width);
             const edges = new THREE.EdgesGeometry(geometry);
-            const material = new THREE.LineBasicMaterial({ 
+            const wireframeMaterial = new THREE.LineBasicMaterial({ 
                 color: 0x4a90e2, 
                 linewidth: 2 
             });
             
-            ElevatorSim.elevator = new THREE.LineSegments(edges, material);
-            ElevatorSim.elevator.position.y = dims.height / 2;
+            const wireframe = new THREE.LineSegments(edges, wireframeMaterial);
+            wireframe.position.y = dims.height / 2;
+            ElevatorSimPro.elevator.add(wireframe);
             
             // 電梯底板
             const floorGeometry = new THREE.PlaneGeometry(dims.length, dims.width);
             const floorMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0x2c3e50, 
                 transparent: true, 
-                opacity: 0.7 
+                opacity: 0.7,
+                side: THREE.DoubleSide
             });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial);
             floor.rotation.x = -Math.PI / 2;
-            floor.position.y = 0.1;
+            floor.position.y = 1;
+            floor.receiveShadow = true;
+            ElevatorSimPro.elevator.add(floor);
             
-            // 電梯群組
-            const elevatorGroup = new THREE.Group();
-            elevatorGroup.add(ElevatorSim.elevator);
-            elevatorGroup.add(floor);
+            // 電梯牆面（半透明）
+            const wallMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x34495e, 
+                transparent: true, 
+                opacity: 0.1,
+                side: THREE.DoubleSide
+            });
             
-            ElevatorSim.scene.add(elevatorGroup);
+            // 後牆
+            const backWallGeometry = new THREE.PlaneGeometry(dims.length, dims.height);
+            const backWall = new THREE.Mesh(backWallGeometry, wallMaterial);
+            backWall.position.set(0, dims.height / 2, -dims.width / 2);
+            ElevatorSimPro.elevator.add(backWall);
+            
+            // 側牆
+            const sideWallGeometry = new THREE.PlaneGeometry(dims.width, dims.height);
+            const leftWall = new THREE.Mesh(sideWallGeometry, wallMaterial);
+            leftWall.rotation.y = Math.PI / 2;
+            leftWall.position.set(-dims.length / 2, dims.height / 2, 0);
+            ElevatorSimPro.elevator.add(leftWall);
+            
+            const rightWall = new THREE.Mesh(sideWallGeometry, wallMaterial);
+            rightWall.rotation.y = -Math.PI / 2;
+            rightWall.position.set(dims.length / 2, dims.height / 2, 0);
+            ElevatorSimPro.elevator.add(rightWall);
+            
+            // 門框指示器
+            const doorWidth = ElevatorSimPro.config.doorWidth;
+            const doorFrameGeometry = new THREE.BoxGeometry(doorWidth, dims.height, 5);
+            const doorFrameMaterial = new THREE.MeshPhongMaterial({ color: 0xe74c3c });
+            const doorFrame = new THREE.Mesh(doorFrameGeometry, doorFrameMaterial);
+            doorFrame.position.set(0, dims.height / 2, dims.width / 2 + 10);
+            ElevatorSimPro.elevator.add(doorFrame);
+            
+            ElevatorSimPro.scene.add(ElevatorSimPro.elevator);
         }
         
         /**
-         * 創建貨物 3D 模型
+         * 創建貨物 3D 模型（改進版）
          */
         createCargo() {
-            const dims = ElevatorSim.config.cargoDimensions;
+            const dims = ElevatorSimPro.config.cargoDimensions;
             
+            // 移除舊的貨物模型
+            if (ElevatorSimPro.cargo) {
+                ElevatorSimPro.scene.remove(ElevatorSimPro.cargo);
+            }
+            
+            // 貨物主體
             const geometry = new THREE.BoxGeometry(dims.length, dims.height, dims.width);
             const material = new THREE.MeshPhongMaterial({ 
                 color: 0xe74c3c,
@@ -513,20 +1031,102 @@
                 opacity: 0.8
             });
             
-            ElevatorSim.cargo = new THREE.Mesh(geometry, material);
-            ElevatorSim.cargo.position.y = dims.height / 2;
-            ElevatorSim.cargo.castShadow = true;
-            ElevatorSim.cargo.receiveShadow = true;
+            ElevatorSimPro.cargo = new THREE.Mesh(geometry, material);
+            ElevatorSimPro.cargo.position.y = dims.height / 2;
+            ElevatorSimPro.cargo.castShadow = true;
+            ElevatorSimPro.cargo.receiveShadow = true;
             
-            ElevatorSim.scene.add(ElevatorSim.cargo);
+            // 添加貨物標籤
+            const labelGeometry = new THREE.PlaneGeometry(dims.length * 0.8, dims.height * 0.3);
+            const labelMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.9
+            });
+            const label = new THREE.Mesh(labelGeometry, labelMaterial);
+            label.position.set(0, 0, dims.width / 2 + 1);
+            ElevatorSimPro.cargo.add(label);
+            
+            ElevatorSimPro.scene.add(ElevatorSimPro.cargo);
+            
+            // 創建 OBB 輔助顯示器
+            this.createOBBHelper();
         }
         
         /**
-         * 設置軌道球控制器
+         * 創建 OBB 輔助顯示器
+         */
+        createOBBHelper() {
+            if (ElevatorSimPro.obbHelper) {
+                ElevatorSimPro.scene.remove(ElevatorSimPro.obbHelper);
+            }
+            
+            const dims = ElevatorSimPro.config.cargoDimensions;
+            const geometry = new THREE.BoxGeometry(dims.length, dims.height, dims.width);
+            const edges = new THREE.EdgesGeometry(geometry);
+            const material = new THREE.LineBasicMaterial({ 
+                color: 0xff6b6b, 
+                linewidth: 3 
+            });
+            
+            ElevatorSimPro.obbHelper = new THREE.LineSegments(edges, material);
+            ElevatorSimPro.obbHelper.position.copy(ElevatorSimPro.cargo.position);
+            ElevatorSimPro.obbHelper.visible = false;
+            
+            ElevatorSimPro.scene.add(ElevatorSimPro.obbHelper);
+        }
+        
+        /**
+         * 設置貨物三軸旋轉
+         */
+        setCargoRotation(rotationX, rotationY, rotationZ) {
+            if (ElevatorSimPro.cargo) {
+                ElevatorSimPro.cargo.rotation.set(rotationX, rotationY, rotationZ);
+                
+                if (ElevatorSimPro.obbHelper) {
+                    ElevatorSimPro.obbHelper.rotation.copy(ElevatorSimPro.cargo.rotation);
+                }
+            }
+        }
+        
+        /**
+         * 切換 OBB 顯示
+         */
+        toggleOBB() {
+            if (ElevatorSimPro.obbHelper) {
+                ElevatorSimPro.obbHelper.visible = !ElevatorSimPro.obbHelper.visible;
+            }
+        }
+        
+        /**
+         * 切換線框模式
+         */
+        toggleWireframe() {
+            if (ElevatorSimPro.cargo) {
+                ElevatorSimPro.cargo.material.wireframe = !ElevatorSimPro.cargo.material.wireframe;
+            }
+        }
+        
+        /**
+         * 重置相機位置
+         */
+        resetCamera() {
+            ElevatorSimPro.camera.position.set(400, 300, 400);
+            ElevatorSimPro.camera.lookAt(0, 0, 0);
+        }
+        
+        /**
+         * 更新 3D 模型
+         */
+        updateModels() {
+            this.createElevator();
+            this.createCargo();
+        }
+        
+        /**
+         * 設置軌道球控制器（改進版）
          */
         setupOrbitControls() {
-            // 注意：簡化版軌道控制，因為 CDN 版本可能沒有 OrbitControls
-            // 使用滑鼠事件模擬基本的相機控制
             let isMouseDown = false;
             let mouseX = 0, mouseY = 0;
             
@@ -542,15 +1142,14 @@
                 const deltaX = event.clientX - mouseX;
                 const deltaY = event.clientY - mouseY;
                 
-                // 簡單的相機旋轉
                 const spherical = new THREE.Spherical();
-                spherical.setFromVector3(ElevatorSim.camera.position);
+                spherical.setFromVector3(ElevatorSimPro.camera.position);
                 spherical.theta -= deltaX * 0.01;
                 spherical.phi += deltaY * 0.01;
                 spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
                 
-                ElevatorSim.camera.position.setFromSpherical(spherical);
-                ElevatorSim.camera.lookAt(0, 0, 0);
+                ElevatorSimPro.camera.position.setFromSpherical(spherical);
+                ElevatorSimPro.camera.lookAt(0, 0, 0);
                 
                 mouseX = event.clientX;
                 mouseY = event.clientY;
@@ -560,53 +1159,24 @@
                 isMouseDown = false;
             });
             
-            // 滾輪縮放
             this.container.addEventListener('wheel', (event) => {
-                const distance = ElevatorSim.camera.position.length();
+                const distance = ElevatorSimPro.camera.position.length();
                 const factor = event.deltaY > 0 ? 1.1 : 0.9;
-                ElevatorSim.camera.position.multiplyScalar(factor);
+                const newDistance = distance * factor;
+                
+                if (newDistance >= 50 && newDistance <= 2000) {
+                    ElevatorSimPro.camera.position.multiplyScalar(factor);
+                }
                 event.preventDefault();
             });
-        }
-        
-        /**
-         * 更新 3D 模型尺寸
-         */
-        updateModels() {
-            if (ElevatorSim.elevator && ElevatorSim.cargo) {
-                // 更新電梯
-                ElevatorSim.scene.remove(ElevatorSim.elevator.parent);
-                this.createElevator();
-                
-                // 更新貨物
-                ElevatorSim.scene.remove(ElevatorSim.cargo);
-                this.createCargo();
-            }
-        }
-        
-        /**
-         * 設置貨物旋轉
-         */
-        setCargoRotation(angleY) {
-            if (ElevatorSim.cargo) {
-                ElevatorSim.cargo.rotation.y = angleY;
-            }
-        }
-        
-        /**
-         * 重置相機位置
-         */
-        resetCamera() {
-            ElevatorSim.camera.position.set(300, 200, 300);
-            ElevatorSim.camera.lookAt(0, 0, 0);
         }
         
         /**
          * 動畫循環
          */
         animate() {
-            ElevatorSim.animationId = requestAnimationFrame(() => this.animate());
-            ElevatorSim.renderer.render(ElevatorSim.scene, ElevatorSim.camera);
+            ElevatorSimPro.animationId = requestAnimationFrame(() => this.animate());
+            ElevatorSimPro.renderer.render(ElevatorSimPro.scene, ElevatorSimPro.camera);
         }
         
         /**
@@ -616,23 +1186,23 @@
             const width = this.container.clientWidth;
             const height = this.container.clientHeight;
             
-            ElevatorSim.camera.aspect = width / height;
-            ElevatorSim.camera.updateProjectionMatrix();
-            ElevatorSim.renderer.setSize(width, height);
+            ElevatorSimPro.camera.aspect = width / height;
+            ElevatorSimPro.camera.updateProjectionMatrix();
+            ElevatorSimPro.renderer.setSize(width, height);
         }
     }
     
     /**
-     * 模擬引擎核心類別
+     * 模擬引擎核心類別（升級版）
      */
-    class SimulationEngine {
+    class SimulationEnginePro {
         /**
          * 執行主要模擬邏輯
          */
         static async runSimulation() {
-            if (ElevatorSim.isSimulating) return;
+            if (ElevatorSimPro.isSimulating) return;
             
-            ElevatorSim.isSimulating = true;
+            ElevatorSimPro.isSimulating = true;
             const simulateBtn = document.getElementById('simulateBtn');
             simulateBtn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i><span>模擬中...</span>';
             simulateBtn.disabled = true;
@@ -645,8 +1215,8 @@
                 window.threeManager.updateModels();
                 
                 // 執行模擬計算
-                if (ElevatorSim.config.autoOptimize) {
-                    await this.runOptimizationSimulation();
+                if (ElevatorSimPro.config.enableGeneticAlgorithm) {
+                    await this.runGeneticOptimization();
                 } else {
                     await this.runStandardSimulation();
                 }
@@ -658,7 +1228,7 @@
                 console.error('模擬過程發生錯誤:', error);
                 this.showError('模擬過程發生錯誤，請檢查輸入參數');
             } finally {
-                ElevatorSim.isSimulating = false;
+                ElevatorSimPro.isSimulating = false;
                 simulateBtn.innerHTML = '<i class="fas fa-play"></i><span>開始模擬</span>';
                 simulateBtn.disabled = false;
             }
@@ -668,46 +1238,105 @@
          * 讀取表單輸入參數
          */
         static readInputParameters() {
-            ElevatorSim.config.elevatorDimensions = {
+            ElevatorSimPro.config.elevatorDimensions = {
                 length: parseFloat(document.getElementById('elevatorLength').value),
                 width: parseFloat(document.getElementById('elevatorWidth').value),
                 height: parseFloat(document.getElementById('elevatorHeight').value)
             };
             
-            ElevatorSim.config.cargoDimensions = {
+            ElevatorSimPro.config.doorWidth = parseFloat(document.getElementById('doorWidth').value);
+            
+            ElevatorSimPro.config.cargoDimensions = {
                 length: parseFloat(document.getElementById('cargoLength').value),
                 width: parseFloat(document.getElementById('cargoWidth').value),
                 height: parseFloat(document.getElementById('cargoHeight').value)
             };
             
-            ElevatorSim.config.rotationY = parseFloat(document.getElementById('rotationY').value);
-            ElevatorSim.config.autoOptimize = document.getElementById('autoOptimize').checked;
+            ElevatorSimPro.config.cargoWeight = parseFloat(document.getElementById('cargoWeight').value);
+            
+            ElevatorSimPro.config.rotationX = parseFloat(document.getElementById('rotationX').value) * Math.PI / 180;
+            ElevatorSimPro.config.rotationY = parseFloat(document.getElementById('rotationY').value) * Math.PI / 180;
+            ElevatorSimPro.config.rotationZ = parseFloat(document.getElementById('rotationZ').value) * Math.PI / 180;
+            
+            ElevatorSimPro.config.enableGeneticAlgorithm = document.getElementById('enableGeneticAlgorithm').checked;
+            ElevatorSimPro.config.enableStabilityCheck = document.getElementById('enableStabilityCheck').checked;
+            ElevatorSimPro.config.enableDoorEntry = document.getElementById('enableDoorEntry').checked;
+            ElevatorSimPro.config.gaGenerations = parseInt(document.getElementById('gaGenerations').value);
         }
         
         /**
          * 執行標準模擬（固定角度）
          */
         static async runStandardSimulation() {
-            const angleRadians = ElevatorSim.config.rotationY * Math.PI / 180;
-            const rotatedDims = VectorMath.getRotatedBoundingBox(
-                ElevatorSim.config.cargoDimensions, 
-                angleRadians
+            const { rotationX, rotationY, rotationZ } = ElevatorSimPro.config;
+            
+            // 碰撞檢測
+            const canFit = Vector3DMath.checkOBBAABBCollision(
+                { 
+                    dimensions: ElevatorSimPro.config.cargoDimensions, 
+                    rotation: { x: rotationX, y: rotationY, z: rotationZ } 
+                },
+                ElevatorSimPro.config.elevatorDimensions
             );
             
-            const canFit = VectorMath.checkFit(
-                ElevatorSim.config.elevatorDimensions, 
-                rotatedDims
-            );
+            // 計算空間利用率
+            const cargoVolume = ElevatorSimPro.config.cargoDimensions.length * 
+                              ElevatorSimPro.config.cargoDimensions.width * 
+                              ElevatorSimPro.config.cargoDimensions.height;
+            const elevatorVolume = ElevatorSimPro.config.elevatorDimensions.length * 
+                                  ElevatorSimPro.config.elevatorDimensions.width * 
+                                  ElevatorSimPro.config.elevatorDimensions.height;
+            const spaceUtilization = (cargoVolume / elevatorVolume) * 100;
+            
+            // 穩定性分析
+            let stabilityResult = null;
+            if (ElevatorSimPro.config.enableStabilityCheck) {
+                const rotatedAABB = Vector3DMath.getRotatedAABB(
+                    ElevatorSimPro.config.cargoDimensions, 
+                    rotationX, rotationY, rotationZ
+                );
+                const mockItem = {
+                    position: { x: 0, y: 0, z: rotatedAABB.height / 2 },
+                    weight: ElevatorSimPro.config.cargoWeight
+                };
+                const centerOfGravity = Vector3DMath.calculateCenterOfGravity([mockItem]);
+                stabilityResult = Vector3DMath.checkStability(
+                    centerOfGravity, 
+                    ElevatorSimPro.config.elevatorDimensions
+                );
+                ElevatorSimPro.results.centerOfGravity = centerOfGravity;
+                ElevatorSimPro.results.stabilityScore = stabilityResult.stabilityScore;
+            }
+            
+            // 門口通過性檢查
+            let doorEntryResult = null;
+            if (ElevatorSimPro.config.enableDoorEntry) {
+                const rotatedAABB = Vector3DMath.getRotatedAABB(
+                    ElevatorSimPro.config.cargoDimensions, 
+                    rotationX, rotationY, rotationZ
+                );
+                doorEntryResult = Vector3DMath.checkDoorEntry(
+                    rotatedAABB, 
+                    ElevatorSimPro.config.doorWidth
+                );
+                ElevatorSimPro.results.doorEntryFeasible = doorEntryResult.canPass;
+            }
             
             // 更新 3D 視覺化
-            window.threeManager.setCargoRotation(angleRadians);
+            window.threeManager.setCargoRotation(rotationX, rotationY, rotationZ);
             
             // 設置結果
-            ElevatorSim.results = {
+            ElevatorSimPro.results = {
                 canFit,
-                optimalAngle: ElevatorSim.config.rotationY,
-                rotatedDimensions: rotatedDims,
-                errorMessage: canFit ? '' : '貨物尺寸超出電梯空間限制'
+                optimalRotation: { x: rotationX, y: rotationY, z: rotationZ },
+                spaceUtilization,
+                stabilityScore: stabilityResult ? stabilityResult.stabilityScore : 1,
+                centerOfGravity: ElevatorSimPro.results.centerOfGravity || { x: 0, y: 0, z: 0 },
+                doorEntryFeasible: doorEntryResult ? doorEntryResult.canPass : true,
+                stabilityResult,
+                doorEntryResult,
+                optimizationHistory: [],
+                errorMessage: canFit ? '' : '貨物無法以當前角度放入電梯'
             };
             
             // 模擬延遲效果
@@ -715,53 +1344,111 @@
         }
         
         /**
-         * 執行優化模擬（自動尋找最佳角度）
+         * 執行遺傳算法優化
          */
-        static async runOptimizationSimulation() {
-            const progressContainer = document.getElementById('optimizeProgress');
+        static async runGeneticOptimization() {
+            const progressContainer = document.getElementById('optimizationProgress');
             const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
             progressContainer.classList.remove('hidden');
             
-            // 尋找最佳角度
-            const result = VectorMath.findOptimalAngle(
-                ElevatorSim.config.elevatorDimensions,
-                ElevatorSim.config.cargoDimensions
+            // 初始化遺傳算法
+            const ga = new GeneticAlgorithm(
+                ElevatorSimPro.config.elevatorDimensions,
+                ElevatorSimPro.config.cargoDimensions,
+                ElevatorSimPro.config.cargoWeight,
+                ElevatorSimPro.config.doorWidth,
+                {
+                    generations: ElevatorSimPro.config.gaGenerations,
+                    populationSize: 50
+                }
             );
             
-            // 模擬進度條動畫
-            for (let i = 0; i <= 100; i += 5) {
-                progressBar.style.width = i + '%';
-                await new Promise(resolve => setTimeout(resolve, 50));
-            }
+            // 執行優化
+            const bestSolution = await ga.optimize((progress, best, stats) => {
+                progressBar.style.width = progress + '%';
+                progressText.textContent = Math.round(progress) + '%';
+                
+                // 即時更新 3D 視覺化
+                if (best) {
+                    window.threeManager.setCargoRotation(best.x, best.y, best.z);
+                }
+            });
             
             progressContainer.classList.add('hidden');
             
-            // 設置結果
-            if (result.found) {
-                const angleRadians = result.angle * Math.PI / 180;
-                const rotatedDims = VectorMath.getRotatedBoundingBox(
-                    ElevatorSim.config.cargoDimensions, 
-                    angleRadians
+            if (bestSolution && bestSolution.fitness > 0) {
+                // 計算詳細結果
+                const canFit = Vector3DMath.checkOBBAABBCollision(
+                    { 
+                        dimensions: ElevatorSimPro.config.cargoDimensions, 
+                        rotation: bestSolution 
+                    },
+                    ElevatorSimPro.config.elevatorDimensions
                 );
                 
-                ElevatorSim.results = {
-                    canFit: true,
-                    optimalAngle: result.angle,
-                    rotatedDimensions: rotatedDims,
-                    errorMessage: ''
+                const cargoVolume = ElevatorSimPro.config.cargoDimensions.length * 
+                                  ElevatorSimPro.config.cargoDimensions.width * 
+                                  ElevatorSimPro.config.cargoDimensions.height;
+                const elevatorVolume = ElevatorSimPro.config.elevatorDimensions.length * 
+                                      ElevatorSimPro.config.elevatorDimensions.width * 
+                                      ElevatorSimPro.config.elevatorDimensions.height;
+                const spaceUtilization = (cargoVolume / elevatorVolume) * 100;
+                
+                // 穩定性分析
+                const rotatedAABB = Vector3DMath.getRotatedAABB(
+                    ElevatorSimPro.config.cargoDimensions, 
+                    bestSolution.x, bestSolution.y, bestSolution.z
+                );
+                const mockItem = {
+                    position: { x: 0, y: 0, z: rotatedAABB.height / 2 },
+                    weight: ElevatorSimPro.config.cargoWeight
+                };
+                const centerOfGravity = Vector3DMath.calculateCenterOfGravity([mockItem]);
+                const stabilityResult = Vector3DMath.checkStability(
+                    centerOfGravity, 
+                    ElevatorSimPro.config.elevatorDimensions
+                );
+                
+                // 門口通過性檢查
+                const doorEntryResult = Vector3DMath.checkDoorEntry(
+                    rotatedAABB, 
+                    ElevatorSimPro.config.doorWidth
+                );
+                
+                // 更新滑桿值
+                document.getElementById('rotationX').value = Math.round(bestSolution.x * 180 / Math.PI);
+                document.getElementById('rotationY').value = Math.round(bestSolution.y * 180 / Math.PI);
+                document.getElementById('rotationZ').value = Math.round(bestSolution.z * 180 / Math.PI);
+                document.getElementById('rotationXValue').textContent = Math.round(bestSolution.x * 180 / Math.PI) + '°';
+                document.getElementById('rotationYValue').textContent = Math.round(bestSolution.y * 180 / Math.PI) + '°';
+                document.getElementById('rotationZValue').textContent = Math.round(bestSolution.z * 180 / Math.PI) + '°';
+                
+                // 設置結果
+                ElevatorSimPro.results = {
+                    canFit,
+                    optimalRotation: bestSolution,
+                    spaceUtilization,
+                    stabilityScore: stabilityResult.stabilityScore,
+                    centerOfGravity,
+                    doorEntryFeasible: doorEntryResult.canPass,
+                    stabilityResult,
+                    doorEntryResult,
+                    optimizationHistory: ga.fitnessHistory,
+                    errorMessage: canFit ? '' : '遺傳算法無法找到可行解'
                 };
                 
-                // 更新滑桿和 3D 視覺化
-                document.getElementById('rotationY').value = result.angle;
-                document.getElementById('rotationYValue').textContent = result.angle + '°';
-                window.threeManager.setCargoRotation(angleRadians);
-                
             } else {
-                ElevatorSim.results = {
+                ElevatorSimPro.results = {
                     canFit: false,
-                    optimalAngle: 0,
-                    rotatedDimensions: ElevatorSim.config.cargoDimensions,
-                    errorMessage: '無論如何旋轉都無法放入電梯'
+                    optimalRotation: { x: 0, y: 0, z: 0 },
+                    spaceUtilization: 0,
+                    stabilityScore: 0,
+                    centerOfGravity: { x: 0, y: 0, z: 0 },
+                    doorEntryFeasible: false,
+                    optimizationHistory: ga.fitnessHistory,
+                    errorMessage: '遺傳算法無法找到可行解'
                 };
             }
         }
@@ -772,18 +1459,23 @@
         static displayResults() {
             const resultPanel = document.getElementById('resultPanel');
             const resultContent = document.getElementById('resultContent');
+            const stabilityPanel = document.getElementById('stabilityPanel');
+            const stabilityContent = document.getElementById('stabilityContent');
             const suggestionsPanel = document.getElementById('suggestionsPanel');
             const suggestionsContent = document.getElementById('suggestionsContent');
             
             // 生成結果 HTML
             const resultHTML = this.generateResultHTML();
+            const stabilityHTML = this.generateStabilityHTML();
             const suggestionsHTML = this.generateSuggestionsHTML();
             
             resultContent.innerHTML = resultHTML;
+            stabilityContent.innerHTML = stabilityHTML;
             suggestionsContent.innerHTML = suggestionsHTML;
             
             // 顯示面板
             resultPanel.classList.remove('hidden');
+            stabilityPanel.classList.remove('hidden');
             suggestionsPanel.classList.remove('hidden');
             
             // 滾動到結果區域
@@ -794,7 +1486,7 @@
          * 生成結果顯示 HTML
          */
         static generateResultHTML() {
-            const { canFit, optimalAngle, rotatedDimensions, errorMessage } = ElevatorSim.results;
+            const { canFit, optimalRotation, spaceUtilization, errorMessage } = ElevatorSimPro.results;
             const statusClass = canFit ? 'result-success' : 'result-error';
             const statusIcon = canFit ? 'fas fa-check-circle' : 'fas fa-times-circle';
             const statusText = canFit ? '可以放入' : '無法放入';
@@ -811,92 +1503,119 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-white bg-opacity-20 rounded-lg p-4">
                         <h4 class="text-white font-semibold mb-3 flex items-center">
-                            <i class="fas fa-rotate text-primary-300 mr-2"></i>
-                            旋轉參數
+                            <i class="fas fa-sync-alt text-primary-300 mr-2"></i>
+                            最佳三軸旋轉
                         </h4>
                         <div class="space-y-2 text-sm">
                             <div class="flex justify-between text-blue-100">
-                                <span>最佳角度:</span>
-                                <span class="font-mono">${optimalAngle.toFixed(1)}°</span>
+                                <span>X軸 (俯仰):</span>
+                                <span class="font-mono">${(optimalRotation.x * 180 / Math.PI).toFixed(1)}°</span>
                             </div>
                             <div class="flex justify-between text-blue-100">
-                                <span>旋轉軸:</span>
-                                <span class="font-mono">Y軸 (垂直)</span>
+                                <span>Y軸 (偏航):</span>
+                                <span class="font-mono">${(optimalRotation.y * 180 / Math.PI).toFixed(1)}°</span>
+                            </div>
+                            <div class="flex justify-between text-blue-100">
+                                <span>Z軸 (滾轉):</span>
+                                <span class="font-mono">${(optimalRotation.z * 180 / Math.PI).toFixed(1)}°</span>
                             </div>
                         </div>
                     </div>
                     
                     <div class="bg-white bg-opacity-20 rounded-lg p-4">
                         <h4 class="text-white font-semibold mb-3 flex items-center">
-                            <i class="fas fa-ruler-combined text-warning mr-2"></i>
-                            旋轉後尺寸
+                            <i class="fas fa-chart-pie text-warning mr-2"></i>
+                            空間利用分析
                         </h4>
                         <div class="space-y-2 text-sm">
                             <div class="flex justify-between text-blue-100">
-                                <span>長度:</span>
-                                <span class="font-mono">${rotatedDimensions.length?.toFixed(1) || 'N/A'} cm</span>
+                                <span>利用率:</span>
+                                <span class="font-mono">${spaceUtilization.toFixed(1)}%</span>
                             </div>
-                            <div class="flex justify-between text-blue-100">
-                                <span>寬度:</span>
-                                <span class="font-mono">${rotatedDimensions.width?.toFixed(1) || 'N/A'} cm</span>
-                            </div>
-                            <div class="flex justify-between text-blue-100">
-                                <span>高度:</span>
-                                <span class="font-mono">${rotatedDimensions.height?.toFixed(1) || 'N/A'} cm</span>
+                            <div class="w-full bg-white bg-opacity-20 rounded-full h-2 mt-2">
+                                <div class="bg-primary-400 h-2 rounded-full transition-all duration-500" style="width: ${Math.min(spaceUtilization, 100)}%"></div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="mt-4 bg-white bg-opacity-20 rounded-lg p-4">
-                    <h4 class="text-white font-semibold mb-3 flex items-center">
-                        <i class="fas fa-chart-bar text-success mr-2"></i>
-                        空間利用率
-                    </h4>
-                    <div class="space-y-3">
-                        ${this.generateUtilizationBars()}
+                ${ElevatorSimPro.config.enableGeneticAlgorithm && ElevatorSimPro.results.optimizationHistory.length > 0 ? 
+                    this.generateOptimizationChart() : ''}
+            `;
+        }
+        
+        /**
+         * 生成穩定性分析 HTML
+         */
+        static generateStabilityHTML() {
+            const { stabilityScore, centerOfGravity, stabilityResult } = ElevatorSimPro.results;
+            
+            if (!ElevatorSimPro.config.enableStabilityCheck || !stabilityResult) {
+                return '<div class="text-blue-100">穩定性檢查已停用</div>';
+            }
+            
+            const stabilityClass = stabilityResult.stabilityLevel === 'stable' ? 'stability-stable' :
+                                  stabilityResult.stabilityLevel === 'warning' ? 'stability-warning' : 
+                                  'stability-unstable';
+            
+            const stabilityText = stabilityResult.stabilityLevel === 'stable' ? '穩定' :
+                                 stabilityResult.stabilityLevel === 'warning' ? '警告' : '不穩定';
+            
+            return `
+                <div class="bg-white bg-opacity-20 rounded-lg p-4 mb-4">
+                    <div class="flex items-center mb-3">
+                        <div class="stability-indicator ${stabilityClass}"></div>
+                        <span class="text-white font-semibold">${stabilityText}</span>
+                        <span class="ml-auto text-blue-100 font-mono">${(stabilityScore * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="w-full bg-white bg-opacity-20 rounded-full h-2">
+                        <div class="h-2 rounded-full transition-all duration-500 ${stabilityClass}" 
+                             style="width: ${stabilityScore * 100}%"></div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white bg-opacity-20 rounded-lg p-4">
+                        <h4 class="text-white font-semibold mb-3">重心位置</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between text-blue-100">
+                                <span>X 軸:</span>
+                                <span class="font-mono">${centerOfGravity.x.toFixed(1)} cm</span>
+                            </div>
+                            <div class="flex justify-between text-blue-100">
+                                <span>Y 軸:</span>
+                                <span class="font-mono">${centerOfGravity.y.toFixed(1)} cm</span>
+                            </div>
+                            <div class="flex justify-between text-blue-100">
+                                <span>Z 軸:</span>
+                                <span class="font-mono">${centerOfGravity.z.toFixed(1)} cm</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white bg-opacity-20 rounded-lg p-4">
+                        <h4 class="text-white font-semibold mb-3">穩定性邊界</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between text-blue-100">
+                                <span>X 軸邊界:</span>
+                                <span class="font-mono">${(stabilityResult.marginX * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="flex justify-between text-blue-100">
+                                <span>Y 軸邊界:</span>
+                                <span class="font-mono">${(stabilityResult.marginY * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="flex justify-between text-blue-100">
+                                <span>安全邊界:</span>
+                                <span class="font-mono">${stabilityResult.isStable ? '✓' : '✗'}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
         }
         
         /**
-         * 生成空間利用率條狀圖
-         */
-        static generateUtilizationBars() {
-            const { elevatorDimensions } = ElevatorSim.config;
-            const { rotatedDimensions } = ElevatorSim.results;
-            
-            const utilizationLength = (rotatedDimensions.length / elevatorDimensions.length) * 100;
-            const utilizationWidth = (rotatedDimensions.width / elevatorDimensions.width) * 100;
-            const utilizationHeight = (rotatedDimensions.height / elevatorDimensions.height) * 100;
-            
-            const createBar = (label, percentage) => {
-                const colorClass = percentage > 100 ? 'bg-red-500' : percentage > 80 ? 'bg-yellow-500' : 'bg-green-500';
-                const width = Math.min(percentage, 100);
-                
-                return `
-                    <div class="flex items-center justify-between">
-                        <span class="text-blue-100 text-sm w-12">${label}:</span>
-                        <div class="flex-1 mx-3">
-                            <div class="w-full bg-white bg-opacity-20 rounded-full h-2">
-                                <div class="${colorClass} h-2 rounded-full transition-all duration-500" style="width: ${width}%"></div>
-                            </div>
-                        </div>
-                        <span class="text-white text-sm font-mono w-12 text-right">${percentage.toFixed(0)}%</span>
-                    </div>
-                `;
-            };
-            
-            return [
-                createBar('長度', utilizationLength),
-                createBar('寬度', utilizationWidth),
-                createBar('高度', utilizationHeight)
-            ].join('');
-        }
-        
-        /**
-         * 生成建議與提示 HTML
+         * 生成優化建議 HTML
          */
         static generateSuggestionsHTML() {
             const suggestions = this.generateSuggestions();
@@ -915,65 +1634,113 @@
         }
         
         /**
+         * 生成優化歷史圖表
+         */
+        static generateOptimizationChart() {
+            const history = ElevatorSimPro.results.optimizationHistory;
+            const maxFitness = Math.max(...history.map(h => h.bestFitness));
+            
+            return `
+                <div class="mt-4 bg-white bg-opacity-20 rounded-lg p-4">
+                    <h4 class="text-white font-semibold mb-3 flex items-center">
+                        <i class="fas fa-chart-line text-accent mr-2"></i>
+                        遺傳算法優化歷程
+                    </h4>
+                    <div class="relative h-32 bg-white bg-opacity-10 rounded">
+                        <svg class="w-full h-full">
+                            ${history.map((h, i) => {
+                                const x = (i / (history.length - 1)) * 100;
+                                const y = 100 - (h.bestFitness / maxFitness) * 90;
+                                return `<circle cx="${x}%" cy="${y}%" r="2" fill="#8b5cf6"/>`;
+                            }).join('')}
+                            <polyline 
+                                fill="none" 
+                                stroke="#8b5cf6" 
+                                stroke-width="2"
+                                points="${history.map((h, i) => {
+                                    const x = (i / (history.length - 1)) * 100;
+                                    const y = 100 - (h.bestFitness / maxFitness) * 90;
+                                    return `${x},${y}`;
+                                }).join(' ')}"
+                            />
+                        </svg>
+                    </div>
+                    <div class="flex justify-between text-blue-200 text-xs mt-2">
+                        <span>第 0 代</span>
+                        <span>適應度: ${maxFitness.toFixed(3)}</span>
+                        <span>第 ${history.length - 1} 代</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        /**
          * 生成智慧建議
          */
         static generateSuggestions() {
             const suggestions = [];
-            const { canFit, optimalAngle } = ElevatorSim.results;
-            const { elevatorDimensions, cargoDimensions } = ElevatorSim.config;
+            const { canFit, spaceUtilization, stabilityResult, doorEntryResult } = ElevatorSimPro.results;
             
             if (canFit) {
                 suggestions.push({
                     icon: 'fas fa-thumbs-up',
                     color: 'green-400',
-                    title: '成功配置',
-                    description: `貨物可以在 ${optimalAngle.toFixed(1)}° 旋轉角度下順利放入電梯。`
+                    title: '配置成功',
+                    description: '貨物可以成功放入電梯，建議按照計算的最佳角度進行操作。'
                 });
                 
-                if (optimalAngle > 0) {
+                if (spaceUtilization < 60) {
                     suggestions.push({
-                        icon: 'fas fa-sync-alt',
-                        color: 'blue-400',
-                        title: '旋轉操作',
-                        description: '建議在進入電梯前先將貨物旋轉至最佳角度，避免在狹小空間內操作。'
+                        icon: 'fas fa-expand-arrows-alt',
+                        color: 'yellow-400',
+                        title: '空間利用率可提升',
+                        description: '當前空間利用率較低，考慮調整貨物尺寸或添加更多貨物以提高效率。'
                     });
                 }
             } else {
-                // 分析失敗原因並提供建議
-                const volumeRatio = (cargoDimensions.length * cargoDimensions.width * cargoDimensions.height) /
-                                   (elevatorDimensions.length * elevatorDimensions.width * elevatorDimensions.height);
-                
-                if (volumeRatio > 1) {
-                    suggestions.push({
-                        icon: 'fas fa-exclamation-triangle',
-                        color: 'red-400',
-                        title: '體積過大',
-                        description: '貨物總體積超過電梯容量，無法透過旋轉解決。建議分拆貨物或使用更大的電梯。'
-                    });
-                } else {
-                    suggestions.push({
-                        icon: 'fas fa-search',
-                        color: 'yellow-400',
-                        title: '尺寸限制',
-                        description: '貨物在某個維度上超過電梯限制。建議檢查是否可以調整貨物包裝方式。'
-                    });
-                }
+                suggestions.push({
+                    icon: 'fas fa-exclamation-triangle',
+                    color: 'red-400',
+                    title: '無法配置',
+                    description: '貨物無法以任何角度放入電梯，建議考慮分拆貨物或使用更大的電梯。'
+                });
             }
             
-            // 效率建議
-            const maxDimension = Math.max(cargoDimensions.length, cargoDimensions.width, cargoDimensions.height);
-            const elevatorDiagonal = Math.sqrt(
-                elevatorDimensions.length ** 2 + 
-                elevatorDimensions.width ** 2
-            );
-            
-            if (maxDimension > elevatorDiagonal * 0.8) {
+            if (stabilityResult && stabilityResult.stabilityLevel === 'warning') {
                 suggestions.push({
-                    icon: 'fas fa-lightbulb',
+                    icon: 'fas fa-balance-scale',
                     color: 'yellow-400',
-                    title: '優化建議',
-                    description: '考慮使用對角線放置策略，可能獲得更好的空間利用效果。'
+                    title: '穩定性警告',
+                    description: '重心偏移較大，建議調整貨物位置或添加配重以提高穩定性。'
                 });
+            } else if (stabilityResult && stabilityResult.stabilityLevel === 'unstable') {
+                suggestions.push({
+                    icon: 'fas fa-exclamation-circle',
+                    color: 'red-400',
+                    title: '穩定性不足',
+                    description: '當前配置不穩定，存在傾倒風險，請重新調整貨物配置。'
+                });
+            }
+            
+            if (doorEntryResult && !doorEntryResult.canPass) {
+                suggestions.push({
+                    icon: 'fas fa-door-open',
+                    color: 'orange-400',
+                    title: '門口通過受限',
+                    description: '貨物無法通過電梯門口，建議考慮分拆或使用斜向進入策略。'
+                });
+            }
+            
+            if (ElevatorSimPro.config.enableGeneticAlgorithm && ElevatorSimPro.results.optimizationHistory.length > 0) {
+                const finalFitness = ElevatorSimPro.results.optimizationHistory[ElevatorSimPro.results.optimizationHistory.length - 1].bestFitness;
+                if (finalFitness > 0.8) {
+                    suggestions.push({
+                        icon: 'fas fa-robot',
+                        color: 'purple-400',
+                        title: 'AI 優化成功',
+                        description: '遺傳算法找到了高質量的解決方案，建議採用此配置。'
+                    });
+                }
             }
             
             return suggestions;
@@ -1001,12 +1768,12 @@
     }
     
     /**
-     * 應用程式初始化與事件處理
+     * 應用程式初始化與事件處理（升級版）
      */
-    class App {
+    class AppPro {
         static init() {
             // 初始化 Three.js 管理器
-            window.threeManager = new ThreeJSManager('threejsContainer');
+            window.threeManager = new ThreeJSManagerPro('threejsContainer');
             
             // 綁定事件處理器
             this.bindEventHandlers();
@@ -1017,7 +1784,7 @@
             // 設置響應式處理
             this.setupResponsive();
             
-            console.log('ElevatorSim 初始化完成');
+            console.log('ElevatorSim Pro 初始化完成');
         }
         
         /**
@@ -1027,25 +1794,30 @@
             // 表單提交事件
             document.getElementById('simulationForm').addEventListener('submit', (e) => {
                 e.preventDefault();
-                SimulationEngine.runSimulation();
+                SimulationEnginePro.runSimulation();
             });
             
             // 重置按鈕
             document.getElementById('resetBtn').addEventListener('click', this.resetForm);
             
-            // 旋轉角度滑桿
-            const rotationSlider = document.getElementById('rotationY');
-            const rotationValue = document.getElementById('rotationYValue');
-            
-            rotationSlider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                rotationValue.textContent = value + '°';
+            // 三軸旋轉滑桿
+            const rotationSliders = ['rotationX', 'rotationY', 'rotationZ'];
+            rotationSliders.forEach(sliderId => {
+                const slider = document.getElementById(sliderId);
+                const valueDisplay = document.getElementById(sliderId + 'Value');
                 
-                // 即時更新 3D 視覺化
-                if (window.threeManager && ElevatorSim.cargo) {
-                    const radians = value * Math.PI / 180;
-                    window.threeManager.setCargoRotation(radians);
-                }
+                slider.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    valueDisplay.textContent = value + '°';
+                    
+                    // 即時更新 3D 視覺化
+                    if (window.threeManager && ElevatorSimPro.cargo) {
+                        const rotationX = parseFloat(document.getElementById('rotationX').value) * Math.PI / 180;
+                        const rotationY = parseFloat(document.getElementById('rotationY').value) * Math.PI / 180;
+                        const rotationZ = parseFloat(document.getElementById('rotationZ').value) * Math.PI / 180;
+                        window.threeManager.setCargoRotation(rotationX, rotationY, rotationZ);
+                    }
+                });
             });
             
             // 3D 控制按鈕
@@ -1054,21 +1826,27 @@
             });
             
             document.getElementById('toggleWireframeBtn').addEventListener('click', () => {
-                this.toggleWireframe();
+                window.threeManager.toggleWireframe();
             });
             
-            // 自動優化勾選框
-            document.getElementById('autoOptimize').addEventListener('change', (e) => {
-                const optimizeProgress = document.getElementById('optimizeProgress');
+            document.getElementById('toggleOBBBtn').addEventListener('click', () => {
+                window.threeManager.toggleOBB();
+            });
+            
+            // 遺傳算法選項切換
+            document.getElementById('enableGeneticAlgorithm').addEventListener('change', (e) => {
+                const gaParameters = document.getElementById('gaParameters');
                 if (e.target.checked) {
-                    optimizeProgress.classList.add('hidden');
+                    gaParameters.classList.remove('hidden');
+                } else {
+                    gaParameters.classList.add('hidden');
                 }
             });
             
             // 輸入欄位即時更新
-            ['elevatorLength', 'elevatorWidth', 'elevatorHeight', 
-             'cargoLength', 'cargoWidth', 'cargoHeight'].forEach(id => {
-                document.getElementById(id).addEventListener('input', this.onDimensionChange);
+            ['elevatorLength', 'elevatorWidth', 'elevatorHeight', 'doorWidth',
+             'cargoLength', 'cargoWidth', 'cargoHeight', 'cargoWeight'].forEach(id => {
+                document.getElementById(id).addEventListener('input', this.onDimensionChange.bind(this));
             });
         }
         
@@ -1077,12 +1855,16 @@
          */
         static initializeUI() {
             // 設置初始旋轉角度顯示
+            document.getElementById('rotationXValue').textContent = '0°';
             document.getElementById('rotationYValue').textContent = '0°';
+            document.getElementById('rotationZValue').textContent = '0°';
             
             // 隱藏結果面板
             document.getElementById('resultPanel').classList.add('hidden');
+            document.getElementById('stabilityPanel').classList.add('hidden');
             document.getElementById('suggestionsPanel').classList.add('hidden');
-            document.getElementById('optimizeProgress').classList.add('hidden');
+            document.getElementById('optimizationProgress').classList.add('hidden');
+            document.getElementById('gaParameters').classList.add('hidden');
         }
         
         /**
@@ -1104,7 +1886,7 @@
             clearTimeout(this.updateTimeout);
             this.updateTimeout = setTimeout(() => {
                 if (window.threeManager) {
-                    SimulationEngine.readInputParameters();
+                    SimulationEnginePro.readInputParameters();
                     window.threeManager.updateModels();
                 }
             }, 300);
@@ -1118,47 +1900,420 @@
             document.getElementById('elevatorLength').value = 200;
             document.getElementById('elevatorWidth').value = 150;
             document.getElementById('elevatorHeight').value = 220;
+            document.getElementById('doorWidth').value = 120;
             document.getElementById('cargoLength').value = 180;
             document.getElementById('cargoWidth').value = 120;
             document.getElementById('cargoHeight').value = 100;
+            document.getElementById('cargoWeight').value = 500;
+            document.getElementById('rotationX').value = 0;
             document.getElementById('rotationY').value = 0;
+            document.getElementById('rotationZ').value = 0;
+            document.getElementById('rotationXValue').textContent = '0°';
             document.getElementById('rotationYValue').textContent = '0°';
-            document.getElementById('autoOptimize').checked = false;
+            document.getElementById('rotationZValue').textContent = '0°';
+            document.getElementById('enableGeneticAlgorithm').checked = false;
+            document.getElementById('enableStabilityCheck').checked = true;
+            document.getElementById('enableDoorEntry').checked = true;
+            document.getElementById('gaGenerations').value = 50;
             
             // 隱藏結果面板
             document.getElementById('resultPanel').classList.add('hidden');
+            document.getElementById('stabilityPanel').classList.add('hidden');
             document.getElementById('suggestionsPanel').classList.add('hidden');
-            document.getElementById('optimizeProgress').classList.add('hidden');
+            document.getElementById('optimizationProgress').classList.add('hidden');
+            document.getElementById('gaParameters').classList.add('hidden');
             
             // 重置 3D 場景
             if (window.threeManager) {
-                SimulationEngine.readInputParameters();
+                SimulationEnginePro.readInputParameters();
                 window.threeManager.updateModels();
                 window.threeManager.resetCamera();
+            }
+            
+            // 清空結果數據
+            ElevatorSimPro.results = {
+                canFit: false,
+                optimalRotation: { x: 0, y: 0, z: 0 },
+                spaceUtilization: 0,
+                stabilityScore: 0,
+                centerOfGravity: { x: 0, y: 0, z: 0 },
+                doorEntryFeasible: false,
+                optimizationHistory: [],
+                errorMessage: ''
+            };
+        }
+    }
+    
+    /**
+     * 效能監控與品質保證系統
+     */
+    class PerformanceMonitorPro {
+        constructor() {
+            this.metrics = {
+                simulationTime: 0,
+                memoryUsage: 0,
+                renderingFPS: 0,
+                optimizationConvergence: 0
+            };
+            this.initMonitoring();
+        }
+        
+        /**
+         * 初始化效能監控
+         */
+        initMonitoring() {
+            // FPS 監控
+            this.lastTime = performance.now();
+            this.frameCount = 0;
+            this.fpsHistory = [];
+            
+            // 記憶體使用監控
+            if (performance.memory) {
+                setInterval(() => {
+                    this.metrics.memoryUsage = performance.memory.usedJSHeapSize / 1024 / 1024; // MB
+                }, 1000);
+            }
+            
+            this.startFPSMonitoring();
+        }
+        
+        /**
+         * FPS 監控
+         */
+        startFPSMonitoring() {
+            const measureFPS = () => {
+                const now = performance.now();
+                this.frameCount++;
+                
+                if (now - this.lastTime >= 1000) {
+                    const fps = this.frameCount;
+                    this.fpsHistory.push(fps);
+                    
+                    if (this.fpsHistory.length > 60) {
+                        this.fpsHistory.shift();
+                    }
+                    
+                    this.metrics.renderingFPS = fps;
+                    this.frameCount = 0;
+                    this.lastTime = now;
+                    
+                    // 效能警告
+                    if (fps < 30) {
+                        console.warn('效能警告: FPS 低於 30');
+                    }
+                }
+                
+                requestAnimationFrame(measureFPS);
+            };
+            
+            requestAnimationFrame(measureFPS);
+        }
+        
+        /**
+         * 模擬效能測量
+         */
+        measureSimulationPerformance(startTime, endTime, optimizationData = null) {
+            this.metrics.simulationTime = endTime - startTime;
+            
+            if (optimizationData && optimizationData.fitnessHistory) {
+                // 計算收斂速度
+                const history = optimizationData.fitnessHistory;
+                const finalFitness = history[history.length - 1].bestFitness;
+                const convergencePoint = history.findIndex(h => h.bestFitness >= finalFitness * 0.95);
+                this.metrics.optimizationConvergence = convergencePoint / history.length;
+            }
+            
+            // 記錄到控制台
+            console.log('效能指標:', this.metrics);
+        }
+        
+        /**
+         * 生成效能報告
+         */
+        generatePerformanceReport() {
+            return {
+                timestamp: new Date().toISOString(),
+                metrics: { ...this.metrics },
+                systemInfo: {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    memory: performance.memory ? {
+                        totalJSHeapSize: performance.memory.totalJSHeapSize,
+                        usedJSHeapSize: performance.memory.usedJSHeapSize,
+                        jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
+                    } : null,
+                    hardwareConcurrency: navigator.hardwareConcurrency,
+                    devicePixelRatio: window.devicePixelRatio
+                },
+                recommendations: this.generateOptimizationRecommendations()
+            };
+        }
+        
+        /**
+         * 生成優化建議
+         */
+        generateOptimizationRecommendations() {
+            const recommendations = [];
+            
+            if (this.metrics.renderingFPS < 30) {
+                recommendations.push({
+                    type: 'performance',
+                    severity: 'high',
+                    message: '渲染效能不佳，建議降低模型複雜度或關閉某些視覺效果'
+                });
+            }
+            
+            if (this.metrics.memoryUsage > 100) {
+                recommendations.push({
+                    type: 'memory',
+                    severity: 'medium',
+                    message: '記憶體使用量較高，建議定期清理或減少同時處理的物件數量'
+                });
+            }
+            
+            if (this.metrics.simulationTime > 5000) {
+                recommendations.push({
+                    type: 'simulation',
+                    severity: 'medium',
+                    message: '模擬時間較長，建議減少遺傳算法代數或調整參數'
+                });
+            }
+            
+            return recommendations;
+        }
+    }
+    
+    /**
+     * 錯誤處理與使用者體驗增強系統
+     */
+    class ErrorHandlerPro {
+        constructor() {
+            this.errorLog = [];
+            this.initErrorHandling();
+        }
+        
+        /**
+         * 初始化錯誤處理
+         */
+        initErrorHandling() {
+            // 全域錯誤捕捉
+            window.addEventListener('error', (event) => {
+                this.logError('JavaScript Error', event.error, {
+                    filename: event.filename,
+                    lineno: event.lineno,
+                    colno: event.colno
+                });
+            });
+            
+            // Promise 拒絕處理
+            window.addEventListener('unhandledrejection', (event) => {
+                this.logError('Unhandled Promise Rejection', event.reason);
+                event.preventDefault();
+            });
+            
+            // WebGL 錯誤處理
+            if (ElevatorSimPro.renderer && ElevatorSimPro.renderer.getContext) {
+                const gl = ElevatorSimPro.renderer.getContext();
+                if (gl) {
+                    const originalGetError = gl.getError;
+                    gl.getError = () => {
+                        const error = originalGetError.call(gl);
+                        if (error !== gl.NO_ERROR) {
+                            this.logError('WebGL Error', new Error(`WebGL Error: ${error}`));
+                        }
+                        return error;
+                    };
+                }
             }
         }
         
         /**
-         * 切換線框模式
+         * 錯誤記錄
          */
-        static toggleWireframe() {
-            if (ElevatorSim.cargo) {
-                ElevatorSim.cargo.material.wireframe = !ElevatorSim.cargo.material.wireframe;
+        logError(type, error, context = {}) {
+            const errorEntry = {
+                timestamp: new Date().toISOString(),
+                type,
+                message: error.message || error.toString(),
+                stack: error.stack,
+                context,
+                userAgent: navigator.userAgent,
+                url: window.location.href
+            };
+            
+            this.errorLog.push(errorEntry);
+            
+            // 保持錯誤日誌大小
+            if (this.errorLog.length > 100) {
+                this.errorLog.shift();
             }
+            
+            // 嚴重錯誤的使用者通知
+            if (this.isCriticalError(error)) {
+                this.showUserFriendlyError(error);
+            }
+            
+            console.error('應用程式錯誤:', errorEntry);
+        }
+        
+        /**
+         * 判斷是否為關鍵錯誤
+         */
+        isCriticalError(error) {
+            const criticalKeywords = ['webgl', 'memory', 'quota', 'network'];
+            const errorMessage = error.message ? error.message.toLowerCase() : '';
+            
+            return criticalKeywords.some(keyword => errorMessage.includes(keyword));
+        }
+        
+        /**
+         * 顯示使用者友善的錯誤訊息
+         */
+        showUserFriendlyError(error) {
+            const errorMessage = this.translateErrorMessage(error);
+            
+            // 創建錯誤通知
+            const notification = document.createElement('div');
+            notification.className = `
+                fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50
+                max-w-md transform translate-x-full transition-transform duration-300
+            `;
+            
+            notification.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <i class="fas fa-exclamation-triangle text-xl mt-1"></i>
+                    <div class="flex-1">
+                        <h4 class="font-bold mb-1">系統錯誤</h4>
+                        <p class="text-sm">${errorMessage}</p>
+                        <button class="mt-2 text-xs underline hover:no-underline" onclick="this.parentElement.parentElement.parentElement.remove()">
+                            關閉
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // 動畫顯示
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // 自動移除
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+        
+        /**
+         * 翻譯錯誤訊息
+         */
+        translateErrorMessage(error) {
+            const message = error.message ? error.message.toLowerCase() : '';
+            
+            if (message.includes('webgl')) {
+                return '3D 渲染系統發生錯誤，請檢查瀏覽器是否支援 WebGL 或更新顯示卡驅動程式。';
+            } else if (message.includes('memory') || message.includes('quota')) {
+                return '記憶體不足，請關閉其他瀏覽器分頁或重新整理頁面。';
+            } else if (message.includes('network')) {
+                return '網路連線發生問題，請檢查網路連線狀態。';
+            } else {
+                return '發生未預期的錯誤，請重新整理頁面或聯繫技術支援。';
+            }
+        }
+        
+        /**
+         * 獲取錯誤統計
+         */
+        getErrorStatistics() {
+            const stats = {
+                totalErrors: this.errorLog.length,
+                errorsByType: {},
+                recentErrors: this.errorLog.slice(-10),
+                commonErrors: {}
+            };
+            
+            this.errorLog.forEach(error => {
+                stats.errorsByType[error.type] = (stats.errorsByType[error.type] || 0) + 1;
+                stats.commonErrors[error.message] = (stats.commonErrors[error.message] || 0) + 1;
+            });
+            
+            return stats;
         }
     }
     
+    // 初始化效能監控和錯誤處理
+    const performanceMonitor = new PerformanceMonitorPro();
+    const errorHandler = new ErrorHandlerPro();
+    
     // DOM 載入完成後初始化應用程式
     document.addEventListener('DOMContentLoaded', () => {
-        App.init();
+        try {
+            AppPro.init();
+            
+            // 效能測試（開發模式）
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.log('開發模式：啟用效能監控');
+                
+                // 定期輸出效能報告
+                setInterval(() => {
+                    const report = performanceMonitor.generatePerformanceReport();
+                    console.table(report.metrics);
+                }, 10000);
+            }
+            
+        } catch (error) {
+            errorHandler.logError('Initialization Error', error);
+            console.error('應用程式初始化失敗:', error);
+        }
     });
     
     // 頁面關閉前清理資源
     window.addEventListener('beforeunload', () => {
-        if (ElevatorSim.animationId) {
-            cancelAnimationFrame(ElevatorSim.animationId);
+        if (ElevatorSimPro.animationId) {
+            cancelAnimationFrame(ElevatorSimPro.animationId);
         }
+        
+        // 記錄會話統計
+        const sessionStats = {
+            duration: Date.now() - performance.timing.navigationStart,
+            errors: errorHandler.getErrorStatistics(),
+            performance: performanceMonitor.generatePerformanceReport()
+        };
+        
+        console.log('會話統計:', sessionStats);
     });
+    
+    // 開發者工具支援
+    if (typeof window !== 'undefined') {
+        window.ElevatorSimPro = ElevatorSimPro;
+        window.performanceMonitor = performanceMonitor;
+        window.errorHandler = errorHandler;
+        
+        // 開發者快捷命令
+        window.dev = {
+            resetSimulation: () => AppPro.resetForm(),
+            runQuickTest: () => {
+                // 快速測試配置
+                document.getElementById('cargoLength').value = 150;
+                document.getElementById('cargoWidth').value = 100;
+                document.getElementById('cargoHeight').value = 80;
+                document.getElementById('enableGeneticAlgorithm').checked = true;
+                document.getElementById('gaGenerations').value = 20;
+                SimulationEnginePro.runSimulation();
+            },
+            showPerformanceReport: () => {
+                console.table(performanceMonitor.generatePerformanceReport());
+            },
+            showErrorLog: () => {
+                console.table(errorHandler.getErrorStatistics());
+            }
+        };
+        
+        console.log('ElevatorSim Pro 開發者工具已載入');
+        console.log('使用 window.dev 存取開發者命令');
+    }
     
 </script>
 
