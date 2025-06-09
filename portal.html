@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>個人入口網站</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen py-10">
+  <div class="container mx-auto px-4">
+    <h1 class="text-3xl font-bold text-center mb-6">個人入口網站</h1>
+    <div class="mb-4">
+      <input id="search" type="text" placeholder="搜尋..." class="w-full p-2 border rounded">
+    </div>
+    <div id="content" class="space-y-8"></div>
+  </div>
+
+  <script>
+    async function loadPages() {
+      const res = await fetch('pages.json');
+      const pages = await res.json();
+      const groups = {};
+      pages.forEach(p => {
+        if (!groups[p.category]) groups[p.category] = [];
+        groups[p.category].push(p);
+      });
+      const content = document.getElementById('content');
+      Object.keys(groups).forEach(cat => {
+        const section = document.createElement('section');
+        section.innerHTML = `<h2 class="text-2xl font-semibold mb-2">${cat}</h2>`;
+        const ul = document.createElement('ul');
+        ul.className = 'grid grid-cols-1 md:grid-cols-3 gap-2';
+        groups[cat].forEach(p => {
+          const li = document.createElement('li');
+          li.innerHTML = `<a href="${p.url}" class="block bg-white p-3 rounded shadow hover:bg-blue-50" target="_blank">${p.title}</a>`;
+          ul.appendChild(li);
+        });
+        section.appendChild(ul);
+        content.appendChild(section);
+      });
+
+      document.getElementById('search').addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        content.querySelectorAll('a').forEach(a => {
+          a.parentElement.style.display = a.textContent.toLowerCase().includes(term) ? '' : 'none';
+        });
+      });
+    }
+    loadPages();
+  </script>
+</body>
+</html>
