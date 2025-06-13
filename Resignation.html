@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>離職集點卡 - 集滿離職</title>
+
+
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Google Fonts - 手寫字體 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+
+<!-- Font Awesome Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Tailwind Config -->
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: {
+                        50: '#f0f9f4',
+                        100: '#dcf4e4',
+                        200: '#bbe8cc',
+                        300: '#8cd5a8',
+                        400: '#5bb97d',
+                        500: '#3da35d',
+                        600: '#2d8049',
+                        700: '#26663d',
+                        800: '#215233',
+                        900: '#1d432b'
+                    },
+                    secondary: {
+                        50: '#fefce8',
+                        100: '#fef9c3',
+                        200: '#fef08a',
+                        300: '#fde047',
+                        400: '#facc15',
+                        500: '#eab308',
+                        600: '#ca8a04',
+                        700: '#a16207',
+                        800: '#854d0e',
+                        900: '#713f12'
+                    },
+                    neutral: {
+                        50: '#fafafa',
+                        100: '#f5f5f5',
+                        200: '#e5e5e5',
+                        300: '#d4d4d4',
+                        400: '#a3a3a3',
+                        500: '#737373',
+                        600: '#525252',
+                        700: '#404040',
+                        800: '#262626',
+                        900: '#171717'
+                    }
+                },
+                fontFamily: {
+                    'sans': ['Noto Sans TC', 'sans-serif'],
+                    'handwrite': ['Kalam', 'cursive']
+                },
+                spacing: {
+                    '18': '4.5rem',
+                    '22': '5.5rem',
+                    '26': '6.5rem',
+                    '30': '7.5rem'
+                },
+                animation: {
+                    'bounce-in': 'bounceIn 0.6s ease-out',
+                    'fade-in': 'fadeIn 0.8s ease-out',
+                    'slide-up': 'slideUp 0.5s ease-out'
+                }
+            }
+        }
+    }
+</script>
+
+<style>
+    /* 自訂動畫關鍵幀 */
+    @keyframes bounceIn {
+        0% { opacity: 0; transform: scale(0.3) translateY(20px); }
+        50% { opacity: 1; transform: scale(1.05); }
+        70% { transform: scale(0.95); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(50px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* 格子樣式強化 */
+    .grid-cell {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .grid-cell:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 25px rgba(61, 163, 93, 0.15);
+        z-index: 10;
+    }
+    
+    .grid-cell.filled {
+        background: linear-gradient(135deg, #dcf4e4 0%, #bbe8cc 100%);
+        border-color: #3da35d;
+    }
+    
+    .grid-cell.filled:hover {
+        background: linear-gradient(135deg, #bbe8cc 0%, #8cd5a8 100%);
+    }
+    
+    /* 手寫字體日期樣式 */
+    .date-text {
+        font-family: 'Kalam', cursive;
+        color: #2d8049;
+        font-weight: 700;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    /* 彩蛋按鈕隱藏樣式 */
+    .easter-egg {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 15px;
+        height: 15px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        z-index: 1000;
+    }
+    
+    /* 成功提示樣式 */
+    .success-popup {
+        background: linear-gradient(135deg, #dcf4e4 0%, #bbe8cc 100%);
+        border: 2px solid #3da35d;
+        box-shadow: 0 20px 40px rgba(61, 163, 93, 0.3);
+    }
+</style>
+
+
+</head>
+
+<body class="bg-gradient-to-br from-primary-50 to-primary-100 min-h-screen font-sans">
+    <!-- Header 區域 -->
+    <header class="text-center py-6 sm:py-8 md:py-12 animate-fade-in">
+        <div class="container mx-auto px-4">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary-800 mb-2 sm:mb-4 tracking-wide">
+                離職集點卡
+            </h1>
+            <p class="text-base sm:text-lg md:text-xl text-primary-600 font-medium" id="progressText">
+                共100格，集滿離職
+            </p>
+        </div>
+    </header>
+
+
+<!-- 主要內容區域 -->
+<main class="container mx-auto px-4 pb-8">
+    <!-- 集點卡格子區域 -->
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 mb-6 animate-slide-up">
+        <!-- 格子容器：Mobile 8x8, Desktop 10x10 -->
+        <div class="grid grid-cols-8 md:grid-cols-10 gap-1 sm:gap-2 max-w-2xl mx-auto" id="gridContainer">
+            <!-- 格子將由 JavaScript 動態生成 -->
+        </div>
+    </div>
+    
+    <!-- 進度統計 -->
+    <div class="text-center mb-6 animate-slide-up" style="animation-delay: 0.2s">
+        <div class="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg p-4 sm:p-6 max-w-md mx-auto">
+            <div class="flex items-center justify-center gap-4 mb-4">
+                <div class="text-center">
+                    <div class="text-2xl sm:text-3xl font-bold text-primary-700" id="filledCount">0</div>
+                    <div class="text-sm text-primary-600">已集滿</div>
+                </div>
+                <div class="text-primary-300">/</div>
+                <div class="text-center">
+                    <div class="text-2xl sm:text-3xl font-bold text-neutral-500">100</div>
+                    <div class="text-sm text-neutral-500">總格數</div>
+                </div>
+            </div>
+            
+            <!-- 進度條 -->
+            <div class="w-full bg-primary-200 rounded-full h-3 mb-4">
+                <div class="bg-gradient-to-r from-primary-500 to-primary-600 h-3 rounded-full transition-all duration-500 ease-out" 
+                     id="progressBar" style="width: 0%"></div>
+            </div>
+            
+            <button onclick="clearAllDates()" 
+                    class="bg-secondary-500 hover:bg-secondary-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95">
+                <i class="fas fa-trash-alt mr-2"></i>清空所有
+            </button>
+        </div>
+    </div>
+</main>
+
+<!-- Footer 區域 -->
+<footer class="text-center py-6 text-primary-600 animate-fade-in" style="animation-delay: 0.4s">
+    <div class="container mx-auto px-4">
+        <p class="text-sm sm:text-base mb-2 font-handwrite">
+            真的做不了，沒有一天是適合上班的。
+        </p>
+        <p class="text-xs sm:text-sm opacity-75">
+            離職Day
+        </p>
+    </div>
+</footer>
+
+<!-- 隱藏彩蛋按鈕 -->
+<button class="easter-egg" onclick="showEasterEgg()" title="發現彩蛋！"></button>
+
+<!-- 成功彩蛋彈窗 -->
+<div id="easterEggModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="success-popup rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center animate-bounce-in">
+        <div class="text-4xl mb-4">🎉</div>
+        <h3 class="text-xl font-bold text-primary-800 mb-3">恭喜發現彩蛋！</h3>
+        <p class="text-primary-700 mb-4 font-handwrite">
+            堅持就是勝利！<br>
+            每一天都離自由更近一步 ✨
+        </p>
+        <button onclick="hideEasterEgg()" 
+                class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105">
+            我知道了
+        </button>
+    </div>
+</div>
+
+<script>
+    // 全域變數
+    let filledDates = new Set();
+    const STORAGE_KEY = 'resignationCard_dates';
+    const TOTAL_CELLS = 100;
+    
+    // 初始化頁面
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSavedDates();
+        generateGrid();
+        updateProgress();
+        
+        // 載入時的動畫效果
+        setTimeout(() => {
+            document.querySelector('#gridContainer').classList.add('animate-bounce-in');
+        }, 300);
+    });
+    
+    // 載入儲存的日期資料
+    function loadSavedDates() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                const savedArray = JSON.parse(saved);
+                filledDates = new Set(savedArray);
+            } catch (e) {
+                console.error('載入資料失敗:', e);
+                filledDates = new Set();
+            }
+        }
+    }
+    
+    // 儲存日期資料
+    function saveDates() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify([...filledDates]));
+        } catch (e) {
+            console.error('儲存資料失敗:', e);
+        }
+    }
+    
+    // 動態生成格子
+    function generateGrid() {
+        const container = document.getElementById('gridContainer');
+        container.innerHTML = '';
+        
+        for (let i = 0; i < TOTAL_CELLS; i++) {
+            const cell = document.createElement('div');
+            cell.className = `
+                grid-cell aspect-square border-2 border-primary-200 rounded-lg 
+                bg-white cursor-pointer flex items-center justify-center
+                hover:border-primary-400 active:scale-95
+            `;
+            cell.setAttribute('data-index', i);
+            
+            // 檢查是否已填入日期
+            if (filledDates.has(i)) {
+                const today = new Date();
+                const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
+                fillCell(cell, dateStr);
+            }
+            
+            // 點擊事件處理
+            cell.addEventListener('click', function() {
+                handleCellClick(i, cell);
+            });
+            
+            container.appendChild(cell);
+        }
+    }
+    
+    // 處理格子點擊
+    function handleCellClick(index, cellElement) {
+        const today = new Date();
+        const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
+        
+        if (filledDates.has(index)) {
+            // 如果已填入，則清除
+            clearCell(cellElement);
+            filledDates.delete(index);
+        } else {
+            // 如果未填入，則填入今天日期
+            fillCell(cellElement, dateStr);
+            filledDates.add(index);
+            
+            // 添加點擊動畫
+            cellElement.style.animation = 'bounceIn 0.6s ease-out';
+            setTimeout(() => {
+                cellElement.style.animation = '';
+            }, 600);
+        }
+        
+        saveDates();
+        updateProgress();
+        
+        // 檢查是否完成
+        if (filledDates.size === TOTAL_CELLS) {
+            setTimeout(showCompletionMessage, 500);
+        }
+    }
+    
+    // 填入格子
+    function fillCell(cell, dateStr) {
+        cell.classList.add('filled');
+        cell.innerHTML = `<span class="date-text text-xs sm:text-sm">${dateStr}</span>`;
+    }
+    
+    // 清空格子
+    function clearCell(cell) {
+        cell.classList.remove('filled');
+        cell.innerHTML = '';
+    }
+    
+    // 更新進度
+    function updateProgress() {
+        const count = filledDates.size;
+        const percentage = (count / TOTAL_CELLS * 100).toFixed(1);
+        
+        document.getElementById('filledCount').textContent = count;
+        document.getElementById('progressBar').style.width = `${percentage}%`;
+        
+        // 更新標題進度
+        const progressText = document.getElementById('progressText');
+        if (count === 0) {
+            progressText.textContent = '共100格，集滿離職';
+        } else if (count === TOTAL_CELLS) {
+            progressText.textContent = '🎉 恭喜集滿！準備離職！';
+            progressText.className += ' text-secondary-600 font-bold';
+        } else {
+            progressText.textContent = `還差 ${TOTAL_CELLS - count} 格就離職了！`;
+        }
+    }
+    
+    // 清空所有日期
+    function clearAllDates() {
+        if (filledDates.size === 0) return;
+        
+        if (confirm('確定要清空所有日期嗎？此操作無法復原。')) {
+            filledDates.clear();
+            saveDates();
+            generateGrid();
+            updateProgress();
+            
+            // 清空動畫效果
+            const container = document.getElementById('gridContainer');
+            container.style.animation = 'fadeIn 0.5s ease-out';
+            setTimeout(() => {
+                container.style.animation = '';
+            }, 500);
+        }
+    }
+    
+    // 顯示完成訊息
+    function showCompletionMessage() {
+        const modal = document.getElementById('easterEggModal');
+        const content = modal.querySelector('.success-popup');
+        
+        content.innerHTML = `
+            <div class="text-4xl mb-4">🏆</div>
+            <h3 class="text-xl font-bold text-primary-800 mb-3">恭喜完成離職集點！</h3>
+            <p class="text-primary-700 mb-4 font-handwrite">
+                100格全部集滿！<br>
+                是時候向老闆說再見了！🎉
+            </p>
+            <button onclick="hideEasterEgg()" 
+                    class="bg-secondary-600 hover:bg-secondary-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105">
+                準備離職！
+            </button>
+        `;
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    
+    // 顯示彩蛋
+    function showEasterEgg() {
+        const modal = document.getElementById('easterEggModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    
+    // 隱藏彩蛋
+    function hideEasterEgg() {
+        const modal = document.getElementById('easterEggModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    
+    // 點擊背景關閉彈窗
+    document.getElementById('easterEggModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideEasterEgg();
+        }
+    });
+    
+    // 鍵盤快捷鍵支援
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideEasterEgg();
+        }
+        
+        // Ctrl/Cmd + R 重置（防止意外重新整理）
+        if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+            e.preventDefault();
+            if (confirm('確定要重新整理頁面嗎？未儲存的變更將會遺失。')) {
+                location.reload();
+            }
+        }
+    });
+    
+    // 視覺回饋增強
+    document.querySelectorAll('button').forEach(button => {
+        button.addEventListener('mousedown', function() {
+            this.style.transform = 'scale(0.95)';
+        });
+        
+        button.addEventListener('mouseup', function() {
+            this.style.transform = '';
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+        });
+    });
+    
+    // 進場動畫序列
+    function initAnimations() {
+        const elements = document.querySelectorAll('.animate-fade-in, .animate-slide-up');
+        elements.forEach((el, index) => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            
+            setTimeout(() => {
+                el.style.transition = 'all 0.8s ease-out';
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            }, index * 200);
+        });
+    }
+    
+    // 頁面載入完成後執行動畫
+    window.addEventListener('load', initAnimations);
+</script>
+
+
+</body>
+</html>
