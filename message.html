@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>📝 雲端留言板</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: #f2f6fa;
+        padding: 24px;
+      }
+      .box {
+        max-width: 500px;
+        margin: auto;
+        background: #fff;
+        padding: 28px;
+        border-radius: 10px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        text-align: center;
+        margin: 0 0 20px;
+        color: #1976d2;
+      }
+      input,
+      textarea {
+        width: 100%;
+        padding: 12px;
+        margin-top: 10px;
+        border: 1px solid #bbb;
+        border-radius: 6px;
+        font-size: 16px;
+      }
+      button {
+        margin-top: 18px;
+        width: 100%;
+        padding: 12px;
+        background: #1976d2;
+        color: #fff;
+        font-size: 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #125aa0;
+      }
+      #log {
+        margin-top: 25px;
+        font-size: 14px;
+        color: #444;
+      }
+      .item {
+        padding: 8px 0;
+        border-bottom: 1px dashed #ddd;
+      }
+      .time {
+        color: #888;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>留言板</h1>
+      <input id="name" placeholder="你的名字" />
+      <textarea id="msg" rows="4" placeholder="想說什麼？"></textarea>
+      <button onclick="submitMsg()">送出</button>
+      <p id="result"></p>
+      <div id="log"></div>
+    </div>
+
+    <script>
+      const API_URL =
+        "https://script.google.com/macros/s/AKfycbx1ShpqyndZszriJ1ZWCnSKcBggpGkPBL-Rjy7X8d_1NVYoQlrZ1HPbBpHIwliJ8HpY/exec";
+
+      async function submitMsg() {
+        const name = $v("name"),
+          message = $v("msg"),
+          r = id("result");
+        if (!name || !message) {
+          r.textContent = "請填寫所有欄位";
+          r.style.color = "red";
+          return;
+        }
+        try {
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, message }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            r.textContent = "留言成功！";
+            r.style.color = "green";
+            id("name").value = "";
+            id("msg").value = "";
+            loadList();
+          } else throw new Error(data.error || "未知錯誤");
+        } catch (e) {
+          r.textContent = "失敗：" + e.message;
+          r.style.color = "red";
+        }
+      }
+
+      async function loadList() {
+        try {
+          const res = await fetch(API_URL);
+          const list = await res.json();
+          const log = id("log");
+          log.innerHTML = "";
+          list.forEach((x) => {
+            log.innerHTML += `<div class="item"><div>${escapeHTML(
+              x.message
+            )}</div><div class="time">${x.time} • ${escapeHTML(
+              x.name
+            )}</div></div>`;
+          });
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      function $v(id) {
+        return document.getElementById(id).value.trim();
+      }
+      function id(i) {
+        return document.getElementById(i);
+      }
+      function escapeHTML(s) {
+        return s.replace(
+          /[&<>"']/g,
+          (m) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            }[m])
+        );
+      }
+
+      window.addEventListener("DOMContentLoaded", loadList);
+    </script>
+  </body>
+</html>
