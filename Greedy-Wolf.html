@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#059669">
+
+
+<!-- SEO & Open Graph -->
+<title>貪吃狼 | 經典小遊戲重現</title>
+<meta name="description" content="以貪吃蛇為原型的創新小遊戲，狼追兔子的有趣體驗，支援手機觸控操作">
+<meta property="og:title" content="貪吃狼遊戲">
+<meta property="og:description" content="創新的貪吃蛇遊戲，流暢的手機操作體驗">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+
+<!-- Schema.org 結構化資料 -->
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Game",
+    "name": "貪吃狼",
+    "description": "以貪吃蛇為原型的創新小遊戲",
+    "genre": "Arcade Game"
+}
+</script>
+
+<!-- CDN 引入 -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Tailwind Config -->
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: {
+                        50: '#ecfdf5',
+                        500: '#059669',
+                        600: '#047857',
+                        700: '#065f46'
+                    },
+                    secondary: {
+                        500: '#f59e0b',
+                        600: '#d97706'
+                    },
+                    neutral: {
+                        50: '#f9fafb',
+                        100: '#f3f4f6',
+                        800: '#1f2937',
+                        900: '#111827'
+                    }
+                },
+                fontFamily: {
+                    'sans': ['Inter', 'Noto Sans TC', 'sans-serif']
+                },
+                spacing: {
+                    '0.25': '0.0625rem',
+                    '18': '4.5rem',
+                    '22': '5.5rem'
+                },
+                animation: {
+                    'bounce-score': 'bounceScore 0.6s ease-out',
+                    'particle': 'particle 1s ease-out forwards',
+                    'wolf-move': 'wolfMove 0.2s ease-out',
+                    'rabbit-jump': 'rabbitJump 2s ease-in-out infinite'
+                }
+            }
+        }
+    }
+</script>
+
+<!-- 自訂 CSS -->
+<style>
+    /* 全域設定與可訪問性 */
+    * {
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        touch-action: manipulation;
+    }
+    
+    /* 遊戲畫布樣式 */
+    #gameCanvas {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border: 3px solid #059669;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        touch-action: none;
+    }
+    
+    /* 動畫定義 */
+    @keyframes bounceScore {
+        0%, 20%, 53%, 80%, to {
+            transform: scale(1);
+        }
+        40%, 43% {
+            transform: scale(1.2);
+        }
+        70% {
+            transform: scale(1.1);
+        }
+    }
+    
+    @keyframes particle {
+        0% {
+            opacity: 1;
+            transform: scale(1) translate(0, 0);
+        }
+        100% {
+            opacity: 0;
+            transform: scale(0.5) translate(var(--dx), var(--dy));
+        }
+    }
+    
+    @keyframes wolfMove {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.1);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+    
+    @keyframes rabbitJump {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+    
+    /* 觸控控制按鈕 */
+    .control-btn {
+        transition: all 0.2s ease-out;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .control-btn:active {
+        transform: scale(0.95);
+        background-color: #047857;
+    }
+    
+    /* 粒子效果 */
+    .particle {
+        position: absolute;
+        pointer-events: none;
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #f59e0b;
+        animation: particle 1s ease-out forwards;
+    }
+    
+    /* 彩蛋樣式 */
+    .easter-egg-active {
+        animation: rainbow 2s ease-in-out infinite;
+    }
+    
+    @keyframes rainbow {
+        0% { filter: hue-rotate(0deg); }
+        100% { filter: hue-rotate(360deg); }
+    }
+    
+    /* 夜貓模式 */
+    .night-owl-mode {
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+    }
+    
+    /* CRT 濾鏡效果 */
+    .crt-filter {
+        filter: contrast(1.2) brightness(1.1) saturate(1.3);
+        background: repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 0, 0, 0.03) 2px,
+            rgba(0, 0, 0, 0.03) 4px
+        );
+    }
+    
+    /* 響應式媒體查詢 */
+    @media (pointer: coarse) {
+        .control-btn {
+            min-height: 3rem;
+            min-width: 3rem;
+        }
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+</style>
+
+
+</head>
+
+<body class="bg-gradient-to-br from-primary-50 to-neutral-100 min-h-screen font-sans">
+    <!-- Header 區域 -->
+    <header class="p-4 sm:p-6">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <!-- Logo - 隱藏彩蛋觸發點 -->
+            <div class="flex items-center space-x-3">
+                <div id="logo" class="text-3xl sm:text-4xl cursor-pointer transition-transform duration-200 hover:scale-110" 
+                     title="長按我看看會發生什麼...">
+                    🐺
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-neutral-800 tracking-wide">
+                    貪吃狼
+                </h1>
+            </div>
+
+
+        <!-- 分數顯示 -->
+        <div class="text-right">
+            <div class="text-sm text-neutral-600 font-medium">得分</div>
+            <div id="score" class="text-2xl sm:text-3xl font-bold text-primary-600">0</div>
+        </div>
+    </div>
+</header>
+
+<!-- 主要遊戲區域 -->
+<main class="px-4 sm:px-6 pb-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- 遊戲狀態面板 -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 mb-6 shadow-lg">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                <!-- 遊戲控制按鈕 -->
+                <div class="flex items-center space-x-3">
+                    <button id="startBtn" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-md">
+                        <i class="fas fa-play mr-2"></i>開始遊戲
+                    </button>
+                    <button id="pauseBtn" class="bg-secondary-500 hover:bg-secondary-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-md" disabled>
+                        <i class="fas fa-pause mr-2"></i>暫停
+                    </button>
+                </div>
+                
+                <!-- 速度與最高分 -->
+                <div class="flex items-center space-x-6 text-sm text-neutral-600">
+                    <div>速度: <span id="speedDisplay" class="font-semibold text-primary-600">1</span></div>
+                    <div>最高分: <span id="highScore" class="font-semibold text-secondary-600">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 遊戲畫布容器 -->
+        <div class="flex justify-center mb-6">
+            <div class="relative">
+                <canvas id="gameCanvas" width="320" height="320" class="block mx-auto"></canvas>
+                <!-- 遊戲結束覆蓋層 -->
+                <div id="gameOverlay" class="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-2xl flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+                    <div class="bg-white rounded-xl p-6 text-center shadow-xl">
+                        <div id="gameOverText" class="text-xl font-bold text-neutral-800 mb-4">遊戲結束</div>
+                        <button id="restartBtn" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-105">
+                            再來一局
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 觸控控制區域 (手機版) -->
+        <div class="md:hidden">
+            <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg">
+                <div class="text-center mb-4">
+                    <h3 class="text-lg font-semibold text-neutral-800 mb-2">遊戲控制</h3>
+                    <p class="text-sm text-neutral-600">滑動螢幕或使用按鈕控制方向</p>
+                </div>
+                
+                <!-- 方向控制按鈕 -->
+                <div class="grid grid-cols-3 gap-3 max-w-48 mx-auto">
+                    <div></div>
+                    <button class="control-btn bg-primary-500 text-white p-4 rounded-lg text-xl shadow-md" data-direction="up">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                    <div></div>
+                    
+                    <button class="control-btn bg-primary-500 text-white p-4 rounded-lg text-xl shadow-md" data-direction="left">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="flex items-center justify-center">
+                        <div class="text-2xl">🐺</div>
+                    </div>
+                    <button class="control-btn bg-primary-500 text-white p-4 rounded-lg text-xl shadow-md" data-direction="right">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    
+                    <div></div>
+                    <button class="control-btn bg-primary-500 text-white p-4 rounded-lg text-xl shadow-md" data-direction="down">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 桌面版說明 -->
+        <div class="hidden md:block bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg mt-6">
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-neutral-800 mb-2">鍵盤控制</h3>
+                <p class="text-sm text-neutral-600">使用方向鍵 ↑↓←→ 控制狼的移動方向</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Footer -->
+<footer class="text-center p-6 text-neutral-500 text-sm">
+    <p>© 2025 貪吃狼遊戲 | 響應式設計 & Mobile-First 體驗</p>
+</footer>
+
+<!-- 隱藏彩蛋按鈕 -->
+<button id="secretBtn" class="fixed bottom-4 right-4 w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300 hover:scale-110" 
+        style="transform: translateY(100px);">
+    <i class="fas fa-star"></i>
+</button>
+
+<!-- 彩蛋浮層 -->
+<div id="easterEggModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+    <div class="bg-white rounded-xl p-6 mx-4 max-w-md text-center shadow-xl">
+        <div id="easterEggContent" class="text-lg font-semibold text-neutral-800 mb-4"></div>
+        <button id="closeEasterEgg" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg transition-colors duration-200">
+            關閉
+        </button>
+    </div>
+</div>
+
+<!-- PWA Manifest (inline) -->
+<script type="application/manifest+json">
+{
+    "name": "貪吃狼遊戲",
+    "short_name": "貪吃狼",
+    "description": "創新的貪吃蛇遊戲體驗",
+    "start_url": "./",
+    "display": "standalone",
+    "theme_color": "#059669",
+    "background_color": "#ecfdf5",
+    "icons": [
+        {
+            "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIGZpbGw9IiMwNTk2NjkiLz48dGV4dCB4PSI5NiIgeT0iMTIwIiBmb250LXNpemU9IjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5C6PC90ZXh0Pjwvc3ZnPg==",
+            "sizes": "192x192",
+            "type": "image/svg+xml"
+        }
+    ]
+}
+</script>
+
+<!-- 主要 JavaScript -->
+<script>
+    // ==================== 遊戲核心類別 ====================
+    
+    class SnakeWolfGame {
+        constructor() {
+            this.canvas = document.getElementById('gameCanvas');
+            this.ctx = this.canvas.getContext('2d');
+            this.gridSize = 20;
+            this.tileCount = this.canvas.width / this.gridSize;
+            
+            // 遊戲狀態
+            this.snake = [{x: 10, y: 10}];
+            this.food = {x: 15, y: 15};
+            this.dx = 0;
+            this.dy = 0;
+            this.score = 0;
+            this.gameRunning = false;
+            this.gamePaused = false;
+            this.speed = 200;
+            this.speedLevel = 1;
+            
+            // 高分記錄
+            this.highScore = parseInt(localStorage.getItem('snakeWolfHighScore') || '0');
+            document.getElementById('highScore').textContent = this.highScore;
+            
+            // 綁定事件
+            this.bindEvents();
+            this.setupTouchControls();
+            this.generateFood();
+            this.draw();
+        }
+        
+        // 事件綁定
+        bindEvents() {
+            // 按鈕控制
+            document.getElementById('startBtn').addEventListener('click', () => this.startGame());
+            document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
+            document.getElementById('restartBtn').addEventListener('click', () => this.restartGame());
+            
+            // 鍵盤控制
+            document.addEventListener('keydown', (e) => this.handleKeyPress(e));
+            
+            // 方向按鈕
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const direction = e.currentTarget.dataset.direction;
+                    this.changeDirection(direction);
+                });
+            });
+        }
+        
+        // 觸控控制設定
+        setupTouchControls() {
+            let startX, startY;
+            const minSwipeDistance = 30;
+            
+            this.canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                startX = touch.clientX;
+                startY = touch.clientY;
+            }, { passive: false });
+            
+            this.canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+            
+            this.canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (!startX || !startY || !this.gameRunning || this.gamePaused) return;
+                
+                const touch = e.changedTouches[0];
+                const deltaX = touch.clientX - startX;
+                const deltaY = touch.clientY - startY;
+                
+                if (Math.abs(deltaX) < minSwipeDistance && Math.abs(deltaY) < minSwipeDistance) return;
+                
+                if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    // 水平滑動
+                    this.changeDirection(deltaX > 0 ? 'right' : 'left');
+                } else {
+                    // 垂直滑動
+                    this.changeDirection(deltaY > 0 ? 'down' : 'up');
+                }
+                
+                startX = null;
+                startY = null;
+            }, { passive: false });
+        }
+        
+        // 鍵盤按鍵處理
+        handleKeyPress(e) {
+            if (!this.gameRunning || this.gamePaused) return;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    this.changeDirection('up');
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    this.changeDirection('down');
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    this.changeDirection('left');
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    this.changeDirection('right');
+                    break;
+            }
+        }
+        
+        // 改變移動方向
+        changeDirection(direction) {
+            switch(direction) {
+                case 'up':
+                    if (this.dy === 0) { this.dx = 0; this.dy = -1; }
+                    break;
+                case 'down':
+                    if (this.dy === 0) { this.dx = 0; this.dy = 1; }
+                    break;
+                case 'left':
+                    if (this.dx === 0) { this.dx = -1; this.dy = 0; }
+                    break;
+                case 'right':
+                    if (this.dx === 0) { this.dx = 1; this.dy = 0; }
+                    break;
+            }
+        }
+        
+        // 開始遊戲
+        startGame() {
+            this.gameRunning = true;
+            this.gamePaused = false;
+            this.dx = 1;
+            this.dy = 0;
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('gameOverlay').style.opacity = '0';
+            document.getElementById('gameOverlay').style.pointerEvents = 'none';
+            
+            this.gameLoop();
+        }
+        
+        // 暫停/恢復遊戲
+        togglePause() {
+            if (!this.gameRunning) return;
+            
+            this.gamePaused = !this.gamePaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            
+            if (this.gamePaused) {
+                pauseBtn.innerHTML = '<i class="fas fa-play mr-2"></i>繼續';
+            } else {
+                pauseBtn.innerHTML = '<i class="fas fa-pause mr-2"></i>暫停';
+                this.gameLoop();
+            }
+        }
+        
+        // 重新開始遊戲
+        restartGame() {
+            this.snake = [{x: 10, y: 10}];
+            this.dx = 0;
+            this.dy = 0;
+            this.score = 0;
+            this.speedLevel = 1;
+            this.speed = 200;
+            this.gameRunning = false;
+            this.gamePaused = false;
+            
+            document.getElementById('score').textContent = '0';
+            document.getElementById('speedDisplay').textContent = '1';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-pause mr-2"></i>暫停';
+            
+            this.generateFood();
+            this.draw();
+        }
+        
+        // 主遊戲循環
+        gameLoop() {
+            if (!this.gameRunning || this.gamePaused) return;
+            
+            setTimeout(() => {
+                this.update();
+                this.draw();
+                this.gameLoop();
+            }, this.speed);
+        }
+        
+        // 更新遊戲狀態
+        update() {
+            const head = {x: this.snake[0].x + this.dx, y: this.snake[0].y + this.dy};
+            
+            // 邊界碰撞檢測
+            if (head.x < 0 || head.x >= this.tileCount || head.y < 0 || head.y >= this.tileCount) {
+                this.gameOver();
+                return;
+            }
+            
+            // 自身碰撞檢測
+            for (let segment of this.snake) {
+                if (head.x === segment.x && head.y === segment.y) {
+                    this.gameOver();
+                    return;
+                }
+            }
+            
+            this.snake.unshift(head);
+            
+            // 食物碰撞檢測
+            if (head.x === this.food.x && head.y === this.food.y) {
+                this.score += 10;
+                this.updateScore();
+                this.generateFood();
+                this.createParticleEffect(head.x * this.gridSize + this.gridSize/2, head.y * this.gridSize + this.gridSize/2);
+                
+                // 速度提升
+                if (this.score % 50 === 0) {
+                    this.speedLevel++;
+                    this.speed = Math.max(80, this.speed - 20);
+                    document.getElementById('speedDisplay').textContent = this.speedLevel;
+                }
+            } else {
+                this.snake.pop();
+            }
+        }
+        
+        // 生成食物 (兔子)
+        generateFood() {
+            do {
+                this.food = {
+                    x: Math.floor(Math.random() * this.tileCount),
+                    y: Math.floor(Math.random() * this.tileCount)
+                };
+            } while (this.snake.some(segment => segment.x === this.food.x && segment.y === this.food.y));
+        }
+        
+        // 繪製遊戲畫面
+        draw() {
+            // 清空畫布
+            this.ctx.fillStyle = 'transparent';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            
+            // 繪製蛇身 (狼)
+            this.snake.forEach((segment, index) => {
+                const x = segment.x * this.gridSize;
+                const y = segment.y * this.gridSize;
+                
+                if (index === 0) {
+                    // 狼頭
+                    this.ctx.fillStyle = '#059669';
+                    this.ctx.fillRect(x + 2, y + 2, this.gridSize - 4, this.gridSize - 4);
+                    this.ctx.font = '16px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText('🐺', x + this.gridSize/2, y + this.gridSize/2 + 6);
+                } else {
+                    // 狼身
+                    this.ctx.fillStyle = index % 2 === 0 ? '#065f46' : '#047857';
+                    this.ctx.fillRect(x + 3, y + 3, this.gridSize - 6, this.gridSize - 6);
+                }
+            });
+            
+            // 繪製食物 (兔子)
+            const foodX = this.food.x * this.gridSize;
+            const foodY = this.food.y * this.gridSize;
+            this.ctx.fillStyle = '#f59e0b';
+            this.ctx.fillRect(foodX + 2, foodY + 2, this.gridSize - 4, this.gridSize - 4);
+            this.ctx.font = '16px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('🐰', foodX + this.gridSize/2, foodY + this.gridSize/2 + 6);
+        }
+        
+        // 更新分數顯示
+        updateScore() {
+            document.getElementById('score').textContent = this.score;
+            document.getElementById('score').classList.add('animate-bounce-score');
+            setTimeout(() => {
+                document.getElementById('score').classList.remove('animate-bounce-score');
+            }, 600);
+            
+            // 更新最高分
+            if (this.score > this.highScore) {
+                this.highScore = this.score;
+                localStorage.setItem('snakeWolfHighScore', this.highScore);
+                document.getElementById('highScore').textContent = this.highScore;
+            }
+        }
+        
+        // 粒子效果
+        createParticleEffect(x, y) {
+            const rect = this.canvas.getBoundingClientRect();
+            const particles = ['🌟', '✨', '💫', '⭐'];
+            
+            for (let i = 0; i < 5; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.textContent = particles[Math.floor(Math.random() * particles.length)];
+                particle.style.left = (rect.left + x) + 'px';
+                particle.style.top = (rect.top + y) + 'px';
+                particle.style.setProperty('--dx', (Math.random() - 0.5) * 100 + 'px');
+                particle.style.setProperty('--dy', (Math.random() - 0.5) * 100 + 'px');
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => {
+                    document.body.removeChild(particle);
+                }, 1000);
+            }
+        }
+        
+        // 遊戲結束
+        gameOver() {
+            this.gameRunning = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('pauseBtn').innerHTML = '<i class="fas fa-pause mr-2"></i>暫停';
+            
+            // 顯示遊戲結束覆蓋層
+            const overlay = document.getElementById('gameOverlay');
+            const gameOverText = document.getElementById('gameOverText');
+            gameOverText.innerHTML = `
+                <div class="text-2xl mb-2">🐺 遊戲結束 🐰</div>
+                <div class="text-lg text-neutral-600">最終得分: ${this.score}</div>
+                ${this.score === this.highScore ? '<div class="text-sm text-secondary-600 mt-2">🎉 新紀錄！</div>' : ''}
+            `;
+            overlay.style.opacity = '1';
+            overlay.style.pointerEvents = 'auto';
+        }
+    }
+    
+    // ==================== 彩蛋系統 ====================
+    
+    class EasterEggManager {
+        constructor() {
+            this.konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
+            this.konamiIndex = 0;
+            this.longPressTimer = null;
+            this.isNightOwlMode = false;
+            this.isCRTMode = false;
+            
+            this.bindEasterEggEvents();
+            this.checkTimeEasterEgg();
+        }
+        
+        bindEasterEggEvents() {
+            // Konami Code
+            document.addEventListener('keydown', (e) => {
+                if (e.code === this.konamiCode[this.konamiIndex]) {
+                    this.konamiIndex++;
+                    if (this.konamiIndex === this.konamiCode.length) {
+                        this.triggerKonamiCode();
+                        this.konamiIndex = 0;
+                    }
+                } else {
+                    this.konamiIndex = 0;
+                }
+            });
+            
+            // Logo 長按
+            const logo = document.getElementById('logo');
+            logo.addEventListener('mousedown', () => this.startLongPress());
+            logo.addEventListener('mouseup', () => this.endLongPress());
+            logo.addEventListener('mouseleave', () => this.endLongPress());
+            logo.addEventListener('touchstart', () => this.startLongPress());
+            logo.addEventListener('touchend', () => this.endLongPress());
+            
+            // 裝置搖動
+            if (window.DeviceMotionEvent) {
+                window.addEventListener('devicemotion', (e) => this.handleDeviceMotion(e));
+            }
+            
+            // 彩蛋模態框關閉
+            document.getElementById('closeEasterEgg').addEventListener('click', () => {
+                this.hideEasterEggModal();
+            });
+            
+            // 日期彩蛋檢查
+            this.checkDateEasterEgg();
+        }
+        
+        // Konami Code 彩蛋
+        triggerKonamiCode() {
+            this.showEasterEggModal('🎮 Konami Code 啟動！', '你發現了經典的 Konami 密技！獲得 8-bit 復古徽章 🏆');
+            document.body.classList.add('easter-egg-active');
+            setTimeout(() => {
+                document.body.classList.remove('easter-egg-active');
+            }, 3000);
+        }
+        
+        // Logo 長按
+        startLongPress() {
+            this.longPressTimer = setTimeout(() => {
+                this.triggerLongPress();
+            }, 1200);
+        }
+        
+        endLongPress() {
+            if (this.longPressTimer) {
+                clearTimeout(this.longPressTimer);
+                this.longPressTimer = null;
+            }
+        }
+        
+        triggerLongPress() {
+            this.showEasterEggModal('✨ 粒子爆發！', '長按 Logo 觸發了神秘的粒子效果！');
+            this.createBurstParticles();
+            
+            // 手機震動回饋
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100]);
+            }
+        }
+        
+        // 粒子爆發效果
+        createBurstParticles() {
+            const logo = document.getElementById('logo');
+            const rect = logo.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            const particles = ['🌟', '✨', '💫', '⭐', '🎆', '🎇'];
+            
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.textContent = particles[Math.floor(Math.random() * particles.length)];
+                particle.style.left = centerX + 'px';
+                particle.style.top = centerY + 'px';
+                particle.style.setProperty('--dx', (Math.random() - 0.5) * 200 + 'px');
+                particle.style.setProperty('--dy', (Math.random() - 0.5) * 200 + 'px');
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (document.body.contains(particle)) {
+                        document.body.removeChild(particle);
+                    }
+                }, 1000);
+            }
+        }
+        
+        // 裝置搖動檢測
+        handleDeviceMotion(event) {
+            const acceleration = event.accelerationIncludingGravity;
+            if (acceleration) {
+                const total = Math.abs(acceleration.x) + Math.abs(acceleration.y) + Math.abs(acceleration.z);
+                if (total > 13 && !this.isCRTMode) {
+                    this.triggerShakeEasterEgg();
+                }
+            }
+        }
+        
+        triggerShakeEasterEgg() {
+            this.isCRTMode = true;
+            this.showEasterEggModal('📺 CRT 濾鏡模式！', '搖動裝置啟動了復古 CRT 顯示效果！');
+            document.body.classList.add('crt-filter');
+            
+            setTimeout(() => {
+                document.body.classList.remove('crt-filter');
+                this.isCRTMode = false;
+            }, 3000);
+        }
+        
+        // 時間彩蛋檢查
+        checkTimeEasterEgg() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            
+            // 凌晨 3:14 夜貓模式
+            if (hours === 3 && minutes === 14 && !this.isNightOwlMode) {
+                this.triggerNightOwlMode();
+            }
+        }
+        
+        triggerNightOwlMode() {
+            this.isNightOwlMode = true;
+            this.showEasterEggModal('🦉 夜貓模式啟動！', '深夜 3:14 的神秘時刻，你是真正的夜貓子！');
+            document.body.classList.add('night-owl-mode');
+        }
+        
+        // 日期彩蛋檢查
+        checkDateEasterEgg() {
+            const now = new Date();
+            const month = now.getMonth() + 1;
+            const date = now.getDate();
+            
+            // 4月1日愚人節
+            if (month === 4 && date === 1) {
+                const isAprilFoolsActive = localStorage.getItem('aprilFoolsActive') === '2025';
+                if (!isAprilFoolsActive) {
+                    this.triggerAprilFoolsEasterEgg();
+                    localStorage.setItem('aprilFoolsActive', '2025');
+                }
+            }
+        }
+        
+        triggerAprilFoolsEasterEgg() {
+            this.showEasterEggModal('🐟 Poisson d\'Avril！', '愚人節快樂！今天所有按鈕都會有特殊的魚兒裝飾 🐟');
+            
+            // 為所有按鈕添加魚兒 emoji
+            document.querySelectorAll('button').forEach(btn => {
+                btn.textContent += ' 🐟';
+            });
+        }
+        
+        // 顯示彩蛋模態框
+        showEasterEggModal(title, content) {
+            document.getElementById('easterEggContent').innerHTML = `
+                <div class="text-xl font-bold mb-2">${title}</div>
+                <div class="text-neutral-600">${content}</div>
+            `;
+            
+            const modal = document.getElementById('easterEggModal');
+            modal.style.opacity = '1';
+            modal.style.pointerEvents = 'auto';
+        }
+        
+        // 隱藏彩蛋模態框
+        hideEasterEggModal() {
+            const modal = document.getElementById('easterEggModal');
+            modal.style.opacity = '0';
+            modal.style.pointerEvents = 'none';
+        }
+    }
+    
+    // ==================== 初始化 ====================
+    
+    // 等待 DOM 加載完成
+    document.addEventListener('DOMContentLoaded', () => {
+        // 初始化遊戲
+        const game = new SnakeWolfGame();
+        
+        // 初始化彩蛋系統
+        const easterEggs = new EasterEggManager();
+        
+        // Service Worker 註冊 (PWA 支援)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register(
+                URL.createObjectURL(new Blob([`
+                    const CACHE_NAME = 'snake-wolf-v1';
+                    const urlsToCache = ['/'];
+                    
+                    self.addEventListener('install', event => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME)
+                                .then(cache => cache.addAll(urlsToCache))
+                        );
+                    });
+                    
+                    self.addEventListener('fetch', event => {
+                        event.respondWith(
+                            caches.match(event.request)
+                                .then(response => response || fetch(event.request))
+                        );
+                    });
+                `], { type: 'application/javascript' }))
+            );
+        }
+        
+        console.log('🐺 貪吃狼遊戲已準備就緒！');
+        console.log('🎮 提示：試試看按下 ↑↑↓↓←→←→BA 或長按 Logo');
+    });
+</script>
+
+
+</body>
+</html>
