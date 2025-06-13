@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Update Threads share links to personal article
 
+## [1.3.1] - 2025-06-13
+### Fixed
+- Gracefully handle missing Chart.js to restore grid interactions
+- Enhance AI export prompt with resignation scoring
+
 ## [1.2.0] - 2025-06-10
 ### Added
 - Revamped index with dark mode and tilt cards

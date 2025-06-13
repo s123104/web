@@ -1,3 +1,10 @@
+<!--
+  📦 模組：resignation-card
+  🕒 更新：2025-06-13T19:19:42Z
+  🧑‍💻 作者：@Codex
+  🔢 版本：v1.3.1
+  📝 摘要：Handle missing Chart.js and expand AI prompt
+-->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -627,7 +634,7 @@
 
     function initChart() {
         const ctx = document.getElementById('dailyChart')?.getContext('2d');
-        if (!ctx) { console.error("Chart context not found"); return; }
+        if (!ctx || typeof Chart === 'undefined') { console.warn('Chart.js unavailable'); return; }
         dailyChart = new Chart(ctx, {
             type: 'line', data: { labels: [], datasets: [ { label: '好日子', borderColor: '#3da35d', backgroundColor: 'rgba(61, 163, 93, 0.1)', fill: true, tension: 0.4 }, { label: '爛日子', borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.4 } ] },
             options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
@@ -692,7 +699,7 @@
     function openAiExportModal() {
         const data = { exportDate: new Date().toISOString(), records: Array.from(filledDates.values()) };
         const jsonData = JSON.stringify(data, null, 2);
-        const promptTemplate = `你是一位資深的職涯教練與心理諮詢師。請根據以下 JSON 格式的職場心情日誌，進行深入分析。日誌中包含了每日的心情分類（money: 薪資福利, burnout: 身心俱疲, annoying: 鳥事一堆, stuck: 缺乏成長）、事件描述以及自動計算的厭世指數。\n\n你的任務是：\n1.  **模式識別**：找出導致我產生負面情緒的主要模式或重複出現的主題。\n2.  **壓力源分析**：根據 'annoyanceIndex' 和事件描述，分析我最大的壓力來源是什麼。\n3.  **趨勢洞察**：分析我的情緒是否有時間上的趨勢。\n4.  **提出建議**：基於以上分析，提供 3-5 個具體、可行的建議，幫助我改善目前的工作狀況或規劃下一步的職涯發展。\n\n請以有條理、富有同理心且專業的口吻回答。\n\n這是我的數據：\n${jsonData}`;
+        const promptTemplate = `你是一位資深的職涯教練與心理諮詢師。請根據以下 JSON 格式的職場心情日誌，進行深入分析。日誌中包含了每日的心情分類（money: 薪資福利, burnout: 身心俱疲, annoying: 鳥事一堆, stuck: 缺乏成長）、事件描述以及自動計算的厭世指數。\n\n你的任務是：\n1.  **模式識別**：找出導致我產生負面情緒的主要模式或重複出現的主題。\n2.  **壓力源分析**：根據 'annoyanceIndex' 和事件描述，分析我最大的壓力來源是什麼。\n3.  **趨勢洞察**：分析我的情緒是否有時間上的趨勢。\n4.  **離職建議**：給我 1-100 的離職指數並提出 3-5 項是否應離職的建議。\n5.  **工作改善**：提供具體做法協助我改善目前的工作或規劃下一步職涯。\n\n請以有條理、富有同理心且專業的口吻回答。\n\n這是我的數據：\n${jsonData}`;
         document.getElementById('ai-prompt-output').value = promptTemplate;
         openModal('aiExportModal');
     }
