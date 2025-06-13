@@ -11,6 +11,12 @@ All notable changes to this project will be documented in this file.
 - Gracefully handle missing Chart.js to restore grid interactions
 - Enhance AI export prompt with resignation scoring
 
+## [1.4.0] - 2025-06-13
+### Added
+- Update daily trend chart with local dates
+- Quote popup auto-hides and mobile friendly
+- iOS install prompt offers opt-out and shows on entry
+
 ## [1.2.0] - 2025-06-10
 ### Added
 - Revamped index with dark mode and tilt cards

@@ -1,9 +1,9 @@
 <!--
   📦 模組：resignation-card
-  🕒 更新：2025-06-13T19:19:42Z
+  🕒 更新：2025-06-13T19:35:06Z
   🧑‍💻 作者：@Codex
-  🔢 版本：v1.3.1
-  📝 摘要：Handle missing Chart.js and expand AI prompt
+  🔢 版本：v1.4.0
+  📝 摘要：Improve chart updates, mobile quotes and iOS prompt
 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -109,6 +109,12 @@
         
         .glass-effect { background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.18); }
         .quote-container { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 20px; padding: 24px; margin-top: 1.5rem; box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3); }
+        #quoteDisplay { display: none; }
+        #quoteDisplay.show { display: flex; }
+        @media (max-width: 768px) {
+            #quoteDisplay { position: fixed; bottom: 10px; left: 0; right: 0; justify-content: center; z-index: 1100; }
+            #quoteDisplay .quote-container { margin-top: 0; width: calc(100% - 2rem); }
+        }
         .progress-ring { transform: rotate(-90deg); } .progress-ring-circle { transition: stroke-dasharray 0.5s ease-in-out; }
         
         .modal-backdrop { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); }
@@ -267,6 +273,7 @@
         <button class="close-btn" aria-label="關閉" onclick="closeModal('shareModal')">×</button>
         <h3 class="text-xl font-bold">分享你的離職進度</h3>
         <p class="mt-2 text-gray-600">讓朋友一起見證你的自由之路！</p>
+        <p id="shareAnnoyanceIndex" class="text-red-600 font-semibold mt-1"></p>
         <div class="share-options">
           <button id="copyLinkBtn" class="share-btn share-btn--copy"><i class="fas fa-copy"></i>複製文案</button>
           <button id="shareToThreadsBtn" class="share-btn share-btn--threads"><i class="fa-brands fa-threads"></i>Threads</button>
@@ -329,7 +336,7 @@
     <div id="installPrompt" class="hidden"></div> <!-- Generic PWA prompt, now mainly for Android -->
     <div id="iosPwaModal" class="generic-modal" aria-hidden="true" role="dialog">
         <div class="modal-box">
-            <button class="close-btn" aria-label="關閉" onclick="closeModal('iosPwaModal')">×</button>
+            <button class="close-btn" aria-label="關閉" onclick="handleIosPwaClose()">×</button>
             <h3 class="text-xl font-bold">安裝到主畫面</h3>
             <p class="mt-2 text-gray-600">將「離職集點卡」加到主畫面，隨時快速記錄！</p>
             <div class="instruction-step">
@@ -340,7 +347,11 @@
                 <div class="instruction-icon"><i class="fas fa-plus-square"></i></div>
                 <div><strong>步驟二：</strong>在選單中，向上滑動並點選「加入主畫面」。</div>
             </div>
-            <button class="w-full mt-6 bg-blue-500 text-white py-2 rounded-lg" onclick="closeModal('iosPwaModal')">我知道了</button>
+            <div class="mt-4 flex items-center justify-center gap-2">
+                <input type="checkbox" id="iosPwaDontShow" class="w-4 h-4">
+                <label for="iosPwaDontShow" class="text-sm text-gray-600">下次不再提醒</label>
+            </div>
+            <button class="w-full mt-4 bg-blue-500 text-white py-2 rounded-lg" onclick="handleIosPwaClose()">我知道了</button>
         </div>
     </div>
 
@@ -354,10 +365,15 @@
     let isLongPress = false;
     let currentCell = null;
     let dailyChart = null;
+    let quoteTimer = null;
     
     const STORAGE_KEY = 'resignationCard_v5';
     const PRESETS_KEY = 'resignationCard_presets_v2';
     const TOTAL_CELLS = 100;
+
+    function toLocalDateStr(date) {
+        return date.toLocaleDateString('en-CA');
+    }
     
     // --- 心情圖示 SVG ---
     const moodIcons = {
@@ -408,14 +424,12 @@
     function checkAndShowPwaPrompt() {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-        
-        if (isIOS && !isInStandaloneMode) {
-            // 首次訪問或未安裝，顯示 iOS 教學
+        const optOut = localStorage.getItem('iosPwaPromptOptOut');
+
+        if (isIOS && !isInStandaloneMode && optOut !== 'true') {
             if (!localStorage.getItem('iosPwaPromptShown')) {
-                 setTimeout(() => {
-                    openModal('iosPwaModal');
-                    localStorage.setItem('iosPwaPromptShown', 'true');
-                }, 5000);
+                openModal('iosPwaModal');
+                localStorage.setItem('iosPwaPromptShown', 'true');
             }
         } else {
             // Android 或其他平台
@@ -429,6 +443,12 @@
         }
     }
     async function installPWA() { if (deferredPrompt) deferredPrompt.prompt(); }
+    function handleIosPwaClose() {
+        if (document.getElementById('iosPwaDontShow').checked) {
+            localStorage.setItem('iosPwaPromptOptOut', 'true');
+        }
+        closeModal('iosPwaModal');
+    }
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register(URL.createObjectURL(new Blob([`self.addEventListener('fetch', () => {})`], {type: 'application/javascript'}))).catch(err => console.error('SW registration failed', err)); }
 
     // --- 資料處理 ---
@@ -467,6 +487,7 @@
         document.getElementById('gridContainer').addEventListener('pointerup', handlePointerUp);
         document.getElementById('gridContainer').addEventListener('pointerleave', cancelLongPress);
         document.getElementById('shareBtnTrigger').addEventListener('click', () => openModal('shareModal'));
+        document.getElementById('quoteDisplay').addEventListener('click', hideQuote);
     }
 
     function handlePointerDown(e) {
@@ -507,7 +528,7 @@
         } else {
             const today = new Date();
             const data = {
-                date: today.toISOString().split('T')[0],
+                date: toLocalDateStr(today),
                 displayDate: `${today.getMonth() + 1}/${today.getDate()}`,
                 mood: 'good',
                 description: '',
@@ -540,7 +561,7 @@
         const modal = document.getElementById('eventModal');
         modal.dataset.currentIndex = index;
         const data = filledDates.get(index);
-        document.getElementById('eventDate').value = data ? data.date : new Date().toISOString().split('T')[0];
+        document.getElementById('eventDate').value = data ? data.date : toLocalDateStr(new Date());
         document.getElementById('eventDescription').value = data ? data.description || '' : '';
         setMood(data ? data.mood : 'money');
         modal.classList.remove('hidden');
@@ -646,7 +667,9 @@
         if (!dailyChart) return;
         const labels = []; const goodData = []; const badData = [];
         for (let i = 13; i >= 0; i--) {
-            const d = new Date(); d.setDate(d.getDate() - i); const ds = d.toISOString().split('T')[0];
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const ds = toLocalDateStr(d);
             labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
             let good = 0, bad = 0;
             filledDates.forEach(data => { if (data.date === ds) data.mood === 'good' ? good++ : bad++; });
@@ -663,23 +686,44 @@
     // --- 模態窗 & 提示 ---
     function openModal(modalId) { document.getElementById(modalId)?.classList.add('show'); }
     function closeModal(modalId) { document.getElementById(modalId)?.classList.remove('show'); }
-    function showRandomQuote() { const qd = document.getElementById('quoteDisplay'); document.getElementById('quoteText').textContent = ["人家有的是背景，我有的只是背影。", "選擇比努力更重要，所以我選擇不努力。", "如果你覺得自己累得跟狗一樣，那裡真的是誤會了，因為狗都沒你這麼累。", "上班打卡制，下班責任制，人生好厭世。", "準時下班需要的不是努力，是勇氣。"][Math.floor(Math.random()*5)]; qd.classList.remove('hidden'); setTimeout(() => qd.classList.add('hidden'), 8000); }
-    function hideQuote() { document.getElementById('quoteDisplay').classList.add('hidden'); }
+    function showRandomQuote() {
+        const qd = document.getElementById('quoteDisplay');
+        document.getElementById('quoteText').textContent = [
+            "人家有的是背景，我有的只是背影。",
+            "選擇比努力更重要，所以我選擇不努力。",
+            "如果你覺得自己累得跟狗一樣，那裡真的是誤會了，因為狗都沒你這麼累。",
+            "上班打卡制，下班責任制，人生好厭世。",
+            "準時下班需要的不是努力，是勇氣。",
+        ][Math.floor(Math.random()*5)];
+        qd.classList.remove('hidden');
+        qd.classList.add('show');
+        clearTimeout(quoteTimer);
+        quoteTimer = setTimeout(hideQuote, 10000);
+    }
+    function hideQuote() {
+        const qd = document.getElementById('quoteDisplay');
+        qd.classList.add('hidden');
+        qd.classList.remove('show');
+    }
     function showClearConfirm() { if (filledDates.size > 0) openModal('confirmModal'); }
     function confirmClearAll() { filledDates.clear(); saveData(); generateGrid(); updateAllStats(); closeModal('confirmModal'); }
 
     // --- AI & 分享功能 ---
     function getShareText() {
         const count = filledDates.size;
-        if (count === 0) return "我開始用「離職集點卡」記錄我的社畜人生了，一起來吧！";
-        if (count >= TOTAL_CELLS) return `我集滿 ${TOTAL_CELLS} 點離職點數了！我自由啦！快來看看這個有趣的 App！`;
-        return `我的「離職集點卡」進度 ${count}/${TOTAL_CELLS}！距離自由又更近一步了！你也來試試看吧！`;
+        const totalAnnoy = Array.from(filledDates.values()).reduce((s,d) => s + (d.annoyanceIndex || 0), 0);
+        if (count === 0) return `我開始用「離職集點卡」記錄我的社畜人生了，一起來吧！ 厭世指數 ${totalAnnoy}`;
+        if (count >= TOTAL_CELLS) return `我集滿 ${TOTAL_CELLS} 點離職點數了！我自由啦！厭世指數 ${totalAnnoy}，快來看看這個有趣的 App！`;
+        return `我的「離職集點卡」進度 ${count}/${TOTAL_CELLS}！厭世指數 ${totalAnnoy}，距離自由又更近一步了！你也來試試看吧！`;
     }
 
     function setupShareButtons() {
         const text = getShareText();
         const url = 'https://s123104.github.io/web/Resignation.html';
         const encodedText = encodeURIComponent(text + '\n' + url);
+        const totalAnnoy = Array.from(filledDates.values()).reduce((s,d) => s + (d.annoyanceIndex || 0), 0);
+        const display = document.getElementById('shareAnnoyanceIndex');
+        if (display) display.textContent = `厭世指數：${totalAnnoy}`;
         document.getElementById('copyLinkBtn').onclick = () => copyToClipboard(text + '\n' + url, document.getElementById('copyLinkBtn'));
         document.getElementById('shareToThreadsBtn').onclick = () => window.open(`https://www.threads.net/intent/post?text=${encodedText}`, '_blank');
         document.getElementById('shareToTwitterBtn').onclick = () => window.open(`https://twitter.com/intent/tweet?text=${encodedText}`, '_blank');
