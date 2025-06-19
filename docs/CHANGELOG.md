@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2025-06-19
+### Added
+- AI LLM Showcase project for modular LLM demos
+
 ## [1.3.0] - 2025-06-12
 ### Added
 - Update Threads share links to personal article
