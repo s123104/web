@@ -1,136 +1,1307 @@
 <!DOCTYPE html>
+
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<title>Bybit ETHUSDT 1秒 K線測試</title>
-<style>
-  body { font-family: Arial, sans-serif; margin: 20px; }
-  #chartContainer { width: 600px; height: 300px; margin-top: 10px; }
-  table { border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-  table, th, td { border: 1px solid #ccc; }
-  th, td { padding: 4px 8px; text-align: center; }
-  th { background: #f4f4f4; }
-  #statusPanel div { margin: 5px 0; font-size: 14px; }
-  .error { color: red; font-weight: bold; }
-  .success { color: green; font-weight: bold; }
-</style>
-</head>
-<body>
-<h2>Bybit ETHUSDT 1秒 K線測試</h2>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>補習班薪資管理系統 DEMO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        danger: '#EF4444'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
 
-<div id="statusPanel">
-  <div>WebSocket 連線狀態：<span id="connStatus">未連線</span></div>
-  <div>最新價格：<span id="latestPrice">-</span></div>
-  <div>CDN 圖表庫狀態：<span id="cdnStatus">測試中...</span></div>
-  <div>CORS 測試狀態：<span id="corsStatus">測試中...</span></div>
-  <div class="error">錯誤訊息：<span id="errorMsg"></span></div>
+
+    .card-hover {
+        transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .loading-spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #3498db;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-content {
+        display: none;
+    }
+
+    .section-content.active {
+        display: block;
+    }
+
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        max-width: 400px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+    }
+
+    .notification.show {
+        transform: translateX(0);
+    }
+</style>
+
+
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 通知訊息 -->
+    <div id="notification" class="notification">
+        <div class="bg-white border-l-4 border-green-400 p-4 shadow-lg rounded">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p id="notification-text" class="text-sm text-gray-700"></p>
+                </div>
+                <div class="ml-auto pl-3">
+                    <button onclick="hideNotification()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<!-- 頂部導航欄 -->
+<nav class="gradient-bg shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <h1 class="text-white text-xl font-bold">📚 補習班薪資管理系統 DEMO</h1>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="resetAllData()" class="text-white hover:text-gray-200 transition-colors px-3 py-1 border border-white rounded">
+                    重置資料
+                </button>
+                <button onclick="exportData()" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </button>
+                <div class="text-white text-sm" id="lastUpdate">DEMO 版本</div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- 主要內容區域 -->
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <!-- 功能選單 -->
+    <div class="px-4 py-6 sm:px-0">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- 教師管理卡片 -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg card-hover cursor-pointer" onclick="showSection('teachers')">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <span class="text-2xl">👨‍🏫</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium text-gray-900">教師管理</h3>
+                            <p class="text-sm text-gray-500" id="teacher-count">載入中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 課程管理卡片 -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg card-hover cursor-pointer" onclick="showSection('courses')">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <span class="text-2xl">📖</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium text-gray-900">課程管理</h3>
+                            <p class="text-sm text-gray-500" id="course-count">載入中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 薪資計算卡片 -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg card-hover cursor-pointer" onclick="showSection('salary')">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                <span class="text-2xl">💰</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium text-gray-900">薪資計算</h3>
+                            <p class="text-sm text-gray-500">即時計算與明細</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 學生管理卡片 -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg card-hover cursor-pointer" onclick="showSection('students')">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <span class="text-2xl">👨‍🎓</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium text-gray-900">學生管理</h3>
+                            <p class="text-sm text-gray-500" id="student-count">載入中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 教師管理區域 -->
+        <div id="teachers-section" class="section-content fade-in">
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">教師管理</h2>
+                    <button onclick="showAddTeacherModal()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                        + 新增教師
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">專長科目</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">鐘點費</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">績效等級</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">招生獎金率</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teachers-table" class="bg-white divide-y divide-gray-200">
+                            <!-- 教師資料將動態載入 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 課程管理區域 -->
+        <div id="courses-section" class="section-content fade-in">
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">課程管理</h2>
+                    <button onclick="showAddCourseModal()" class="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                        + 新增課程
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="courses-grid">
+                    <!-- 課程卡片將動態載入 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 薪資計算區域 -->
+        <div id="salary-section" class="section-content fade-in">
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">薪資計算</h2>
+                
+                <!-- 計算參數選擇 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">選擇教師</label>
+                        <select id="salary-teacher" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                            <option value="">請選擇教師</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">計算年月</label>
+                        <input type="month" id="salary-month" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="calculateSalary()" class="w-full bg-accent text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors">
+                            計算薪資
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 薪資明細顯示 -->
+                <div id="salary-result" class="hidden">
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">薪資明細</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                            <div class="text-center">
+                                <h4 class="font-medium text-gray-700 mb-2">基本鐘點費</h4>
+                                <div id="basic-salary" class="text-2xl font-bold text-primary">$0</div>
+                                <div id="basic-hours" class="text-sm text-gray-500">0 小時</div>
+                            </div>
+                            <div class="text-center">
+                                <h4 class="font-medium text-gray-700 mb-2">招生獎金</h4>
+                                <div id="recruitment-bonus" class="text-2xl font-bold text-secondary">$0</div>
+                                <div id="recruitment-count" class="text-sm text-gray-500">0 位新生</div>
+                            </div>
+                            <div class="text-center">
+                                <h4 class="font-medium text-gray-700 mb-2">績效獎金</h4>
+                                <div id="performance-bonus" class="text-2xl font-bold text-accent">$0</div>
+                                <div id="performance-rate" class="text-sm text-gray-500">0% 獎金率</div>
+                            </div>
+                            <div class="text-center">
+                                <h4 class="font-medium text-gray-700 mb-2">總薪資</h4>
+                                <div id="total-salary" class="text-3xl font-bold text-gray-900">$0</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 詳細計算明細 -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="font-medium text-gray-700 mb-3">課程明細</h4>
+                                <div id="course-breakdown" class="space-y-2">
+                                    <!-- 動態生成 -->
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-700 mb-3">招生明細</h4>
+                                <div id="recruitment-breakdown" class="space-y-2">
+                                    <!-- 動態生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 學生管理區域 -->
+        <div id="students-section" class="section-content fade-in">
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">學生管理</h2>
+                    <button onclick="showAddStudentModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                        + 新增學生
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">學生姓名</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">就讀課程</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">學費</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">繳費狀態</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">介紹人</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">報名日期</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-table" class="bg-white divide-y divide-gray-200">
+                            <!-- 學生資料將動態載入 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div id="chartContainer"></div>
+<!-- 新增教師模態框 -->
+<div id="teacher-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <h3 class="text-lg font-semibold mb-4">新增教師</h3>
+        <form id="teacher-form">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">教師姓名 *</label>
+                    <input type="text" id="teacher-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">專長科目 *</label>
+                    <input type="text" id="teacher-subject" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">基本鐘點費 (元/小時) *</label>
+                    <input type="number" id="teacher-rate" min="100" max="5000" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">績效等級 *</label>
+                    <select id="teacher-level" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                        <option value="">請選擇等級</option>
+                        <option value="新進">新進 (無績效獎金)</option>
+                        <option value="一般">一般 (5% 績效獎金)</option>
+                        <option value="資深">資深 (10% 績效獎金)</option>
+                        <option value="名師">名師 (15% 績效獎金)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">招生獎金比例 (%)</label>
+                    <input type="number" id="teacher-bonus-rate" min="0" max="20" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" placeholder="例：3.5">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">聯絡資訊</label>
+                    <input type="text" id="teacher-contact" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" placeholder="電話或email">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="hideModal('teacher-modal')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+                <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600">
+                    新增
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
-<table>
-  <thead>
-    <tr><th>時間</th><th>開盤價</th><th>最高價</th><th>最低價</th><th>收盤價</th></tr>
-  </thead>
-  <tbody id="klineBody"></tbody>
-</table>
+<!-- 新增課程模態框 -->
+<div id="course-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <h3 class="text-lg font-semibold mb-4">新增課程</h3>
+        <form id="course-form">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">課程名稱 *</label>
+                    <input type="text" id="course-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">課程級別 *</label>
+                    <select id="course-level" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                        <option value="">請選擇級別</option>
+                        <option value="國小">國小</option>
+                        <option value="國中">國中</option>
+                        <option value="高中">高中</option>
+                        <option value="成人">成人</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">科目 *</label>
+                    <input type="text" id="course-subject" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">標準鐘點費 (元/小時) *</label>
+                    <input type="number" id="course-rate" min="100" max="5000" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">課程時數 (小時) *</label>
+                    <input type="number" id="course-duration" min="0.5" max="5" step="0.5" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">最大學生數</label>
+                    <input type="number" id="course-max-students" min="1" max="50" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" placeholder="例：15">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="hideModal('course-modal')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+                <button type="submit" class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-green-600">
+                    新增
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 新增學生模態框 -->
+<div id="student-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <h3 class="text-lg font-semibold mb-4">新增學生</h3>
+        <form id="student-form">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">學生姓名 *</label>
+                    <input type="text" id="student-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">報讀課程 *</label>
+                    <select id="student-course" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                        <option value="">請選擇課程</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">學費 (元) *</label>
+                    <input type="number" id="student-fee" min="1000" max="100000" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">繳費狀態 *</label>
+                    <select id="student-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
+                        <option value="">請選擇狀態</option>
+                        <option value="已繳費">已繳費</option>
+                        <option value="未繳費">未繳費</option>
+                        <option value="部分繳費">部分繳費</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">介紹人教師</label>
+                    <select id="student-referrer" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                        <option value="">自行報名</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">聯絡資訊</label>
+                    <input type="text" id="student-contact" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" placeholder="家長電話">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="hideModal('student-modal')" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    取消
+                </button>
+                <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                    新增
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 載入中指示器 -->
+<div id="loading" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg p-6 flex items-center space-x-3">
+        <div class="loading-spinner"></div>
+        <span class="text-gray-700">處理中...</span>
+    </div>
+</div>
 
 <script>
-let ws;
-let candleSeries;
-let currentCandle = null;
-let lastCandleTime = null;
+    // ===== 資料管理與持久化 =====
+    
+    // 資料儲存鍵值常數
+    const STORAGE_KEYS = {
+        TEACHERS: 'cramSchool_teachers',
+        COURSES: 'cramSchool_courses',
+        STUDENTS: 'cramSchool_students',
+        ATTENDANCE: 'cramSchool_attendance'
+    };
 
-// 初始化圖表
-function initChart() {
-  if (typeof LightweightCharts === 'undefined') {
-    document.getElementById('cdnStatus').innerText = '❌ 圖表庫載入失敗';
-    return;
-  }
-  document.getElementById('cdnStatus').innerText = '✅ 圖表庫成功載入';
-  const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), { width: 600, height: 300 });
-  candleSeries = chart.addCandlestickSeries();
-}
+    // 應用程式資料狀態
+    let appData = {
+        teachers: [],
+        courses: [],
+        students: [],
+        attendance: [],
+        currentSection: null
+    };
 
-// 初始化 WebSocket
-function initWebSocket() {
-  ws = new WebSocket('wss://stream.bybit.com/v5/public/linear');
-  ws.onopen = () => {
-    document.getElementById('connStatus').innerText = '✅ 已連線';
-    ws.send(JSON.stringify({ op: 'subscribe', args: ['publicTrade.ETHUSDT'] }));
-  };
-  ws.onmessage = (event) => {
-    try {
-      const msg = JSON.parse(event.data);
-      if (msg.topic === 'publicTrade.ETHUSDT' && msg.data) {
-        const trades = msg.data;
-        trades.forEach(trade => {
-          const price = parseFloat(trade.p);
-          const tradeTimeSec = Math.floor(trade.T / 1000);
-          if (currentCandle === null || tradeTimeSec !== lastCandleTime) {
-            if (currentCandle !== null) appendCandleToTable(currentCandle);
-            currentCandle = { time: tradeTimeSec, open: price, high: price, low: price, close: price };
-            lastCandleTime = tradeTimeSec;
-            if (candleSeries) candleSeries.update(currentCandle);
-          } else {
-            currentCandle.high = Math.max(currentCandle.high, price);
-            currentCandle.low = Math.min(currentCandle.low, price);
-            currentCandle.close = price;
-            if (candleSeries) candleSeries.update(currentCandle);
-          }
-        });
-        document.getElementById('latestPrice').innerText = trades[trades.length - 1].p;
-      }
-    } catch (e) {
-      document.getElementById('errorMsg').innerText = '資料處理錯誤: ' + e.message;
-    }
-  };
-  ws.onclose = () => document.getElementById('connStatus').innerText = '❌ 已關閉';
-  ws.onerror = () => document.getElementById('connStatus').innerText = '❌ 連線錯誤';
-}
-
-// 添加 K 線數據到表格
-function appendCandleToTable(candle) {
-  const timeStr = new Date(candle.time * 1000).toLocaleTimeString();
-  const row = `<tr><td>${timeStr}</td><td>${candle.open}</td><td>${candle.high}</td><td>${candle.low}</td><td>${candle.close}</td></tr>`;
-  document.getElementById('klineBody').insertAdjacentHTML('afterbegin', row);
-}
-
-// CORS 測試
-function testCORS() {
-  fetch('https://api.bybit.com/v5/market/tickers?category=linear', { method: 'GET' })
-    .then(response => {
-      if (response.ok) {
-        document.getElementById('corsStatus').innerText = '✅ CORS 允許請求';
-      } else {
-        document.getElementById('corsStatus').innerText = '❌ CORS 拒絕請求';
-      }
-    })
-    .catch(error => {
-      document.getElementById('corsStatus').innerText = '❌ CORS 請求失敗';
-      document.getElementById('errorMsg').innerText = 'CORS 測試錯誤: ' + error.message;
+    // 初始化應用程式
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDataFromStorage();
+        initializeDefaultData();
+        updateAllDisplays();
+        
+        // 設定預設月份
+        const now = new Date();
+        const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        document.getElementById('salary-month').value = currentMonth;
+        
+        setupFormHandlers();
+        showSection('teachers'); // 預設顯示教師管理
     });
-}
 
-// 啟動應用
-function startApp() {
-  initChart();
-  initWebSocket();
-  testCORS();
-}
+    // 從本地儲存載入資料
+    function loadDataFromStorage() {
+        try {
+            appData.teachers = JSON.parse(localStorage.getItem(STORAGE_KEYS.TEACHERS) || '[]');
+            appData.courses = JSON.parse(localStorage.getItem(STORAGE_KEYS.COURSES) || '[]');
+            appData.students = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS) || '[]');
+            appData.attendance = JSON.parse(localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || '[]');
+            
+            // 轉換日期字串回 Date 物件
+            appData.students.forEach(student => {
+                if (student.enrollDate) {
+                    student.enrollDate = new Date(student.enrollDate);
+                }
+            });
+            
+            appData.attendance.forEach(record => {
+                if (record.date) {
+                    record.date = new Date(record.date);
+                }
+            });
+            
+        } catch (error) {
+            console.error('載入資料失敗:', error);
+            appData = { teachers: [], courses: [], students: [], attendance: [] };
+        }
+    }
 
-// 圖表庫載入失敗
-function chartLoadFailed() {
-  document.getElementById('cdnStatus').innerText = '❌ 圖表庫載入失敗';
-  initWebSocket();
-  testCORS();
-}
+    // 儲存資料到本地儲存
+    function saveDataToStorage() {
+        try {
+            localStorage.setItem(STORAGE_KEYS.TEACHERS, JSON.stringify(appData.teachers));
+            localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(appData.courses));
+            localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(appData.students));
+            localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(appData.attendance));
+        } catch (error) {
+            console.error('儲存資料失敗:', error);
+            showNotification('資料儲存失敗，請檢查瀏覽器儲存空間', 'error');
+        }
+    }
 
+    // 初始化預設資料
+    function initializeDefaultData() {
+        if (appData.teachers.length === 0) {
+            // 新增範例教師
+            appData.teachers = [
+                {
+                    id: 1,
+                    name: '王志明',
+                    subject: '數學',
+                    hourlyRate: 800,
+                    performanceLevel: '資深',
+                    recruitmentBonusRate: 5.0,
+                    contactInfo: '0912-345-678',
+                    joinDate: new Date('2020-01-15')
+                },
+                {
+                    id: 2,
+                    name: '李美玲',
+                    subject: '英文',
+                    hourlyRate: 600,
+                    performanceLevel: '一般',
+                    recruitmentBonusRate: 3.0,
+                    contactInfo: 'lee@example.com',
+                    joinDate: new Date('2021-08-01')
+                },
+                {
+                    id: 3,
+                    name: '張博士',
+                    subject: '物理',
+                    hourlyRate: 1200,
+                    performanceLevel: '名師',
+                    recruitmentBonusRate: 8.0,
+                    contactInfo: '0922-987-654',
+                    joinDate: new Date('2018-03-10')
+                }
+            ];
+        }
+
+        if (appData.courses.length === 0) {
+            // 新增範例課程
+            appData.courses = [
+                {
+                    id: 1,
+                    name: '國中數學基礎班',
+                    level: '國中',
+                    subject: '數學',
+                    standardRate: 800,
+                    duration: 2,
+                    maxStudents: 15
+                },
+                {
+                    id: 2,
+                    name: '高中英文進階班',
+                    level: '高中',
+                    subject: '英文',
+                    standardRate: 900,
+                    duration: 2,
+                    maxStudents: 12
+                },
+                {
+                    id: 3,
+                    name: '高中物理精修班',
+                    level: '高中',
+                    subject: '物理',
+                    standardRate: 1200,
+                    duration: 1.5,
+                    maxStudents: 10
+                }
+            ];
+        }
+
+        if (appData.students.length === 0) {
+            // 新增範例學生
+            appData.students = [
+                {
+                    id: 1,
+                    name: '陳小明',
+                    courseIds: [1],
+                    totalFee: 12000,
+                    paidAmount: 12000,
+                    paymentStatus: '已繳費',
+                    referrerTeacherId: 1,
+                    enrollDate: new Date('2025-01-15'),
+                    contactInfo: '0912-111-222'
+                },
+                {
+                    id: 2,
+                    name: '林小華',
+                    courseIds: [2],
+                    totalFee: 15000,
+                    paidAmount: 7500,
+                    paymentStatus: '部分繳費',
+                    referrerTeacherId: 2,
+                    enrollDate: new Date('2025-02-01'),
+                    contactInfo: '0923-333-444'
+                },
+                {
+                    id: 3,
+                    name: '黃小美',
+                    courseIds: [3],
+                    totalFee: 18000,
+                    paidAmount: 0,
+                    paymentStatus: '未繳費',
+                    referrerTeacherId: null,
+                    enrollDate: new Date('2025-02-10'),
+                    contactInfo: '0934-555-666'
+                }
+            ];
+        }
+
+        if (appData.attendance.length === 0) {
+            // 新增範例上課紀錄
+            const currentDate = new Date();
+            const lastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+            
+            appData.attendance = [
+                {
+                    id: 1,
+                    teacherId: 1,
+                    courseId: 1,
+                    date: new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 5),
+                    actualHours: 2,
+                    studentCount: 12,
+                    notes: '',
+                    isCompleted: true
+                },
+                {
+                    id: 2,
+                    teacherId: 1,
+                    courseId: 1,
+                    date: new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 12),
+                    actualHours: 2,
+                    studentCount: 13,
+                    notes: '',
+                    isCompleted: true
+                },
+                {
+                    id: 3,
+                    teacherId: 2,
+                    courseId: 2,
+                    date: new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 8),
+                    actualHours: 2,
+                    studentCount: 10,
+                    notes: '',
+                    isCompleted: true
+                },
+                {
+                    id: 4,
+                    teacherId: 3,
+                    courseId: 3,
+                    date: new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 15),
+                    actualHours: 1.5,
+                    studentCount: 8,
+                    notes: '補課',
+                    isCompleted: true
+                }
+            ];
+        }
+
+        saveDataToStorage();
+    }
+
+    // ===== UI 更新功能 =====
+
+    function updateAllDisplays() {
+        updateTeachersTable();
+        updateCoursesGrid();
+        updateStudentsTable();
+        updateSalaryTeacherSelect();
+        updateCourseSelects();
+        updateTeacherSelects();
+        updateCounters();
+    }
+
+    function updateCounters() {
+        document.getElementById('teacher-count').textContent = `${appData.teachers.length} 位教師`;
+        document.getElementById('course-count').textContent = `${appData.courses.length} 門課程`;
+        document.getElementById('student-count').textContent = `${appData.students.length} 位學生`;
+    }
+
+    function updateTeachersTable() {
+        const tableBody = document.getElementById('teachers-table');
+        tableBody.innerHTML = '';
+        
+        appData.teachers.forEach(teacher => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${teacher.name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${teacher.subject}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${teacher.hourlyRate}/小時</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getLevelColor(teacher.performanceLevel)}">
+                        ${teacher.performanceLevel}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${teacher.recruitmentBonusRate}%</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button onclick="editTeacher(${teacher.id})" class="text-indigo-600 hover:text-indigo-900 mr-3">編輯</button>
+                    <button onclick="deleteTeacher(${teacher.id})" class="text-red-600 hover:text-red-900">刪除</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    function updateCoursesGrid() {
+        const grid = document.getElementById('courses-grid');
+        grid.innerHTML = '';
+        
+        appData.courses.forEach(course => {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg shadow-md p-4 card-hover border border-gray-200';
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="text-lg font-semibold text-gray-900">${course.name}</h3>
+                    <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">${course.level}</span>
+                </div>
+                <div class="space-y-2 text-sm text-gray-600">
+                    <p><span class="font-medium">科目：</span>${course.subject}</p>
+                    <p><span class="font-medium">鐘點費：</span>$${course.standardRate}/小時</p>
+                    <p><span class="font-medium">課程時數：</span>${course.duration} 小時</p>
+                    <p><span class="font-medium">最大學生數：</span>${course.maxStudents || '無限制'} 人</p>
+                </div>
+                <div class="flex justify-end space-x-2 mt-4 pt-3 border-t border-gray-100">
+                    <button onclick="editCourse(${course.id})" class="text-blue-600 hover:text-blue-800 text-sm font-medium">編輯</button>
+                    <button onclick="deleteCourse(${course.id})" class="text-red-600 hover:text-red-800 text-sm font-medium">刪除</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function updateStudentsTable() {
+        const tableBody = document.getElementById('students-table');
+        tableBody.innerHTML = '';
+        
+        appData.students.forEach(student => {
+            const course = appData.courses.find(c => c.id === student.courseIds[0]);
+            const referrer = student.referrerTeacherId 
+                ? appData.teachers.find(t => t.id === student.referrerTeacherId)
+                : null;
+            
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${student.name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${course ? course.name : '未知課程'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${student.totalFee.toLocaleString()}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(student.paymentStatus)}">
+                        ${student.paymentStatus}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${referrer ? referrer.name : '自行報名'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.enrollDate.toLocaleDateString('zh-TW')}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button onclick="editStudent(${student.id})" class="text-indigo-600 hover:text-indigo-900 mr-3">編輯</button>
+                    <button onclick="deleteStudent(${student.id})" class="text-red-600 hover:text-red-900">刪除</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    function updateSalaryTeacherSelect() {
+        const select = document.getElementById('salary-teacher');
+        select.innerHTML = '<option value="">請選擇教師</option>';
+        
+        appData.teachers.forEach(teacher => {
+            const option = document.createElement('option');
+            option.value = teacher.id;
+            option.textContent = teacher.name;
+            select.appendChild(option);
+        });
+    }
+
+    function updateCourseSelects() {
+        const selects = document.querySelectorAll('#student-course');
+        selects.forEach(select => {
+            select.innerHTML = '<option value="">請選擇課程</option>';
+            appData.courses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course.id;
+                option.textContent = course.name;
+                select.appendChild(option);
+            });
+        });
+    }
+
+    function updateTeacherSelects() {
+        const selects = document.querySelectorAll('#student-referrer');
+        selects.forEach(select => {
+            select.innerHTML = '<option value="">自行報名</option>';
+            appData.teachers.forEach(teacher => {
+                const option = document.createElement('option');
+                option.value = teacher.id;
+                option.textContent = teacher.name;
+                select.appendChild(option);
+            });
+        });
+    }
+
+    // ===== 薪資計算功能 =====
+
+    function calculateSalary() {
+        const teacherId = parseInt(document.getElementById('salary-teacher').value);
+        const month = document.getElementById('salary-month').value;
+        
+        if (!teacherId || !month) {
+            showNotification('請選擇教師和計算月份', 'error');
+            return;
+        }
+        
+        showLoading(true);
+        
+        setTimeout(() => {
+            const teacher = appData.teachers.find(t => t.id === teacherId);
+            if (!teacher) {
+                showLoading(false);
+                showNotification('找不到選擇的教師', 'error');
+                return;
+            }
+            
+            // 取得該月份的上課紀錄
+            const [year, monthNum] = month.split('-').map(Number);
+            const attendanceRecords = appData.attendance.filter(record => {
+                const recordDate = new Date(record.date);
+                return record.teacherId === teacherId && 
+                       recordDate.getFullYear() === year && 
+                       recordDate.getMonth() + 1 === monthNum;
+            });
+            
+            // 計算基本薪資
+            let totalHours = 0;
+            let basicSalary = 0;
+            const courseBreakdown = {};
+            
+            attendanceRecords.forEach(record => {
+                if (record.isCompleted) {
+                    const course = appData.courses.find(c => c.id === record.courseId);
+                    const rate = course ? course.standardRate : teacher.hourlyRate;
+                    
+                    if (!courseBreakdown[record.courseId]) {
+                        courseBreakdown[record.courseId] = {
+                            name: course ? course.name : '未知課程',
+                            hours: 0,
+                            rate: rate,
+                            subtotal: 0
+                        };
+                    }
+                    
+                    courseBreakdown[record.courseId].hours += record.actualHours;
+                    totalHours += record.actualHours;
+                }
+            });
+            
+            // 計算各課程小計
+            Object.values(courseBreakdown).forEach(breakdown => {
+                breakdown.subtotal = breakdown.hours * breakdown.rate;
+                basicSalary += breakdown.subtotal;
+            });
+            
+            // 計算招生獎金
+            const newStudents = appData.students.filter(student => {
+                const enrollDate = new Date(student.enrollDate);
+                return student.referrerTeacherId === teacherId &&
+                       enrollDate.getFullYear() === year &&
+                       enrollDate.getMonth() + 1 === monthNum;
+            });
+            
+            let recruitmentBonus = 0;
+            newStudents.forEach(student => {
+                recruitmentBonus += student.totalFee * (teacher.recruitmentBonusRate / 100);
+            });
+            
+            // 計算績效獎金
+            const levelMultiplier = {
+                '新進': 0.00,
+                '一般': 0.05,
+                '資深': 0.10,
+                '名師': 0.15
+            };
+            
+            const performanceRate = levelMultiplier[teacher.performanceLevel] || 0;
+            const performanceBonus = Math.round(basicSalary * performanceRate);
+            
+            // 總薪資
+            const totalSalary = basicSalary + recruitmentBonus + performanceBonus;
+            
+            // 更新顯示
+            document.getElementById('basic-salary').textContent = `$${basicSalary.toLocaleString()}`;
+            document.getElementById('basic-hours').textContent = `${totalHours} 小時`;
+            document.getElementById('recruitment-bonus').textContent = `$${recruitmentBonus.toLocaleString()}`;
+            document.getElementById('recruitment-count').textContent = `${newStudents.length} 位新生`;
+            document.getElementById('performance-bonus').textContent = `$${performanceBonus.toLocaleString()}`;
+            document.getElementById('performance-rate').textContent = `${(performanceRate * 100).toFixed(1)}% 獎金率`;
+            document.getElementById('total-salary').textContent = `$${totalSalary.toLocaleString()}`;
+            
+            // 更新課程明細
+            const courseBreakdownEl = document.getElementById('course-breakdown');
+            courseBreakdownEl.innerHTML = '';
+            Object.values(courseBreakdown).forEach(breakdown => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center p-2 bg-white rounded border';
+                div.innerHTML = `
+                    <span class="text-sm font-medium">${breakdown.name}</span>
+                    <span class="text-sm text-gray-500">${breakdown.hours}h × $${breakdown.rate} = $${breakdown.subtotal.toLocaleString()}</span>
+                `;
+                courseBreakdownEl.appendChild(div);
+            });
+            
+            if (Object.keys(courseBreakdown).length === 0) {
+                courseBreakdownEl.innerHTML = '<p class="text-sm text-gray-500">本月無上課紀錄</p>';
+            }
+            
+            // 更新招生明細
+            const recruitmentBreakdownEl = document.getElementById('recruitment-breakdown');
+            recruitmentBreakdownEl.innerHTML = '';
+            newStudents.forEach(student => {
+                const bonus = student.totalFee * (teacher.recruitmentBonusRate / 100);
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center p-2 bg-white rounded border';
+                div.innerHTML = `
+                    <span class="text-sm font-medium">${student.name}</span>
+                    <span class="text-sm text-gray-500">$${student.totalFee.toLocaleString()} × ${teacher.recruitmentBonusRate}% = $${bonus.toLocaleString()}</span>
+                `;
+                recruitmentBreakdownEl.appendChild(div);
+            });
+            
+            if (newStudents.length === 0) {
+                recruitmentBreakdownEl.innerHTML = '<p class="text-sm text-gray-500">本月無新增學生</p>';
+            }
+            
+            document.getElementById('salary-result').classList.remove('hidden');
+            showLoading(false);
+            showNotification('薪資計算完成');
+            
+        }, 1000);
+    }
+
+    // ===== 資料操作功能 =====
+
+    function addTeacher(teacherData) {
+        const newId = Math.max(...appData.teachers.map(t => t.id), 0) + 1;
+        const newTeacher = {
+            id: newId,
+            ...teacherData,
+            joinDate: new Date()
+        };
+        
+        appData.teachers.push(newTeacher);
+        saveDataToStorage();
+        updateAllDisplays();
+        
+        return newTeacher;
+    }
+
+    function addCourse(courseData) {
+        const newId = Math.max(...appData.courses.map(c => c.id), 0) + 1;
+        const newCourse = {
+            id: newId,
+            ...courseData
+        };
+        
+        appData.courses.push(newCourse);
+        saveDataToStorage();
+        updateAllDisplays();
+        
+        return newCourse;
+    }
+
+    function addStudent(studentData) {
+        const newId = Math.max(...appData.students.map(s => s.id), 0) + 1;
+        const newStudent = {
+            id: newId,
+            ...studentData,
+            enrollDate: new Date()
+        };
+        
+        appData.students.push(newStudent);
+        saveDataToStorage();
+        updateAllDisplays();
+        
+        return newStudent;
+    }
+
+    // ===== 表單處理 =====
+
+    function setupFormHandlers() {
+        // 教師表單
+        document.getElementById('teacher-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const teacherData = {
+                name: document.getElementById('teacher-name').value,
+                subject: document.getElementById('teacher-subject').value,
+                hourlyRate: parseInt(document.getElementById('teacher-rate').value),
+                performanceLevel: document.getElementById('teacher-level').value,
+                recruitmentBonusRate: parseFloat(document.getElementById('teacher-bonus-rate').value) || 0,
+                contactInfo: document.getElementById('teacher-contact').value || ''
+            };
+            
+            addTeacher(teacherData);
+            hideModal('teacher-modal');
+            this.reset();
+            showNotification('教師新增成功');
+        });
+        
+        // 課程表單
+        document.getElementById('course-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const courseData = {
+                name: document.getElementById('course-name').value,
+                level: document.getElementById('course-level').value,
+                subject: document.getElementById('course-subject').value,
+                standardRate: parseInt(document.getElementById('course-rate').value),
+                duration: parseFloat(document.getElementById('course-duration').value),
+                maxStudents: parseInt(document.getElementById('course-max-students').value) || null
+            };
+            
+            addCourse(courseData);
+            hideModal('course-modal');
+            this.reset();
+            showNotification('課程新增成功');
+        });
+        
+        // 學生表單
+        document.getElementById('student-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const studentData = {
+                name: document.getElementById('student-name').value,
+                courseIds: [parseInt(document.getElementById('student-course').value)],
+                totalFee: parseInt(document.getElementById('student-fee').value),
+                paidAmount: document.getElementById('student-status').value === '已繳費' 
+                    ? parseInt(document.getElementById('student-fee').value) : 0,
+                paymentStatus: document.getElementById('student-status').value,
+                referrerTeacherId: document.getElementById('student-referrer').value 
+                    ? parseInt(document.getElementById('student-referrer').value) : null,
+                contactInfo: document.getElementById('student-contact').value || ''
+            };
+            
+            addStudent(studentData);
+            hideModal('student-modal');
+            this.reset();
+            showNotification('學生新增成功');
+        });
+    }
+
+    // ===== UI 控制功能 =====
+
+    function showSection(sectionName) {
+        // 隱藏所有區段
+        const sections = document.querySelectorAll('.section-content');
+        sections.forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        // 顯示選中的區段
+        const targetSection = document.getElementById(sectionName + '-section');
+        if (targetSection) {
+            targetSection.classList.add('active');
+            appData.currentSection = sectionName;
+        }
+    }
+
+    function showAddTeacherModal() {
+        document.getElementById('teacher-modal').classList.remove('hidden');
+        document.getElementById('teacher-modal').classList.add('flex');
+    }
+
+    function showAddCourseModal() {
+        document.getElementById('course-modal').classList.remove('hidden');
+        document.getElementById('course-modal').classList.add('flex');
+    }
+
+    function showAddStudentModal() {
+        updateCourseSelects();
+        updateTeacherSelects();
+        document.getElementById('student-modal').classList.remove('hidden');
+        document.getElementById('student-modal').classList.add('flex');
+    }
+
+    function hideModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+        document.getElementById(modalId).classList.remove('flex');
+    }
+
+    function showLoading(show) {
+        const loading = document.getElementById('loading');
+        if (show) {
+            loading.classList.remove('hidden');
+            loading.classList.add('flex');
+        } else {
+            loading.classList.add('hidden');
+            loading.classList.remove('flex');
+        }
+    }
+
+    function showNotification(message, type = 'success') {
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notification-text');
+        
+        notificationText.textContent = message;
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+            hideNotification();
+        }, 3000);
+    }
+
+    function hideNotification() {
+        const notification = document.getElementById('notification');
+        notification.classList.remove('show');
+    }
+
+    // ===== 輔助功能 =====
+
+    function getLevelColor(level) {
+        const colors = {
+            '新進': 'bg-gray-100 text-gray-800',
+            '一般': 'bg-blue-100 text-blue-800',
+            '資深': 'bg-green-100 text-green-800',
+            '名師': 'bg-purple-100 text-purple-800'
+        };
+        return colors[level] || 'bg-gray-100 text-gray-800';
+    }
+
+    function getStatusColor(status) {
+        const colors = {
+            '已繳費': 'bg-green-100 text-green-800',
+            '未繳費': 'bg-red-100 text-red-800',
+            '部分繳費': 'bg-yellow-100 text-yellow-800'
+        };
+        return colors[status] || 'bg-gray-100 text-gray-800';
+    }
+
+    // ===== 進階功能 =====
+
+    function deleteTeacher(id) {
+        if (confirm('確定要刪除這位教師嗎？此操作無法復原。')) {
+            appData.teachers = appData.teachers.filter(t => t.id !== id);
+            saveDataToStorage();
+            updateAllDisplays();
+            showNotification('教師已刪除');
+        }
+    }
+
+    function deleteCourse(id) {
+        if (confirm('確定要刪除這個課程嗎？此操作無法復原。')) {
+            appData.courses = appData.courses.filter(c => c.id !== id);
+            saveDataToStorage();
+            updateAllDisplays();
+            showNotification('課程已刪除');
+        }
+    }
+
+    function deleteStudent(id) {
+        if (confirm('確定要刪除這位學生嗎？此操作無法復原。')) {
+            appData.students = appData.students.filter(s => s.id !== id);
+            saveDataToStorage();
+            updateAllDisplays();
+            showNotification('學生已刪除');
+        }
+    }
+
+    function resetAllData() {
+        if (confirm('確定要重置所有資料嗎？這會清除所有教師、課程和學生資料，此操作無法復原。')) {
+            localStorage.clear();
+            appData = { teachers: [], courses: [], students: [], attendance: [] };
+            initializeDefaultData();
+            updateAllDisplays();
+            showNotification('資料已重置');
+        }
+    }
+
+    function exportData() {
+        const exportData = {
+            teachers: appData.teachers,
+            courses: appData.courses,
+            students: appData.students,
+            attendance: appData.attendance,
+            exportDate: new Date().toISOString()
+        };
+        
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `補習班資料_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showNotification('資料已匯出');
+    }
+
+    // 佔位函式 - 編輯功能
+    function editTeacher(id) {
+        showNotification('編輯功能開發中', 'info');
+    }
+
+    function editCourse(id) {
+        showNotification('編輯功能開發中', 'info');
+    }
+
+    function editStudent(id) {
+        showNotification('編輯功能開發中', 'info');
+    }
 </script>
 
-<!-- 載入 Lightweight Charts 圖表庫 -->
-<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"
-        onload="startApp()" onerror="chartLoadFailed()"></script>
 
 </body>
 </html>
