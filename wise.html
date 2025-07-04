@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WiseEye 邊緣 AI 鏡頭應用研究報告</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+
+    <!-- Tailwind Configuration -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "Noto Sans TC", "system-ui", "sans-serif"],
+              tc: ["Noto Sans TC", "Inter", "system-ui", "sans-serif"],
+            },
+            colors: {
+              primary: {
+                50: "#f0f9ff",
+                100: "#e0f2fe",
+                500: "#0ea5e9",
+                600: "#0284c7",
+                700: "#0369a1",
+                900: "#0c4a6e",
+              },
+              secondary: {
+                50: "#fdf4ff",
+                100: "#fae8ff",
+                500: "#a855f7",
+                600: "#9333ea",
+                700: "#7c3aed",
+              },
+              neutral: {
+                50: "#fafafa",
+                100: "#f5f5f5",
+                200: "#e5e5e5",
+                300: "#d4d4d4",
+                400: "#a3a3a3",
+                500: "#737373",
+                600: "#525252",
+                700: "#404040",
+                800: "#262626",
+                900: "#171717",
+              },
+            },
+            spacing: {
+              18: "4.5rem",
+              88: "22rem",
+              128: "32rem",
+            },
+            animation: {
+              fadeInUp: "fadeInUp 0.8s ease-out",
+              slideInLeft: "slideInLeft 0.6s ease-out",
+              float: "float 6s ease-in-out infinite",
+              "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      /* 自訂動畫關鍵影格 */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes slideInLeft {
+        from {
+          opacity: 0;
+          transform: translateX(-30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      /* 隱藏彩蛋按鈕樣式 */
+      .easter-egg {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        transition: all 0.3s ease;
+        opacity: 0.7;
+      }
+
+      .easter-egg:hover {
+        transform: scale(1.1);
+        opacity: 1;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      /* 自訂捲動條 */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #0ea5e9, #0284c7);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #0284c7, #0369a1);
+      }
+
+      /* 背景漸層效果 */
+      .bg-gradient-primary {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+      }
+
+      .bg-gradient-card {
+        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+      }
+
+      /* 文字陰影效果 */
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 卡片懸浮效果 */
+      .card-hover {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+    </style>
+  </head>
+
+  <body
+    class="font-tc bg-gradient-to-br from-neutral-50 to-primary-50 text-neutral-800"
+  >
+    <!-- 隱藏彩蛋按鈕 - 位置在頁面右下角 -->
+    <button class="easter-egg animate-float" onclick="triggerEasterEgg()">
+      <i class="fas fa-eye text-white text-xl"></i>
+    </button>
+
+    <!-- Header Section - 響應式導航列 -->
+    <header
+      class="bg-white/80 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-neutral-200"
+    >
+      <nav class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <!-- Mobile & Desktop Logo -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div
+              class="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center"
+            >
+              <i class="fas fa-eye text-white text-xl"></i>
+            </div>
+            <h1
+              class="text-xl sm:text-2xl font-bold text-neutral-900 text-shadow"
+            >
+              WiseEye 研究報告
+            </h1>
+          </div>
+
+          <!-- Mobile Menu Button -->
+          <button
+            class="md:hidden p-2 rounded-lg hover:bg-neutral-100 transition-colors duration-200"
+            onclick="toggleMobileMenu()"
+          >
+            <i class="fas fa-bars text-neutral-600"></i>
+          </button>
+
+          <!-- Desktop Navigation -->
+          <div class="hidden md:flex items-center space-x-8">
+            <a href="#intro" class="nav-link">技術介紹</a>
+            <a href="#manufacturing" class="nav-link">製造業</a>
+            <a href="#retail" class="nav-link">零售業</a>
+            <a href="#transportation" class="nav-link">交通運輸</a>
+            <a href="#construction" class="nav-link">建築</a>
+            <a href="#safety" class="nav-link">公共安全</a>
+            <a href="#agriculture" class="nav-link">農業</a>
+          </div>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div
+          id="mobileMenu"
+          class="md:hidden mt-4 pb-4 border-t border-neutral-200 hidden"
+        >
+          <div class="flex flex-col space-y-3 pt-4">
+            <a href="#intro" class="mobile-nav-link">技術介紹</a>
+            <a href="#manufacturing" class="mobile-nav-link">製造業</a>
+            <a href="#retail" class="mobile-nav-link">零售業</a>
+            <a href="#transportation" class="mobile-nav-link">交通運輸</a>
+            <a href="#construction" class="mobile-nav-link">建築</a>
+            <a href="#safety" class="mobile-nav-link">公共安全</a>
+            <a href="#agriculture" class="mobile-nav-link">農業</a>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Hero Section - 首頁橫幅，支援 Mobile-first 設計 -->
+    <section
+      class="bg-gradient-primary text-white py-16 sm:py-24 lg:py-32 relative overflow-hidden"
+    >
+      <!-- 背景裝飾元素 -->
+      <div class="absolute inset-0 opacity-10">
+        <div
+          class="absolute top-20 left-10 w-32 h-32 bg-white rounded-full animate-pulse-slow"
+        ></div>
+        <div
+          class="absolute bottom-20 right-10 w-24 h-24 bg-white rounded-full animate-pulse-slow"
+          style="animation-delay: 1s"
+        ></div>
+        <div
+          class="absolute top-1/2 left-1/2 w-40 h-40 bg-white rounded-full animate-pulse-slow"
+          style="animation-delay: 2s"
+        ></div>
+      </div>
+
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div class="text-center max-w-4xl mx-auto">
+          <h1
+            class="text-3xl sm:text-4xl lg:text-6xl font-bold mb-6 leading-tight animate-fadeInUp"
+          >
+            WiseEye 邊緣 AI 鏡頭
+            <span
+              class="block text-2xl sm:text-3xl lg:text-5xl mt-2 text-primary-100"
+            >
+              多元創新應用場景
+            </span>
+          </h1>
+          <p
+            class="text-lg sm:text-xl lg:text-2xl mb-8 text-primary-100 leading-relaxed animate-fadeInUp"
+            style="animation-delay: 0.3s"
+          >
+            探索奇景光電 WiseEye
+            技術在各產業的革命性應用，從智慧製造到智慧農業，開啟邊緣 AI
+            的無限可能
+          </p>
+          <div
+            class="flex flex-col sm:flex-row gap-4 justify-center animate-fadeInUp"
+            style="animation-delay: 0.6s"
+          >
+            <button
+              onclick="scrollToSection('intro')"
+              class="px-8 py-3 bg-white text-primary-600 font-semibold rounded-lg hover:bg-primary-50 transform hover:scale-105 transition-all duration-200 shadow-lg"
+            >
+              <i class="fas fa-rocket mr-2"></i>開始探索
+            </button>
+            <button
+              onclick="scrollToSection('conclusion')"
+              class="px-8 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-primary-600 transform hover:scale-105 transition-all duration-200"
+            >
+              <i class="fas fa-chart-line mr-2"></i>查看結論
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content - 主要內容區域，使用 Flexbox 和 Grid 進行響應式排版 -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+      <!-- 技術介紹 Section -->
+      <section id="intro" class="mb-16 lg:mb-24 scroll-mt-20">
+        <div
+          class="bg-gradient-card rounded-2xl p-6 sm:p-8 lg:p-12 shadow-xl card-hover border border-neutral-200"
+        >
+          <div class="text-center mb-8">
+            <h2
+              class="text-2xl sm:text-3xl lg:text-4xl font-bold text-neutral-900 mb-4"
+            >
+              <i class="fas fa-microchip text-primary-600 mr-3"></i>
+              WiseEye 技術介紹
+            </h2>
+            <div
+              class="w-24 h-1 bg-gradient-primary mx-auto rounded-full"
+            ></div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div class="space-y-6">
+              <p class="text-base sm:text-lg leading-relaxed text-neutral-700">
+                WiseEye 是奇景光電（Himax）推出的超低功耗邊緣 AI
+                感測解決方案，整合專用 AI
+                晶片與全時影像感測器，在裝置端即可進行人工智慧影像辨識與推論。
+              </p>
+              <div class="space-y-4">
+                <div class="flex items-start space-x-3">
+                  <i class="fas fa-check-circle text-primary-600 mt-1"></i>
+                  <span class="text-neutral-700"
+                    >毫瓦級超低功耗，支援電池供電設備長期運作</span
+                  >
+                </div>
+                <div class="flex items-start space-x-3">
+                  <i class="fas fa-check-circle text-primary-600 mt-1"></i>
+                  <span class="text-neutral-700"
+                    >即時邊緣計算，降低網路延遲與隱私風險</span
+                  >
+                </div>
+                <div class="flex items-start space-x-3">
+                  <i class="fas fa-check-circle text-primary-600 mt-1"></i>
+                  <span class="text-neutral-700"
+                    >內建多種預訓練模型，支援人形偵測、人臉辨識等功能</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="relative">
+              <div
+                class="bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl p-6 text-white text-center transform hover:scale-105 transition-transform duration-300"
+              >
+                <i class="fas fa-brain text-6xl mb-4 opacity-80"></i>
+                <h3 class="text-xl font-bold mb-2">AI 邊緣運算</h3>
+                <p class="text-sm opacity-90">
+                  在裝置端執行 AI 推論，提供即時智慧分析
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 產業應用卡片網格 - 使用 CSS Grid 實現響應式 12 欄排版 -->
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 mb-16"
+      >
+        <!-- 製造業卡片 -->
+        <div
+          id="manufacturing"
+          class="application-card bg-gradient-card rounded-xl p-6 shadow-lg card-hover border border-neutral-200 scroll-mt-20"
+        >
+          <div class="text-center mb-6">
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <i class="fas fa-industry text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-neutral-900 mb-2">智慧製造</h3>
+            <div class="w-12 h-0.5 bg-blue-500 mx-auto"></div>
+          </div>
+          <div class="space-y-4 text-sm text-neutral-700 leading-relaxed">
+            <p>
+              <strong>人員在場偵測：</strong
+              >精準感知工作區域內員工存在，自動控制照明與空調設備。
+            </p>
+            <p>
+              <strong>危險區域監控：</strong
+              >即時偵測未授權人員進入機械設備附近，發出安全警報。
+            </p>
+            <p>
+              <strong>門禁管制：</strong
+              >透過人臉辨識技術，僅允許授權員工進入特定產線。
+            </p>
+            <p>
+              <strong>手勢操作：</strong
+              >員工可透過手勢遠端操作設備，減少接觸需求。
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-neutral-200">
+            <div
+              class="flex items-center justify-between text-xs text-neutral-500"
+            >
+              <span><i class="fas fa-chart-line mr-1"></i>效率提升</span>
+              <span><i class="fas fa-shield-alt mr-1"></i>安全強化</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 零售業卡片 -->
+        <div
+          id="retail"
+          class="application-card bg-gradient-card rounded-xl p-6 shadow-lg card-hover border border-neutral-200 scroll-mt-20"
+        >
+          <div class="text-center mb-6">
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <i class="fas fa-store text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-neutral-900 mb-2">智慧零售</h3>
+            <div class="w-12 h-0.5 bg-green-500 mx-auto"></div>
+          </div>
+          <div class="space-y-4 text-sm text-neutral-700 leading-relaxed">
+            <p>
+              <strong>人流分析：</strong
+              >自動計算進出店人數及停留時間，優化人力配置。
+            </p>
+            <p><strong>VIP 識別：</strong>辨識熟客並提醒店員提供個人化服務。</p>
+            <p>
+              <strong>貨架監控：</strong>監測商品數量與擺放，自動提醒補貨需求。
+            </p>
+            <p>
+              <strong>智慧看板：</strong
+              >結合電子紙顯示，根據觀看者特徵動態調整廣告內容。
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-neutral-200">
+            <div
+              class="flex items-center justify-between text-xs text-neutral-500"
+            >
+              <span><i class="fas fa-users mr-1"></i>客戶體驗</span>
+              <span><i class="fas fa-brain mr-1"></i>精準行銷</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 交通運輸卡片 -->
+        <div
+          id="transportation"
+          class="application-card bg-gradient-card rounded-xl p-6 shadow-lg card-hover border border-neutral-200 scroll-mt-20"
+        >
+          <div class="text-center mb-6">
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <i class="fas fa-car text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-neutral-900 mb-2">交通運輸</h3>
+            <div class="w-12 h-0.5 bg-purple-500 mx-auto"></div>
+          </div>
+          <div class="space-y-4 text-sm text-neutral-700 leading-relaxed">
+            <p>
+              <strong>無鑰匙啟動：</strong>透過人臉或掌紋辨識實現車輛自動解鎖。
+            </p>
+            <p>
+              <strong>車輛監控：</strong
+              >停車後進入哨兵模式，偵測異常並記錄影像。
+            </p>
+            <p>
+              <strong>駕駛監測：</strong
+              >偵測駕駛者疲勞或分神狀態，即時發出警示。
+            </p>
+            <p>
+              <strong>智慧停車：</strong
+              >自動辨認車格佔用狀態，提供即時空位資訊。
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-neutral-200">
+            <div
+              class="flex items-center justify-between text-xs text-neutral-500"
+            >
+              <span><i class="fas fa-lock mr-1"></i>安全防護</span>
+              <span><i class="fas fa-parking mr-1"></i>智慧停車</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 建築卡片 -->
+        <div
+          id="construction"
+          class="application-card bg-gradient-card rounded-xl p-6 shadow-lg card-hover border border-neutral-200 scroll-mt-20"
+        >
+          <div class="text-center mb-6">
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <i class="fas fa-building text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-neutral-900 mb-2">智慧建築</h3>
+            <div class="w-12 h-0.5 bg-orange-500 mx-auto"></div>
+          </div>
+          <div class="space-y-4 text-sm text-neutral-700 leading-relaxed">
+            <p>
+              <strong>節能控制：</strong
+              >感知房間人員活動，自動控制燈光與空調系統。
+            </p>
+            <p>
+              <strong>無感門禁：</strong>結合生物辨識技術，實現智慧門禁管理。
+            </p>
+            <p>
+              <strong>工地安全：</strong>監控施工現場，偵測非法闖入與安全違規。
+            </p>
+            <p>
+              <strong>24 小時哨兵：</strong>門鎖整合 AI 攝影機，提供全天候監控。
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-neutral-200">
+            <div
+              class="flex items-center justify-between text-xs text-neutral-500"
+            >
+              <span><i class="fas fa-leaf mr-1"></i>節能環保</span>
+              <span><i class="fas fa-eye mr-1"></i>安全監控</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 公共安全卡片 -->
+        <div
+          id="safety"
+          class="application-card bg-gradient-card rounded-xl p-6 shadow-lg card-hover border border-neutral-200 scroll-mt-20"
+        >
+          <div class="text-center mb-6">
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <i class="fas fa-shield-alt text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-neutral-900 mb-2">公共安全</h3>
+            <div class="w-12 h-0.5 bg-red-500 mx-auto"></div>
+          </div>
+          <div class="space-y-4 text-sm text-neutral-700 leading-relaxed">
+            <p>
+              <strong>智慧監視：</strong>自動辨識異常行為，減少人力監控負擔。
+            </p>
+            <p>
+              <strong>身分驗證：</strong>多模態生物辨識，提升重要設施門禁安全。
+            </p>
+            <p><strong>人群管理：</strong>即時統計人數密度，預防踩踏事故。</p>
+            <p><strong>AI 巡邏：</strong>夜間無人值守場域的智慧安全維護。</p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-neutral-200">
+            <div
+              class="flex items-center justify-between text-xs text-neutral-500"
+            >
+              <span><i class="fas fa-search mr-1"></i>智慧監控</span>
+              <span><i class="fas fa-users mr-1"></i>人群管理</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 農業卡片 -->
+        <div
+          id="agriculture"
+          class="application-card bg-gradient-card rounded-xl p-6 shadow-lg card-hover border border-neutral-200 scroll-mt-20"
+        >
+          <div class="text-center mb-6">
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <i class="fas fa-seedling text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-neutral-900 mb-2">智慧農業</h3>
+            <div class="w-12 h-0.5 bg-emerald-500 mx-auto"></div>
+          </div>
+          <div class="space-y-4 text-sm text-neutral-700 leading-relaxed">
+            <p>
+              <strong>動物入侵偵測：</strong
+              >防止野生動物破壞農作物，即時聲光嚇阻。
+            </p>
+            <p>
+              <strong>害獸監控：</strong>精準監測老鼠等害蟲活動，保護糧食安全。
+            </p>
+            <p>
+              <strong>牲畜管理：</strong>自動點數與監控牲畜活動，偵測異常行為。
+            </p>
+            <p>
+              <strong>作物監測：</strong>定時拍攝作物影像，早期發現病蟲害跡象。
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-neutral-200">
+            <div
+              class="flex items-center justify-between text-xs text-neutral-500"
+            >
+              <span><i class="fas fa-tractor mr-1"></i>農場管理</span>
+              <span><i class="fas fa-chart-bar mr-1"></i>產量優化</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 技術特色展示區 -->
+      <section class="mb-16 lg:mb-24">
+        <div class="text-center mb-12">
+          <h2
+            class="text-2xl sm:text-3xl lg:text-4xl font-bold text-neutral-900 mb-4"
+          >
+            <i class="fas fa-star text-secondary-600 mr-3"></i>
+            技術特色亮點
+          </h2>
+          <div
+            class="w-24 h-1 bg-gradient-to-r from-secondary-500 to-primary-500 mx-auto rounded-full"
+          ></div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div
+            class="text-center p-6 bg-white rounded-xl shadow-lg card-hover border border-neutral-200"
+          >
+            <div
+              class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <i class="fas fa-battery-full text-white"></i>
+            </div>
+            <h4 class="font-semibold text-neutral-900 mb-2">超低功耗</h4>
+            <p class="text-sm text-neutral-600">
+              毫瓦級功耗，電池供電可運作數月
+            </p>
+          </div>
+
+          <div
+            class="text-center p-6 bg-white rounded-xl shadow-lg card-hover border border-neutral-200"
+          >
+            <div
+              class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <i class="fas fa-bolt text-white"></i>
+            </div>
+            <h4 class="font-semibold text-neutral-900 mb-2">即時處理</h4>
+            <p class="text-sm text-neutral-600">邊緣計算，毫秒級響應速度</p>
+          </div>
+
+          <div
+            class="text-center p-6 bg-white rounded-xl shadow-lg card-hover border border-neutral-200"
+          >
+            <div
+              class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <i class="fas fa-user-shield text-white"></i>
+            </div>
+            <h4 class="font-semibold text-neutral-900 mb-2">隱私保護</h4>
+            <p class="text-sm text-neutral-600">本地處理，不上傳原始影像</p>
+          </div>
+
+          <div
+            class="text-center p-6 bg-white rounded-xl shadow-lg card-hover border border-neutral-200"
+          >
+            <div
+              class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4"
+            >
+              <i class="fas fa-cogs text-white"></i>
+            </div>
+            <h4 class="font-semibold text-neutral-900 mb-2">易於整合</h4>
+            <p class="text-sm text-neutral-600">模組化設計，快速部署應用</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 結論 Section -->
+      <section id="conclusion" class="scroll-mt-20">
+        <div
+          class="bg-gradient-to-br from-neutral-900 to-neutral-800 text-white rounded-2xl p-6 sm:p-8 lg:p-12 relative overflow-hidden"
+        >
+          <!-- 背景裝飾 -->
+          <div class="absolute inset-0 opacity-10">
+            <div
+              class="absolute top-10 right-10 w-32 h-32 bg-primary-500 rounded-full blur-xl"
+            ></div>
+            <div
+              class="absolute bottom-10 left-10 w-24 h-24 bg-secondary-500 rounded-full blur-xl"
+            ></div>
+          </div>
+
+          <div class="relative">
+            <div class="text-center mb-8">
+              <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">
+                <i class="fas fa-lightbulb text-yellow-400 mr-3"></i>
+                結論與展望
+              </h2>
+              <div
+                class="w-24 h-1 bg-gradient-to-r from-yellow-400 to-orange-400 mx-auto rounded-full"
+              ></div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
+              <div class="space-y-6">
+                <p class="text-base sm:text-lg leading-relaxed opacity-90">
+                  WiseEye 邊緣 AI
+                  鏡頭以其低功耗、即時影像智能的特性，在各產業中展現了廣泛的應用價值。從智慧製造的自動化管理，到零售業的精準行銷，再到農業的智慧監控，都能找到具體的成功案例。
+                </p>
+                <p class="text-base sm:text-lg leading-relaxed opacity-90">
+                  隨著各產業對智慧化與即時資料分析的需求成長，預期 WiseEye
+                  將被更多企業採用，持續拓展新的應用場景，為傳統產業轉型升級開啟新局面。
+                </p>
+              </div>
+              <div class="text-center">
+                <div
+                  class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20"
+                >
+                  <i class="fas fa-rocket text-4xl text-primary-400 mb-4"></i>
+                  <h3 class="text-xl font-bold mb-2">未來展望</h3>
+                  <p class="text-sm opacity-80">
+                    終端人工智慧的巨大潛力正在各行各業中綻放
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer - 使用 Flexbox 進行響應式底部設計 -->
+    <footer class="bg-neutral-800 text-white py-8 sm:py-12">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <!-- 公司資訊 -->
+          <div class="text-center md:text-left">
+            <div
+              class="flex items-center justify-center md:justify-start space-x-3 mb-4"
+            >
+              <div
+                class="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center"
+              >
+                <i class="fas fa-eye text-white"></i>
+              </div>
+              <h3 class="text-lg font-bold">WiseEye 研究報告</h3>
+            </div>
+            <p class="text-sm text-neutral-300 leading-relaxed">
+              奇景光電 WiseEye 邊緣 AI 技術，引領各產業智慧化轉型
+            </p>
+          </div>
+
+          <!-- 快速連結 -->
+          <div class="text-center">
+            <h4 class="text-base font-semibold mb-4">快速導航</h4>
+            <div class="space-y-2">
+              <a
+                href="#intro"
+                class="block text-sm text-neutral-300 hover:text-primary-400 transition-colors duration-200"
+                >技術介紹</a
+              >
+              <a
+                href="#manufacturing"
+                class="block text-sm text-neutral-300 hover:text-primary-400 transition-colors duration-200"
+                >產業應用</a
+              >
+              <a
+                href="#conclusion"
+                class="block text-sm text-neutral-300 hover:text-primary-400 transition-colors duration-200"
+                >結論展望</a
+              >
+            </div>
+          </div>
+
+          <!-- 聯絡資訊 -->
+          <div class="text-center md:text-right">
+            <h4 class="text-base font-semibold mb-4">技術支援</h4>
+            <div class="space-y-2 text-sm text-neutral-300">
+              <div><i class="fas fa-globe mr-2"></i>奇景光電官網</div>
+              <div><i class="fas fa-envelope mr-2"></i>info@himax.com.tw</div>
+              <div><i class="fas fa-phone mr-2"></i>+886-3-5700-111</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 版權聲明 -->
+        <div class="border-t border-neutral-700 mt-8 pt-6 text-center">
+          <p class="text-sm text-neutral-400">
+            © 2025 Himax Technologies. All rights reserved. |
+            <span class="text-primary-400">WiseEye 邊緣 AI 技術研究報告</span>
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- JavaScript 功能實現 -->
+    <script>
+      // ==========================================
+      // 導航功能 - 響應式選單管理
+      // ==========================================
+
+      // 切換手機版選單顯示/隱藏
+      function toggleMobileMenu() {
+        const mobileMenu = document.getElementById("mobileMenu");
+        mobileMenu.classList.toggle("hidden");
+      }
+
+      // 平滑捲動到指定區域 - 考量 sticky header 高度
+      function scrollToSection(sectionId) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          const headerHeight = 80; // 考量 sticky header 高度
+          const elementPosition = element.offsetTop - headerHeight;
+
+          window.scrollTo({
+            top: elementPosition,
+            behavior: "smooth",
+          });
+
+          // 關閉手機版選單
+          const mobileMenu = document.getElementById("mobileMenu");
+          mobileMenu.classList.add("hidden");
+        }
+      }
+
+      // ==========================================
+      // 捲動互動效果 - Intersection Observer
+      // ==========================================
+
+      // 建立觀察器，實現捲動進場動畫
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px",
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // 添加進場動畫類別
+            entry.target.style.opacity = "1";
+            entry.target.style.transform = "translateY(0)";
+            entry.target.style.transition =
+              "opacity 0.8s ease-out, transform 0.8s ease-out";
+          }
+        });
+      }, observerOptions);
+
+      // 監控所有卡片元素的進場動畫
+      document.addEventListener("DOMContentLoaded", () => {
+        // 初始化卡片樣式
+        const cards = document.querySelectorAll(".application-card");
+        cards.forEach((card, index) => {
+          card.style.opacity = "0";
+          card.style.transform = "translateY(30px)";
+          card.style.transitionDelay = `${index * 0.1}s`; // 錯開動畫時間
+          observer.observe(card);
+        });
+      });
+
+      // ==========================================
+      // 導航連結點擊處理
+      // ==========================================
+
+      // 為所有導航連結添加平滑捲動
+      document.addEventListener("DOMContentLoaded", () => {
+        // 桌面版導航連結
+        const navLinks = document.querySelectorAll(".nav-link");
+        navLinks.forEach((link) => {
+          link.addEventListener("click", (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute("href").substring(1);
+            scrollToSection(targetId);
+          });
+
+          // 設定導航連結樣式
+          link.className =
+            'nav-link text-neutral-600 hover:text-primary-600 font-medium transition-colors duration-200 relative after:content-[""] after:absolute after:w-0 after:h-0.5 after:bg-primary-600 after:left-0 after:bottom-0 after:transition-all after:duration-300 hover:after:w-full';
+        });
+
+        // 手機版導航連結
+        const mobileNavLinks = document.querySelectorAll(".mobile-nav-link");
+        mobileNavLinks.forEach((link) => {
+          link.addEventListener("click", (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute("href").substring(1);
+            scrollToSection(targetId);
+          });
+
+          // 設定手機版導航連結樣式
+          link.className =
+            "mobile-nav-link block px-4 py-2 text-neutral-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all duration-200 font-medium";
+        });
+      });
+
+      // ==========================================
+      // 隱藏彩蛋功能
+      // ==========================================
+
+      function triggerEasterEgg() {
+        // 創建彩蛋模態視窗
+        const modal = document.createElement("div");
+        modal.className =
+          "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
+        modal.style.animation = "fadeInUp 0.3s ease-out";
+
+        modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center relative overflow-hidden">
+                    <!-- 背景動畫效果 -->
+                    <div class="absolute inset-0 opacity-10">
+                        <div class="absolute top-4 left-4 w-8 h-8 bg-primary-500 rounded-full animate-ping"></div>
+                        <div class="absolute bottom-4 right-4 w-6 h-6 bg-secondary-500 rounded-full animate-ping" style="animation-delay: 0.5s;"></div>
+                        <div class="absolute top-1/2 left-1/2 w-12 h-12 bg-yellow-400 rounded-full animate-pulse"></div>
+                    </div>
+                    
+                    <div class="relative">
+                        <div class="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                            <i class="fas fa-magic text-white text-3xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-neutral-900 mb-4">🎉 發現彩蛋！</h3>
+                        <p class="text-neutral-700 mb-6 leading-relaxed">
+                            恭喜您發現了隱藏的 WiseEye 智慧彩蛋！<br>
+                            就像 WiseEye 能夠洞察一切一樣，您也擁有敏銳的觀察力！
+                        </p>
+                        
+                        <!-- 互動小遊戲 -->
+                        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-6">
+                            <h4 class="font-semibold text-neutral-800 mb-3">🎮 AI 眼力小測試</h4>
+                            <p class="text-sm text-neutral-600 mb-3">在這些應用場景中，哪一個最吸引您？</p>
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <button onclick="selectAnswer('smart-manufacturing')" class="easter-choice p-2 bg-white rounded-lg hover:bg-blue-100 transition-colors duration-200 border border-neutral-200">
+                                    🏭 智慧製造
+                                </button>
+                                <button onclick="selectAnswer('smart-retail')" class="easter-choice p-2 bg-white rounded-lg hover:bg-green-100 transition-colors duration-200 border border-neutral-200">
+                                    🛍️ 智慧零售
+                                </button>
+                                <button onclick="selectAnswer('smart-transport')" class="easter-choice p-2 bg-white rounded-lg hover:bg-purple-100 transition-colors duration-200 border border-neutral-200">
+                                    🚗 智慧交通
+                                </button>
+                                <button onclick="selectAnswer('smart-agriculture')" class="easter-choice p-2 bg-white rounded-lg hover:bg-emerald-100 transition-colors duration-200 border border-neutral-200">
+                                    🌱 智慧農業
+                                </button>
+                            </div>
+                            <div id="easterResult" class="mt-3 text-sm font-medium text-primary-600 hidden"></div>
+                        </div>
+                        
+                        <button onclick="closeEasterEgg()" class="w-full px-6 py-3 bg-gradient-primary text-white font-semibold rounded-lg hover:opacity-90 transform hover:scale-105 transition-all duration-200 shadow-lg">
+                            <i class="fas fa-times mr-2"></i>關閉彩蛋
+                        </button>
+                    </div>
+                </div>
+            `;
+
+        document.body.appendChild(modal);
+
+        // 點擊背景關閉模態視窗
+        modal.addEventListener("click", (e) => {
+          if (e.target === modal) {
+            closeEasterEgg();
+          }
+        });
+      }
+
+      // 彩蛋小遊戲選擇答案
+      function selectAnswer(choice) {
+        const resultDiv = document.getElementById("easterResult");
+        const choices = document.querySelectorAll(".easter-choice");
+
+        // 重置所有按鈕樣式
+        choices.forEach((btn) => {
+          btn.style.backgroundColor = "";
+          btn.style.transform = "";
+        });
+
+        // 高亮選中的答案
+        event.target.style.backgroundColor = "#dbeafe";
+        event.target.style.transform = "scale(1.05)";
+
+        const responses = {
+          "smart-manufacturing":
+            "🏭 優秀選擇！智慧製造是工業 4.0 的核心，WiseEye 在此領域大有可為！",
+          "smart-retail":
+            "🛍️ 很棒的眼光！零售業的數位轉型正需要 WiseEye 這樣的智慧解決方案！",
+          "smart-transport": "🚗 前瞻思維！智慧交通是未來城市發展的重要趨勢！",
+          "smart-agriculture":
+            "🌱 永續思考！智慧農業將為食物安全與環境保護帶來革命性改變！",
+        };
+
+        resultDiv.textContent = responses[choice];
+        resultDiv.classList.remove("hidden");
+        resultDiv.style.animation = "fadeInUp 0.5s ease-out";
+      }
+
+      // 關閉彩蛋模態視窗
+      function closeEasterEgg() {
+        const modal = document.querySelector(".fixed.inset-0.bg-black");
+        if (modal) {
+          modal.style.animation = "fadeOut 0.3s ease-out";
+          setTimeout(() => {
+            document.body.removeChild(modal);
+          }, 300);
+        }
+      }
+
+      // ==========================================
+      // 效能優化與使用者體驗
+      // ==========================================
+
+      // 防抖函數，優化捲動效能
+      function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      }
+
+      // 優化捲動事件處理
+      const handleScroll = debounce(() => {
+        // 可以在這裡添加其他捲動相關的功能
+        // 例如：導航列背景透明度變化、返回頂部按鈕顯示等
+      }, 100);
+
+      window.addEventListener("scroll", handleScroll);
+
+      // ==========================================
+      // 頁面載入完成初始化
+      // ==========================================
+
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("🎯 WiseEye 研究報告頁面載入完成");
+        console.log(
+          "💡 設計特色：Mobile-first 響應式、Tailwind CSS、微互動動畫"
+        );
+        console.log("🔍 隱藏彩蛋：點擊右下角的眼睛圖示探索更多驚喜！");
+
+        // 初始化所有互動元素
+        initializeAnimations();
+      });
+
+      // 初始化動畫效果
+      function initializeAnimations() {
+        // 為所有具有 card-hover 類別的元素添加懸浮效果增強
+        const hoverCards = document.querySelectorAll(".card-hover");
+        hoverCards.forEach((card) => {
+          card.addEventListener("mouseenter", () => {
+            card.style.transform = "translateY(-4px) scale(1.02)";
+          });
+
+          card.addEventListener("mouseleave", () => {
+            card.style.transform = "translateY(0) scale(1)";
+          });
+        });
+      }
+
+      // ==========================================
+      // 鍵盤快捷鍵支援
+      // ==========================================
+
+      document.addEventListener("keydown", (e) => {
+        // ESC 鍵關閉彩蛋
+        if (e.key === "Escape") {
+          closeEasterEgg();
+        }
+
+        // 空白鍵觸發彩蛋（隱藏功能）
+        if (e.key === " " && e.ctrlKey) {
+          e.preventDefault();
+          triggerEasterEgg();
+        }
+      });
+    </script>
+
+    <!-- 動畫的CSS關鍵影格定義 -->
+    <style>
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+    </style>
+  </body>
+</html>
