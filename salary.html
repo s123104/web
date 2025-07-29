@@ -7,20 +7,14 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <style>
-    body { padding: 20px; font-family: 'Noto Sans TC', sans-serif; }
+    body { padding: 20px; }
     .section { margin-bottom: 30px; }
-    .grid-template { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; page-break-inside: avoid; }
+    .grid-template { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
     .smallGrid { font-size: 14px; }
     .largeGrid { font-size: 16px; }
-    #payrollOutput { background: #f8f9fa; padding: 20px; min-height: 200px; }
-    .table th, .table td { vertical-align: middle; text-align: center; }
+    #payrollOutput { background: #f8f9fa; padding: 20px; }
+    .table th, .table td { vertical-align: middle; }
     .modal-body p { margin-bottom: 10px; }
-    .error { color: red; font-size: 0.9em; }
-    @media print {
-      .grid-template { break-inside: avoid; }
-      .no-print { display: none; }
-      body { font-size: 12pt; color: #000; }
-    }
   </style>
 </head>
 <body>
@@ -31,46 +25,42 @@
       <div class="row mb-3">
         <div class="col-md-3">
           <label for="year">年份</label>
-          <input id="year" type="number" class="form-control" min="2000" max="2100" value="2025">
-          <div id="yearError" class="error"></div>
+          <input id="year" type="number" class="form-control" value="2025">
         </div>
         <div class="col-md-3">
           <label for="month">月份</label>
-          <input id="month" type="number" class="form-control" min="1" max="12" value="5">
-          <div id="monthError" class="error"></div>
+          <input id="month" type="number" class="form-control" value="5">
         </div>
       </div>
       <table id="teacherList" class="table table-bordered">
-        <thead><tr><th>教師代號</th><th>姓名</th><th>分店</th><th>總計 N13</th><th class="no-print">操作</th></tr></thead>
+        <thead><tr><th>教師代號</th><th>姓名</th><th>分店</th><th>總計 N13</th><th>操作</th></tr></thead>
         <tbody></tbody>
       </table>
       <table id="branchSubtotals" class="table table-bordered">
         <thead><tr><th>分店</th><th>小計</th></tr></thead>
         <tbody></tbody>
       </table>
-      <button class="btn btn-primary no-print" onclick="recalculateAll()">重新計算所有教師總計</button>
-      <button class="btn btn-danger no-print" onclick="clearPayroll()">清空薪資單統整</button>
-      <button class="btn btn-success no-print" onclick="exportToPDF()">列印/另存 PDF</button>
+      <button class="btn btn-primary" onclick="recalculateAll()">重新計算所有教師總計</button>
+      <button class="btn btn-danger" onclick="clearPayroll()">清空薪資單統整</button>
+      <button class="btn btn-success" onclick="exportToPDF()">列印/另存 PDF</button>
     </section>
 
     <!-- 教師管理 -->
-    <section id="teacherManagement" class="section no-print">
+    <section id="teacherManagement" class="section">
       <h2>教師管理</h2>
       <div class="row mb-3">
         <div class="col-md-3">
           <label for="teacherId">教師代號</label>
           <input id="teacherId" type="text" class="form-control" readonly>
-          <div id="teacherIdError" class="error"></div>
         </div>
         <div class="col-md-3">
           <label for="teacherName">姓名</label>
           <input id="teacherName" type="text" class="form-control" placeholder="教師姓名">
-          <div id="teacherNameError" class="error"></div>
         </div>
         <div class="col-md-3">
           <label for="teacherBranch">分店</label>
           <select id="teacherBranch" class="form-select">
-            <option value="">未指定</option>
+            <option value="未指定">未指定</option>
             <option value="虎尾">虎尾</option>
             <option value="斗六">斗六</option>
             <option value="立昇">立昇</option>
@@ -82,32 +72,30 @@
         </div>
       </div>
       <table id="entryList" class="table table-bordered">
-        <thead><tr><th>#</th><th>類型</th><th>小時</th><th>時薪</th><th>金額</th><th>類別碼</th><th>小計</th><th class="no-print">操作</th></tr></thead>
+        <thead><tr><th>#</th><th>類型</th><th>小時</th><th>時薪</th><th>固定金額</th><th>小計</th><th>操作</th></tr></thead>
         <tbody></tbody>
       </table>
       <button class="btn btn-primary" onclick="addEntry('hourly')">新增「時薪」</button>
       <button class="btn btn-primary" onclick="addEntry('fixed')">新增「固定金額」</button>
-      <button class="btn btn-primary" onclick="addEntry('allowance')">新增「津貼」</button>
-      <button class="btn btn-primary" onclick="addEntry('deduction')">新增「扣款」</button>
       <button class="btn btn-success" onclick="saveAndRecalculate()">儲存並重算</button>
     </section>
 
     <!-- 薪資單 -->
     <section id="payroll" class="section">
       <h2>薪資單</h2>
-      <button class="btn btn-primary no-print" onclick="renderPayroll('smallGrid')">小格複製</button>
-      <button class="btn btn-primary no-print" onclick="renderPayroll('largeGrid')">大格複製</button>
-      <button class="btn btn-danger no-print" onclick="clearPayroll()">清空統整</button>
+      <button class="btn btn-primary" onclick="renderPayroll('smallGrid')">小格複製</button>
+      <button class="btn btn-primary" onclick="renderPayroll('largeGrid')">大格複製</button>
+      <button class="btn btn-danger" onclick="clearPayroll()">清空統整</button>
       <div id="payrollOutput" class="mt-3"></div>
       <p class="text-muted">提示：此區內容將列印或匯出為 PDF。</p>
     </section>
 
     <!-- 版號 -->
-    <section id="version" class="section no-print">
+    <section id="version" class="section">
       <h2>版號</h2>
       <div class="row mb-3">
         <div class="col-md-3">
-          <input id="versionInput" type="text" class="form-control" placeholder="版號 (e.g., 2025.05)">
+          <input id="versionInput" type="text" class="form-control" placeholder="版號 (e.g., 1.0)">
         </div>
         <div class="col-md-3">
           <button class="btn btn-primary" onclick="logVersion()">新增版號紀錄</button>
@@ -120,7 +108,7 @@
     </section>
 
     <!-- 匯入/匯出 -->
-    <section id="importExport" class="section no-print">
+    <section id="importExport" class="section">
       <h2>匯入/匯出</h2>
       <button class="btn btn-primary" onclick="exportJSON()">匯出 JSON</button>
       <input id="jsonFile" type="file" accept=".json" class="form-control d-inline-block w-auto">
@@ -130,7 +118,7 @@
     </section>
 
     <!-- 說明 -->
-    <section id="help" class="section no-print">
+    <section id="help" class="section">
       <h2>說明</h2>
       <p>本工具為 Excel 薪資管理系統的重構版本，支援離線使用，資料儲存於 localStorage。核心功能對應 Excel：</p>
       <ul>
@@ -178,19 +166,18 @@
       if (!localStorage.getItem('salaryData')) {
         modal.show();
       }
-      logVersionOnLoad(); // R-003: Suggest new version on first load
     };
 
     // Data Management
     function saveData() {
       const data = {
-        period: {
-          year: parseInt(document.getElementById('year').value),
-          month: parseInt(document.getElementById('month').value)
-        },
-        teachers: teachers.reduce((obj, t) => ({ ...obj, [t.id]: t }), {}),
-        versions: versionHistory,
-        consolidatedHTML: document.getElementById('payrollOutput').innerHTML
+        year: document.getElementById('year').value,
+        month: document.getElementById('month').value,
+        storagePeriod: `${document.getElementById('year').value}-${document.getElementById('month').value.padStart(2, '0')}`,
+        teachers,
+        branches: calculateBranchSubtotals(),
+        versionHistory,
+        overallTotal: calculateOverallTotal()
       };
       localStorage.setItem('salaryData', JSON.stringify(data));
     }
@@ -198,68 +185,57 @@
     function loadData() {
       try {
         const data = JSON.parse(localStorage.getItem('salaryData') || '{}');
-        if (validateData(data)) {
-          document.getElementById('year').value = data.period?.year || 2025;
-          document.getElementById('month').value = data.period?.month || 5;
-          teachers = Object.values(data.teachers || {});
-          versionHistory = data.versions || [];
-          document.getElementById('payrollOutput').innerHTML = data.consolidatedHTML || '';
+        if (data.teachers) {
+          teachers = data.teachers;
+          document.getElementById('year').value = data.year || 2025;
+          document.getElementById('month').value = data.month || 5;
           renderTeacherList();
           renderBranchSubtotals();
+        }
+        if (data.versionHistory) {
+          versionHistory = data.versionHistory;
           renderVersionHistory();
-        } else {
-          alert('載入資料格式錯誤，已使用預設值');
         }
       } catch (e) {
         alert('載入資料失敗: ' + e.message);
       }
     }
 
-    function validateData(data) {
-      return data && typeof data === 'object' &&
-             (data.period ? (data.period.year >= 2000 && data.period.year <= 2100 && data.period.month >= 1 && data.period.month <= 12) : true) &&
-             (data.teachers ? Object.values(data.teachers).every(t => /^T\d{2}$/.test(t.id)) : true) &&
-             Array.isArray(data.versions) &&
-             (typeof data.consolidatedHTML === 'string' || !data.consolidatedHTML);
-    }
-
-    // Calculations (R-020 to R-024)
+    // Calculations
     function calcN13(entries) {
-      return Math.round(entries.reduce((sum, entry) => sum + (entry.subtotal || 0), 0)); // R-023
+      return entries.reduce((sum, entry) => sum + (entry.subtotal || 0), 0);
     }
 
     function calculateOverallTotal() {
-      return teachers.reduce((sum, teacher) => sum + (teacher.total || 0), 0);
+      return teachers.reduce((sum, teacher) => sum + (teacher.totalN13 || 0), 0);
     }
 
     function calculateBranchSubtotals() {
-      const branches = { '': 0 }; // Default for unspecified store
+      const branches = {};
       teachers.forEach(teacher => {
-        const branch = teacher.store || ''; // R-011
-        branches[branch] = (branches[branch] || 0) + (teacher.total || 0);
+        const branch = teacher.branch || '未指定';
+        branches[branch] = (branches[branch] || 0) + (teacher.totalN13 || 0);
       });
-      return Object.entries(branches).map(([name, subtotal]) => ({ name: name || '未指定', subtotal }));
+      return Object.entries(branches).map(([name, subtotal]) => ({ name, subtotal }));
     }
 
     // Rendering
     function renderTeacherList() {
       const tbody = document.querySelector('#teacherList tbody');
-      tbody.innerHTML = teachers
-        .sort((a, b) => a.id.localeCompare(b.id)) // R-030
-        .map(teacher => `
-          <tr>
-            <td>${teacher.id}</td>
-            <td>${teacher.name || ''}</td>
-            <td>${teacher.store || '未指定'}</td>
-            <td>$${teacher.total?.toLocaleString() || 0}</td>
-            <td class="no-print"><button class="btn btn-sm btn-primary" onclick="loadTeacher('${teacher.id}')">載入</button></td>
-          </tr>
-        `).join('');
+      tbody.innerHTML = teachers.map(teacher => `
+        <tr>
+          <td>${teacher.id}</td>
+          <td>${teacher.name}</td>
+          <td>${teacher.branch}</td>
+          <td>$${teacher.totalN13 || 0}</td>
+          <td><button class="btn btn-sm btn-primary" onclick="loadTeacher('${teacher.id}')">載入</button></td>
+        </tr>
+      `).join('');
       tbody.innerHTML += `
         <tr>
           <td colspan="3">整體總計</td>
-          <td>$${calculateOverallTotal().toLocaleString()}</td>
-          <td class="no-print"></td>
+          <td>$${calculateOverallTotal()}</td>
+          <td></td>
         </tr>
       `;
     }
@@ -270,13 +246,13 @@
       tbody.innerHTML = branches.map(branch => `
         <tr>
           <td>${branch.name}</td>
-          <td>$${branch.subtotal.toLocaleString()}</td>
+          <td>$${branch.subtotal}</td>
         </tr>
       `).join('');
       tbody.innerHTML += `
         <tr>
           <td>合計</td>
-          <td>$${calculateOverallTotal().toLocaleString()}</td>
+          <td>$${calculateOverallTotal()}</td>
         </tr>
       `;
     }
@@ -285,9 +261,9 @@
       const tbody = document.querySelector('#versionHistory tbody');
       tbody.innerHTML = versionHistory.map(v => `
         <tr>
-          <td>${v.ver}</td>
+          <td>${v.version}</td>
           <td>${v.operator}</td>
-          <td>${v.device}</td>
+          <td>${v.deviceInfo}</td>
           <td>${v.date}</td>
           <td>${v.time}</td>
         </tr>
@@ -300,20 +276,19 @@
       tbody.innerHTML = teacher ? teacher.entries.map((entry, index) => `
         <tr>
           <td>${index + 1}</td>
-          <td>${{ hourly: '時薪', fixed: '固定金額', allowance: '津貼', deduction: '扣款' }[entry.type]}</td>
-          <td>${entry.hours ?? '-'}</td>
-          <td>${entry.rate ?? '-'}</td>
-          <td>${entry.amount ?? '-'}</td>
-          <td>${entry.code || '-'}</td>
-          <td>$${entry.subtotal.toLocaleString()}</td>
-          <td class="no-print"><button class="btn btn-sm btn-danger" onclick="deleteEntry(${index})">刪除</button></td>
+          <td>${entry.type === 'hourly' ? '時薪' : '固定金額'}</td>
+          <td>${entry.hours || '-'}</td>
+          <td>${entry.rate || '-'}</td>
+          <td>${entry.amount || '-'}</td>
+          <td>$${entry.subtotal}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteEntry(${index})">刪除</button></td>
         </tr>
       `).join('') : '';
       tbody.innerHTML += teacher ? `
         <tr>
-          <td colspan="6">合計（N13）</td>
-          <td>$${teacher.total?.toLocaleString() || 0}</td>
-          <td class="no-print"></td>
+          <td colspan="5">合計（N13）</td>
+          <td>$${teacher.totalN13 || 0}</td>
+          <td></td>
         </tr>
       ` : '';
     }
@@ -323,30 +298,21 @@
       const id = document.getElementById('teacherId').value || `T${(teachers.length + 1).toString().padStart(2, '0')}`;
       const name = document.getElementById('teacherName').value.trim();
       const branch = document.getElementById('teacherBranch').value;
-      
-      // R-010: Validate ID
-      if (!/^T\d{2}$/.test(id) || (teachers.some(t => t.id === id && id !== currentTeacherId))) {
-        document.getElementById('teacherIdError').textContent = '教師代號格式錯誤或重複';
+      if (!name) {
+        alert('請輸入教師姓名');
         return;
       }
-      // Suggest name if empty
-      if (!name) {
-        document.getElementById('teacherNameError').textContent = '建議輸入教師姓名';
-      }
-      
       const existing = teachers.find(t => t.id === id);
       if (existing) {
         existing.name = name;
-        existing.store = branch;
+        existing.branch = branch;
       } else {
-        teachers.push({ id, name, store: branch, entries: [], total: 0 });
+        teachers.push({ id, name, branch, entries: [], totalN13: 0 });
       }
       saveData();
       renderTeacherList();
       renderBranchSubtotals();
       clearTeacherForm();
-      document.getElementById('teacherIdError').textContent = '';
-      document.getElementById('teacherNameError').textContent = '';
     }
 
     function deleteTeacher() {
@@ -354,7 +320,7 @@
         alert('請先選擇一位教師');
         return;
       }
-      if (confirm('確定刪除此教師？此操作無法復原。')) { // R-012, E-004
+      if (confirm('確定刪除此教師？')) {
         teachers = teachers.filter(t => t.id !== currentTeacherId);
         saveData();
         renderTeacherList();
@@ -368,8 +334,8 @@
       const teacher = teachers.find(t => t.id === id);
       if (teacher) {
         document.getElementById('teacherId').value = teacher.id;
-        document.getElementById('teacherName').value = teacher.name || '';
-        document.getElementById('teacherBranch').value = teacher.store || '';
+        document.getElementById('teacherName').value = teacher.name;
+        document.getElementById('teacherBranch').value = teacher.branch;
         renderEntryList();
       }
     }
@@ -378,10 +344,8 @@
       currentTeacherId = null;
       document.getElementById('teacherId').value = '';
       document.getElementById('teacherName').value = '';
-      document.getElementById('teacherBranch').value = '';
+      document.getElementById('teacherBranch').value = '未指定';
       document.querySelector('#entryList tbody').innerHTML = '';
-      document.getElementById('teacherIdError').textContent = '';
-      document.getElementById('teacherNameError').textContent = '';
     }
 
     // Entry Management
@@ -390,34 +354,23 @@
         alert('請先選擇或新增一位教師');
         return;
       }
-      let hours = null, rate = null, amount = null, code = null;
-      if (type === 'hourly') {
-        hours = prompt('請輸入小時數（可含小數）', '0');
-        rate = prompt('請輸入時薪', '0');
-        if (isNaN(hours) || isNaN(rate) || hours < 0 || rate < 0) { // R-021
-          alert('小時數與時薪必須為非負數');
-          return;
-        }
-      } else {
-        amount = prompt('請輸入金額（可正負）', '0');
-        if (isNaN(amount)) { // R-022
-          alert('金額必須為數字');
-          return;
-        }
-        code = prompt('請輸入類別碼（可選）', '');
-      }
-      
+      const hours = type === 'hourly' ? prompt('請輸入小時數', '0') : null;
+      const rate = type === 'hourly' ? prompt('請輸入時薪', '0') : null;
+      const amount = type === 'fixed' ? prompt('請輸入固定金額', '0') : null;
       const teacher = teachers.find(t => t.id === currentTeacherId);
       const entry = {
         type,
         hours: hours ? parseFloat(hours) : null,
         rate: rate ? parseFloat(rate) : null,
         amount: amount ? parseFloat(amount) : null,
-        code: code || null,
         subtotal: type === 'hourly' ? parseFloat(hours) * parseFloat(rate) : parseFloat(amount)
       };
+      if (isNaN(entry.subtotal)) {
+        alert('請輸入有效數字');
+        return;
+      }
       teacher.entries.push(entry);
-      teacher.total = calcN13(teacher.entries); // R-024
+      teacher.totalN13 = calcN13(teacher.entries);
       saveData();
       renderEntryList();
       renderTeacherList();
@@ -427,7 +380,7 @@
     function deleteEntry(index) {
       const teacher = teachers.find(t => t.id === currentTeacherId);
       teacher.entries.splice(index, 1);
-      teacher.total = calcN13(teacher.entries); // R-024
+      teacher.totalN13 = calcN13(teacher.entries);
       saveData();
       renderEntryList();
       renderTeacherList();
@@ -441,70 +394,61 @@
 
     function recalculateAll() {
       teachers.forEach(teacher => {
-        teacher.total = calcN13(teacher.entries); // R-024
+        teacher.totalN13 = calcN13(teacher.entries);
       });
       saveData();
       renderTeacherList();
       renderBranchSubtotals();
     }
 
-    // Payroll (R-040 to R-043)
+    // Payroll
     function renderPayroll(templateType) {
       const output = document.getElementById('payrollOutput');
       const year = document.getElementById('year').value;
       const month = document.getElementById('month').value;
       output.innerHTML = teachers.map(teacher => `
         <div class="grid-template ${templateType}">
-          <p>教師: ${teacher.name || '未命名'}</p>
+          <p>教師: ${teacher.name}</p>
           <p>代號: ${teacher.id}</p>
           ${templateType === 'largeGrid' ? `
             <p>年份: ${year}</p>
             <p>月份: ${month}</p>
-            <p>明細: ${teacher.entries.map(e => `${{ hourly: '時薪', fixed: '固定金額', allowance: '津貼', deduction: '扣款' }[e.type]}${e.code ? `(${e.code})` : ''}: $${e.subtotal.toLocaleString()}`).join(', ')}</p>
+            <p>明細: ${teacher.entries.map(e => `${e.type === 'hourly' ? '時薪' : '固定金額'}: $${e.subtotal}`).join(', ')}</p>
           ` : ''}
-          <p>總計: $${teacher.total?.toLocaleString() || 0}</p>
+          <p>總計: $${teacher.totalN13 || 0}</p>
         </div>
       `).join('');
-      saveData(); // Save consolidated HTML
     }
 
     function clearPayroll() {
-      if (confirm('確定清空薪資單統整？')) { // R-043
+      if (confirm('確定清空薪資單統整？')) {
         document.getElementById('payrollOutput').innerHTML = '';
-        saveData();
       }
     }
 
     function exportToPDF() {
       const element = document.getElementById('payrollOutput');
       if (!element.innerHTML) {
-        alert('請先產生薪資單內容'); // E-005
+        alert('請先產生薪資單內容');
         return;
       }
       html2pdf().from(element).set({
         filename: `salary_${document.getElementById('year').value}_${document.getElementById('month').value}.pdf`,
         margin: 10,
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        html2canvas: { scale: 2 }
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       }).save();
     }
 
-    // Versioning (R-002, R-003)
-    function logVersionOnLoad() {
-      if (!versionHistory.some(v => v.date === new Date().toLocaleDateString('zh-TW'))) {
-        logVersion();
-      }
-    }
-
+    // Versioning
     function logVersion() {
-      const version = document.getElementById('versionInput').value || `${document.getElementById('year').value}.${document.getElementById('month').value.padStart(2, '0')}`;
+      const version = document.getElementById('versionInput').value || '1.0';
       const operator = prompt('請輸入操作者名稱') || 'Unknown';
       const newVersion = {
-        ver: version,
+        version,
         operator,
-        device: navigator.userAgent,
-        date: new Date().toLocaleDateString('zh-TW'),
-        time: new Date().toLocaleTimeString('zh-TW')
+        deviceInfo: navigator.userAgent,
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toTimeString().split(' ')[0]
       };
       versionHistory.unshift(newVersion);
       saveData();
@@ -512,7 +456,7 @@
       document.getElementById('versionInput').value = '';
     }
 
-    // Import/Export (R-050 to R-053)
+    // Import/Export
     function exportJSON() {
       const data = JSON.stringify(loadData(), null, 2);
       const blob = new Blob([data], { type: 'application/json' });
@@ -539,17 +483,21 @@
             loadData();
             alert('匯入成功');
           } else {
-            alert('無效的 JSON 格式'); // E-003
+            alert('無效的 JSON 格式');
           }
         };
         reader.readAsText(file);
       } catch (e) {
-        alert('匯入失敗: ' + e.message); // E-003
+        alert('匯入失敗: ' + e.message);
       }
     }
 
+    function validateData(data) {
+      return data.year && data.month && Array.isArray(data.teachers) && Array.isArray(data.versionHistory);
+    }
+
     function resetData() {
-      if (confirm('確定重置所有資料？此操作無法復原。')) { // R-053
+      if (confirm('確定重置所有資料？此操作無法復原。')) {
         localStorage.removeItem('salaryData');
         teachers = [];
         versionHistory = [];
