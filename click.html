@@ -45,7 +45,7 @@
         radial-gradient(1100px 800px at 20% 10%, rgba(255,210,236,.55), transparent 60%),
         radial-gradient(1100px 800px at 85% 85%, rgba(124,202,255,.45), transparent 60%),
         linear-gradient(135deg, var(--pink-100) 0%, var(--pink-50) 40%, var(--sky-100) 100%);
-      contain: paint style layout; /* 降低全局重排/重繪影響 */
+      contain: paint style layout;
     }
     .app.rgb-burst{ animation:hueCycle .8s linear infinite }
     @keyframes hueCycle{ from{filter:hue-rotate(0)} to{filter:hue-rotate(360deg)} }
@@ -291,6 +291,7 @@
       pointers:new Map(), activePointers:new Map(),
       lastTapTime:{ single:0, player1:0, player2:0 },
       tapTrail:{ single:[], player1:[], player2:[] },
+      tapCount:{ single:0, player1:0, player2:0 },   // ← 計數用：每 3 次才出水波紋
       inputLockUntil:0
     };
 
@@ -303,7 +304,9 @@
       LIGHTNING_BASE_WIDTH:1.2,
       LIGHTNING_BASE_JITTER:0.045,
       RING_BASE_DURATION:680,
-      RIPPLE_MIN_TIER:8 // 只有超高速（等級≥8）才出現水波紋
+      RIPPLE_TPS_THRESHOLD:20,    // ← 只有 >20 taps/s 才考慮
+      RIPPLE_EVERY_N_TAPS:3,      // ← 每 3 次觸發一次
+      RIPPLE_MAX_STACK:24         // ← ripple 陣列上限，避免堆積
     };
 
     // 速度等級：每 0.5 taps/s 一級（1..10）
@@ -353,15 +356,12 @@
     class EffectsRenderer{
       constructor(id){
         this.canvas=document.getElementById(id);
-        this.ctx=this.canvas.getContext("2d",{alpha:true,desynchronized:true}); // 低延遲提示（支援時可減延遲）
-        // 省流/減動畫偵測
+        this.ctx=this.canvas.getContext("2d",{alpha:true,desynchronized:true});
         const saveData = 'connection' in navigator && navigator.connection && navigator.connection.saveData;
         const prefersReduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         this.lowPower = !!saveData || !!prefersReduce;
-        // 限制 DPR，降低高解析度的負擔
         this.maxDpr = this.lowPower ? 1.2 : 1.5;
         this.dpr = Math.min(this.maxDpr, window.devicePixelRatio||1);
-        // 動態 FPS
         this.targetFps = this.lowPower ? 30 : 60;
         this.minInterval = 1000/this.targetFps;
         this.lastPaint = 0;
@@ -379,12 +379,15 @@
       }
       static rand(seed){ let x=Math.sin(seed)*10000; return x-Math.floor(x); }
       addRipple(x,y,tier){
-        if(tier < GAME_CONFIG.RIPPLE_MIN_TIER) return; // 只有超高速才畫水波紋
+        // 入列前先限流（最舊先丟），避免堆積
+        if(this.ripples.length >= GAME_CONFIG.RIPPLE_MAX_STACK){
+          this.ripples.splice(0, this.ripples.length - GAME_CONFIG.RIPPLE_MAX_STACK + 1);
+        }
         this.ripples.push({x,y,start:performance.now(),tier});
       }
 
       render(ts){
-        if(ts - this.lastPaint < this.minInterval) return; // FPS 節流
+        if(ts - this.lastPaint < this.minInterval) return;
         this.lastPaint = ts;
 
         const ctx=this.ctx;
@@ -395,7 +398,7 @@
         const nextRipples=[];
         for(const rp of this.ripples){
           const conf=TIER[rp.tier];
-          const dur = GAME_CONFIG.RING_BASE_DURATION * (1 - (rp.tier-1)*0.02) * (this.lowPower ? 1.15 : 1);
+          const dur = 680 * (1 - (rp.tier-1)*0.02) * (this.lowPower ? 1.15 : 1);
           const t = Math.min(1, (now - rp.start)/dur);
           const rings = conf.rings;
           for(let i=0;i<rings;i++){
@@ -423,10 +426,10 @@
         ["single","player1","player2"].forEach(pid=>{
           const trail=GameState.tapTrail[pid];
           if(!trail || trail.length<2) return;
-          const cutoff=performance.now()-GAME_CONFIG.TRAIL_WINDOW;
-          const points = trail.filter(p=>p.ts>=cutoff).slice(-GAME_CONFIG.TRAIL_MAX_POINTS);
+          const cutoff=performance.now()-650;
+          const points = trail.filter(p=>p.ts>=cutoff).slice(-32);
           if(points.length<2) return;
-          const step = this.lowPower ? 2 : 1; // 低功耗：降低節點量
+          const step = this.lowPower ? 2 : 1;
           for(let i=0;i<points.length-1;i+=step){
             const a=points[i], b=points[i+1]; if(!b) break;
             this.drawFineLightning(a,b,slice);
@@ -442,8 +445,8 @@
 
         const lvlAvg=(p1.tier+p2.tier)/2;
         const c1=TIER[p1.tier], c2=TIER[p2.tier];
-        const width = GAME_CONFIG.LIGHTNING_BASE_WIDTH * ((c1.widthMul+c2.widthMul)/2);
-        const amp = Math.min(36, len * GAME_CONFIG.LIGHTNING_BASE_JITTER * ((c1.jitterMul+c2.jitterMul)/2) * (this.lowPower?0.8:1));
+        const width = 1.2 * ((c1.widthMul+c2.widthMul)/2);
+        const amp = Math.min(36, len * 0.045 * ((c1.jitterMul+c2.jitterMul)/2) * (this.lowPower?0.8:1));
         const N = 10 + Math.floor((lvlAvg-1)*0.5);
         const pts=[];
 
@@ -486,7 +489,7 @@
       }
     }
 
-    /* 輸入管理：順序雷電 + 速度分級；雙人開局延遲 1s；水波紋僅超高速 */
+    /* 輸入管理：順序雷電 + 速度分級；雙人開局延遲 1s；水波紋需 >20tps 且每 3 次觸發一次 */
     class AdvancedInputManager{
       constructor(gameEngine){
         this.gameEngine=gameEngine;
@@ -514,8 +517,8 @@
 
         const now=performance.now();
         const last=GameState.lastTapTime[playerId] || 0;
-        const dt = last ? (now-last) : 1e9;
-        const tps = 1000/dt;
+        const dt = last ? (now-last) : Infinity;
+        const tps = isFinite(dt) ? (1000/dt) : 0;
         const tier = tpsToLevel(tps);
         GameState.lastTapTime[playerId]=now;
 
@@ -525,14 +528,20 @@
         // 計分（無連擊加成）
         GameState.scores[playerId]++; uiManager.updateScoreDisplay(); uiManager.animateScore(playerId);
 
+        // 點擊計數（每 3 次觸發 ripple）
+        GameState.tapCount[playerId]++;
+
         // 雷電軌跡
         const trail=GameState.tapTrail[playerId];
         trail.push({x,y,color,tier,ts:now});
-        const cutoff = now - GAME_CONFIG.TRAIL_WINDOW;
-        while(trail.length>0 && (trail.length>GAME_CONFIG.TRAIL_MAX_POINTS || trail[0].ts<cutoff)) trail.shift();
+        const cutoff = now - 650;
+        while(trail.length>0 && (trail.length>32 || trail[0].ts<cutoff)) trail.shift();
 
-        // 僅超高速才加水波紋
-        effectsRenderer.addRipple(x,y,tier);
+        // 水波紋條件：tps > 20 且 每 3 次才觸發
+        if (tps > GAME_CONFIG.RIPPLE_TPS_THRESHOLD && (GameState.tapCount[playerId] % GAME_CONFIG.RIPPLE_EVERY_N_TAPS === 0)) {
+          effectsRenderer.addRipple(x,y,tier);
+        }
+
         this.createParticles(x,y,conf.particles,color);
         if(conf.rgbBurst){ const app=document.getElementById("app"); app.classList.add("rgb-burst"); setTimeout(()=>app.classList.remove("rgb-burst"), 480); }
 
@@ -571,7 +580,7 @@
         const j=22; const rx=(Math.random()-.5)*2*j; const ry=(Math.random()-.5)*2*j;
         wrap.style.left=`${x+rx}px`; wrap.style.top=`${y+ry}px`; inner.style.color=color;
         wrap.appendChild(inner); gameArea.appendChild(wrap);
-        setTimeout(()=>wrap.remove(), GAME_CONFIG.TAP_NUMBER_LIFETIME);
+        setTimeout(()=>wrap.remove(), 1000);
       }
 
       createParticles(x,y,count,color){
@@ -581,7 +590,7 @@
           p.style.background=color; p.style.color=color;
           const ang=Math.random()*Math.PI*2, dist=16+Math.random()*26;
           p.style.left=`${x+Math.cos(ang)*dist}px`; p.style.top=`${y+Math.sin(ang)*dist}px`;
-          area.appendChild(p); setTimeout(()=>p.remove(), GAME_CONFIG.PARTICLE_LIFETIME);
+          area.appendChild(p); setTimeout(()=>p.remove(), 900);
         }
       }
     }
@@ -603,6 +612,7 @@
         GameState.pointers.clear(); GameState.activePointers.clear();
         GameState.lastTapTime={ single:0, player1:0, player2:0 };
         GameState.tapTrail={ single:[], player1:[], player2:[] };
+        GameState.tapCount={ single:0, player1:0, player2:0 }; // 重置計數
         GameState.inputLockUntil = performance.now() + (mode==="dual" ? delayMs : 0);
 
         const appEl=document.getElementById("app");
@@ -623,7 +633,8 @@
           const complexity = GameState.activePointers.size * 4
                            + GameState.tapTrail.single.length
                            + GameState.tapTrail.player1.length
-                           + GameState.tapTrail.player2.length;
+                           + GameState.tapTrail.player2.length
+                           + effectsRenderer.ripples.length*0.5;
           effectsRenderer.targetFps = complexity > 28 ? 30 : (complexity > 16 ? 45 : (effectsRenderer.lowPower ? 30 : 60));
           effectsRenderer.minInterval = 1000 / effectsRenderer.targetFps;
 
