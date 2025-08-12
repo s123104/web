@@ -522,6 +522,26 @@
         background: var(--bg-secondary);
         border: 1px solid var(--gray-300);
       }
+      .btn-powder-blue {
+        background: var(--sky-500);
+        color: white;
+        border: none;
+        box-shadow: 0 6px 18px rgba(82, 183, 255, 0.28);
+      }
+      .btn-powder-blue:hover {
+        background: var(--sky-600);
+        transform: translateY(-1px);
+      }
+      .btn-white-powder-text {
+        background: white;
+        color: var(--sky-500);
+        border: 2px solid var(--sky-300);
+        font-weight: 700;
+      }
+      .btn-white-powder-text:hover {
+        background: var(--sky-50);
+        border-color: var(--sky-400);
+      }
 
       .settings-row {
         display: flex;
@@ -532,6 +552,10 @@
       }
       .settings-row:last-child {
         border-bottom: 0;
+      }
+      .settings-row span {
+        color: var(--sky-500);
+        font-weight: 600;
       }
       .toggle {
         appearance: none;
@@ -545,7 +569,7 @@
         transition: 0.2s;
       }
       .toggle:checked {
-        background: linear-gradient(90deg, var(--accent), var(--primary));
+        background: linear-gradient(90deg, var(--sky-400), var(--sky-500));
       }
       .toggle::after {
         content: "";
@@ -779,10 +803,10 @@
               margin-top: 18px;
             "
           >
-            <button class="btn btn-secondary" id="clearLeaderboardBtn">
+            <button class="btn btn-powder-blue" id="clearLeaderboardBtn">
               清除記錄
             </button>
-            <button class="btn btn-primary" id="closeLeaderboardBtn">
+            <button class="btn btn-white-powder-text" id="closeLeaderboardBtn">
               關閉
             </button>
           </div>
@@ -812,7 +836,10 @@
                 style="
                   padding: 6px 8px;
                   border-radius: 10px;
-                  border: 1px solid var(--gray-300);
+                  border: 2px solid var(--sky-300);
+                  background: white;
+                  color: var(--sky-600);
+                  font-weight: 600;
                 "
               >
                 <option value="15">15 秒</option>
@@ -907,24 +934,47 @@
 
       // ===== FX Worker 初始化 =====
       function setupWorker() {
-        fxCanvas = document.getElementById("fxCanvas");
-        dpr = Math.min(isLowPower ? 1.25 : 1.6, window.devicePixelRatio || 1);
-        if (
-          "OffscreenCanvas" in window &&
-          fxCanvas.transferControlToOffscreen
-        ) {
-          offscreen = fxCanvas.transferControlToOffscreen();
-          fxWorker = new Worker("./fx.worker.js", { type: "module" });
-          fxWorker.postMessage(
-            { type: "init", canvas: offscreen, dpr, lowPower: isLowPower },
-            [offscreen]
-          );
-        } else {
-          fxWorker = new Worker("./fx.worker.js", { type: "module" });
-          fxWorker.postMessage({ type: "init-fallback" }, []);
+        // 防止重複初始化
+        if (offscreen || fxWorker) {
+          console.log('Worker already initialized, skipping...');
+          return;
         }
-        resizeFx();
-        sendSettingsToWorker();
+        
+        fxCanvas = document.getElementById("fxCanvas");
+        if (!fxCanvas) {
+          console.error('fxCanvas not found');
+          return;
+        }
+        
+        dpr = Math.min(isLowPower ? 1.25 : 1.6, window.devicePixelRatio || 1);
+        
+        try {
+          if (
+            "OffscreenCanvas" in window &&
+            fxCanvas.transferControlToOffscreen
+          ) {
+            offscreen = fxCanvas.transferControlToOffscreen();
+            fxWorker = new Worker("./fx.worker.js", { type: "module" });
+            fxWorker.postMessage(
+              { type: "init", canvas: offscreen, dpr, lowPower: isLowPower },
+              [offscreen]
+            );
+          } else {
+            fxWorker = new Worker("./fx.worker.js", { type: "module" });
+            fxWorker.postMessage({ type: "init-fallback" }, []);
+          }
+          resizeFx();
+          sendSettingsToWorker();
+        } catch (error) {
+          console.error('Worker setup failed:', error);
+          // 回退到非 OffscreenCanvas 模式
+          if (!fxWorker) {
+            fxWorker = new Worker("./fx.worker.js", { type: "module" });
+            fxWorker.postMessage({ type: "init-fallback" }, []);
+            resizeFx();
+            sendSettingsToWorker();
+          }
+        }
       }
       function resizeFx() {
         const r = fxCanvas.getBoundingClientRect();
@@ -1754,12 +1804,30 @@
 
       // ===== 初始化 =====
       let audioManager, inputManager, gameEngine, storageManager, uiManager;
+      let isInitialized = false;
+      
       document.addEventListener("DOMContentLoaded", () => {
-        audioManager = new AdvancedAudioManager();
-        storageManager = new StorageManager();
-        gameEngine = new AdvancedGameEngine();
-        uiManager = new AdvancedUIManager();
-        setupWorker();
+        // 防止重複初始化
+        if (isInitialized) {
+          console.log('Game already initialized, skipping...');
+          return;
+        }
+        
+        console.log('Initializing Elite Tap Battle...');
+        
+        try {
+          audioManager = new AdvancedAudioManager();
+          storageManager = new StorageManager();
+          gameEngine = new AdvancedGameEngine();
+          uiManager = new AdvancedUIManager();
+          inputManager = new AdvancedInputManager(gameEngine);
+          setupWorker();
+          
+          isInitialized = true;
+          console.log('✅ Game initialization complete');
+        } catch (error) {
+          console.error('❌ Game initialization failed:', error);
+        }
 
         if ("serviceWorker" in navigator) {
           navigator.serviceWorker.register("./sw.js").catch(() => {
