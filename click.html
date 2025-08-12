@@ -10,7 +10,7 @@
   <title>Elite Tap Battle - 專業點擊對戰</title>
 
   <style>
-    /* === 專業級色彩系統（粉色＋天藍系） === */
+    /* === 粉色＋天藍的可愛淺色系 === */
     :root {
       --pink-50:  #fff1f8;
       --pink-100: #ffe6f3;
@@ -29,9 +29,7 @@
       --sky-500: #52b7ff;
       --sky-600: #349ff0;
 
-      --purple-400: #bf9cff;
-
-      --gray-50: #f9fafb;
+      --gray-50:#f9fafb;
       --gray-100:#f3f4f6;
       --gray-200:#e5e7eb;
       --gray-300:#d1d5db;
@@ -49,7 +47,6 @@
       --text-primary:var(--gray-900);
       --text-secondary:var(--gray-400);
 
-      --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
       --shadow-md: 0 6px 18px rgba(0,0,0,.08);
       --shadow-xl: 0 20px 45px rgba(246,111,185,.28);
 
@@ -64,30 +61,17 @@
 
       --radius-xl: 1rem;
       --radius-2xl: 1.5rem;
-      --radius-full: 9999px;
 
       --duration-fast: 150ms;
       --duration-normal: 300ms;
 
       --font-size-sm: .875rem;
-      --font-size-base: 1rem;
-      --font-size-lg: 1.125rem;
       --font-size-2xl: 1.5rem;
       --font-size-4xl: 2.25rem;
       --font-size-6xl: 3.75rem;
     }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg-primary:#0f1220;
-        --bg-secondary:#0b1020;
-        --bg-tertiary:#0b1226;
-        --text-primary:#f3f4f6;
-        --text-secondary:#9ca3af;
-      }
-    }
-
-    /* 基礎重置 */
+    /* 基礎重置（全屏、禁捲動） */
     * { box-sizing:border-box; margin:0; padding:0; touch-action:manipulation; }
     html, body {
       height:100svh; width:100vw; overflow:hidden;
@@ -97,7 +81,7 @@
       overscroll-behavior:none; -webkit-text-size-adjust:100%;
     }
 
-    /* 主容器：粉色可愛＋天藍漸層雲霧 */
+    /* 主容器：粉色＋天藍雲霧漸層 */
     .app {
       position:fixed; inset:0; width:100vw; height:100svh; overflow:hidden;
       background:
@@ -146,7 +130,7 @@
     .game-screen { position:absolute; inset:0; display:none; flex-direction:column; }
     .game-screen.active { display:flex; }
 
-    /* 單人模式頂欄 */
+    /* 頂欄（單人模式使用） */
     .game-header {
       position:absolute; left:0; right:0; top:0; z-index:100;
       height:80px; padding-top:env(safe-area-inset-top);
@@ -161,22 +145,25 @@
     .game-exit{ background:none; border:none; color:var(--text-secondary); padding:6px; border-radius:10px; cursor:pointer; }
     .game-exit:hover{ background:var(--bg-tertiary); color:var(--text-primary); }
 
-    .game-area{ position:relative; flex:1; margin-top:calc(80px + env(safe-area-inset-top)); touch-action:none; overflow:hidden; }
+    /* 重點修正：預設不留頂部空間；單人模式才推下內容 */
+    .game-area{ position:relative; flex:1; touch-action:none; overflow:hidden; margin-top:0; }
+    .app.single .game-area{ margin-top:calc(80px + env(safe-area-inset-top)); }
 
     /* 效果畫布（雷電＋圓形觸控波紋） */
     .fx-canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:5; pointer-events:none; }
 
-    /* 單人 */
+    /* 單人區 */
     .single-player-area{
       position:absolute; inset:0; z-index:1;
       display:flex; flex-direction:column; align-items:center; justify-content:center;
       background: linear-gradient(135deg, var(--pink-100) 0%, var(--pink-200) 56%, var(--sky-100) 100%);
     }
 
-    /* 雙人（上下各半，固定） */
+    /* 雙人：上下各佔一半（修正殘留高度問題） */
     .dual-player-area{
       position:absolute; inset:0; z-index:1;
       display:grid; grid-template-rows:1fr 1fr; grid-template-columns:1fr;
+      height:100%; /* 確保滿版後均分 */
     }
     .player-zone{
       position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;
@@ -258,12 +245,11 @@
     .btn-primary{ color:#fff; background:linear-gradient(135deg, var(--primary) 0%, var(--pink-700) 100%); box-shadow:0 10px 24px rgba(246,111,185,.35); }
     .btn-secondary{ background:var(--bg-secondary); border:1px solid var(--gray-300); }
 
-    /* 倒數 */
     @keyframes pulse{ from{ transform:scale(1);} to{ transform:scale(1.08);} }
 
     @media (max-width:640px){
       .game-header{ height:70px; }
-      .game-area{ margin-top:calc(70px + env(safe-area-inset-top)); }
+      .app.single .game-area{ margin-top:calc(70px + env(safe-area-inset-top)); }
       .score-display{ font-size:2.6rem; }
     }
   </style>
@@ -294,7 +280,7 @@
           排行榜
         </button>
         <button class="menu-btn menu-btn-secondary" id="settingsBtn" aria-label="遊戲設定">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7m7.43-2.53c.04-.32.07-.64.07-.97s-.03-.66-.07-.98l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.03 7.03 0 0 0-1.69-.98l-.37-2.65A.5.5 0 0 0 13 2h-2a.5.5 0 0 0-.5.42l-.37 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.5.5 0 0 0 .12.64L4.57 11c-.04.32-.07.65-.07.98s.03.65.07.97l-2.11 1.63a.5.5 0 0 0-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.51.42 1.08.74 1.69.98l.37 2.65c.04.24.25.42.5.42h2c.25 0 .46-.18.5-.42l.37-2.65c.61-.24 1.18-.56 1.69-.98l2.49 1c.22.08.49 0 .61-.22l2-3.46a.5.5 0 0 0-.12-.64z"/></svg>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7m7.43-2.53c.04-.32.07-.64.07-.97s-.03-.66-.07-.98l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.03 7.03 0 0 0-1.69-.98l-.37-2.65A.5.5 0 0 0 13 2h-2a.5.5 0 0 0-.5.42l-.37 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.5.5 0 0 0 .12.64z"/></svg>
           遊戲設定
         </button>
       </div>
@@ -323,7 +309,7 @@
           <div class="score-display" id="singleScore">0</div>
         </div>
 
-        <!-- 雙人（上下） -->
+        <!-- 雙人（上下等分） -->
         <div class="dual-player-area" id="dualPlayerArea" style="display:none">
           <div class="divider"></div>
 
@@ -436,7 +422,7 @@
     const SPEED_STEP = 0.5;
     function tpsToLevel(tps){ const lvl = Math.floor(tps / SPEED_STEP) + 1; return Math.max(1, Math.min(10, lvl)); }
 
-    // 10 級粉×藍系視覺參數（顏色、線寬乘數、抖動乘數、光暈、粒子數、分支密度、環數）
+    // 10 級粉×藍系視覺參數
     const TIER = {
       1:  { name:"暖身",    color:"#ffe6f3", widthMul:1.00, jitterMul:0.85, glow:0.12, halo:18, particles:3, branch:0, rings:1 },
       2:  { name:"微熱",    color:"#ffd9ef", widthMul:1.04, jitterMul:0.92, glow:0.14, halo:20, particles:4, branch:0, rings:1 },
@@ -481,7 +467,7 @@
         this.canvas=document.getElementById(id);
         this.ctx=this.canvas.getContext("2d");
         this.dpr=Math.max(1, window.devicePixelRatio||1);
-        this.ripples=[]; // {x,y, start, tier}
+        this.ripples=[];
         this.resize=this.resize.bind(this);
         window.addEventListener("resize", this.resize);
         this.resize();
@@ -493,7 +479,6 @@
         this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
       }
       static rand(seed){ let x=Math.sin(seed)*10000; return x-Math.floor(x); }
-
       addRipple(x,y,tier){ this.ripples.push({x,y,start:performance.now(),tier}); }
 
       render(ts){
@@ -501,30 +486,28 @@
         const w=this.canvas.clientWidth, h=this.canvas.clientHeight;
         ctx.clearRect(0,0,w,h);
 
-        // 1) 圓形觸控波紋（依速度級別決定環數與半徑）
+        // 圓形觸控波紋
         const now=performance.now();
         const nextRipples=[];
         for(const rp of this.ripples){
           const conf=TIER[rp.tier];
-          const dur = GAME_CONFIG.RING_BASE_DURATION * (1 - (rp.tier-1)*0.02); // 高級更快
+          const dur = GAME_CONFIG.RING_BASE_DURATION * (1 - (rp.tier-1)*0.02);
           const t = Math.min(1, (now - rp.start)/dur);
           const rings = conf.rings;
           for(let i=0;i<rings;i++){
             const p = Math.min(1, t + i*0.08); if(p<=0) continue;
             const r = (30 + rp.tier*10) * p * (1 + i*0.3);
-            ctx.beginPath();
-            ctx.arc(rp.x, rp.y, r, 0, Math.PI*2);
+            ctx.beginPath(); ctx.arc(rp.x, rp.y, r, 0, Math.PI*2);
             ctx.strokeStyle = conf.color;
             ctx.globalAlpha = (1 - p) * (0.55 - i*0.12);
             ctx.lineWidth = 2 + rp.tier*0.15 - i*0.5;
-            ctx.stroke();
-            ctx.globalAlpha = 1;
+            ctx.stroke(); ctx.globalAlpha = 1;
           }
           if(t<1) nextRipples.push(rp);
         }
         this.ripples = nextRipples;
 
-        // 2) 指尖光暈（活躍指標）
+        // 指尖光暈
         for(const p of GameState.activePointers.values()){
           const halo = TIER[p.tier].halo;
           const grd = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,halo);
@@ -533,12 +516,11 @@
           ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(p.x,p.y,halo,0,Math.PI*2); ctx.fill();
         }
 
-        // 3) 細雷電：依玩家 tapTrail 的點擊順序連線，並繪製微分支（少量，保效能）
-        const slice=Math.floor(ts/48); // 近似 21 FPS 的抖動刷新
+        // 細雷電（按順序）
+        const slice=Math.floor(ts/48);
         ["single","player1","player2"].forEach(pid=>{
           const trail=GameState.tapTrail[pid];
           if(trail.length<2) return;
-          // 只取近期（窗口內，且限制點數）
           const cutoff=performance.now()-GAME_CONFIG.TRAIL_WINDOW;
           const points = trail.filter(p=>p.ts>=cutoff).slice(-GAME_CONFIG.TRAIL_MAX_POINTS);
           if(points.length<2) return;
@@ -560,7 +542,7 @@
         const c1=TIER[p1.tier], c2=TIER[p2.tier];
         const width = GAME_CONFIG.LIGHTNING_BASE_WIDTH * ((c1.widthMul+c2.widthMul)/2);
         const amp = Math.min(36, len * GAME_CONFIG.LIGHTNING_BASE_JITTER * ((c1.jitterMul+c2.jitterMul)/2));
-        const N = 10 + Math.floor((lvlAvg-1)*0.5); // 段數
+        const N = 10 + Math.floor((lvlAvg-1)*0.5);
         const pts=[];
 
         for(let s=0;s<=N;s++){
@@ -579,7 +561,7 @@
         ctx.strokeStyle=`rgba(255,255,255,${0.12 + (c1.glow+c2.glow)/2})`;
         ctx.lineWidth=width+1.4; ctx.stroke();
 
-        // 主線（細）：由 p1 → p2 的粉藍漸層
+        // 主線（細）
         const grad=ctx.createLinearGradient(p1.x,p1.y,p2.x,p2.y);
         grad.addColorStop(0, c1.color);
         grad.addColorStop(0.5, "#ffffff");
@@ -588,15 +570,14 @@
         for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
         ctx.strokeStyle=grad; ctx.lineWidth=width; ctx.stroke();
 
-        // 微分支（少量，細短，僅高等級出現）
+        // 少量微分支（高等級才出）
         const branchCount = Math.min(3, Math.floor(((c1.branch+c2.branch)/2)));
         if(branchCount>0){
           for(let b=0;b<branchCount;b++){
             const idx = 1 + Math.floor((pts.length-2) * (b+1)/(branchCount+1));
             const base=pts[idx];
-            // 分支方向：約略偏向垂直
             const dir = ((b%2) ? 1 : -1);
-            const blen = Math.min(22, 6 + len*0.08); // 短
+            const blen = Math.min(22, 6 + len*0.08);
             const jitter = (EffectsRenderer.rand(slice*17+b*.77)-.5)*6;
             ctx.beginPath();
             ctx.moveTo(base.x, base.y);
@@ -630,13 +611,10 @@
         const x=e.clientX-rect.left, y=e.clientY-rect.top;
         const id=e.pointerId; e.currentTarget.setPointerCapture(id);
 
-        // 區域 → 玩家
+        // 區域 → 玩家（雙人為上下各半）
         let playerId;
         if(GameState.mode==="single"){ playerId="single"; }
-        else{
-          // 上半 player1，下半 player2
-          playerId = (y < rect.height/2) ? "player1" : "player2";
-        }
+        else{ playerId = (y < rect.height/2) ? "player1" : "player2"; }
 
         GameState.pointers.set(id,{playerId, element:e.currentTarget});
 
@@ -648,8 +626,7 @@
         const tier = tpsToLevel(tps);
         GameState.lastTapTime[playerId]=now;
 
-        const conf=TIER[tier];
-        const color=conf.color;
+        const conf=TIER[tier], color=conf.color;
 
         // 活躍指標（光暈）
         GameState.activePointers.set(id,{x,y,color,tier,playerId});
@@ -705,7 +682,6 @@
         const inner=document.createElement("span");
         inner.className="inner";
         inner.textContent = GameState.scores[playerId];
-        // 隨機位移
         const j=22; const rx=(Math.random()-.5)*2*j; const ry=(Math.random()-.5)*2*j;
         wrap.style.left=`${x+rx}px`; wrap.style.top=`${y+ry}px`;
         inner.style.color=color; wrap.appendChild(inner); gameArea.appendChild(wrap);
@@ -755,6 +731,11 @@
         GameState.lastTapTime={ single:0, player1:0, player2:0 };
         GameState.tapTrail={ single:[], player1:[], player2:[] };
         GameState.colorIndex=0;
+
+        // 切換單／雙模式對應的 UI 狀態（重要：修正頂部剩餘高度）
+        const appEl=document.getElementById("app");
+        appEl.classList.toggle("single", mode==="single");
+        appEl.classList.toggle("dual", mode==="dual");
 
         document.getElementById("gameHeader").classList.toggle("hidden", mode==="dual");
         uiManager.showGameScreen(mode);
@@ -842,7 +823,7 @@
 
     /* === 儲存 === */
     class StorageManager {
-      constructor(){ this.KEY="eliteTapBattle_FineLightning"; this.loadSettings(); }
+      constructor(){ this.KEY="eliteTapBattle_FineLightning_LightOnly"; this.loadSettings(); }
       loadSettings(){ try{ const d=JSON.parse(localStorage.getItem(this.KEY)||"{}"); if(d.settings) Object.assign(GameState.settings,d.settings);}catch(_){ } }
       saveSettings(){ const d=this.loadData(); d.settings={...GameState.settings}; this.saveData(d); }
       saveScore(mode, score, score2=null){
