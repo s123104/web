@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#f6a8d8" />
+    <!-- iOS 仍需要下面這個，Chrome 可能會提示 deprecated，但不影響功能 -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- Chrome/Android 建議加上 -->
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <title>Elite Tap Battle - 專業點擊對戰</title>
+
+    <!-- Manifest（相對路徑，便於子資料夾部署） -->
+    <link rel="manifest" href="./app.webmanifest" />
+
+    <!-- Favicon：用內嵌 SVG，避免 favicon.ico 404 -->
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="%23f66fb9"/><stop offset="1" stop-color="%2352b7ff"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(%23g)"/><path d="M32 6l6 16 17 2-13 10 4 16-14-8-14 8 4-16L9 24l17-2z" fill="white"/></svg>'
+    />
+
+    <!-- Material Symbols（設定完整齒輪 icon） -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --pink-50: #fff1f8;
+        --pink-100: #ffe6f3;
+        --pink-200: #ffcfe9;
+        --pink-300: #ffb2dc;
+        --pink-400: #ff94d0;
+        --pink-500: #f66fb9;
+        --pink-600: #e054a3;
+        --pink-700: #c24389;
+        --sky-50: #ecf6ff;
+        --sky-100: #d9efff;
+        --sky-200: #bfe6ff;
+        --sky-300: #9ed9ff;
+        --sky-400: #7ccaff;
+        --sky-500: #52b7ff;
+        --sky-600: #349ff0;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-400: #9ca3af;
+        --gray-700: #374151;
+        --gray-900: #111827;
+
+        --primary: var(--pink-500);
+        --primary-dark: var(--pink-600);
+        --accent: var(--sky-500);
+        --bg-primary: #ffffff;
+        --bg-secondary: var(--gray-50);
+        --bg-tertiary: var(--gray-100);
+        --text-primary: var(--gray-900);
+        --text-secondary: var(--gray-400);
+
+        --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.08);
+        --shadow-xl: 0 20px 45px rgba(246, 111, 185, 0.28);
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.25rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
+        --space-10: 2.5rem;
+        --space-16: 4rem;
+        --radius-xl: 1rem;
+        --radius-2xl: 1.5rem;
+        --duration-fast: 150ms;
+        --duration-normal: 300ms;
+
+        --font-size-xs: 0.78rem;
+        --font-size-sm: 0.875rem;
+        --font-size-2xl: 1.5rem;
+        --font-size-4xl: 2.25rem;
+        --font-size-6xl: 3.6rem;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        touch-action: manipulation;
+      }
+      html,
+      body {
+        height: 100svh;
+        width: 100vw;
+        overflow: hidden;
+        background: #fff;
+        color: var(--text-primary);
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior: none;
+        -webkit-text-size-adjust: 100%;
+      }
+      .material-symbols-rounded {
+        font-variation-settings: "FILL" 1, "wght" 700, "GRAD" 0, "opsz" 24;
+        font-family: "Material Symbols Rounded", sans-serif;
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      .app {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100svh;
+        overflow: hidden;
+        background: radial-gradient(
+            1100px 800px at 20% 10%,
+            rgba(255, 210, 236, 0.55),
+            transparent 60%
+          ),
+          radial-gradient(
+            1100px 800px at 85% 85%,
+            rgba(124, 202, 255, 0.45),
+            transparent 60%
+          ),
+          linear-gradient(
+            135deg,
+            var(--pink-100) 0%,
+            var(--pink-50) 40%,
+            var(--sky-100) 100%
+          );
+        contain: paint style layout;
+      }
+      .app.rgb-burst {
+        animation: hueCycle 0.8s linear infinite;
+      }
+      @keyframes hueCycle {
+        from {
+          filter: hue-rotate(0);
+        }
+        to {
+          filter: hue-rotate(360deg);
+        }
+      }
+
+      .menu-screen {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: var(--space-10);
+        padding: var(--space-8);
+      }
+      .menu-screen.hidden {
+        opacity: 0;
+        visibility: hidden;
+        transition: all var(--duration-normal) ease;
+      }
+      .brand {
+        text-align: center;
+      }
+      .brand-icon {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto var(--space-6);
+        background: conic-gradient(from 0deg, #ffd9ef, #dff2ff, #ffd9ef);
+        border-radius: 28px;
+        display: grid;
+        place-items: center;
+        box-shadow: var(--shadow-xl);
+        animation: float 3s ease-in-out infinite;
+      }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+      .brand-title {
+        font-size: 2.4rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--accent) 60%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .brand-subtitle {
+        color: var(--text-secondary);
+        margin-top: 0.4rem;
+      }
+      .menu-buttons {
+        display: grid;
+        gap: var(--space-4);
+        width: min(90vw, 360px);
+      }
+      .menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 16px 20px;
+        border: 0;
+        border-radius: 16px;
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: var(--shadow-md);
+        transition: transform var(--duration-fast) ease,
+          box-shadow var(--duration-fast) ease;
+        min-height: 64px;
+      }
+      .menu-btn:active {
+        transform: scale(0.98);
+      }
+      .menu-btn-primary {
+        color: #fff;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--primary-dark) 100%
+        );
+      }
+      .menu-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 36px rgba(246, 111, 185, 0.35);
+      }
+      .menu-btn-secondary {
+        background: var(--bg-primary);
+        color: var(--sky-600);
+        border: 2px solid var(--sky-200);
+      }
+      .menu-btn-secondary:hover {
+        background: var(--sky-50);
+        border-color: var(--sky-300);
+        transform: translateY(-1px);
+      }
+
+      .game-screen {
+        position: absolute;
+        inset: 0;
+        display: none;
+        flex-direction: column;
+      }
+      .game-screen.active {
+        display: flex;
+      }
+      .game-header {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        z-index: 100;
+        height: 80px;
+        padding-top: env(safe-area-inset-top);
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(246, 111, 185, 0.28);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-left: var(--space-6);
+        padding-right: var(--space-6);
+      }
+      .game-header.hidden {
+        display: none;
+      }
+      .game-timer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 900;
+        color: var(--primary);
+        font-size: var(--font-size-2xl);
+      }
+      .game-mode {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        background: var(--bg-tertiary);
+        padding: 6px 10px;
+        border-radius: 999px;
+      }
+      .game-exit {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        padding: 6px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .game-exit:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+      }
+
+      .game-area {
+        position: relative;
+        flex: 1;
+        touch-action: none;
+        overflow: hidden;
+        margin-top: 0;
+      }
+      .app.single .game-area {
+        margin-top: calc(80px + env(safe-area-inset-top));
+      }
+      canvas.fx {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 5;
+        pointer-events: none;
+      }
+
+      .single-player-area {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(
+          135deg,
+          var(--pink-100) 0%,
+          var(--pink-200) 56%,
+          var(--sky-100) 100%
+        );
+      }
+
+      .dual-player-area {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        height: 100%;
+      }
+      .player-zone {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        transition: transform var(--duration-fast) ease;
+        background: linear-gradient(
+          135deg,
+          var(--pink-100) 0%,
+          var(--pink-200) 100%
+        );
+      }
+      .player-zone.player2 {
+        background: linear-gradient(
+          135deg,
+          var(--sky-100) 0%,
+          var(--sky-200) 100%
+        );
+      }
+      .dual-player-area .player-zone.player1 {
+        transform: rotate(180deg);
+      }
+      .dual-player-area .player-zone.player1.active {
+        transform: rotate(180deg) scale(1.02);
+      }
+      .dual-player-area .player-zone.player2.active {
+        transform: scale(1.02);
+      }
+
+      .divider {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        height: 4px;
+        transform: translateY(-50%);
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+        z-index: 2;
+      }
+
+      .player-hud {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        z-index: 10;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.86);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(246, 111, 185, 0.25);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+        font-weight: 800;
+      }
+      .player-hud .hud-timer {
+        color: var(--primary);
+      }
+      .player-hud .hud-mode {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        padding: 2px 8px;
+        background: var(--bg-tertiary);
+        border-radius: 999px;
+      }
+      .player-hud .hud-tps {
+        color: var(--sky-600);
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+        display: none;
+      }
+      .hud-tps.show {
+        display: inline;
+      }
+
+      .player-name {
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-bottom: var(--space-6);
+      }
+      .score-display {
+        font-size: var(--font-size-6xl);
+        font-weight: 900;
+        color: var(--primary);
+        text-shadow: 0 6px 16px rgba(246, 111, 185, 0.35);
+        z-index: 3;
+      }
+
+      .firework-container {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 200;
+      }
+      .firework {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all var(--duration-normal) ease;
+      }
+      .modal.show {
+        opacity: 1;
+        visibility: visible;
+      }
+      .modal-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-2xl);
+        padding: var(--space-8);
+        text-align: center;
+        box-shadow: var(--shadow-xl);
+        transform: scale(0.92);
+        transition: transform var(--duration-normal) ease;
+        max-width: 90vw;
+      }
+      .modal.show .modal-card {
+        transform: scale(1);
+      }
+      .title-gradient {
+        font-size: 1.8rem;
+        font-weight: 900;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--accent) 60%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .result-score {
+        margin-top: 10px;
+        font-size: var(--font-size-4xl);
+        font-weight: 800;
+        color: var(--primary);
+      }
+      .btn {
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 18px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .btn-primary {
+        color: #fff;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--pink-700) 100%
+        );
+        box-shadow: 0 10px 24px rgba(246, 111, 185, 0.35);
+      }
+      .btn-secondary {
+        background: var(--bg-secondary);
+        border: 1px solid var(--gray-300);
+      }
+
+      .settings-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px dashed var(--gray-200);
+      }
+      .settings-row:last-child {
+        border-bottom: 0;
+      }
+      .toggle {
+        appearance: none;
+        width: 48px;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--gray-200);
+        position: relative;
+        cursor: pointer;
+        outline: none;
+        transition: 0.2s;
+      }
+      .toggle:checked {
+        background: linear-gradient(90deg, var(--accent), var(--primary));
+      }
+      .toggle::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        transition: 0.2s;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      }
+      .toggle:checked::after {
+        left: 23px;
+      }
+
+      @keyframes pulse {
+        from {
+          transform: scale(1);
+        }
+        to {
+          transform: scale(1.08);
+        }
+      }
+      @media (max-width: 640px) {
+        .game-header {
+          height: 70px;
+        }
+        .app.single .game-area {
+          margin-top: calc(70px + env(safe-area-inset-top));
+        }
+        .score-display {
+          font-size: 2.6rem;
+        }
+      }
+
+      .install-banner {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        z-index: 1500;
+        background: #fff;
+        border: 1px solid var(--sky-200);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        border-radius: 16px;
+        padding: 12px 14px;
+        display: none;
+        gap: 12px;
+        align-items: center;
+      }
+      .install-banner.show {
+        display: flex;
+      }
+      .install-banner .txt {
+        flex: 1;
+      }
+      .install-banner .title {
+        font-weight: 900;
+        color: var(--sky-600);
+      }
+      .install-banner .hint {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .install-banner .actions {
+        display: flex;
+        gap: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app" id="app">
+      <!-- 主選單 -->
+      <div class="menu-screen" id="menuScreen">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" width="54" height="54" aria-hidden="true">
+              <path
+                fill="#f66fb9"
+                d="M12 2l2.39 6.26L21 9.27l-5.18 4.87L17.18 21 12 18.26 6.82 21l1.36-6.86L3 9.27l6.61-1.01L12 2z"
+              />
+            </svg>
+          </div>
+          <div class="brand-title">Elite Tap Battle</div>
+          <div class="brand-subtitle">粉色 × 天藍｜專業級點擊對戰</div>
+        </div>
+
+        <div class="menu-buttons">
+          <button
+            class="menu-btn menu-btn-primary"
+            id="startSingleBtn"
+            aria-label="單人挑戰模式"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true"
+              >person</span
+            >
+            單人挑戰模式
+          </button>
+          <button
+            class="menu-btn menu-btn-primary"
+            id="startDualBtn"
+            aria-label="雙人對戰模式"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true"
+              >groups</span
+            >
+            雙人對戰模式
+          </button>
+          <button
+            class="menu-btn menu-btn-secondary"
+            id="leaderboardBtn"
+            aria-label="排行榜"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true"
+              >leaderboard</span
+            >
+            排行榜
+          </button>
+          <button
+            class="menu-btn menu-btn-secondary"
+            id="settingsBtn"
+            aria-label="遊戲設定"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true"
+              >settings</span
+            >
+            遊戲設定
+          </button>
+        </div>
+      </div>
+
+      <!-- 遊戲畫面 -->
+      <div class="game-screen" id="gameScreen" aria-hidden="true">
+        <!-- 單人頂欄 -->
+        <div class="game-header" id="gameHeader">
+          <div class="game-timer" aria-live="polite">
+            <span
+              class="material-symbols-rounded"
+              aria-hidden="true"
+              style="font-size: 22px"
+              >timer</span
+            >
+            <span id="gameTimer">30</span>
+          </div>
+          <div class="game-mode" id="gameMode">單人模式</div>
+          <button class="game-exit" id="gameExit" aria-label="離開遊戲">
+            <span class="material-symbols-rounded" aria-hidden="true"
+              >close</span
+            >
+          </button>
+        </div>
+
+        <div class="game-area" id="gameArea">
+          <canvas id="fxCanvas" class="fx"></canvas>
+
+          <div
+            class="single-player-area"
+            id="singlePlayerArea"
+            style="display: none"
+          >
+            <div class="player-name">開始點擊挑戰！</div>
+            <div class="score-display" id="singleScore">0</div>
+          </div>
+
+          <div
+            class="dual-player-area"
+            id="dualPlayerArea"
+            style="display: none"
+          >
+            <div class="divider"></div>
+
+            <div class="player-zone player1" data-player="1">
+              <div class="player-hud">
+                <div class="hud-timer" id="hudTimerP1">30</div>
+                <div class="hud-mode" id="hudModeP1">雙人對戰</div>
+                <div class="hud-tps" id="hudTpsP1">TPS 0</div>
+              </div>
+              <div class="player-name">玩家 1</div>
+              <div class="score-display" id="player1Score">0</div>
+            </div>
+
+            <div class="player-zone player2" data-player="2">
+              <div class="player-hud">
+                <div class="hud-timer" id="hudTimerP2">30</div>
+                <div class="hud-mode" id="hudModeP2">雙人對戰</div>
+                <div class="hud-tps" id="hudTpsP2">TPS 0</div>
+              </div>
+              <div class="player-name">玩家 2</div>
+              <div class="score-display" id="player2Score">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 煙火 -->
+      <div class="firework-container" id="fireworkContainer"></div>
+
+      <!-- 結果 -->
+      <div class="modal" id="resultModal" aria-hidden="true" role="dialog">
+        <div class="modal-card">
+          <h2 class="title-gradient" id="resultTitle">遊戲結束！</h2>
+          <div class="result-score" id="resultScore">0</div>
+          <div
+            style="
+              display: flex;
+              gap: 12px;
+              justify-content: center;
+              margin-top: 18px;
+            "
+          >
+            <button class="btn btn-primary" id="playAgainBtn">再來一局</button>
+            <button class="btn btn-secondary" id="backToMenuBtn">
+              返回主選單
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 排行榜 -->
+      <div class="modal" id="leaderboardModal" aria-hidden="true" role="dialog">
+        <div class="modal-card" style="max-width: 90vw; width: 560px">
+          <h2 class="title-gradient">排行榜</h2>
+          <div id="leaderboardContent" style="margin-top: 12px"></div>
+          <div
+            style="
+              display: flex;
+              gap: 12px;
+              justify-content: center;
+              margin-top: 18px;
+            "
+          >
+            <button class="btn btn-secondary" id="clearLeaderboardBtn">
+              清除記錄
+            </button>
+            <button class="btn btn-primary" id="closeLeaderboardBtn">
+              關閉
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 設定 -->
+      <div class="modal" id="settingsModal" aria-hidden="true" role="dialog">
+        <div
+          class="modal-card"
+          style="max-width: 90vw; width: 560px; text-align: left"
+        >
+          <h2 class="title-gradient">遊戲設定</h2>
+          <div style="margin-top: 12px; display: grid; gap: 10px">
+            <div class="settings-row">
+              <span>音效開啟</span
+              ><input type="checkbox" id="soundEnabled" class="toggle" />
+            </div>
+            <div class="settings-row">
+              <span>震動回饋</span
+              ><input type="checkbox" id="vibrationEnabled" class="toggle" />
+            </div>
+            <div class="settings-row">
+              <span>遊戲時間</span>
+              <select
+                id="gameDuration"
+                style="
+                  padding: 6px 8px;
+                  border-radius: 10px;
+                  border: 1px solid var(--gray-300);
+                "
+              >
+                <option value="15">15 秒</option>
+                <option value="30" selected>30 秒</option>
+                <option value="60">60 秒</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <span>水波紋動畫</span
+              ><input type="checkbox" id="rippleEnabled" class="toggle" />
+            </div>
+            <div class="settings-row">
+              <span>雷電效果</span
+              ><input type="checkbox" id="lightningEnabled" class="toggle" />
+            </div>
+            <div class="settings-row">
+              <span>TPS 顯示</span
+              ><input type="checkbox" id="showTps" class="toggle" />
+            </div>
+          </div>
+          <div style="display: flex; justify-content: center; margin-top: 18px">
+            <button class="btn btn-primary" id="closeSettingsBtn">
+              儲存設定
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PWA 安裝／教學橫幅 -->
+      <div class="install-banner" id="installBanner">
+        <div class="txt">
+          <div class="title" id="installTitle">安裝 Elite Tap Battle</div>
+          <div class="hint" id="installHint">
+            快速啟動、離線遊玩、全螢幕體驗
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary" id="installDismiss">
+            不再顯示
+          </button>
+          <button class="btn btn-primary" id="installAction">安裝</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const noop = () => {};
+        ["log", "warn", "error", "info", "debug", "time", "timeEnd"].forEach(
+          (m) => {
+            try {
+              console[m] = noop;
+            } catch (e) {}
+          }
+        );
+      })();
+
+      // ===== 遊戲狀態 =====
+      const GameState = {
+        isPlaying: false,
+        mode: "single",
+        timeLeft: 30,
+        scores: { single: 0, player1: 0, player2: 0 },
+        settings: {
+          soundEnabled: true,
+          vibrationEnabled: true,
+          gameDuration: 30,
+          rippleEnabled: true,
+          lightningEnabled: true,
+          showTps: false,
+        },
+        pointers: new Map(),
+        activePointers: new Map(),
+        lastTapTime: { single: 0, player1: 0, player2: 0 },
+        tpsEMA: { single: 0, player1: 0, player2: 0 },
+        tapQueues: [],
+        inputLockUntil: 0,
+      };
+
+      const SPEED_STEP = 0.5; // 每 0.5 TPS 一級，總共 10 級（越高越炫）
+      const tpsToLevel = (tps) =>
+        Math.max(1, Math.min(10, Math.floor(tps / SPEED_STEP) + 1));
+      let fxWorker = null,
+        fxCanvas = null,
+        offscreen = null,
+        dpr = 1;
+      const isLowPower =
+        ("connection" in navigator &&
+          navigator.connection &&
+          navigator.connection.saveData) ||
+        false;
+
+      // ===== FX Worker 初始化 =====
+      function setupWorker() {
+        fxCanvas = document.getElementById("fxCanvas");
+        dpr = Math.min(isLowPower ? 1.25 : 1.6, window.devicePixelRatio || 1);
+        if (
+          "OffscreenCanvas" in window &&
+          fxCanvas.transferControlToOffscreen
+        ) {
+          offscreen = fxCanvas.transferControlToOffscreen();
+          fxWorker = new Worker("./fx.worker.js", { type: "module" });
+          fxWorker.postMessage(
+            { type: "init", canvas: offscreen, dpr, lowPower: isLowPower },
+            [offscreen]
+          );
+        } else {
+          fxWorker = new Worker("./fx.worker.js", { type: "module" });
+          fxWorker.postMessage({ type: "init-fallback" }, []);
+        }
+        resizeFx();
+        sendSettingsToWorker();
+      }
+      function resizeFx() {
+        const r = fxCanvas.getBoundingClientRect();
+        if (offscreen) {
+          fxWorker.postMessage({
+            type: "resize",
+            width: r.width,
+            height: r.height,
+            dpr,
+          });
+        } else {
+          fxCanvas.width = Math.floor(r.width * dpr);
+          fxCanvas.height = Math.floor(r.height * dpr);
+          fxWorker.postMessage({
+            type: "resize",
+            width: r.width,
+            height: r.height,
+            dpr,
+          });
+        }
+      }
+      window.addEventListener("resize", resizeFx);
+      function sendSettingsToWorker() {
+        fxWorker &&
+          fxWorker.postMessage({
+            type: "config",
+            rippleEnabled: GameState.settings.rippleEnabled,
+            lightningEnabled: GameState.settings.lightningEnabled,
+          });
+      }
+
+      // ===== 音效管理 =====
+      class AdvancedAudioManager {
+        constructor() {
+          this.audioContext = null;
+          this.masterGain = null;
+          this.sounds = {};
+          this.isInitialized = false;
+        }
+        async init() {
+          if (this.isInitialized) return;
+          try {
+            this.audioContext = new (window.AudioContext ||
+              window.webkitAudioContext)({
+              latencyHint: "interactive",
+              sampleRate: 44100,
+            });
+            this.masterGain = this.audioContext.createGain();
+            this.masterGain.connect(this.audioContext.destination);
+            if (this.audioContext.state === "suspended")
+              await this.audioContext.resume();
+            const sr = this.audioContext.sampleRate;
+            this.sounds.tap = this.renderTap(sr);
+            this.sounds.countdown = this.renderBeep(sr);
+            this.sounds.victory = this.renderVictory(sr);
+            this.sounds.firework = this.renderFirework(sr);
+            this.isInitialized = true;
+          } catch (e) {}
+        }
+        renderTap(sr) {
+          const n = Math.floor(sr * 0.06),
+            b = this.audioContext.createBuffer(1, n, sr),
+            d = b.getChannelData(0);
+          for (let i = 0; i < n; i++) {
+            const t = i / sr;
+            d[i] =
+              Math.sin(2 * Math.PI * (900 - 400 * t) * t) *
+              Math.exp(-t * 28) *
+              0.35;
+          }
+          return b;
+        }
+        renderBeep(sr) {
+          const n = Math.floor(sr * 0.18),
+            b = this.audioContext.createBuffer(1, n, sr),
+            d = b.getChannelData(0);
+          for (let i = 0; i < n; i++) {
+            const t = i / sr;
+            d[i] = Math.sin(2 * Math.PI * 1000 * t) * Math.exp(-t * 12) * 0.4;
+          }
+          return b;
+        }
+        renderVictory(sr) {
+          const n = Math.floor(sr * 0.9),
+            b = this.audioContext.createBuffer(2, n, sr);
+          const m = [261.63, 329.63, 392, 523.25, 659.25, 784];
+          for (let c = 0; c < 2; c++) {
+            const d = b.getChannelData(c);
+            for (let i = 0; i < n; i++) {
+              const t = i / sr,
+                idx = Math.floor(t * 6) % m.length;
+              d[i] =
+                Math.sin(2 * Math.PI * m[idx] * t) * Math.max(0, 1 - t) * 0.24;
+            }
+          }
+          return b;
+        }
+        renderFirework(sr) {
+          const n = Math.floor(sr * 0.35),
+            b = this.audioContext.createBuffer(2, n, sr);
+          for (let c = 0; c < 2; c++) {
+            const d = b.getChannelData(c);
+            for (let i = 0; i < n; i++) {
+              const t = i / sr;
+              d[i] = (Math.random() - 0.5) * 2 * Math.exp(-t * 10) * 0.3;
+            }
+          }
+          return b;
+        }
+        play(name, vol = 1) {
+          if (!this.isInitialized || !GameState.settings.soundEnabled) return;
+          const buf = this.sounds[name];
+          if (!buf) return;
+          try {
+            const src = this.audioContext.createBufferSource();
+            const g = this.audioContext.createGain();
+            g.gain.value = vol;
+            src.buffer = buf;
+            src.connect(g);
+            g.connect(this.masterGain);
+            src.start();
+          } catch (e) {}
+        }
+        vibrate(ms = 40) {
+          if (!GameState.settings.vibrationEnabled) return;
+          if ("vibrate" in navigator) {
+            try {
+              navigator.vibrate(ms);
+            } catch (e) {}
+          }
+        }
+      }
+
+      // ===== 儲存管理 =====
+      class StorageManager {
+        constructor() {
+          this.KEY = "eliteTapBattle_FineLightning_PWA_v3";
+          this.loadSettings();
+        }
+        loadSettings() {
+          try {
+            const d = JSON.parse(localStorage.getItem(this.KEY) || "{}");
+            if (d.settings) Object.assign(GameState.settings, d.settings);
+          } catch (_) {}
+        }
+        saveSettings() {
+          const d = this.loadData();
+          d.settings = { ...GameState.settings };
+          this.saveData(d);
+        }
+        saveScore(mode, score, score2 = null) {
+          const d = this.loadData();
+          const rec = {
+            mode,
+            score,
+            score2,
+            date: new Date().toISOString(),
+            ts: Date.now(),
+          };
+          d.leaderboard = d.leaderboard || [];
+          d.leaderboard.push(rec);
+          d.leaderboard.sort((a, b) => b.score - a.score);
+          d.leaderboard = d.leaderboard.slice(0, 50);
+          this.saveData(d);
+        }
+        getLeaderboard(mode = null, limit = 10) {
+          const d = this.loadData();
+          let r = d.leaderboard || [];
+          if (mode) r = r.filter((x) => x.mode === mode);
+          return r.slice(0, limit);
+        }
+        clearData() {
+          if (confirm("確定要清除所有遊戲記錄嗎？")) {
+            localStorage.removeItem(this.KEY);
+            alert("記錄已清除！");
+          }
+        }
+        loadData() {
+          try {
+            return JSON.parse(localStorage.getItem(this.KEY) || "{}");
+          } catch (_) {
+            return {};
+          }
+        }
+        saveData(d) {
+          try {
+            localStorage.setItem(this.KEY, JSON.stringify(d));
+          } catch (_) {
+            alert("儲存空間已滿，請清除舊記錄！");
+          }
+        }
+      }
+
+      // ===== UI 管理 =====
+      class AdvancedUIManager {
+        constructor() {
+          document
+            .getElementById("startSingleBtn")
+            .addEventListener("click", async () => {
+              await this.initAudio();
+              gameEngine.startSinglePlayer();
+            });
+          document
+            .getElementById("startDualBtn")
+            .addEventListener("click", async () => {
+              await this.initAudio();
+              gameEngine.startDualPlayer();
+            });
+          document
+            .getElementById("leaderboardBtn")
+            .addEventListener("click", () => {
+              this.updateLeaderboard();
+              this.showModal("leaderboardModal");
+            });
+          document
+            .getElementById("settingsBtn")
+            .addEventListener("click", () => {
+              this.showSettings();
+            });
+
+          document
+            .getElementById("gameExit")
+            .addEventListener("click", () => gameEngine.exitGame());
+          document
+            .getElementById("playAgainBtn")
+            .addEventListener("click", () => {
+              this.hideModal("resultModal");
+              if (GameState.mode === "single") gameEngine.startSinglePlayer();
+              else gameEngine.startDualPlayer();
+            });
+          document
+            .getElementById("backToMenuBtn")
+            .addEventListener("click", () => {
+              this.hideModal("resultModal");
+              gameEngine.exitGame();
+            });
+
+          document
+            .getElementById("closeLeaderboardBtn")
+            .addEventListener("click", () =>
+              this.hideModal("leaderboardModal")
+            );
+          document
+            .getElementById("clearLeaderboardBtn")
+            .addEventListener("click", () => {
+              storageManager.clearData();
+              this.updateLeaderboard();
+            });
+
+          document
+            .getElementById("closeSettingsBtn")
+            .addEventListener("click", () => {
+              this.saveSettings();
+              this.hideModal("settingsModal");
+              sendSettingsToWorker();
+            });
+
+          document.addEventListener("keydown", (e) => {
+            if (e.code === "Escape" && GameState.isPlaying)
+              gameEngine.exitGame();
+          });
+
+          this.loadSettingsUI();
+          this.setupPWAInstallBanner();
+        }
+        async initAudio() {
+          if (!audioManager.isInitialized) await audioManager.init();
+        }
+        showGameScreen(mode) {
+          document.getElementById("menuScreen").classList.add("hidden");
+          const gs = document.getElementById("gameScreen");
+          gs.classList.add("active");
+          gs.setAttribute("aria-hidden", "false");
+          if (mode === "single") {
+            document.getElementById("singlePlayerArea").style.display = "flex";
+            document.getElementById("dualPlayerArea").style.display = "none";
+          } else {
+            document.getElementById("singlePlayerArea").style.display = "none";
+            document.getElementById("dualPlayerArea").style.display = "grid";
+          }
+        }
+        showMenuScreen() {
+          document.getElementById("menuScreen").classList.remove("hidden");
+          const gs = document.getElementById("gameScreen");
+          gs.classList.remove("active");
+          gs.setAttribute("aria-hidden", "true");
+        }
+        updateGameUI() {
+          document.getElementById("gameMode").textContent =
+            GameState.mode === "single" ? "單人挑戰" : "雙人對戰";
+          document.getElementById("hudModeP1").textContent = "雙人對戰";
+          document.getElementById("hudModeP2").textContent = "雙人對戰";
+          this.applyTpsToggle();
+        }
+        updateScoreDisplay() {
+          if (GameState.mode === "single") {
+            document.getElementById("singleScore").textContent =
+              GameState.scores.single;
+          } else {
+            document.getElementById("player1Score").textContent =
+              GameState.scores.player1;
+            document.getElementById("player2Score").textContent =
+              GameState.scores.player2;
+          }
+        }
+        animateScore(playerId) {
+          const el = document.getElementById(`${playerId}Score`);
+          if (!el) return;
+          el.style.animation = "none";
+          el.offsetHeight;
+          el.style.animation = "pulse .28s ease-in-out alternate";
+        }
+        updateTimer() {
+          const t = Math.ceil(GameState.timeLeft);
+          const tEl = document.getElementById("gameTimer");
+          tEl.textContent = t;
+          if (GameState.timeLeft <= 5 && GameState.timeLeft > 0) {
+            tEl.style.color = "var(--sky-600)";
+            tEl.style.animation = "pulse .5s ease-in-out infinite alternate";
+          } else {
+            tEl.style.color = "var(--primary)";
+            tEl.style.animation = "";
+          }
+          document.getElementById("hudTimerP1").textContent = t;
+          document.getElementById("hudTimerP2").textContent = t;
+          this.updateTpsHUD();
+        }
+        updateTpsHUD() {
+          if (!GameState.settings.showTps) return;
+          const p1 = document.getElementById("hudTpsP1"),
+            p2 = document.getElementById("hudTpsP2"),
+            s = GameState.mode === "single" ? "single" : null;
+          if (s) {
+            p1.textContent = `TPS ${GameState.tpsEMA.single.toFixed(1)}`;
+            p1.classList.add("show");
+          } else {
+            p1.textContent = `TPS ${GameState.tpsEMA.player1.toFixed(1)}`;
+            p2.textContent = `TPS ${GameState.tpsEMA.player2.toFixed(1)}`;
+          }
+        }
+        applyTpsToggle() {
+          const el1 = document.getElementById("hudTpsP1"),
+            el2 = document.getElementById("hudTpsP2");
+          if (GameState.settings.showTps) {
+            el1.classList.add("show");
+            el2.classList.add("show");
+          } else {
+            el1.classList.remove("show");
+            el2.classList.remove("show");
+          }
+        }
+        showResult(r) {
+          const modal = document.getElementById("resultModal");
+          const title = document.getElementById("resultTitle");
+          const score = document.getElementById("resultScore");
+          if (GameState.mode === "single") {
+            title.textContent = "單人挑戰完成！";
+            score.textContent = `得分：${r.score}`;
+          } else {
+            if (r.winner) {
+              title.textContent = `🏆 ${
+                r.winner === "player1" ? "玩家 1" : "玩家 2"
+              } 獲勝！`;
+            } else {
+              title.textContent = "🤝 平手！";
+            }
+            score.textContent = `${r.score} : ${r.score2}`;
+          }
+          modal.classList.add("show");
+          modal.setAttribute("aria-hidden", "false");
+        }
+        showModal(id) {
+          const m = document.getElementById(id);
+          m.classList.add("show");
+          m.setAttribute("aria-hidden", "false");
+        }
+        hideModal(id) {
+          const m = document.getElementById(id);
+          m.classList.remove("show");
+          m.setAttribute("aria-hidden", "true");
+        }
+        showSettings() {
+          document.getElementById("soundEnabled").checked =
+            GameState.settings.soundEnabled;
+          document.getElementById("vibrationEnabled").checked =
+            GameState.settings.vibrationEnabled;
+          document.getElementById("gameDuration").value =
+            GameState.settings.gameDuration;
+          document.getElementById("rippleEnabled").checked =
+            GameState.settings.rippleEnabled;
+          document.getElementById("lightningEnabled").checked =
+            GameState.settings.lightningEnabled;
+          document.getElementById("showTps").checked =
+            GameState.settings.showTps;
+          this.showModal("settingsModal");
+        }
+        saveSettings() {
+          GameState.settings.soundEnabled =
+            document.getElementById("soundEnabled").checked;
+          GameState.settings.vibrationEnabled =
+            document.getElementById("vibrationEnabled").checked;
+          GameState.settings.gameDuration = parseInt(
+            document.getElementById("gameDuration").value,
+            10
+          );
+          GameState.settings.rippleEnabled =
+            document.getElementById("rippleEnabled").checked;
+          GameState.settings.lightningEnabled =
+            document.getElementById("lightningEnabled").checked;
+          GameState.settings.showTps =
+            document.getElementById("showTps").checked;
+          storageManager.saveSettings();
+          this.applyTpsToggle();
+        }
+        loadSettingsUI() {
+          document.getElementById("soundEnabled").checked =
+            GameState.settings.soundEnabled;
+          document.getElementById("vibrationEnabled").checked =
+            GameState.settings.vibrationEnabled;
+          document.getElementById("gameDuration").value =
+            GameState.settings.gameDuration;
+          document.getElementById("rippleEnabled").checked =
+            GameState.settings.rippleEnabled;
+          document.getElementById("lightningEnabled").checked =
+            GameState.settings.lightningEnabled;
+          document.getElementById("showTps").checked =
+            GameState.settings.showTps;
+          this.applyTpsToggle();
+        }
+        updateLeaderboard() {
+          const c = document.getElementById("leaderboardContent");
+          const rec = storageManager.getLeaderboard(null, 10);
+          if (rec.length === 0) {
+            c.innerHTML =
+              '<p style="color:var(--text-secondary);text-align:center;">尚無記錄</p>';
+            return;
+          }
+          c.innerHTML = `<div style="display:grid;gap:10px;">${rec
+            .map((r, i) => {
+              const date = new Date(r.date).toLocaleDateString("zh-TW");
+              const modeText = r.mode === "single" ? "單人" : "雙人";
+              const scoreText =
+                r.score2 != null ? `${r.score} : ${r.score2}` : `${r.score}`;
+              return `<div style="display:flex;align-items:center;gap:14px;padding:10px 12px;background:var(--bg-secondary);border-radius:14px;border-left:4px solid var(--accent);"><div style="min-width:2rem;font-weight:800;color:var(--accent);">#${
+                i + 1
+              }</div><div style="flex:1;"><div style="font-weight:800;">${scoreText}</div><div style="font-size:12px;color:var(--text-secondary);">${modeText} • ${date}</div></div></div>`;
+            })
+            .join("")}</div>`;
+        }
+
+        // PWA 安裝提示
+        setupPWAInstallBanner() {
+          const banner = document.getElementById("installBanner");
+          const title = document.getElementById("installTitle");
+          const hint = document.getElementById("installHint");
+          const btnInstall = document.getElementById("installAction");
+          const btnDismiss = document.getElementById("installDismiss");
+          const DISMISS_KEY = "etb_install_dismiss_v1";
+          if (localStorage.getItem(DISMISS_KEY) === "1") return;
+          const isStandalone =
+            window.matchMedia("(display-mode: standalone)").matches ||
+            window.navigator.standalone;
+          if (isStandalone) return;
+          const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+          let deferredPrompt = null;
+          if (!isiOS) {
+            window.addEventListener("beforeinstallprompt", (e) => {
+              e.preventDefault();
+              deferredPrompt = e;
+              title.textContent = "安裝 Elite Tap Battle";
+              hint.textContent = "支援離線、啟動更快、全螢幕體驗";
+              btnInstall.textContent = "安裝";
+              banner.classList.add("show");
+            });
+            btnInstall.onclick = async () => {
+              if (!deferredPrompt) return;
+              deferredPrompt.prompt();
+              const { outcome } = await deferredPrompt.userChoice;
+              if (outcome !== "dismissed") banner.classList.remove("show");
+              deferredPrompt = null;
+            };
+          } else {
+            title.textContent = "加入主畫面（iOS）";
+            hint.innerHTML =
+              "在 Safari 按 <b>分享</b> → <b>加入到主畫面</b>，即可離線全螢幕遊玩";
+            btnInstall.textContent = "知道了";
+            banner.classList.add("show");
+            btnInstall.onclick = () => banner.classList.remove("show");
+          }
+          btnDismiss.onclick = () => {
+            localStorage.setItem(DISMISS_KEY, "1");
+            banner.classList.remove("show");
+          };
+        }
+      }
+
+      // ===== 輸入管理（批次丟到 Worker）=====
+      class AdvancedInputManager {
+        constructor(gameEngine) {
+          this.gameEngine = gameEngine;
+          const area = document.getElementById("gameArea");
+          area.addEventListener("pointerdown", this.onDown.bind(this), {
+            passive: false,
+          });
+          area.addEventListener("pointermove", this.onMove.bind(this), {
+            passive: false,
+          });
+          area.addEventListener("pointerup", this.onUp.bind(this), {
+            passive: false,
+          });
+          area.addEventListener("pointercancel", this.onUp.bind(this), {
+            passive: false,
+          });
+          area.addEventListener("contextmenu", (e) => e.preventDefault());
+          area.addEventListener("dblclick", (e) => e.preventDefault());
+
+          const pump = () => {
+            if (fxWorker && GameState.tapQueues.length) {
+              fxWorker.postMessage({
+                type: "batch",
+                taps: GameState.tapQueues.splice(0, GameState.tapQueues.length),
+              });
+            }
+            requestAnimationFrame(pump);
+          };
+          requestAnimationFrame(pump);
+        }
+        onDown(e) {
+          if (!GameState.isPlaying) return;
+          if (performance.now() < GameState.inputLockUntil) return;
+          e.preventDefault();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left,
+            y = e.clientY - rect.top;
+          const id = e.pointerId;
+          e.currentTarget.setPointerCapture(id);
+
+          let playerId;
+          if (GameState.mode === "single") {
+            playerId = "single";
+          } else {
+            playerId = y < rect.height / 2 ? "player1" : "player2";
+          }
+
+          GameState.pointers.set(id, { playerId, element: e.currentTarget });
+
+          const now = performance.now();
+          const last = GameState.lastTapTime[playerId] || 0;
+          const dt = last ? now - last : Infinity;
+          const instTps = isFinite(dt) ? 1000 / dt : 0;
+          const alpha = 0.35;
+          GameState.tpsEMA[playerId] =
+            alpha * instTps + (1 - alpha) * GameState.tpsEMA[playerId];
+
+          const tier = tpsToLevel(instTps);
+          GameState.lastTapTime[playerId] = now;
+
+          GameState.activePointers.set(id, { x, y, playerId, tier });
+          GameState.scores[playerId]++;
+          uiManager.updateScoreDisplay();
+          uiManager.animateScore(playerId);
+
+          // 水波紋觸發條件：每秒點擊 > 20 且每 3 次觸發一次
+          const rippleOk = instTps > 20 && GameState.scores[playerId] % 3 === 0;
+
+          GameState.tapQueues.push({
+            x,
+            y,
+            ts: now,
+            tier,
+            playerId,
+            mode: GameState.mode,
+            rippleEligible: rippleOk,
+          });
+
+          audioManager.play("tap", 0.5);
+          audioManager.vibrate();
+          if (GameState.mode === "dual") {
+            const zone = document.querySelector(`.player-zone.${playerId}`);
+            if (zone) zone.classList.add("active");
+          }
+        }
+        onMove(e) {
+          if (!GameState.isPlaying) return;
+          e.preventDefault();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left,
+            y = e.clientY - rect.top;
+          const p = GameState.activePointers.get(e.pointerId);
+          if (p) {
+            p.x = x;
+            p.y = y;
+          }
+        }
+        onUp(e) {
+          const meta = GameState.pointers.get(e.pointerId);
+          if (meta) {
+            try {
+              meta.element.releasePointerCapture(e.pointerId);
+            } catch (_) {}
+            if (GameState.mode === "dual") {
+              const zone = document.querySelector(
+                `.player-zone.${meta.playerId}`
+              );
+              if (zone) zone.classList.remove("active");
+            }
+          }
+          GameState.pointers.delete(e.pointerId);
+          GameState.activePointers.delete(e.pointerId);
+        }
+      }
+
+      // ===== 遊戲引擎 =====
+      class AdvancedGameEngine {
+        constructor() {
+          this.animationFrame = null;
+          this.startTime = 0;
+          this.lastCountdownSecond = null;
+          this.isFullscreen = false;
+        }
+        async startSinglePlayer() {
+          await this.enterFullscreen();
+          this.startGame("single", 0);
+        }
+        async startDualPlayer() {
+          await this.enterFullscreen();
+          this.startGame("dual", 1000);
+        } // 開頭延遲 1 秒
+
+        async enterFullscreen() {
+          try {
+            const el = document.documentElement;
+            if (el.requestFullscreen) await el.requestFullscreen();
+            else if (el.webkitRequestFullscreen)
+              await el.webkitRequestFullscreen();
+            this.isFullscreen = !!(
+              document.fullscreenElement || document.webkitFullscreenElement
+            );
+          } catch (_) {}
+        }
+        async exitFullscreen() {
+          const doc = document;
+          const fsEl = doc.fullscreenElement || doc.webkitFullscreenElement;
+          if (!fsEl) {
+            this.isFullscreen = false;
+            return;
+          }
+          if (doc.visibilityState !== "visible") {
+            this.isFullscreen = false;
+            return;
+          }
+          try {
+            if (doc.exitFullscreen) {
+              await doc.exitFullscreen().catch(() => {});
+            } else if (doc.webkitExitFullscreen) {
+              doc.webkitExitFullscreen();
+            }
+          } catch (_) {}
+          this.isFullscreen = false;
+        }
+
+        startGame(mode, delayMs) {
+          if (GameState.isPlaying) return;
+          GameState.mode = mode;
+          GameState.isPlaying = true;
+          GameState.timeLeft = GameState.settings.gameDuration;
+          GameState.scores = { single: 0, player1: 0, player2: 0 };
+          GameState.pointers.clear();
+          GameState.activePointers.clear();
+          GameState.lastTapTime = { single: 0, player1: 0, player2: 0 };
+          GameState.tpsEMA = { single: 0, player1: 0, player2: 0 };
+          GameState.tapQueues.length = 0;
+          GameState.inputLockUntil =
+            performance.now() + (mode === "dual" ? delayMs : 0);
+
+          const appEl = document.getElementById("app");
+          appEl.classList.toggle("single", mode === "single");
+          appEl.classList.toggle("dual", mode === "dual");
+
+          document
+            .getElementById("gameHeader")
+            .classList.toggle("hidden", mode === "dual");
+          uiManager.showGameScreen(mode);
+          uiManager.updateGameUI();
+          uiManager.updateScoreDisplay();
+          resizeFx();
+
+          const syncActive = () => {
+            if (!GameState.isPlaying) return;
+            const arr = [];
+            GameState.activePointers.forEach((v) => arr.push(v));
+            fxWorker && fxWorker.postMessage({ type: "active", active: arr });
+            setTimeout(syncActive, 66);
+          };
+          syncActive();
+
+          this.startTime = performance.now() + delayMs;
+          this.lastCountdownSecond = null;
+
+          const loop = (ts) => {
+            if (!GameState.isPlaying) return;
+            const elapsed = (ts - this.startTime) / 1000;
+            GameState.timeLeft = Math.max(
+              0,
+              GameState.settings.gameDuration - Math.max(0, elapsed)
+            );
+            uiManager.updateTimer();
+
+            if (GameState.timeLeft <= 3 && GameState.timeLeft > 0) {
+              const secs = Math.ceil(GameState.timeLeft);
+              if (secs !== this.lastCountdownSecond) {
+                audioManager.play("countdown");
+                this.lastCountdownSecond = secs;
+              }
+            }
+            if (GameState.timeLeft <= 0) {
+              this.endGame();
+              return;
+            }
+            this.animationFrame = requestAnimationFrame(loop);
+          };
+          this.animationFrame = requestAnimationFrame(loop);
+        }
+
+        async endGame() {
+          GameState.isPlaying = false;
+          if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+          }
+          const result = this.calculateResult();
+          await this.playFireworks(); // 播完煙火再顯示結果
+          audioManager.play("victory", 0.9);
+          uiManager.showResult(result);
+        }
+
+        calculateResult() {
+          const r = { hasWinner: false, winner: null, score: 0, score2: 0 };
+          if (GameState.mode === "single") {
+            r.score = GameState.scores.single;
+            r.hasWinner = r.score > 0;
+            storageManager.saveScore("single", r.score);
+          } else {
+            r.score = GameState.scores.player1;
+            r.score2 = GameState.scores.player2;
+            if (r.score > r.score2) {
+              r.winner = "player1";
+              r.hasWinner = true;
+            } else if (r.score2 > r.score) {
+              r.winner = "player2";
+              r.hasWinner = true;
+            }
+            storageManager.saveScore(
+              "dual",
+              Math.max(r.score, r.score2),
+              Math.min(r.score, r.score2)
+            );
+          }
+          return r;
+        }
+
+        playFireworks() {
+          const container = document.getElementById("fireworkContainer");
+          const colors = [
+            "#f66fb9",
+            "#ffb2dc",
+            "#7ccaff",
+            "#52b7ff",
+            "#ffffff",
+          ];
+          const count = 16,
+            duration = 4200;
+          return new Promise((resolve) => {
+            for (let i = 0; i < count; i++) {
+              setTimeout(() => {
+                const cx = Math.random() * window.innerWidth;
+                const cy =
+                  Math.random() * (window.innerHeight * 0.6) +
+                  window.innerHeight * 0.2;
+                for (let j = 0; j < 12; j++) {
+                  const dot = document.createElement("div");
+                  dot.className = "firework";
+                  const c = colors[Math.floor(Math.random() * colors.length)];
+                  dot.style.background = c;
+                  dot.style.boxShadow = `0 0 10px ${c}`;
+                  dot.style.left = cx + "px";
+                  dot.style.top = cy + "px";
+                  container.appendChild(dot);
+                  const ang = (j / 12) * Math.PI * 2,
+                    dist = 100 + Math.random() * 120,
+                    dur = 900 + Math.random() * 420;
+                  dot
+                    .animate(
+                      [
+                        { transform: "translate(0,0) scale(1)", opacity: 1 },
+                        {
+                          transform: `translate(${Math.cos(ang) * dist}px, ${
+                            Math.sin(ang) * dist
+                          }px) scale(0)`,
+                          opacity: 0,
+                        },
+                      ],
+                      { duration: dur, easing: "ease-out" }
+                    )
+                    .addEventListener("finish", () => dot.remove());
+                }
+                audioManager.play("firework", 0.25);
+              }, i * (duration / count));
+            }
+            setTimeout(() => {
+              container.innerHTML = "";
+              resolve();
+            }, duration + 200);
+          });
+        }
+
+        async exitGame() {
+          GameState.isPlaying = false;
+          if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+          }
+          await this.exitFullscreen();
+          uiManager.showMenuScreen();
+        }
+      }
+
+      // ===== 初始化 =====
+      let audioManager, inputManager, gameEngine, storageManager, uiManager;
+      document.addEventListener("DOMContentLoaded", () => {
+        audioManager = new AdvancedAudioManager();
+        storageManager = new StorageManager();
+        gameEngine = new AdvancedGameEngine();
+        uiManager = new AdvancedUIManager();
+        setupWorker();
+
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.register("./sw.js").catch(() => {
+            /* 靜默失敗 */
+          });
+        }
+
+        if (
+          "connection" in navigator &&
+          navigator.connection &&
+          navigator.connection.saveData === true
+        ) {
+          document.documentElement.classList.add("save-data");
+        }
+      });
+
+      // 全螢幕事件：不要在這裡呼叫 exitGame() 以免遞迴
+      document.addEventListener("fullscreenchange", () => {
+        const isFs = !!(
+          document.fullscreenElement || document.webkitFullscreenElement
+        );
+        gameEngine.isFullscreen = isFs;
+        if (!isFs && GameState.isPlaying) {
+          GameState.isPlaying = false;
+          uiManager.showMenuScreen();
+        }
+      });
+
+      // 禁用雙擊放大
+      (function preventZoom() {
+        let last = 0;
+        document.addEventListener(
+          "touchend",
+          (e) => {
+            const now = Date.now();
+            if (now - last <= 300) {
+              e.preventDefault();
+            }
+            last = now;
+          },
+          { passive: false }
+        );
+        ["gesturestart", "gesturechange", "gestureend"].forEach((evt) =>
+          document.addEventListener(evt, (e) => e.preventDefault())
+        );
+      })();
+    </script>
+  </body>
+</html>
