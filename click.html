@@ -2,7 +2,8 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <!-- 全面覆蓋瀏覽器工具列高度，避免 iOS Safari 佔位 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#ec4899" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -42,6 +43,13 @@
 
       --emerald-400: #34d399;
       --emerald-500: #10b981;
+
+      /* 額外指尖調色盤（多指顏色用） */
+      --red-500: #ef4444;
+      --orange-500: #f97316;
+      --cyan-500: #06b6d4;
+      --lime-500: #84cc16;
+      --fuchsia-500: #d946ef;
 
       /* 中性色 */
       --gray-50: #f9fafb;
@@ -155,7 +163,8 @@
 
     html,
     body {
-      height: 100%;
+      height: 100svh; /* 使用小視窗高度單位，避免 iOS Safari 工具列影響 */
+      width: 100vw;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
@@ -163,26 +172,38 @@
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
-      overflow: hidden;
+      overflow: hidden; /* 全站禁止滾動 */
       font-feature-settings: "kern" 1, "liga" 1;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      touch-action: manipulation;
-      -ms-touch-action: manipulation;
+      overscroll-behavior: none;
+      -webkit-text-size-adjust: 100%;
     }
 
     /* === 主應用容器 === */
     .app {
-      height: 100vh;
+      position: fixed;
+      inset: 0;
+      height: 100svh;
       width: 100vw;
-      position: relative;
       background: linear-gradient(135deg, var(--pink-50) 0%, var(--purple-50) 50%, var(--blue-50) 100%);
       transition: all var(--duration-normal) ease;
+      overflow: hidden;
+    }
+
+    /* 10 指 RGB 狂歡模式（加上 GPU 加速，短時間觸發，效能穩） */
+    .app.rgb-burst {
+      will-change: filter;
+      animation: hueCycle 1s linear infinite;
+    }
+    @keyframes hueCycle {
+      from { filter: hue-rotate(0deg); }
+      to   { filter: hue-rotate(360deg); }
     }
 
     /* === 主選單介面 === */
     .menu-screen {
-      height: 100vh;
+      height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -223,13 +244,8 @@
     }
 
     @keyframes float {
-      0%,
-      100% {
-        transform: translateY(0px);
-      }
-      50% {
-        transform: translateY(-10px);
-      }
+      0%, 100% { transform: translateY(0px); }
+      50%      { transform: translateY(-10px); }
     }
 
     .brand-title {
@@ -287,30 +303,20 @@
       transition: left var(--duration-slow) ease;
     }
 
-    .menu-btn:hover::before {
-      left: 100%;
-    }
-
-    .menu-btn:active {
-      transform: scale(0.98);
-    }
+    .menu-btn:hover::before { left: 100%; }
+    .menu-btn:active { transform: scale(0.98); }
 
     .menu-btn-primary {
       background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
       color: white;
     }
-
-    .menu-btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-pink);
-    }
+    .menu-btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-pink); }
 
     .menu-btn-secondary {
       background: var(--bg-primary);
       color: var(--text-primary);
       border: 2px solid var(--gray-200);
     }
-
     .menu-btn-secondary:hover {
       background: var(--bg-secondary);
       border-color: var(--primary-light);
@@ -323,14 +329,11 @@
       top: 0;
       left: 0;
       width: 100vw;
-      height: 100vh;
+      height: 100svh;
       display: none;
       flex-direction: column;
     }
-
-    .game-screen.active {
-      display: flex;
-    }
+    .game-screen.active { display: flex; }
 
     /* === 遊戲頂部狀態列 === */
     .game-header {
@@ -339,6 +342,7 @@
       left: 0;
       right: 0;
       height: 80px;
+      padding-top: env(safe-area-inset-top);
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -346,7 +350,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 var(--space-6);
+      padding-left: var(--space-6);
+      padding-right: var(--space-6);
       z-index: 100;
       box-shadow: var(--shadow-sm);
     }
@@ -378,11 +383,7 @@
       transition: all var(--duration-fast) ease;
       color: var(--text-secondary);
     }
-
-    .game-exit:hover {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
-    }
+    .game-exit:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 
     /* === 全屏遊戲區域 === */
     .game-area {
@@ -391,7 +392,17 @@
       position: relative;
       touch-action: none;
       overflow: hidden;
-      margin-top: 80px;
+      margin-top: calc(80px + env(safe-area-inset-top));
+    }
+
+    /* 視覺效果 Canvas（雷電與指尖光暈） */
+    .fx-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+      pointer-events: none;
     }
 
     /* === 單人模式：全屏點擊 === */
@@ -417,18 +428,12 @@
 
     /* 橫向：左右分割 */
     @media (orientation: landscape) {
-      .dual-player-area {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr;
-      }
+      .dual-player-area { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
     }
 
     /* 直向：上下分割 */
     @media (orientation: portrait) {
-      .dual-player-area {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
-      }
+      .dual-player-area { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
     }
 
     .player-zone {
@@ -441,28 +446,13 @@
       transition: all var(--duration-fast) ease;
       overflow: hidden;
     }
+    .player-zone.player1 { background: linear-gradient(135deg, var(--pink-100) 0%, var(--pink-200) 100%); }
+    .player-zone.player2 { background: linear-gradient(135deg, var(--purple-100) 0%, var(--purple-200) 100%); }
 
-    .player-zone.player1 {
-      background: linear-gradient(135deg, var(--pink-100) 0%, var(--pink-200) 100%);
-    }
-
-    .player-zone.player2 {
-      background: linear-gradient(135deg, var(--purple-100) 0%, var(--purple-200) 100%);
-    }
-
-    .player-zone.active {
-      transform: scale(1.02);
-    }
-
-    /* === 只在直向時讓上方玩家鏡像（player1）=== */
-    @media (orientation: portrait) {
-      .dual-player-area .player-zone.player1 {
-        transform: rotate(180deg);
-      }
-      .dual-player-area .player-zone.player1.active {
-        transform: rotate(180deg) scale(1.02);
-      }
-    }
+    /* 面對面鏡像顯示（任何方向都鏡像 player1） */
+    .dual-player-area .player-zone.player1 { transform: rotate(180deg); }
+    .dual-player-area .player-zone.player1.active { transform: rotate(180deg) scale(1.02); }
+    .player-zone.active { transform: scale(1.02); }
 
     /* === 分隔線 === */
     .divider {
@@ -471,25 +461,11 @@
       z-index: 50;
       box-shadow: var(--shadow-md);
     }
-
     @media (orientation: landscape) {
-      .divider {
-        left: 50%;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        transform: translateX(-50%);
-      }
+      .divider { left: 50%; top: 0; bottom: 0; width: 4px; transform: translateX(-50%); }
     }
-
     @media (orientation: portrait) {
-      .divider {
-        top: 50%;
-        left: 0;
-        right: 0;
-        height: 4px;
-        transform: translateY(-50%);
-      }
+      .divider { top: 50%; left: 0; right: 0; height: 4px; transform: translateY(-50%); }
     }
 
     /* === 計分顯示 === */
@@ -511,51 +487,7 @@
       margin-bottom: var(--space-6);
     }
 
-    .combo-display {
-      position: absolute;
-      top: 20%;
-      font-size: var(--font-size-2xl);
-      font-weight: 700;
-      color: var(--yellow-500);
-      opacity: 0;
-      transform: translateY(20px) scale(0.8);
-      transition: all var(--duration-normal) ease;
-      text-shadow: 0 2px 4px rgba(245, 158, 11, 0.4);
-      pointer-events: none;
-    }
-
-    .combo-display.show {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    /* === 多指共鳴點擊特效 === */
-    .tap-effect {
-      position: absolute;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 20;
-      animation: tap-burst var(--duration-slow) ease-out forwards;
-    }
-
-    @keyframes tap-burst {
-      0% {
-        transform: scale(0) rotate(0deg);
-        opacity: 1;
-      }
-      50% {
-        transform: scale(2) rotate(180deg);
-        opacity: 0.8;
-      }
-      100% {
-        transform: scale(4) rotate(360deg);
-        opacity: 0;
-      }
-    }
-
-    /* === 點擊數字顯示 === */
+    /* === 點擊數字顯示（本次總點擊數） === */
     .tap-number {
       position: absolute;
       font-size: var(--font-size-2xl);
@@ -565,107 +497,54 @@
       pointer-events: none;
       z-index: 25;
       animation: number-float 1s ease-out forwards;
+      will-change: transform, opacity;
     }
-
     @keyframes number-float {
-      0% {
-        transform: scale(0) translateY(0);
-        opacity: 1;
-      }
-      20% {
-        transform: scale(1.2) translateY(-10px);
-        opacity: 1;
-      }
-      100% {
-        transform: scale(0.8) translateY(-50px);
-        opacity: 0;
-      }
+      0%   { transform: scale(0.8) translateY(0); opacity: 0.9; }
+      20%  { transform: scale(1.1) translateY(-6px); opacity: 1; }
+      100% { transform: scale(0.9) translateY(-40px); opacity: 0; }
     }
 
-    /* === 粒子系統 === */
+    /* === 粒子系統（輕量化） === */
     .particle {
       position: absolute;
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       pointer-events: none;
       z-index: 15;
+      opacity: 0.9;
+      will-change: transform, opacity;
+      animation: particleFloat 900ms ease-out forwards;
+      box-shadow: 0 0 6px currentColor;
     }
-
-    .particle.pink {
-      background: var(--pink-400);
-      box-shadow: 0 0 10px var(--pink-400);
-    }
-
-    .particle.purple {
-      background: var(--purple-400);
-      box-shadow: 0 0 10px var(--purple-400);
-    }
-
-    .particle.blue {
-      background: var(--blue-400);
-      box-shadow: 0 0 10px var(--blue-400);
+    @keyframes particleFloat {
+      0%   { transform: translateY(0px) scale(1); opacity: 1; }
+      100% { transform: translateY(-60px) scale(0.4); opacity: 0; }
     }
 
     /* === 煙火效果 === */
-    .firework {
-      position: absolute;
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 200;
-    }
-
-    .firework-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 200;
-    }
+    .firework { position: absolute; width: 4px; height: 4px; border-radius: 50%; pointer-events: none; z-index: 200; }
+    .firework-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100svh; pointer-events: none; z-index: 200; }
 
     /* === SVG 圖標系統 === */
-    .icon {
-      width: 24px;
-      height: 24px;
-      fill: currentColor;
-    }
-
-    .icon-lg {
-      width: 32px;
-      height: 32px;
-    }
-
-    .icon-xl {
-      width: 48px;
-      height: 48px;
-    }
+    .icon { width: 24px; height: 24px; fill: currentColor; }
+    .icon-lg { width: 32px; height: 32px; }
+    .icon-xl { width: 48px; height: 48px; }
 
     /* === 結果彈窗 === */
     .result-modal {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
+      top: 0; left: 0; width: 100vw; height: 100svh;
       background: rgba(0, 0, 0, 0.8);
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      display: flex; justify-content: center; align-items: center;
       z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
+      opacity: 0; visibility: hidden;
       transition: all var(--duration-normal) ease;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
     }
-
-    .result-modal.show {
-      opacity: 1;
-      visibility: visible;
-    }
-
+    .result-modal.show { opacity: 1; visibility: visible; }
     .result-content {
       background: var(--bg-primary);
       border-radius: var(--radius-2xl);
@@ -676,50 +555,29 @@
       transform: scale(0.9);
       transition: transform var(--duration-normal) ease;
     }
-
-    .result-modal.show .result-content {
-      transform: scale(1);
-    }
-
+    .result-modal.show .result-content { transform: scale(1); }
     .result-title {
       font-size: var(--font-size-3xl);
       font-weight: 800;
       margin-bottom: var(--space-4);
       background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-
-    .result-score {
-      font-size: var(--font-size-4xl);
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: var(--space-6);
-    }
+    .result-score { font-size: var(--font-size-4xl); font-weight: 700; color: var(--primary); margin-bottom: var(--space-6); }
 
     /* === 排行榜與設定 === */
     .modal {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
+      top: 0; left: 0; width: 100vw; height: 100svh;
       background: rgba(0, 0, 0, 0.6);
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      display: flex; justify-content: center; align-items: center;
       z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
+      opacity: 0; visibility: hidden;
       transition: all var(--duration-normal) ease;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
     }
-
-    .modal.show {
-      opacity: 1;
-      visibility: visible;
-    }
-
+    .modal.show { opacity: 1; visibility: visible; }
     .modal-content {
       background: var(--bg-primary);
       border-radius: var(--radius-2xl);
@@ -731,127 +589,43 @@
       transform: scale(0.9);
       transition: transform var(--duration-normal) ease;
     }
-
-    .modal.show .modal-content {
-      transform: scale(1);
-    }
+    .modal.show .modal-content { transform: scale(1); }
 
     /* === 按鈕系統 === */
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-flex; align-items: center; justify-content: center;
       gap: var(--space-2);
       padding: var(--space-3) var(--space-6);
-      border: none;
-      border-radius: var(--radius-xl);
-      font-size: var(--font-size-base);
-      font-weight: 600;
-      cursor: pointer;
-      transition: all var(--duration-fast) ease;
-      position: relative;
-      overflow: hidden;
-      min-height: 48px;
+      border: none; border-radius: var(--radius-xl);
+      font-size: var(--font-size-base); font-weight: 600;
+      cursor: pointer; transition: all var(--duration-fast) ease;
+      position: relative; overflow: hidden; min-height: 48px;
     }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-      color: white;
-      box-shadow: var(--shadow-md);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-pink);
-    }
-
-    .btn-secondary {
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-      border: 1px solid var(--gray-300);
-    }
-
-    .btn-secondary:hover {
-      background: var(--bg-tertiary);
-      border-color: var(--primary-light);
-    }
+    .btn-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; box-shadow: var(--shadow-md); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-pink); }
+    .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--gray-300); }
+    .btn-secondary:hover { background: var(--bg-tertiary); border-color: var(--primary-light); }
 
     /* === 響應式優化 === */
     @media (max-width: 640px) {
-      .brand-title {
-        font-size: var(--font-size-3xl);
-      }
-
-      .score-display {
-        font-size: var(--font-size-5xl);
-      }
-
-      .game-header {
-        height: 70px;
-        padding: 0 var(--space-4);
-      }
-
-      .game-area {
-        margin-top: 70px;
-      }
+      .brand-title { font-size: var(--font-size-3xl); }
+      .score-display { font-size: var(--font-size-5xl); }
+      .game-header { height: 70px; }
+      .game-area { margin-top: calc(70px + env(safe-area-inset-top)); }
     }
 
     /* === 輔助動畫 === */
     @keyframes scorePopUp {
-      0% {
-        transform: scale(1);
-      }
-      50% {
-        transform: scale(1.1);
-      }
-      100% {
-        transform: scale(1);
-      }
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
     }
-
-    @keyframes comboGlow {
-      0% {
-        text-shadow: 0 2px 4px rgba(245, 158, 11, 0.4);
-      }
-      50% {
-        text-shadow: 0 0 20px rgba(245, 158, 11, 0.8);
-      }
-      100% {
-        text-shadow: 0 2px 4px rgba(245, 158, 11, 0.4);
-      }
-    }
-
-    @keyframes particleFloat {
-      0% {
-        transform: translateY(0px) scale(1);
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(-100px) scale(0);
-        opacity: 0;
-      }
-    }
-
-    .score-pop {
-      animation: scorePopUp 0.3s ease;
-    }
-
-    .combo-glow {
-      animation: comboGlow 0.5s ease;
-    }
-
-    .floating-particle {
-      animation: particleFloat 2s ease-out forwards;
-    }
+    .score-pop { animation: scorePopUp 0.3s ease; }
 
     /* 補上 pulse 動畫，倒數時使用 */
     @keyframes pulse {
-      from {
-        transform: scale(1);
-      }
-      to {
-        transform: scale(1.08);
-      }
+      from { transform: scale(1); }
+      to   { transform: scale(1.08); }
     }
   </style>
 </head>
@@ -874,16 +648,14 @@
       <div class="menu-buttons">
         <button class="menu-btn menu-btn-primary" id="startSingleBtn" aria-label="單人挑戰模式">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
           </svg>
           單人挑戰模式
         </button>
 
         <button class="menu-btn menu-btn-primary" id="startDualBtn" aria-label="雙人對戰模式">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M16 4a4 4 0 110 8 4 4 0 010-8zM8 4a4 4 0 110 8 4 4 0 010-8zM8 14c-2.67 0-8 1.34-8 4v2h12v-2c0-2.66-1.33-4-4-4zm8 0c-2.67 0-4 1.34-4 4v2h12v-2c0-2.66-5.33-4-8-4z" />
+            <path d="M16 4a4 4 0 110 8 4 4 0 010-8zM8 4a4 4 0 110 8 4 4 0 010-8zM8 14c-2.67 0-8 1.34-8 4v2h12v-2c0-2.66-1.33-4-4-4zm8 0c-2.67 0-4 1.34-4 4v2h12v-2c0-2.66-5.33-4-8-4z" />
           </svg>
           雙人對戰模式
         </button>
@@ -898,8 +670,7 @@
 
         <button class="menu-btn menu-btn-secondary" id="settingsBtn" aria-label="遊戲設定">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7m7.43-2.53c.04-.32.07-.64.07-.97s-.03-.66-.07-.98l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.03 7.03 0 0 0-1.69-.98l-.37-2.65A.5.5 0 0 0 13 2h-2a.5.5 0 0 0-.5.42l-.37 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.5.5 0 0 0 .12.64L4.57 11c-.04.32-.07.65-.07.98s.03.65.07.97l-2.11 1.63a.5.5 0 0 0-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.51.42 1.08.74 1.69.98l.37 2.65c.04.24.25.42.5.42h2c.25 0 .46-.18.5-.42l.37-2.65c.61-.24 1.18-.56 1.69-.98l2.49 1c.22.08.49 0 .61-.22l2-3.46a.5.5 0 0 0-.12-.64z" />
+            <path d="M12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7m7.43-2.53c.04-.32.07-.64.07-.97s-.03-.66-.07-.98l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.03 7.03 0 0 0-1.69-.98l-.37-2.65A.5.5 0 0 0 13 2h-2a.5.5 0 0 0-.5.42l-.37 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.5.5 0 0 0 .12.64L4.57 11c-.04.32-.07.65-.07.98s.03.65.07.97l-2.11 1.63a.5.5 0 0 0-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.51.42 1.08.74 1.69.98l.37 2.65c.04.24.25.42.5.42h2c.25 0 .46-.18.5-.42l.37-2.65c.61-.24 1.18-.56 1.69-.98l2.49 1c.22.08.49 0 .61-.22l2-3.46a.5.5 0 0 0-.12-.64z" />
           </svg>
           遊戲設定
         </button>
@@ -912,8 +683,7 @@
       <div class="game-header">
         <div class="game-timer" aria-live="polite">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16m0-18a10 10 0 1 1 0 20 10 10 0 0 1 0-20m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7h1.5z" />
+            <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16m0-18a10 10 0 1 1 0 20 10 10 0 0 1 0-20m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7h1.5z" />
           </svg>
           <span id="gameTimer">30</span>
         </div>
@@ -927,12 +697,13 @@
 
       <!-- 遊戲區域 -->
       <div class="game-area" id="gameArea">
+        <!-- 雷電/指尖視覺效果畫布 -->
+        <canvas id="fxCanvas" class="fx-canvas"></canvas>
+
         <!-- 單人模式區域 -->
         <div class="single-player-area" id="singlePlayerArea" style="display: none">
           <div class="player-name">開始點擊挑戰！</div>
           <div class="score-display" id="singleScore">0</div>
-          <!-- 補上單人連擊顯示 -->
-          <div class="combo-display" id="singleCombo"></div>
         </div>
 
         <!-- 雙人模式區域 -->
@@ -942,15 +713,11 @@
           <div class="player-zone player1" data-player="1">
             <div class="player-name">玩家 1</div>
             <div class="score-display" id="player1Score">0</div>
-            <!-- 補上玩家1連擊顯示 -->
-            <div class="combo-display" id="player1Combo"></div>
           </div>
 
           <div class="player-zone player2" data-player="2">
             <div class="player-name">玩家 2</div>
             <div class="score-display" id="player2Score">0</div>
-            <!-- 補上玩家2連擊顯示 -->
-            <div class="combo-display" id="player2Combo"></div>
           </div>
         </div>
       </div>
@@ -1017,15 +784,13 @@
     (function silenceConsole() {
       const noop = () => {};
       ["log", "warn", "error", "info", "debug", "time", "timeEnd"].forEach((m) => {
-        try {
-          console[m] = noop;
-        } catch (e) {}
+        try { console[m] = noop; } catch (e) {}
       });
     })();
 
     /**
-     * Elite Tap Battle - 專業級全屏點擊對戰遊戲
-     * 技術要點：Fullscreen API、Pointer Events、多點觸控、Web Audio、粒子特效
+     * Elite Tap Battle - 多指共鳴 + 雷電連結版
+     * 特色：Lightning Canvas、RGB 10 指狂歡、鏡像對戰、低延遲最佳化
      */
 
     // === 全域遊戲狀態 ===
@@ -1034,31 +799,41 @@
       mode: "single", // 'single' | 'dual'
       timeLeft: 30,
       scores: { single: 0, player1: 0, player2: 0 },
-      lastTaps: { single: 0, player1: 0, player2: 0 }, // 補上
-      combos: { single: 1, player1: 1, player2: 1 }, // 補上
       settings: {
         soundEnabled: true,
         vibrationEnabled: true,
         gameDuration: 30
       },
-      pointers: new Map(),
-      activePointers: new Map()
+      pointers: new Map(),       // pointerId -> meta（按下時）
+      activePointers: new Map(), // pointerId -> { x, y, color, playerId }
+      colorIndex: 0
     };
 
     const GAME_CONFIG = {
       VIBRATION_DURATION: 50,
       FIREWORK_DURATION: 5000,
       TAP_NUMBER_LIFETIME: 1000,
-      LIGHTNING_LIFETIME: 300,
-      COMBO_THRESHOLD: 200,
-      MAX_COMBO_MULTIPLIER: 10,
-      COMBO_DISPLAY_TIME: 600,
-      PARTICLE_LIFETIME: 1500
+      PARTICLE_LIFETIME: 900,
+      LIGHTNING_SEGMENTS: 12,   // 雷電折線段數
+      LIGHTNING_JITTER: 0.06,   // 折線偏移比例（相對兩點距離）
+      LIGHTNING_WIDTH: 2.4      // 基礎線寬
     };
 
-    /**
-     * 🎵 高級音效管理器
-     */
+    // 多指顏色盤（每根手指一色）
+    const FINGER_COLORS = [
+      "#ec4899", // pink
+      "#a855f7", // purple
+      "#3b82f6", // blue
+      "#10b981", // emerald
+      "#f59e0b", // amber
+      "#ef4444", // red
+      "#f97316", // orange
+      "#06b6d4", // cyan
+      "#84cc16", // lime
+      "#d946ef"  // fuchsia
+    ];
+
+    /** 🎵 高級音效管理器（保留，移除連擊加成邏輯） */
     class AdvancedAudioManager {
       constructor() {
         this.audioContext = null;
@@ -1066,87 +841,38 @@
         this.sounds = {};
         this.masterGain = null;
       }
-
       async init() {
         if (this.isInitialized) return;
         try {
-          this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-            latencyHint: "interactive",
-            sampleRate: 44100
-          });
-
+          this.audioContext = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive", sampleRate: 44100 });
           this.masterGain = this.audioContext.createGain();
           this.masterGain.connect(this.audioContext.destination);
-
-          if (this.audioContext.state === "suspended") {
-            await this.audioContext.resume();
-          }
-
+          if (this.audioContext.state === "suspended") await this.audioContext.resume();
           await this.preloadSounds();
           this.isInitialized = true;
-        } catch (error) {
-          /* 靜默失敗 */
-        }
+        } catch (error) {}
       }
-
       async preloadSounds() {
         const sr = this.audioContext.sampleRate;
         this.sounds.tap = this.createTapSound(sr);
-        this.sounds.combo = this.createComboSound(sr);
-        this.sounds.superCombo = this.createSuperComboSound(sr);
         this.sounds.countdown = this.createCountdownSound(sr);
         this.sounds.victory = this.createVictorySound(sr);
         this.sounds.firework = this.createFireworkSound(sr);
       }
-
       createTapSound(sr) {
-        const length = Math.floor(sr * 0.1);
+        const length = Math.floor(sr * 0.06);
         const buffer = this.audioContext.createBuffer(1, length, sr);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < length; i++) {
           const t = i / sr;
-          const freq = 800 + Math.sin(t * 50) * 200;
-          const wave = Math.sin(2 * Math.PI * freq * t);
-          const env = Math.exp(-t * 25);
-          data[i] = wave * env * 0.3;
+          const wave = Math.sin(2 * Math.PI * (900 - t * 400) * t);
+          const env = Math.exp(-t * 28);
+          data[i] = wave * env * 0.35;
         }
         return buffer;
       }
-
-      createComboSound(sr) {
-        const length = Math.floor(sr * 0.15);
-        const buffer = this.audioContext.createBuffer(1, length, sr);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < length; i++) {
-          const t = i / sr;
-          const freq = 1200 + t * 800;
-          const wave = Math.sin(2 * Math.PI * freq * t);
-          const env = Math.exp(-t * 15);
-          data[i] = wave * env * 0.4;
-        }
-        return buffer;
-      }
-
-      createSuperComboSound(sr) {
-        const length = Math.floor(sr * 0.3);
-        const buffer = this.audioContext.createBuffer(2, length, sr);
-        for (let ch = 0; ch < 2; ch++) {
-          const data = buffer.getChannelData(ch);
-          for (let i = 0; i < length; i++) {
-            const t = i / sr;
-            const f1 = 440 * (1 + ch * 0.5);
-            const f2 = f1 * 1.5;
-            const w1 = Math.sin(2 * Math.PI * f1 * t);
-            const w2 = Math.sin(2 * Math.PI * f2 * t) * 0.5;
-            const env = Math.exp(-t * 8);
-            data[i] = (w1 + w2) * env * 0.3;
-          }
-        }
-        return buffer;
-      }
-
       createCountdownSound(sr) {
-        const length = Math.floor(sr * 0.2);
+        const length = Math.floor(sr * 0.18);
         const buffer = this.audioContext.createBuffer(1, length, sr);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < length; i++) {
@@ -1157,26 +883,24 @@
         }
         return buffer;
       }
-
       createVictorySound(sr) {
-        const length = Math.floor(sr * 1);
+        const length = Math.floor(sr * 0.9);
         const buffer = this.audioContext.createBuffer(2, length, sr);
-        const melody = [261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88, 523.25];
+        const melody = [261.63, 329.63, 392.0, 523.25, 659.25, 784.0];
         for (let ch = 0; ch < 2; ch++) {
           const data = buffer.getChannelData(ch);
           for (let i = 0; i < length; i++) {
             const t = i / sr;
-            const idx = Math.floor(t * 8) % melody.length;
+            const idx = Math.floor(t * 6) % melody.length;
             const wave = Math.sin(2 * Math.PI * melody[idx] * t);
             const env = Math.max(0, 1 - t);
-            data[i] = wave * env * 0.2;
+            data[i] = wave * env * 0.24;
           }
         }
         return buffer;
       }
-
       createFireworkSound(sr) {
-        const length = Math.floor(sr * 0.4);
+        const length = Math.floor(sr * 0.35);
         const buffer = this.audioContext.createBuffer(2, length, sr);
         for (let ch = 0; ch < 2; ch++) {
           const data = buffer.getChannelData(ch);
@@ -1189,7 +913,6 @@
         }
         return buffer;
       }
-
       play(name, volume = 1.0, detune = 0) {
         if (!this.isInitialized || !GameState.settings.soundEnabled) return;
         const buf = this.sounds[name];
@@ -1198,54 +921,149 @@
           const source = this.audioContext.createBufferSource();
           const gain = this.audioContext.createGain();
           source.buffer = buf;
-          if (source.detune) source.detune.value = detune; // 相容性保險
+          if (source.detune) source.detune.value = detune;
           gain.gain.value = volume;
-          source.connect(gain);
-          gain.connect(this.masterGain);
+          source.connect(gain); gain.connect(this.masterGain);
           source.start();
-        } catch (e) {
-          /* 靜默失敗 */
-        }
+        } catch (e) {}
       }
-
       vibrate(pattern = GAME_CONFIG.VIBRATION_DURATION) {
         if (!GameState.settings.vibrationEnabled) return;
         if ("vibrate" in navigator) {
-          try {
-            navigator.vibrate(pattern);
-          } catch (e) {}
+          try { navigator.vibrate(pattern); } catch (e) {}
         } else {
-          this.visualVibrationFeedback();
-        }
-      }
-
-      visualVibrationFeedback() {
-        const app = document.getElementById("app");
-        app.style.transform = "translateX(3px)";
-        requestAnimationFrame(() => {
-          app.style.transform = "translateX(-3px)";
+          const app = document.getElementById("app");
+          app.style.transform = "translateX(2px)";
           requestAnimationFrame(() => {
-            app.style.transform = "";
+            app.style.transform = "translateX(-2px)";
+            requestAnimationFrame(() => { app.style.transform = ""; });
           });
-        });
+        }
       }
     }
 
-    /**
-     * 🎯 進階輸入管理器
-     */
+    /** ⚡️ 視覺效果渲染器（Lightning + 指尖光環） */
+    class EffectsRenderer {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext("2d");
+        this.dpr = Math.max(1, window.devicePixelRatio || 1);
+        this._resize = this.resize.bind(this);
+        window.addEventListener("resize", this._resize);
+        this.resize();
+      }
+      resize() {
+        const rect = this.canvas.getBoundingClientRect();
+        this.canvas.width = Math.floor(rect.width * this.dpr);
+        this.canvas.height = Math.floor(rect.height * this.dpr);
+        this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      }
+      // 簡易可重現亂數（由 pairKey 與時間片驅動）
+      static rand(seed) {
+        let x = Math.sin(seed) * 10000;
+        return x - Math.floor(x);
+      }
+      render(ts) {
+        const ctx = this.ctx;
+        const w = this.canvas.clientWidth;
+        const h = this.canvas.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+
+        const points = Array.from(GameState.activePointers.values());
+        const count = points.length;
+
+        // 10 指 RGB 狂歡
+        const app = document.getElementById("app");
+        if (count >= 10) app.classList.add("rgb-burst");
+        else app.classList.remove("rgb-burst");
+
+        // 指尖光暈（輕量）
+        for (const p of points) {
+          ctx.beginPath();
+          const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 28);
+          grd.addColorStop(0, p.color + "cc");
+          grd.addColorStop(1, p.color + "00");
+          ctx.fillStyle = grd;
+          ctx.arc(p.x, p.y, 28, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 雷電連結：所有指尖兩兩相連（<=10 指，最多 45 條，效能 OK）
+        if (count >= 2) {
+          const timeSlice = Math.floor(ts / 50); // 20FPS 抖動刷新
+          for (let i = 0; i < count; i++) {
+            for (let j = i + 1; j < count; j++) {
+              this.drawLightning(points[i], points[j], timeSlice);
+            }
+          }
+        }
+      }
+      drawLightning(p1, p2, timeSlice) {
+        const ctx = this.ctx;
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy);
+        if (len < 8) return;
+        const nx = dx / len;
+        const ny = dy / len;
+        const px = -ny; // 垂直向量
+        const py = nx;
+
+        const N = GAME_CONFIG.LIGHTNING_SEGMENTS;
+        const amp = Math.min(40, len * GAME_CONFIG.LIGHTNING_JITTER);
+
+        // 路徑點
+        const pts = [];
+        for (let s = 0; s <= N; s++) {
+          const t = s / N;
+          const baseX = p1.x + nx * len * t;
+          const baseY = p1.y + ny * len * t;
+          // 對中間段加大抖動
+          const falloff = 1 - Math.abs(2 * t - 1);
+          // 可重現亂數（pairKey -> 角標 + timeSlice）
+          const seed = (p1.x * 13.37 + p1.y * 7.11 + p2.x * 17.17 + p2.y * 19.19 + s * 97 + timeSlice * 131) % 10000;
+          const r = EffectsRenderer.rand(seed);
+          const offset = (r - 0.5) * 2 * amp * falloff;
+          pts.push({ x: baseX + px * offset, y: baseY + py * offset });
+        }
+
+        // 顏色漸層（從 p1 色到 p2 色）
+        const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+        grad.addColorStop(0, p1.color);
+        grad.addColorStop(0.5, "#ffffff");
+        grad.addColorStop(1, p2.color);
+
+        // 外光暈
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k].x, pts[k].y);
+        ctx.lineWidth = GAME_CONFIG.LIGHTNING_WIDTH + 2;
+        ctx.strokeStyle = "rgba(255,255,255,0.25)";
+        ctx.stroke();
+
+        // 主線
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k].x, pts[k].y);
+        ctx.lineWidth = GAME_CONFIG.LIGHTNING_WIDTH;
+        ctx.strokeStyle = grad;
+        ctx.stroke();
+      }
+    }
+
+    /** 🎯 進階輸入管理器（多指 & 雷電） */
     class AdvancedInputManager {
       constructor(gameEngine) {
         this.gameEngine = gameEngine;
         this.setupEventListeners();
       }
-
       setupEventListeners() {
         const gameArea = document.getElementById("gameArea");
         gameArea.addEventListener("pointerdown", this.handlePointerDown.bind(this), { passive: false });
         gameArea.addEventListener("pointermove", this.handlePointerMove.bind(this), { passive: false });
         gameArea.addEventListener("pointerup", this.handlePointerUp.bind(this), { passive: false });
         gameArea.addEventListener("pointercancel", this.handlePointerCancel.bind(this), { passive: false });
+        // 阻擋右鍵與雙擊
         gameArea.addEventListener("contextmenu", (e) => e.preventDefault());
         gameArea.addEventListener("dblclick", (e) => e.preventDefault());
       }
@@ -1254,10 +1072,10 @@
         if (!GameState.isPlaying) return;
         event.preventDefault();
 
-        const pointerId = event.pointerId;
         const rect = event.currentTarget.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
+        const pointerId = event.pointerId;
 
         event.currentTarget.setPointerCapture(pointerId);
 
@@ -1265,136 +1083,97 @@
         if (GameState.mode === "single") {
           playerId = "single";
         } else {
-          // 雙人模式：橫向左右，直向上下
+          // 雙人模式：橫向左右，直向上下（上/左區是 player1，該區鏡像）
           if (window.innerWidth > window.innerHeight) {
             playerId = x < rect.width / 2 ? "player1" : "player2";
           } else {
-            playerId = y < rect.height / 2 ? "player1" : "player2"; // 上方是 player1
+            playerId = y < rect.height / 2 ? "player1" : "player2"; // 上方是 player1（鏡像顯示）
           }
         }
 
-        GameState.pointers.set(pointerId, {
-          playerId,
-          startX: x,
-          startY: y,
-          element: event.currentTarget
-        });
+        GameState.pointers.set(pointerId, { playerId, element: event.currentTarget });
+        // 指尖顏色分配
+        const color = FINGER_COLORS[GameState.colorIndex++ % FINGER_COLORS.length];
+        GameState.activePointers.set(pointerId, { x, y, color, playerId });
 
-        this.handleTap(playerId, x, y);
+        // 記分（無連擊加成，1 tap = +1 分）
+        this.incrementScore(playerId);
+
+        // 視覺：數字 & 粒子（輕量）
+        this.showTapNumber(playerId, x, y);
+        this.createParticles(x, y, color);
+
+        // 音效與震動
+        audioManager.play("tap", 0.5, Math.random() * 50 - 25);
+        audioManager.vibrate();
+
+        // 區塊按下效果
         this.addActiveEffect(playerId);
       }
 
       handlePointerMove(event) {
+        if (!GameState.isPlaying) return;
         event.preventDefault();
+        const rect = event.currentTarget.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const p = GameState.activePointers.get(event.pointerId);
+        if (p) { p.x = x; p.y = y; }
       }
 
-      handlePointerUp(event) {
-        this.cleanupPointer(event.pointerId);
-      }
-
-      handlePointerCancel(event) {
-        this.cleanupPointer(event.pointerId);
-      }
+      handlePointerUp(event) { this.cleanupPointer(event.pointerId); }
+      handlePointerCancel(event) { this.cleanupPointer(event.pointerId); }
 
       cleanupPointer(pointerId) {
-        const pointerData = GameState.pointers.get(pointerId);
-        if (pointerData) {
-          try {
-            pointerData.element.releasePointerCapture(pointerId);
-          } catch (e) {}
-          this.removeActiveEffect(pointerData.playerId);
-          GameState.pointers.delete(pointerId);
+        const meta = GameState.pointers.get(pointerId);
+        if (meta) {
+          try { meta.element.releasePointerCapture(pointerId); } catch (e) {}
+          this.removeActiveEffect(meta.playerId);
         }
+        GameState.pointers.delete(pointerId);
+        GameState.activePointers.delete(pointerId);
       }
 
-      handleTap(playerId, x, y) {
-        const now = performance.now();
-        const lastTapTime = GameState.lastTaps[playerId] || 0;
-        const dt = now - lastTapTime;
-
-        // 累計分數
+      incrementScore(playerId) {
         GameState.scores[playerId]++;
-
-        // 連擊邏輯
-        if (dt < GAME_CONFIG.COMBO_THRESHOLD) {
-          GameState.combos[playerId] = Math.min(GameState.combos[playerId] + 1, GAME_CONFIG.MAX_COMBO_MULTIPLIER);
-          const bonus = Math.floor(GameState.combos[playerId] / 2);
-          GameState.scores[playerId] += bonus;
-
-          if (GameState.combos[playerId] >= 5) {
-            audioManager.play("superCombo", 0.8, Math.random() * 200 - 100);
-          } else {
-            audioManager.play("combo", 0.6, Math.random() * 100 - 50);
-          }
-          this.showComboEffect(playerId);
-        } else {
-          GameState.combos[playerId] = 1;
-          audioManager.play("tap", 0.5, Math.random() * 50 - 25);
-        }
-
-        // 震動
-        audioManager.vibrate();
-
-        // 更新時間戳
-        GameState.lastTaps[playerId] = now;
-
-        // 視覺特效
-        this.createTapEffect(playerId, x, y);
-        this.createParticles(playerId, x, y);
-
-        // UI 更新
         uiManager.updateScoreDisplay();
         uiManager.animateScore(playerId);
       }
 
-      showComboEffect(playerId) {
-        const comboElement = document.getElementById(`${playerId}Combo`);
-        if (!comboElement) return;
-        const combo = GameState.combos[playerId];
-        comboElement.textContent = `連擊 x${combo}`;
-        comboElement.classList.add("show", "combo-glow");
-        setTimeout(() => comboElement.classList.remove("show", "combo-glow"), GAME_CONFIG.COMBO_DISPLAY_TIME);
-      }
-
-      createTapEffect(playerId, x, y) {
+      showTapNumber(playerId, x, y) {
         const gameArea = document.getElementById("gameArea");
-
-        const effect = document.createElement("div");
-        effect.className = "tap-effect";
-        effect.style.background =
-          playerId === "player2"
-            ? "radial-gradient(circle, #a855f7 0%, transparent 70%)"
-            : "radial-gradient(circle, #ec4899 0%, transparent 70%)";
-        effect.style.boxShadow = "0 0 20px rgba(0,0,0,0.15)";
-        effect.style.left = `${x - 20}px`;
-        effect.style.top = `${y - 20}px`;
-        gameArea.appendChild(effect);
-        setTimeout(() => effect.remove(), 500);
-
-        // 漂浮的 + 分數
         const num = document.createElement("div");
         num.className = "tap-number";
-        const add = Math.max(1, Math.floor(GameState.combos[playerId] / 2));
-        num.textContent = `+${add}`;
-        num.style.left = `${x}px`;
-        num.style.top = `${y}px`;
-        num.style.color = playerId === "player2" ? "#a855f7" : "#ec4899";
+        // 顯示該玩家目前累計點擊數
+        const current = GameState.scores[playerId];
+        num.textContent = current;
+
+        // 隨機位移，避免重疊
+        const jitter = 24;
+        const rx = (Math.random() - 0.5) * 2 * jitter;
+        const ry = (Math.random() - 0.5) * 2 * jitter;
+
+        // 顏色使用該手指最後分配的顏色（若無則主色）
+        const lastPointer = Array.from(GameState.activePointers.values()).find(p => p.playerId === playerId);
+        num.style.left = `${x + rx}px`;
+        num.style.top = `${y + ry}px`;
+        num.style.color = lastPointer ? lastPointer.color : (playerId === "player2" ? "#a855f7" : "#ec4899");
+
         gameArea.appendChild(num);
         setTimeout(() => num.remove(), GAME_CONFIG.TAP_NUMBER_LIFETIME);
       }
 
-      createParticles(playerId, x, y) {
+      createParticles(x, y, color) {
         const gameArea = document.getElementById("gameArea");
-        const particleCount = Math.min(GameState.combos[playerId] * 2, 12);
+        const particleCount = 6; // 輕量
         for (let i = 0; i < particleCount; i++) {
           const particle = document.createElement("div");
-          particle.className = "particle floating-particle";
-          const colors = ["pink", "purple", "blue"];
-          const colorClass = colors[Math.floor(Math.random() * colors.length)];
-          particle.classList.add(colorClass);
+          particle.className = "particle";
+          particle.style.background = color;
+          particle.style.color = color;
 
-          const angle = (i / particleCount) * Math.PI * 2;
-          const distance = 30 + Math.random() * 50;
+          const angle = Math.random() * Math.PI * 2;
+          const distance = 20 + Math.random() * 30;
           const offsetX = Math.cos(angle) * distance;
           const offsetY = Math.sin(angle) * distance;
 
@@ -1412,7 +1191,6 @@
           if (zone) zone.classList.add("active");
         }
       }
-
       removeActiveEffect(playerId) {
         if (GameState.mode === "dual") {
           const zone = document.querySelector(`.player-zone.${playerId}`);
@@ -1421,9 +1199,7 @@
       }
     }
 
-    /**
-     * 🎮 進階遊戲引擎
-     */
+    /** 🎮 進階遊戲引擎 */
     class AdvancedGameEngine {
       constructor() {
         this.gameTimer = null;
@@ -1437,7 +1213,6 @@
         await this.enterFullscreen();
         this.startGame("single");
       }
-
       async startDualPlayer() {
         await this.enterFullscreen();
         this.startGame("dual");
@@ -1450,9 +1225,7 @@
           else if (element.webkitRequestFullscreen) await element.webkitRequestFullscreen();
           else if (element.msRequestFullscreen) await element.msRequestFullscreen();
           this.isFullscreen = true;
-        } catch (error) {
-          /* 靜默失敗 */
-        }
+        } catch (error) {}
       }
 
       exitFullscreen() {
@@ -1461,9 +1234,7 @@
           else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
           else if (document.msExitFullscreen) document.msExitFullscreen();
           this.isFullscreen = false;
-        } catch (error) {
-          /* 靜默失敗 */
-        }
+        } catch (error) {}
       }
 
       startGame(mode) {
@@ -1473,16 +1244,16 @@
         GameState.isPlaying = true;
         GameState.timeLeft = GameState.settings.gameDuration;
         GameState.scores = { single: 0, player1: 0, player2: 0 };
-        GameState.lastTaps = { single: 0, player1: 0, player2: 0 };
-        GameState.combos = { single: 1, player1: 1, player2: 1 };
         GameState.pointers.clear();
         GameState.activePointers.clear();
+        GameState.colorIndex = 0;
 
         this.startTime = performance.now();
 
         uiManager.showGameScreen(mode);
         uiManager.updateGameUI();
         uiManager.updateScoreDisplay();
+        effectsRenderer.resize();
         this.startGameLoop();
       }
 
@@ -1501,6 +1272,9 @@
               this.lastCountdownSecond = secs;
             }
           }
+
+          // 視覺效果渲染（雷電 & 指尖光暈）
+          effectsRenderer.render(ts);
 
           if (GameState.timeLeft <= 0) {
             this.endGame();
@@ -1522,6 +1296,8 @@
         }
 
         GameState.pointers.clear();
+        GameState.activePointers.clear();
+        document.getElementById("app").classList.remove("rgb-burst");
         document.querySelectorAll(".player-zone").forEach((z) => z.classList.remove("active"));
 
         const result = this.calculateResult();
@@ -1534,7 +1310,7 @@
 
         setTimeout(() => {
           this.showGameResult(result);
-        }, 800);
+        }, 600);
       }
 
       calculateResult() {
@@ -1548,36 +1324,27 @@
           result.score = GameState.scores.player1;
           result.score2 = GameState.scores.player2;
           if (result.score > result.score2) {
-            result.winner = "player1";
-            result.hasWinner = true;
+            result.winner = "player1"; result.hasWinner = true;
           } else if (result.score2 > result.score) {
-            result.winner = "player2";
-            result.hasWinner = true;
+            result.winner = "player2"; result.hasWinner = true;
           }
-          storageManager.saveScore(
-            "dual",
-            Math.max(result.score, result.score2),
-            Math.min(result.score, result.score2)
-          );
+          storageManager.saveScore("dual", Math.max(result.score, result.score2), Math.min(result.score, result.score2));
         }
         return result;
       }
 
       playFireworks() {
         const container = document.getElementById("fireworkContainer");
-        const fireworkCount = 20;
+        const fireworkCount = 18;
         const duration = GAME_CONFIG.FIREWORK_DURATION;
 
         for (let i = 0; i < fireworkCount; i++) {
           setTimeout(() => {
             this.createFirework(container);
-            audioManager.play("firework", 0.3);
+            audioManager.play("firework", 0.25);
           }, i * (duration / fireworkCount));
         }
-
-        setTimeout(() => {
-          container.innerHTML = "";
-        }, duration);
+        setTimeout(() => { container.innerHTML = ""; }, duration);
       }
 
       createFirework(container) {
@@ -1594,7 +1361,7 @@
 
           const angle = (i / 12) * Math.PI * 2;
           const distance = 100 + Math.random() * 100;
-          const dur = 1000 + Math.random() * 500;
+          const dur = 900 + Math.random() * 400;
 
           particle.style.left = centerX + "px";
           particle.style.top = centerY + "px";
@@ -1623,53 +1390,40 @@
           this.animationFrame = null;
         }
         this.exitFullscreen();
+        document.getElementById("app").classList.remove("rgb-burst");
         uiManager.showMenuScreen();
       }
     }
 
-    /**
-     * 💾 儲存管理器
-     */
+    /** 💾 儲存管理器 */
     class StorageManager {
       constructor() {
         this.STORAGE_KEY = "eliteTapBattle";
         this.loadSettings();
       }
-
       loadSettings() {
         const stored = localStorage.getItem(this.STORAGE_KEY);
         if (stored) {
           try {
             const data = JSON.parse(stored);
-            if (data.settings) {
-              Object.assign(GameState.settings, data.settings);
-            }
+            if (data.settings) Object.assign(GameState.settings, data.settings);
           } catch (error) {}
         }
       }
-
       saveSettings() {
         const data = this.loadData();
         data.settings = { ...GameState.settings };
         this.saveData(data);
       }
-
       saveScore(mode, score, score2 = null) {
         const data = this.loadData();
-        const record = {
-          mode,
-          score,
-          score2,
-          date: new Date().toISOString(),
-          timestamp: Date.now()
-        };
+        const record = { mode, score, score2, date: new Date().toISOString(), timestamp: Date.now() };
         if (!data.leaderboard) data.leaderboard = [];
         data.leaderboard.push(record);
         data.leaderboard.sort((a, b) => b.score - a.score);
         data.leaderboard = data.leaderboard.slice(0, 50);
         this.saveData(data);
       }
-
       getLeaderboard(mode = null, limit = 10) {
         const data = this.loadData();
         if (!data.leaderboard) return [];
@@ -1677,66 +1431,46 @@
         if (mode) records = records.filter((r) => r.mode === mode);
         return records.slice(0, limit);
       }
-
       clearData() {
         if (confirm("確定要清除所有遊戲記錄嗎？此操作無法復原。")) {
           localStorage.removeItem(this.STORAGE_KEY);
           alert("記錄已清除！");
         }
       }
-
       loadData() {
         const stored = localStorage.getItem(this.STORAGE_KEY);
         if (stored) {
-          try {
-            return JSON.parse(stored);
-          } catch (error) {}
+          try { return JSON.parse(stored); } catch (error) {}
         }
         return {};
       }
-
       saveData(data) {
-        try {
-          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
-        } catch (error) {
-          alert("儲存空間已滿，請清除舊記錄！");
-        }
+        try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data)); }
+        catch (error) { alert("儲存空間已滿，請清除舊記錄！"); }
       }
     }
 
-    /**
-     * 🎨 進階 UI 管理器
-     */
+    /** 🎨 進階 UI 管理器 */
     class AdvancedUIManager {
       constructor() {
         this.setupEventListeners();
         this.loadSettingsUI();
       }
-
       setupEventListeners() {
         // 主選單按鈕
         document.getElementById("startSingleBtn").addEventListener("click", async () => {
           await this.initAudioOnFirstInteraction();
           gameEngine.startSinglePlayer();
         });
-
         document.getElementById("startDualBtn").addEventListener("click", async () => {
           await this.initAudioOnFirstInteraction();
           gameEngine.startDualPlayer();
         });
-
-        document.getElementById("leaderboardBtn").addEventListener("click", () => {
-          this.showLeaderboard();
-        });
-
-        document.getElementById("settingsBtn").addEventListener("click", () => {
-          this.showSettings();
-        });
+        document.getElementById("leaderboardBtn").addEventListener("click", () => { this.showLeaderboard(); });
+        document.getElementById("settingsBtn").addEventListener("click", () => { this.showSettings(); });
 
         // 遊戲控制
-        document.getElementById("gameExit").addEventListener("click", () => {
-          gameEngine.exitGame();
-        });
+        document.getElementById("gameExit").addEventListener("click", () => { gameEngine.exitGame(); });
 
         // 結果彈窗
         document.getElementById("playAgainBtn").addEventListener("click", () => {
@@ -1744,40 +1478,27 @@
           if (GameState.mode === "single") gameEngine.startSinglePlayer();
           else gameEngine.startDualPlayer();
         });
-
         document.getElementById("backToMenuBtn").addEventListener("click", () => {
           this.hideResult();
           gameEngine.exitGame();
         });
 
         // 排行榜
-        document.getElementById("closeLeaderboardBtn").addEventListener("click", () => {
-          this.hideModal("leaderboardModal");
-        });
-
+        document.getElementById("closeLeaderboardBtn").addEventListener("click", () => { this.hideModal("leaderboardModal"); });
         document.getElementById("clearLeaderboardBtn").addEventListener("click", () => {
-          storageManager.clearData();
-          this.updateLeaderboard();
+          storageManager.clearData(); this.updateLeaderboard();
         });
 
         // 設定
-        document.getElementById("closeSettingsBtn").addEventListener("click", () => {
-          this.saveSettings();
-        });
+        document.getElementById("closeSettingsBtn").addEventListener("click", () => { this.saveSettings(); });
 
-        // 鍵盤支援
+        // Esc 離開
         document.addEventListener("keydown", (e) => {
-          if (e.code === "Escape" && GameState.isPlaying) {
-            gameEngine.exitGame();
-          }
+          if (e.code === "Escape" && GameState.isPlaying) gameEngine.exitGame();
         });
       }
 
-      async initAudioOnFirstInteraction() {
-        if (!audioManager.isInitialized) {
-          await audioManager.init();
-        }
-      }
+      async initAudioOnFirstInteraction() { if (!audioManager.isInitialized) await audioManager.init(); }
 
       showGameScreen(mode) {
         document.getElementById("menuScreen").classList.add("hidden");
@@ -1793,19 +1514,16 @@
           document.getElementById("dualPlayerArea").style.display = "grid";
         }
       }
-
       showMenuScreen() {
         document.getElementById("menuScreen").classList.remove("hidden");
         const gameScreen = document.getElementById("gameScreen");
         gameScreen.classList.remove("active");
         gameScreen.setAttribute("aria-hidden", "true");
       }
-
       updateGameUI() {
         const modeText = GameState.mode === "single" ? "單人挑戰" : "雙人對戰";
         document.getElementById("gameMode").textContent = modeText;
       }
-
       updateScoreDisplay() {
         if (GameState.mode === "single") {
           document.getElementById("singleScore").textContent = GameState.scores.single;
@@ -1814,14 +1532,12 @@
           document.getElementById("player2Score").textContent = GameState.scores.player2;
         }
       }
-
       animateScore(playerId) {
         const scoreElement = document.getElementById(`${playerId}Score`);
         if (!scoreElement) return;
         scoreElement.classList.add("score-pop");
         setTimeout(() => scoreElement.classList.remove("score-pop"), 300);
       }
-
       updateTimer() {
         const timeDisplay = Math.ceil(GameState.timeLeft);
         const timerElement = document.getElementById("gameTimer");
@@ -1834,7 +1550,6 @@
           timerElement.style.animation = "";
         }
       }
-
       showResult(result) {
         const modal = document.getElementById("resultModal");
         const title = document.getElementById("resultTitle");
@@ -1852,22 +1567,15 @@
             score.textContent = `${result.score} : ${result.score2}`;
           }
         }
-
         modal.classList.add("show");
         modal.setAttribute("aria-hidden", "false");
       }
-
       hideResult() {
         const modal = document.getElementById("resultModal");
         modal.classList.remove("show");
         modal.setAttribute("aria-hidden", "true");
       }
-
-      showLeaderboard() {
-        this.updateLeaderboard();
-        this.showModal("leaderboardModal");
-      }
-
+      showLeaderboard() { this.updateLeaderboard(); this.showModal("leaderboardModal"); }
       updateLeaderboard() {
         const content = document.getElementById("leaderboardContent");
         const records = storageManager.getLeaderboard(null, 10);
@@ -1879,33 +1587,29 @@
 
         content.innerHTML = `
           <div style="display: grid; gap: var(--space-2); margin-top: var(--space-4);">
-            ${records
-              .map((record, index) => {
-                const date = new Date(record.date).toLocaleDateString("zh-TW");
-                const modeText = record.mode === "single" ? "單人" : "雙人";
-                const scoreText = record.score2 !== null ? `${record.score} : ${record.score2}` : record.score.toString();
-                return `
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: var(--bg-secondary); border-radius: var(--radius-lg); border-left: 4px solid var(--primary);">
-                    <div style="font-weight: 700; color: var(--primary); min-width: 2rem;">#${index + 1}</div>
-                    <div style="flex: 1; margin-left: var(--space-4);">
-                      <div style="font-weight: 600; font-size: var(--font-size-lg);">${scoreText}</div>
-                      <div style="font-size: var(--font-size-sm); color: var(--text-secondary);">${modeText} • ${date}</div>
-                    </div>
+            ${records.map((record, index) => {
+              const date = new Date(record.date).toLocaleDateString("zh-TW");
+              const modeText = record.mode === "single" ? "單人" : "雙人";
+              const scoreText = record.score2 !== null ? `${record.score} : ${record.score2}` : record.score.toString();
+              return `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: var(--bg-secondary); border-radius: var(--radius-lg); border-left: 4px solid var(--primary);">
+                  <div style="font-weight: 700; color: var(--primary); min-width: 2rem;">#${index + 1}</div>
+                  <div style="flex: 1; margin-left: var(--space-4);">
+                    <div style="font-weight: 600; font-size: var(--font-size-lg);">${scoreText}</div>
+                    <div style="font-size: var(--font-size-sm); color: var(--text-secondary);">${modeText} • ${date}</div>
                   </div>
-                `;
-              })
-              .join("")}
+                </div>
+              `;
+            }).join("")}
           </div>
         `;
       }
-
       showSettings() {
         document.getElementById("soundEnabled").checked = GameState.settings.soundEnabled;
         document.getElementById("vibrationEnabled").checked = GameState.settings.vibrationEnabled;
         document.getElementById("gameDuration").value = GameState.settings.gameDuration;
         this.showModal("settingsModal");
       }
-
       saveSettings() {
         GameState.settings.soundEnabled = document.getElementById("soundEnabled").checked;
         GameState.settings.vibrationEnabled = document.getElementById("vibrationEnabled").checked;
@@ -1913,19 +1617,16 @@
         storageManager.saveSettings();
         this.hideModal("settingsModal");
       }
-
       loadSettingsUI() {
         document.getElementById("soundEnabled").checked = GameState.settings.soundEnabled;
         document.getElementById("vibrationEnabled").checked = GameState.settings.vibrationEnabled;
         document.getElementById("gameDuration").value = GameState.settings.gameDuration;
       }
-
       showModal(modalId) {
         const modal = document.getElementById(modalId);
         modal.classList.add("show");
         modal.setAttribute("aria-hidden", "false");
       }
-
       hideModal(modalId) {
         const modal = document.getElementById(modalId);
         modal.classList.remove("show");
@@ -1934,14 +1635,17 @@
     }
 
     // === 系統初始化 ===
-    let audioManager, inputManager, gameEngine, storageManager, uiManager;
+    let audioManager, inputManager, gameEngine, storageManager, uiManager, effectsRenderer;
 
     document.addEventListener("DOMContentLoaded", () => {
       audioManager = new AdvancedAudioManager();
       storageManager = new StorageManager();
       gameEngine = new AdvancedGameEngine();
       uiManager = new AdvancedUIManager();
+      effectsRenderer = new EffectsRenderer("fxCanvas");
       inputManager = new AdvancedInputManager(gameEngine);
+      // iOS：避免視窗高度變化導致 Canvas 尺寸誤差
+      window.addEventListener("orientationchange", () => setTimeout(() => effectsRenderer.resize(), 250));
     });
 
     // === 全屏事件監聽 ===
@@ -1950,6 +1654,21 @@
         gameEngine.exitGame();
       }
     });
+
+    // === 全面禁用雙擊放大 & 手勢縮放（iOS 安全） ===
+    (function preventZoom() {
+      let lastTouchEnd = 0;
+      document.addEventListener("touchend", function (e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+          e.preventDefault();
+        }
+        lastTouchEnd = now;
+      }, { passive: false });
+      ["gesturestart","gesturechange","gestureend"].forEach(evt =>
+        document.addEventListener(evt, (e) => e.preventDefault())
+      );
+    })();
   </script>
 </body>
 </html>
