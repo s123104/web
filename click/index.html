@@ -422,9 +422,31 @@
         font-size: var(--font-size-xs);
         font-weight: 900;
         display: none;
+        min-width: 45px;
+        text-align: center;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 0.5px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        padding: 2px 4px;
+        border: 1px solid rgba(82, 183, 255, 0.3);
       }
       .hud-tps.show {
-        display: inline;
+        display: inline-block;
+      }
+      .hud-tps.ultra-speed {
+        background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #dda0dd);
+        background-size: 200% 200%;
+        animation: rainbowShift 1s linear infinite;
+        color: white;
+        font-weight: 900;
+        text-shadow: 0 0 3px rgba(0,0,0,0.5);
+        border: 1px solid rgba(255,255,255,0.5);
+      }
+      @keyframes rainbowShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
       }
 
       .player-name {
@@ -936,18 +958,18 @@
       function setupWorker() {
         // 防止重複初始化
         if (offscreen || fxWorker) {
-          console.log('Worker already initialized, skipping...');
+          console.log("Worker already initialized, skipping...");
           return;
         }
-        
+
         fxCanvas = document.getElementById("fxCanvas");
         if (!fxCanvas) {
-          console.error('fxCanvas not found');
+          console.error("Canvas initialization failed");
           return;
         }
-        
+
         dpr = Math.min(isLowPower ? 1.25 : 1.6, window.devicePixelRatio || 1);
-        
+
         try {
           if (
             "OffscreenCanvas" in window &&
@@ -966,7 +988,7 @@
           resizeFx();
           sendSettingsToWorker();
         } catch (error) {
-          console.error('Worker setup failed:', error);
+          console.error("Worker setup failed: [ERROR FILTERED]");
           // 回退到非 OffscreenCanvas 模式
           if (!fxWorker) {
             fxWorker = new Worker("./fx.worker.js", { type: "module" });
@@ -1307,12 +1329,40 @@
           const p1 = document.getElementById("hudTpsP1"),
             p2 = document.getElementById("hudTpsP2"),
             s = GameState.mode === "single" ? "single" : null;
+          
           if (s) {
-            p1.textContent = `TPS ${GameState.tpsEMA.single.toFixed(1)}`;
+            const tps = GameState.tpsEMA.single;
+            const tpsDisplay = tps >= 10000 ? Math.round(tps).toString() : tps.toFixed(1);
+            p1.textContent = `TPS ${tpsDisplay}`;
             p1.classList.add("show");
+            
+            // 添加超高速效果
+            if (tps > 1000) {
+              p1.classList.add("ultra-speed");
+            } else {
+              p1.classList.remove("ultra-speed");
+            }
           } else {
-            p1.textContent = `TPS ${GameState.tpsEMA.player1.toFixed(1)}`;
-            p2.textContent = `TPS ${GameState.tpsEMA.player2.toFixed(1)}`;
+            const tps1 = GameState.tpsEMA.player1;
+            const tps2 = GameState.tpsEMA.player2;
+            const tps1Display = tps1 >= 10000 ? Math.round(tps1).toString() : tps1.toFixed(1);
+            const tps2Display = tps2 >= 10000 ? Math.round(tps2).toString() : tps2.toFixed(1);
+            
+            p1.textContent = `TPS ${tps1Display}`;
+            p2.textContent = `TPS ${tps2Display}`;
+            
+            // 添加超高速效果
+            if (tps1 > 1000) {
+              p1.classList.add("ultra-speed");
+            } else {
+              p1.classList.remove("ultra-speed");
+            }
+            
+            if (tps2 > 1000) {
+              p2.classList.add("ultra-speed");
+            } else {
+              p2.classList.remove("ultra-speed");
+            }
           }
         }
         applyTpsToggle() {
@@ -1539,6 +1589,8 @@
 
           // 水波紋觸發條件：每秒點擊 > 20 且每 3 次觸發一次
           const rippleOk = instTps > 20 && GameState.scores[playerId] % 3 === 0;
+          // 超高速閃電效果：TPS > 1000
+          const ultraSpeed = GameState.tpsEMA[playerId] > 1000;
 
           GameState.tapQueues.push({
             x,
@@ -1548,6 +1600,7 @@
             playerId,
             mode: GameState.mode,
             rippleEligible: rippleOk,
+            ultraSpeed: ultraSpeed,
           });
 
           audioManager.play("tap", 0.5);
@@ -1805,16 +1858,16 @@
       // ===== 初始化 =====
       let audioManager, inputManager, gameEngine, storageManager, uiManager;
       let isInitialized = false;
-      
+
       document.addEventListener("DOMContentLoaded", () => {
         // 防止重複初始化
         if (isInitialized) {
-          console.log('Game already initialized, skipping...');
+          console.log("Game already initialized, skipping...");
           return;
         }
-        
-        console.log('Initializing Elite Tap Battle...');
-        
+
+        console.log("Initializing Elite Tap Battle...");
+
         try {
           audioManager = new AdvancedAudioManager();
           storageManager = new StorageManager();
@@ -1822,11 +1875,11 @@
           uiManager = new AdvancedUIManager();
           inputManager = new AdvancedInputManager(gameEngine);
           setupWorker();
-          
+
           isInitialized = true;
-          console.log('✅ Game initialization complete');
+          console.log("✅ Game initialization complete");
         } catch (error) {
-          console.error('❌ Game initialization failed:', error);
+          console.error("❌ Game initialization failed: [ERROR FILTERED]");
         }
 
         if ("serviceWorker" in navigator) {

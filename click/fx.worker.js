@@ -126,6 +126,31 @@ function rand() {
   return (seed >>> 0) / 4294967296;
 }
 
+// 彩虹漸層顏色生成器（用於超高速TPS）
+function getRainbowColor(time, offset = 0) {
+  const phase = (time * 0.003 + offset) % 1;
+  const colors = [
+    { r: 255, g: 107, b: 107 }, // 紅
+    { r: 78, g: 205, b: 196 },  // 青
+    { r: 69, g: 183, b: 209 },  // 藍
+    { r: 150, g: 206, b: 180 }, // 綠
+    { r: 255, g: 234, b: 167 }, // 黃
+    { r: 221, g: 160, b: 221 }  // 紫
+  ];
+  
+  const index = phase * (colors.length - 1);
+  const i = Math.floor(index);
+  const t = index - i;
+  const c1 = colors[i];
+  const c2 = colors[(i + 1) % colors.length];
+  
+  const r = Math.round(c1.r + (c2.r - c1.r) * t);
+  const g = Math.round(c1.g + (c2.g - c1.g) * t);
+  const b = Math.round(c1.b + (c2.b - c1.b) * t);
+  
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 function resize(w, h, devicePR) {
   width = w;
   height = h;
@@ -143,7 +168,7 @@ function resize(w, h, devicePR) {
 function addTap(t) {
   const arr = trail[t.playerId];
   const now = t.ts;
-  arr.push({ x: t.x, y: t.y, ts: now, tier: t.tier });
+  arr.push({ x: t.x, y: t.y, ts: now, tier: t.tier, ultraSpeed: t.ultraSpeed || false });
   const cutoff = now - TRAIL_WINDOW;
   while (
     arr.length > 0 &&
@@ -218,16 +243,31 @@ function drawLightning() {
       ctx.lineWidth = width + 1.2;
       ctx.stroke();
 
-      // 主幹（梯度）
-      const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-      grad.addColorStop(0, c1.color);
-      grad.addColorStop(0.5, "#ffffff");
-      grad.addColorStop(1, c2.color);
+      // 主幹（梯度）- 檢查是否為超高速模式
+      const isUltraSpeed = a.ultraSpeed || b.ultraSpeed;
+      let grad;
+      
+      if (isUltraSpeed) {
+        // 超高速彩虹漸層
+        grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+        const now = performance.now();
+        grad.addColorStop(0, getRainbowColor(now, 0));
+        grad.addColorStop(0.33, getRainbowColor(now, 0.33));
+        grad.addColorStop(0.66, getRainbowColor(now, 0.66));
+        grad.addColorStop(1, getRainbowColor(now, 1));
+      } else {
+        // 原有漸層
+        grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+        grad.addColorStop(0, c1.color);
+        grad.addColorStop(0.5, "#ffffff");
+        grad.addColorStop(1, c2.color);
+      }
+      
       ctx.beginPath();
       ctx.moveTo(pts2[0].x, pts2[0].y);
       for (let k = 1; k < pts2.length; k++) ctx.lineTo(pts2[k].x, pts2[k].y);
       ctx.strokeStyle = grad;
-      ctx.lineWidth = width;
+      ctx.lineWidth = isUltraSpeed ? width * 1.5 : width;
       ctx.stroke();
 
       // 微分枝
