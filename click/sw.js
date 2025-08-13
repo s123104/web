@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 /* eslint-disable no-restricted-globals */
-const SW_VERSION = "etb-v3";
+const SW_VERSION = "etb-v4";
 const APP_SHELL = [
   "./",
   "./index.html",
