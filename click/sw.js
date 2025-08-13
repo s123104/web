@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 /* eslint-disable no-restricted-globals */
-const SW_VERSION = "etb-v4";
+const SW_VERSION = "etb-v6.1.0";
+const APP_VERSION = "6.1.0";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -38,6 +39,9 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
+  }
+  if (event.data && event.data.type === "GET_VERSION") {
+    event.ports[0].postMessage({ version: APP_VERSION });
   }
 });
 
