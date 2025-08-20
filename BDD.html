@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BDD行為驅動開發 | 專業指南與最佳實踐</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Remix Icon CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <!-- Prism.js for Code Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'Noto Sans TC', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e'
+                        },
+                        secondary: {
+                            50: '#fdf4ff',
+                            100: '#fae8ff',
+                            200: '#f5d0fe',
+                            300: '#f0abfc',
+                            400: '#e879f9',
+                            500: '#d946ef',
+                            600: '#c026d3',
+                            700: '#a21caf',
+                            800: '#86198f',
+                            900: '#701a75'
+                        },
+                        accent: {
+                            blue: '#3b82f6',
+                            green: '#10b981',
+                            purple: '#8b5cf6',
+                            orange: '#f59e0b'
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.6s ease-out',
+                        'slide-up': 'slideUp 0.6s ease-out',
+                        'bounce-gentle': 'bounceGentle 2s infinite'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* 自訂樣式 */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section-divider {
+            background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+            height: 1px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes bounceGentle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        /* 代碼區塊樣式優化 */
+        .code-container {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .code-header {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-bottom: 1px solid #334155;
+        }
+        
+        pre[class*="language-"] {
+            margin: 0;
+            border-radius: 0;
+            background: #0f172a !important;
+        }
+        
+        /* 滾動效果 */
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+        
+        .scroll-reveal.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 自訂滾動條 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            border-radius: 4px;
+        }
+        
+        /* 導航固定樣式 */
+        .nav-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            transition: all 0.3s ease;
+        }
+        
+        /* 響應式調整 */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .section-padding {
+                padding: 3rem 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="font-sans bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    
+    <!-- 導航列 -->
+    <nav id="navbar" class="glass-effect dark:glass-dark transition-all duration-300 z-50">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-primary-500 to-secondary-500 flex items-center justify-center">
+                        <i class="ri-git-branch-line text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold gradient-text">BDD Guide</h1>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">行為驅動開發</p>
+                    </div>
+                </div>
+                
+                <!-- 導航選單 -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#overview" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors">
+                        概述
+                    </a>
+                    <a href="#process" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors">
+                        流程
+                    </a>
+                    <a href="#syntax" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors">
+                        語法
+                    </a>
+                    <a href="#best-practices" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors">
+                        最佳實踐
+                    </a>
+                </div>
+                
+                <!-- 主題切換 -->
+                <button id="themeToggle" class="w-10 h-10 rounded-lg glass-effect dark:glass-dark flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <i class="ri-moon-line dark:ri-sun-line text-gray-700 dark:text-gray-300"></i>
+                </button>
+                
+                <!-- 手機選單按鈕 -->
+                <button id="mobileMenuToggle" class="md:hidden w-10 h-10 rounded-lg glass-effect dark:glass-dark flex items-center justify-center">
+                    <i class="ri-menu-line text-gray-700 dark:text-gray-300"></i>
+                </button>
+            </div>
+            
+            <!-- 手機版導航 -->
+            <div id="mobileMenu" class="md:hidden mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 hidden">
+                <div class="space-y-3">
+                    <a href="#overview" class="block text-gray-700 dark:text-gray-300 hover:text-primary-600 font-medium">概述</a>
+                    <a href="#process" class="block text-gray-700 dark:text-gray-300 hover:text-primary-600 font-medium">流程</a>
+                    <a href="#syntax" class="block text-gray-700 dark:text-gray-300 hover:text-primary-600 font-medium">語法</a>
+                    <a href="#best-practices" class="block text-gray-700 dark:text-gray-300 hover:text-primary-600 font-medium">最佳實踐</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero區域 -->
+    <section class="pt-24 pb-16 px-4">
+        <div class="container mx-auto text-center">
+            <div class="max-w-4xl mx-auto animate-fade-in">
+                <h1 class="hero-title text-5xl md:text-6xl font-bold mb-6 leading-tight">
+                    <span class="gradient-text">行為驅動開發</span>
+                    <br>
+                    <span class="text-gray-800 dark:text-gray-100">BDD專業指南</span>
+                </h1>
+                
+                <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+                    透過自然語言描述系統行為，促進開發團隊、測試人員和業務人員之間的協作，
+                    建立以業務價值為導向的敏捷開發流程。
+                </p>
+                
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a href="#overview" class="px-8 py-4 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                        <i class="ri-book-open-line mr-2"></i>
+                        開始學習
+                    </a>
+                    <a href="#syntax" class="px-8 py-4 glass-effect dark:glass-dark text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-gray-300 dark:border-gray-600 hover:border-primary-400 transition-all duration-300">
+                        <i class="ri-code-line mr-2"></i>
+                        查看語法
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 概述區域 -->
+    <section id="overview" class="section-padding py-16 px-4 scroll-reveal">
+        <div class="container mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold gradient-text mb-4">BDD基本概念</h2>
+                <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                    BDD是一種敏捷開發方法論，強調透過自然語言描述系統行為，
+                    促進跨團隊溝通並減少需求理解偏差。
+                </p>
+            </div>
+            
+            <!-- 核心價值 -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+                <div class="glass-effect dark:glass-dark rounded-2xl p-6 text-center hover:transform hover:scale-105 transition-all duration-300">
+                    <div class="w-16 h-16 bg-gradient-to-r from-accent-blue to-primary-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+                        <i class="ri-target-line text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">業務價值導向</h3>
+                    <p class="text-gray-600 dark:text-gray-400">以業務價值為核心，確保開發成果符合實際需求</p>
+                </div>
+                
+                <div class="glass-effect dark:glass-dark rounded-2xl p-6 text-center hover:transform hover:scale-105 transition-all duration-300">
+                    <div class="w-16 h-16 bg-gradient-to-r from-accent-green to-secondary-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+                        <i class="ri-team-line text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">促進跨團隊溝通</h3>
+                    <p class="text-gray-600 dark:text-gray-400">建立開發者、測試人員和業務人員的共同語言</p>
+                </div>
+                
+                <div class="glass-effect dark:glass-dark rounded-2xl p-6 text-center hover:transform hover:scale-105 transition-all duration-300">
+                    <div class="w-16 h-16 bg-gradient-to-r from-accent-purple to-primary-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                        <i class="ri-file-text-line text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">可執行文檔</h3>
+                    <p class="text-gray-600 dark:text-gray-400">提供既可閱讀又可執行的活文檔</p>
+                </div>
+                
+                <div class="glass-effect dark:glass-dark rounded-2xl p-6 text-center hover:transform hover:scale-105 transition-all duration-300">
+                    <div class="w-16 h-16 bg-gradient-to-r from-accent-orange to-secondary-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                        <i class="ri-shield-check-line text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">減少理解偏差</h3>
+                    <p class="text-gray-600 dark:text-gray-400">透過明確規格降低需求誤解風險</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 開發流程區域 -->
+    <section id="process" class="py-16 px-4 bg-white dark:bg-gray-800 scroll-reveal">
+        <div class="container mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold gradient-text mb-4">BDD開發流程</h2>
+                <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                    BDD採用三階段漸進式開發流程，從需求探索到自動化實現，
+                    確保每個功能都能滿足真實的業務需求。
+                </p>
+            </div>
+            
+            <!-- 流程圖 -->
+            <div class="grid md:grid-cols-3 gap-8 mb-16">
+                <!-- 探索階段 -->
+                <div class="relative">
+                    <div class="glass-effect dark:glass-dark rounded-2xl p-8 h-full">
+                        <div class="text-center mb-6">
+                            <div class="w-20 h-20 bg-gradient-to-r from-accent-blue to-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl font-bold text-white">1</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">探索階段</h3>
+                            <p class="text-lg text-accent-blue font-medium">Discovery</p>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">目標</h4>
+                                <p class="text-gray-600 dark:text-gray-400">理解業務需求和用戶故事</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">參與者</h4>
+                                <p class="text-gray-600 dark:text-gray-400">產品經理、開發者、測試人員</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">產出</h4>
+                                <p class="text-gray-600 dark:text-gray-400">明確的使用者故事和驗收條件</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 連接線 -->
+                    <div class="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-accent-blue to-accent-green"></div>
+                </div>
+                
+                <!-- 格式化階段 -->
+                <div class="relative">
+                    <div class="glass-effect dark:glass-dark rounded-2xl p-8 h-full">
+                        <div class="text-center mb-6">
+                            <div class="w-20 h-20 bg-gradient-to-r from-accent-green to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl font-bold text-white">2</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">格式化階段</h3>
+                            <p class="text-lg text-accent-green font-medium">Formulation</p>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">目標</h4>
+                                <p class="text-gray-600 dark:text-gray-400">將業務需求轉換為結構化場景</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">使用工具</h4>
+                                <p class="text-gray-600 dark:text-gray-400">Given-When-Then 語法</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">產出</h4>
+                                <p class="text-gray-600 dark:text-gray-400">可執行的規格文檔</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 連接線 -->
+                    <div class="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-accent-green to-accent-purple"></div>
+                </div>
+                
+                <!-- 自動化階段 -->
+                <div class="relative">
+                    <div class="glass-effect dark:glass-dark rounded-2xl p-8 h-full">
+                        <div class="text-center mb-6">
+                            <div class="w-20 h-20 bg-gradient-to-r from-accent-purple to-primary-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl font-bold text-white">3</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">自動化階段</h3>
+                            <p class="text-lg text-accent-purple font-medium">Automation</p>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">目標</h4>
+                                <p class="text-gray-600 dark:text-gray-400">將場景轉換為自動化測試</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">工具</h4>
+                                <p class="text-gray-600 dark:text-gray-400">測試框架與自動化工具</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-2">產出</h4>
+                                <p class="text-gray-600 dark:text-gray-400">可執行的測試代碼</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Given-When-Then語法區域 -->
+    <section id="syntax" class="py-16 px-4 scroll-reveal">
+        <div class="container mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold gradient-text mb-4">Given-When-Then語法規則</h2>
+                <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                    Gherkin語法是BDD的核心工具，使用自然語言結構化描述系統行為，
+                    讓技術和非技術人員都能理解和參與。
+                </p>
+            </div>
+            
+            <!-- 基本結構 -->
+            <div class="max-w-4xl mx-auto mb-16">
+                <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">基本結構</h3>
+                
+                <div class="code-container">
+                    <div class="code-header">
+                        <i class="ri-file-code-line mr-2"></i>
+                        Feature文檔結構
+                    </div>
+                    <pre><code class="language-gherkin">Feature: [功能名稱]
+  As a [角色]
+  I want [目標]
+  So that [價值]
+
+Scenario: [場景名稱]
+  Given [前置條件]
+  When [執行動作]
+  Then [預期結果]</code></pre>
+                </div>
+            </div>
+            
+            <!-- 語法詳細說明 -->
+            <div class="grid md:grid-cols-3 gap-8 mb-16">
+                <div class="glass-effect dark:glass-dark rounded-2xl p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-r from-accent-blue to-primary-500 rounded-lg flex items-center justify-center mr-3">
+                            <span class="text-white font-bold">G</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">Given</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">前置條件</p>
+                    <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                        <li>• 描述系統的初始狀態</li>
+                        <li>• 設定測試環境和資料</li>
+                        <li>• 可以有多個Given條件</li>
+                    </ul>
+                </div>
+                
+                <div class="glass-effect dark:glass-dark rounded-2xl p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-r from-accent-green to-secondary-500 rounded-lg flex items-center justify-center mr-3">
+                            <span class="text-white font-bold">W</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">When</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">執行動作</p>
+                    <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                        <li>• 描述用戶執行的操作</li>
+                        <li>• 通常只有一個When動作</li>
+                        <li>• 觸發系統行為的事件</li>
+                    </ul>
+                </div>
+                
+                <div class="glass-effect dark:glass-dark rounded-2xl p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-r from-accent-purple to-primary-600 rounded-lg flex items-center justify-center mr-3">
+                            <span class="text-white font-bold">T</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">Then</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">預期結果</p>
+                    <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                        <li>• 描述期望的系統回應</li>
+                        <li>• 可以有多個Then結果</li>
+                        <li>• 可驗證的斷言</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- 實際範例 -->
+            <div class="max-w-4xl mx-auto">
+                <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">實際範例</h3>
+                
+                <div class="code-container">
+                    <div class="code-header">
+                        <i class="ri-file-code-line mr-2"></i>
+                        用戶登入系統功能
+                    </div>
+                    <pre><code class="language-gherkin">Feature: 用戶登入系統
+  作為網站用戶
+  我希望能夠登入系統
+  以便訪問個人化內容
+
+  Background:
+    Given 系統已啟動
+    And 用戶資料庫包含測試用戶
+
+  Scenario: 成功登入
+    Given 我在登入頁面
+    When 我輸入正確的用戶名和密碼
+    And 我點擊登入按鈕
+    Then 我應該被導向到首頁
+    And 我應該看到歡迎訊息
+
+  Scenario: 登入失敗
+    Given 我在登入頁面
+    When 我輸入錯誤的密碼
+    And 我點擊登入按鈕
+    Then 我應該看到錯誤訊息
+    And 我應該停留在登入頁面</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 最佳實踐區域 -->
+    <section id="best-practices" class="py-16 px-4 bg-white dark:bg-gray-800 scroll-reveal">
+        <div class="container mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold gradient-text mb-4">撰寫最佳實踐</h2>
+                <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                    遵循專業的撰寫規範和設計原則，確保BDD場景清晰易懂、
+                    可維護且能有效促進團隊協作。
+                </p>
+            </div>
+            
+            <!-- 語言使用原則 -->
+            <div class="grid md:grid-cols-2 gap-8 mb-16">
+                <div class="glass-effect dark:glass-dark rounded-2xl p-8">
+                    <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center">
+                        <div class="w-8 h-8 bg-gradient-to-r from-accent-blue to-primary-500 rounded-lg flex items-center justify-center mr-3">
+                            <i class="ri-chat-3-line text-white text-sm"></i>
+                        </div>
+                        語言使用原則
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-accent-blue rounded-full mt-2 flex-shrink-0"></div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100">使用業務領域語言</h4>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">避免技術術語，採用業務人員熟悉的詞彙</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-accent-green rounded-full mt-2 flex-shrink-0"></div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100">保持簡潔明確</h4>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">使用清晰直接的表達方式，避免冗長描述</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-accent-purple rounded-full mt-2 flex-shrink-0"></div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100">使用主動語態</h4>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">明確指出動作的執行者和操作內容</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-accent-orange rounded-full mt-2 flex-shrink-0"></div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100">避免實作細節</h4>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">專注於行為結果而非技術實現方式</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 場景設計原則 -->
+                <div class="glass-effect dark:glass-dark rounded-2xl p-8">
+                    <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center">
+                        <div class="w-8 h-8 bg-gradient-to-r from-accent-green to-secondary-500 rounded-lg flex items-center justify-center mr-3">
+                            <i class="ri-settings-3-line text-white text-sm"></i>
+                        </div>
+                        場景設計原則
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-accent-blue rounded-full mt-2 flex-shrink-0"></div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100">一個場景一個規則</h4>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">每個場景專注測試一個業務規則</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-accent-green rounded-full mt-2 flex-shrink-0"></div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100">場景獨立性</h4>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">場景應該獨立且可重複執行</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-accent-purple rounded-full mt-2 flex-shrink-0"></div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100">有意義的命名</h4>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">使用具描述性的場景名稱</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-accent-orange rounded-full mt-2 flex-shrink-0"></div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800 dark:text-gray-100">專注行為</h4>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm">關注系統行為而非具體實現</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 參數化範例 -->
+            <div class="max-w-4xl mx-auto">
+                <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">參數化場景範例</h3>
+                
+                <div class="code-container">
+                    <div class="code-header">
+                        <i class="ri-file-code-line mr-2"></i>
+                        Scenario Outline 參數化測試
+                    </div>
+                    <pre><code class="language-gherkin">Scenario Outline: 多種登入嘗試
+  Given 我在登入頁面
+  When 我輸入用戶名 "&lt;username&gt;" 和密碼 "&lt;password&gt;"
+  And 我點擊登入按鈕
+  Then 我應該看到 "&lt;result&gt;"
+
+  Examples:
+    | username    | password    | result       |
+    | valid_user  | valid_pass  | 歡迎訊息     |
+    | valid_user  | wrong_pass  | 密碼錯誤     |
+    | wrong_user  | valid_pass  | 用戶不存在   |
+    | empty       | empty       | 請填寫必填欄位 |</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 呼籲行動區域 -->
+    <section class="py-16 px-4">
+        <div class="container mx-auto text-center">
+            <div class="max-w-3xl mx-auto glass-effect dark:glass-dark rounded-3xl p-12">
+                <h2 class="text-3xl font-bold gradient-text mb-4">開始您的BDD實踐之旅</h2>
+                <p class="text-xl text-gray-600 dark:text-gray-400 mb-8">
+                    透過系統化的BDD實踐，提升團隊協作效率，確保軟體品質，
+                    建立真正符合業務需求的優質產品。
+                </p>
+                
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="#overview" class="px-8 py-4 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                        <i class="ri-book-open-line mr-2"></i>
+                        深入學習
+                    </a>
+                    <a href="#syntax" class="px-8 py-4 glass-effect dark:glass-dark text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-gray-300 dark:border-gray-600 hover:border-primary-400 transition-all duration-300">
+                        <i class="ri-download-line mr-2"></i>
+                        下載指南
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="py-12 px-4 bg-gray-100 dark:bg-gray-900">
+        <div class="container mx-auto text-center">
+            <div class="flex items-center justify-center space-x-3 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-primary-500 to-secondary-500 flex items-center justify-center">
+                    <i class="ri-git-branch-line text-white text-sm"></i>
+                </div>
+                <h3 class="text-xl font-bold gradient-text">BDD Guide</h3>
+            </div>
+            
+            <p class="text-gray-600 dark:text-gray-400 mb-4">
+                行為驅動開發專業指南 | 提升團隊協作與軟體品質
+            </p>
+            
+            <div class="text-sm text-gray-500 dark:text-gray-500">
+                © 2025 BDD專業指南. 採用現代化UI/UX設計 · 
+                <span class="text-primary-500">Tailwind CSS</span> + 
+                <span class="text-secondary-500">響應式設計</span>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // JavaScript 功能管理
+        
+        // 主題切換管理
+        class ThemeManager {
+            constructor() {
+                this.themeToggle = document.getElementById('themeToggle');
+                this.currentTheme = localStorage.getItem('theme') || 'light';
+                this.init();
+            }
+            
+            init() {
+                this.applyTheme(this.currentTheme);
+                this.themeToggle.addEventListener('click', () => {
+                    this.toggleTheme();
+                });
+            }
+            
+            applyTheme(theme) {
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    this.themeToggle.innerHTML = '<i class="ri-sun-line text-gray-300"></i>';
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    this.themeToggle.innerHTML = '<i class="ri-moon-line text-gray-700"></i>';
+                }
+            }
+            
+            toggleTheme() {
+                this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+                this.applyTheme(this.currentTheme);
+                localStorage.setItem('theme', this.currentTheme);
+            }
+        }
+        
+        // 導航列管理
+        class NavigationManager {
+            constructor() {
+                this.navbar = document.getElementById('navbar');
+                this.mobileMenuToggle = document.getElementById('mobileMenuToggle');
+                this.mobileMenu = document.getElementById('mobileMenu');
+                this.isMenuOpen = false;
+                this.init();
+            }
+            
+            init() {
+                // 滾動效果
+                window.addEventListener('scroll', () => {
+                    if (window.scrollY > 50) {
+                        this.navbar.classList.add('nav-fixed');
+                    } else {
+                        this.navbar.classList.remove('nav-fixed');
+                    }
+                });
+                
+                // 手機選單切換
+                this.mobileMenuToggle.addEventListener('click', () => {
+                    this.toggleMobileMenu();
+                });
+                
+                // 平滑滾動
+                this.initSmoothScroll();
+            }
+            
+            toggleMobileMenu() {
+                this.isMenuOpen = !this.isMenuOpen;
+                
+                if (this.isMenuOpen) {
+                    this.mobileMenu.classList.remove('hidden');
+                    this.mobileMenuToggle.innerHTML = '<i class="ri-close-line text-gray-700 dark:text-gray-300"></i>';
+                } else {
+                    this.mobileMenu.classList.add('hidden');
+                    this.mobileMenuToggle.innerHTML = '<i class="ri-menu-line text-gray-700 dark:text-gray-300"></i>';
+                }
+            }
+            
+            initSmoothScroll() {
+                document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const target = document.querySelector(this.getAttribute('href'));
+                        if (target) {
+                            const offsetTop = target.offsetTop - 100;
+                            window.scrollTo({
+                                top: offsetTop,
+                                behavior: 'smooth'
+                            });
+                        }
+                    });
+                });
+            }
+        }
+        
+        // 滾動動畫管理
+        class ScrollAnimationManager {
+            constructor() {
+                this.observerOptions = {
+                    threshold: 0.1,
+                    rootMargin: '0px 0px -50px 0px'
+                };
+                this.init();
+            }
+            
+            init() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('revealed');
+                        }
+                    });
+                }, this.observerOptions);
+                
+                // 觀察需要動畫的元素
+                document.querySelectorAll('.scroll-reveal').forEach(el => {
+                    observer.observe(el);
+                });
+            }
+        }
+        
+        // 程式碼高亮管理
+        class CodeHighlightManager {
+            constructor() {
+                this.init();
+            }
+            
+            init() {
+                // 等待Prism.js載入完成
+                if (typeof Prism !== 'undefined') {
+                    Prism.highlightAll();
+                } else {
+                    // 如果Prism還沒載入，等待一段時間後再試
+                    setTimeout(() => {
+                        if (typeof Prism !== 'undefined') {
+                            Prism.highlightAll();
+                        }
+                    }, 1000);
+                }
+            }
+        }
+        
+        // 初始化所有管理器
+        document.addEventListener('DOMContentLoaded', () => {
+            new ThemeManager();
+            new NavigationManager();
+            new ScrollAnimationManager();
+            new CodeHighlightManager();
+            
+            console.log('🚀 BDD指南網站已成功載入！');
+        });
+        
+        // 性能優化：防抖動函數
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+    
+</body>
+</html>
