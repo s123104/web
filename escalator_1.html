@@ -3,237 +3,383 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>行動優先｜手扶梯人流分析：左側通行 vs 兩側站立 vs 兩側通行</title>
+<title>手扶梯人流動態互動式視覺化｜單一畫面行動優先</title>
 <style>
   :root{
     --bg:#0a0f1e; --panel:#121a2f; --ink:#e6edff; --muted:#9fb3ff;
-    --w:#ff6b6b; --s:#63e6be; --line:#25325a; --hint:#7ea7ff; --chip:#0e1530;
+    --line:#24325a; --chip:#0e1530; --hint:#7ea7ff;
+    --walk:#ff6b6b; --stand:#63e6be;
+    --hdr-h: 88px; /* 由 JS 覆寫實際高度 */
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0; background:var(--bg); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC","PingFang TC", Segoe UI, Roboto, Helvetica, Arial, "Microsoft JhengHei", sans-serif}
-  header{position:sticky; top:0; z-index:10; padding:14px 12px; background:rgba(10,15,30,0.92); border-bottom:1px solid var(--line); backdrop-filter:blur(6px)}
-  h1{font-size:18px; margin:0 0 6px}
-  .sub{font-size:12px; color:var(--muted)}
-  .controls{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
-  .ctrl{display:flex; align-items:center; gap:8px; background:var(--chip); border:1px solid var(--line); border-radius:10px; padding:6px 8px}
-  select,button,.seg input+label{font-size:13px; cursor:pointer}
-  select{background:#0f1733; color:var(--ink); border:1px solid #26345f; border-radius:8px; padding:6px 8px}
+  html, body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC","PingFang TC", Segoe UI, Roboto, Helvetica, Arial, "Microsoft JhengHei", sans-serif;
+    overflow:hidden; /* 關鍵：避免上下捲動 */
+  }
+
+  /* 可收折設定列 */
+  header{
+    position:fixed; inset:0 0 auto 0; z-index:20;
+    background:rgba(10,15,30,0.94); border-bottom:1px solid var(--line);
+    backdrop-filter: blur(6px);
+  }
+  .toolbar{
+    display:flex; align-items:center; gap:10px; padding:10px 10px;
+  }
+  .brand{font-weight:800; font-size:16px; letter-spacing:0.3px}
+  .grow{flex:1}
+  .btn{
+    appearance:none; border:1px solid var(--line); background:var(--chip); color:var(--ink);
+    padding:8px 10px; border-radius:10px; font-size:13px; cursor:pointer;
+  }
+  .btn:active{transform:translateY(1px)}
+  .pill{display:flex; align-items:center; gap:8px; background:var(--chip); border:1px solid var(--line); border-radius:12px; padding:6px 8px}
+  select{background:#0f1733; color:var(--ink); border:1px solid #26345f; border-radius:8px; padding:6px 8px; font-size:13px}
   .seg{display:flex; border:1px solid #26345f; border-radius:10px; overflow:hidden}
   .seg input{display:none}
-  .seg label{padding:6px 10px; color:var(--muted); background:#0f1733; border-right:1px solid #26345f; user-select:none}
+  .seg label{padding:6px 10px; color:var(--muted); background:#0f1733; border-right:1px solid #26345f; user-select:none; cursor:pointer}
   .seg label:last-child{border-right:none}
   .seg input:checked+label{background:#1b2550; color:var(--ink); font-weight:700}
-  main{padding:10px 10px 80px}
-  .grid{display:grid; grid-template-columns:1fr; gap:10px}
-  .card{position:relative; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:10px}
+
+  /* 摺疊面板內容 */
+  .settings{
+    padding:0 10px 10px 10px; display:grid; gap:8px; grid-template-columns: 1fr;
+  }
+  .settings .row{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+
+  /* 折疊狀態樣式 */
+  .collapse-toggle{
+    display:flex; align-items:center; gap:8px;
+    border:1px solid var(--line); background:var(--chip); color:var(--ink);
+    padding:6px 10px; border-radius:10px; cursor:pointer;
+  }
+  .collapse-toggle .chev{transition: transform .2s ease}
+  .collapsed .chev{transform: rotate(180deg)}
+  .collapsed .settings{display:none}
+
+  /* 主舞台：滿版三面板，不捲動 */
+  .stage{
+    position:absolute; inset: var(--hdr-h) 0 0 0; padding:10px;
+  }
+  .grid{
+    width:100%; height:100%;
+    display:grid; gap:10px;
+    grid-template-rows: repeat(3, 1fr); grid-template-columns: 1fr;
+  }
+  @media (min-width: 1024px){
+    .grid{ grid-template-rows: 1fr; grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .card{
+    position:relative; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:10px; overflow:hidden;
+  }
   .titlebar{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px}
   .title{font-weight:800; font-size:14px}
   .hint{font-size:11px; color:var(--hint)}
-  .metrics{position:absolute; right:8px; top:8px; font-size:11px; color:#a8beff; background:rgba(8,12,26,0.6); border:1px solid var(--line); border-radius:8px; padding:4px 6px}
-  .legend{display:flex; gap:10px; align-items:center; font-size:11px; color:var(--muted); margin-top:6px}
-  .dot{width:9px; height:9px; border-radius:50%}
-  .w{background:var(--w)} .s{background:var(--s)}
-  /* 行動裝置同屏視覺：用 viewport 高度確保三塊近乎同屏 */
-  canvas{width:100%; height:26vh; min-height:180px; background:linear-gradient(145deg,#0f1733,#0b1229); border-radius:10px; display:block}
-  @media (min-width: 1024px){
-    .grid{grid-template-columns:repeat(3,1fr)}
-    canvas{height:320px}
+  .metrics{
+    position:absolute; right:8px; top:8px; font-size:11px; color:#a8beff;
+    background:rgba(8,12,26,0.6); border:1px solid var(--line); border-radius:8px; padding:4px 6px; line-height:1.25
   }
-  footer{margin-top:10px; color:#9fb3ff; font-size:11px; line-height:1.5}
-  .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#0e1530; border:1px solid #26345f; padding:0 6px; border-radius:6px}
+  .legend{position:absolute; left:8px; top:8px; display:flex; gap:8px; align-items:center; font-size:11px; color:var(--muted)}
+  .dot{width:8px; height:8px; border-radius:50%}
+  .w{background:var(--walk)} .s{background:var(--stand)}
+
+  canvas{
+    width:100%; height:100%;
+    background:linear-gradient(145deg,#0f1733,#0b1229);
+    border-radius:10px; display:block;
+  }
+
+  /* 報告彈窗 */
+  dialog{
+    width:min(920px, 96vw); height:min(84vh, 720px);
+    border:1px solid var(--line); border-radius:14px; background:#0b1226; color:var(--ink);
+    padding:14px; overflow:auto;
+  }
+  dialog::backdrop{background:rgba(0,0,0,0.5)}
+  .report h2{margin:6px 0 8px 0; font-size:18px}
+  .report h3{margin:14px 0 6px 0; font-size:15px; color:#bcd0ff}
+  .report p, .report li{font-size:13px; color:#cfe0ff; line-height:1.6}
+  .close{
+    position:sticky; top:0; left:0; background:var(--chip); border:1px solid var(--line); color:var(--ink);
+    padding:6px 10px; border-radius:10px; cursor:pointer; float:right;
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>手扶梯人流分析（行動優先）</h1>
-  <div class="sub">手機上中下同時看三種習慣。預設加速 10 倍。參數依台北捷運公告與國際實測校正。</div>
-  <div class="controls">
-    <div class="ctrl">
-      <span>場景</span>
-      <select id="scenario">
-        <option value="normal_short">一般．短扶梯</option>
-        <option value="normal_long">一般．長扶梯</option>
-        <option value="peak_short">尖峰．短扶梯</option>
-        <option value="peak_long" selected>尖峰．長扶梯</option>
-      </select>
-    </div>
-    <div class="ctrl">
-      <span>扶梯速度</span>
-      <div class="seg" id="speedSeg">
-        <input type="radio" name="spd" id="spd05" value="0.5"><label for="spd05">0.50</label>
-        <input type="radio" name="spd" id="spd065" value="0.65" checked><label for="spd065">0.65</label>
-        <input type="radio" name="spd" id="spd075" value="0.75"><label for="spd075">0.75</label>
+
+<header id="hdr">
+  <div class="toolbar">
+    <div class="brand">手扶梯人流互動模擬</div>
+    <div class="grow"></div>
+
+    <button class="collapse-toggle" id="collapseBtn">
+      <span>設定</span>
+      <span class="chev">▾</span>
+    </button>
+
+    <button class="btn" id="pauseBtn">暫停</button>
+    <button class="btn" id="resetBtn">重置</button>
+    <button class="btn" id="reportBtn">報告</button>
+  </div>
+
+  <div class="settings" id="settings">
+    <div class="row">
+      <div class="pill">
+        <span>場景</span>
+        <select id="scenario">
+          <option value="normal_short">一般．短扶梯</option>
+          <option value="normal_long">一般．長扶梯</option>
+          <option value="peak_short">尖峰．短扶梯</option>
+          <option value="peak_long" selected>尖峰．長扶梯</option>
+        </select>
       </div>
-      <span class="hint">m/s</span>
-    </div>
-    <div class="ctrl">
-      <span>行走者速度</span>
-      <div class="seg" id="walkSeg">
-        <input type="radio" name="wspd" id="w05" value="0.5"><label for="w05">保守 0.5</label>
-        <input type="radio" name="wspd" id="w075" value="0.75" checked><label for="w075">實測 0.75</label>
-        <input type="radio" name="wspd" id="w13" value="1.30"><label for="w13">快步 1.3</label>
+
+      <div class="pill">
+        <span>扶梯速度</span>
+        <div class="seg" id="speedSeg">
+          <input type="radio" name="spd" id="spd05" value="0.5"><label for="spd05">0.50</label>
+          <input type="radio" name="spd" id="spd065" value="0.65" checked><label for="spd065">0.65</label>
+          <input type="radio" name="spd" id="spd075" value="0.75"><label for="spd075">0.75</label>
+        </div>
+        <span class="hint">m/s</span>
       </div>
-    </div>
-    <div class="ctrl">
-      <span>時間加速</span>
-      <div class="seg" id="timeSeg">
-        <input type="radio" name="ts" id="t1" value="1"><label for="t1">1×</label>
-        <input type="radio" name="ts" id="t5" value="5"><label for="t5">5×</label>
-        <input type="radio" name="ts" id="t10" value="10" checked><label for="t10">10×</label>
-        <input type="radio" name="ts" id="t20" value="20"><label for="t20">20×</label>
+
+      <div class="pill">
+        <span>行走者速度</span>
+        <div class="seg" id="walkSeg">
+          <input type="radio" name="wspd" id="w05" value="0.5"><label for="w05">0.5</label>
+          <input type="radio" name="wspd" id="w075" value="0.75" checked><label for="w075">0.75</label>
+          <input type="radio" name="wspd" id="w13" value="1.3"><label for="w13">1.3</label>
+        </div>
+        <span class="hint">m/s</span>
       </div>
-    </div>
-    <div class="ctrl">
-      <button id="toggleBtn">暫停 / 繼續</button>
-      <button id="resetBtn">重置</button>
+
+      <div class="pill">
+        <span>到達率</span>
+        <div class="seg" id="rateSeg">
+          <input type="radio" name="rt" id="r30" value="30"><label for="r30">一般 30/分</label>
+          <input type="radio" name="rt" id="r120" value="120" checked><label for="r120">尖峰 120/分</label>
+        </div>
+      </div>
+
+      <div class="pill">
+        <span>時間加速</span>
+        <div class="seg" id="timeSeg">
+          <input type="radio" name="ts" id="t1" value="1"><label for="t1">1×</label>
+          <input type="radio" name="ts" id="t5" value="5"><label for="t5">5×</label>
+          <input type="radio" name="ts" id="t10" value="10" checked><label for="t10">10×</label>
+          <input type="radio" name="ts" id="t20" value="20"><label for="t20">20×</label>
+        </div>
+      </div>
     </div>
   </div>
 </header>
 
-<main>
+<main class="stage" id="stage">
   <div class="grid">
+    <!-- 面板一：左走右站 -->
     <div class="card" data-mode="left_pass">
-      <div class="titlebar"><div class="title">左側通行（左走右站）</div><div class="hint">左走道可走，右走道站立</div></div>
-      <div class="metrics">—</div>
-      <canvas></canvas>
+      <div class="titlebar"><div class="title">左側通行（左走右站）</div><div class="hint">行走側幾乎純通行</div></div>
       <div class="legend"><div class="dot w"></div><span>行走</span><div class="dot s"></div><span>站立</span></div>
+      <div class="metrics" id="m1">—</div>
+      <canvas></canvas>
     </div>
+
+    <!-- 面板二：兩側站立 -->
     <div class="card" data-mode="both_stand">
-      <div class="titlebar"><div class="title">兩側站立</div><div class="hint">安全倡議，提升佔位率</div></div>
-      <div class="metrics">—</div>
+      <div class="titlebar"><div class="title">兩側站立</div><div class="hint">高佔位穩定輸送</div></div>
+      <div class="legend"><div class="dot s"></div><span>站立</span></div>
+      <div class="metrics" id="m2">—</div>
       <canvas></canvas>
-      <div class="legend"><div class="dot s"></div><span>全部站立</span></div>
     </div>
+
+    <!-- 面板三：兩側通行 -->
     <div class="card" data-mode="both_walk">
-      <div class="titlebar"><div class="title">兩側通行（兩側都走）</div><div class="hint">最快但空格更大</div></div>
-      <div class="metrics">—</div>
+      <div class="titlebar"><div class="title">兩側通行（兩側都走）</div><div class="hint">速度快 空格更大</div></div>
+      <div class="legend"><div class="dot w"></div><span>行走</span></div>
+      <div class="metrics" id="m3">—</div>
       <canvas></canvas>
-      <div class="legend"><div class="dot w"></div><span>全部行走</span></div>
     </div>
   </div>
-
-  <footer>
-    <p>建模摘記：步距 0.4 m、步寬 1000 mm、角度 30°，速度檔 0.5、0.65、0.75 m/s 取自國際規範與廠商手冊。台北捷運宣導雙側站立並在 2025 年上調部分上行扶梯至 0.65 m/s，模型隨之校正尖峰到達率。尖峰定義參考通勤時段 06:30–09:00、17:00–19:30。 [oai_citation:10‡Homepage](https://www.schindler.lu/content/dam/website/lu/docs/schindler-escalators-planning-guide-en.pdf/_jcr_content/renditions/original./schindler-escalators-planning-guide-en.pdf) [oai_citation:11‡english.metro.taipei](https://english.metro.taipei/News_Content.aspx?n=840A770A8CA5AB80&s=B42FF612C4F69D05&sms=DFFA119D1FD5602C&utm_source=chatgpt.com) [oai_citation:12‡Elevator World](https://elevatorworld.com/news/daily-news/metro-taipei-adjusts-escalators-speeds-for-efficiency/?utm_source=chatgpt.com)</p>
-  </footer>
 </main>
+
+<!-- 報告彈窗 -->
+<dialog id="reportDlg">
+  <button class="close" id="closeReport">關閉</button>
+  <div class="report">
+    <h2>基於物理模擬的手扶梯人流動態互動式視覺化報告</h2>
+    <p>這份互動工具以代理人模型與泊松到達為核心，結合台灣常見手扶梯規格與都市運輸場景，對比三種使用協議在不同長度與流量下的系統輸送表現。</p>
+    <h3>模型重點</h3>
+    <ul>
+      <li>步距 0.4 m、步寬 1.0 m、傾角 30 度。</li>
+      <li>扶梯速度檔 0.5、0.65、0.75 m/s，預設 0.65 m/s。</li>
+      <li>行走者期望加成速度均值可選 0.5、0.75、1.3 m/s，含個體差異與反應延遲。</li>
+      <li>間距規則：站立約每 2 階一人，行走約每 3 階一人，並引入人際排斥與偶發阻擋。</li>
+      <li>到達模式：泊松過程，支援一般 30/分、尖峰 120/分，可自訂時間加速。</li>
+    </ul>
+    <h3>策略洞察</h3>
+    <ul>
+      <li>尖峰場景兩側站立通常提供更高的每分鐘通過量與更短的平均等待。</li>
+      <li>左行右立在低流量下可兼顧個體效益，但在高密度時會被行走側的低密度佔位拖累。</li>
+      <li>行走側遇到站立者的機率在本版被設為極低，用於呈現「理想左行右立」的上限表現。</li>
+    </ul>
+  </div>
+</dialog>
 
 <script>
 (() => {
-  // ===== 工具函式 =====
+  // ====== 小工具 ======
   const TAU = Math.PI*2;
   const rand = (a=0,b=1)=> a + Math.random()*(b-a);
   const clamp = (x,a,b)=> Math.max(a, Math.min(b,x));
 
-  // ===== 全域狀態（可被 UI 改變）=====
+  // ====== 視窗與收折處理：維持單一畫面 ======
+  const hdr = document.getElementById('hdr');
+  const stage = document.getElementById('stage');
+  function setHeaderHeightVar(){
+    const h = hdr.getBoundingClientRect().height;
+    document.documentElement.style.setProperty('--hdr-h', h+'px');
+  }
+  const collapseBtn = document.getElementById('collapseBtn');
+  let collapsed = false;
+  collapseBtn.addEventListener('click', ()=>{
+    collapsed = !collapsed;
+    hdr.classList.toggle('collapsed', collapsed);
+    setHeaderHeightVar();
+  });
+  window.addEventListener('resize', setHeaderHeightVar);
+  setHeaderHeightVar();
+
+  // ====== 全域狀態 ======
   const state = {
-    escSpeed: 0.65,      // m/s (台北捷運 2025 上調參考)
-    walkMean: 0.75,      // m/s 走路加成（文獻常見 0.7~1.3，預設採 0.75）
-    angle: 30 * Math.PI/180,
+    escSpeed: 0.65,       // m/s
+    walkMean: 0.75,       // m/s
+    timeScale: 10,        // 預設 10×
+    scenario: 'peak_long',
     running: true,
-    timeScale: 10,       // 預設加速 10×
-    scenario: 'peak_long'
+    arrivalPerMin: 120,   // 人/分
   };
 
-  // 場景參數：長度、到達率、尖峰波動、站立偏好
-  // 到達率是「兩個走道的合計目標」，真實到達採泊松程序，並含服從度與阻擋概率
-  const scenarios = {
-    normal_short: { length_m: 12, arrival_per_min: 110, jitter: 0.25, standBias: 0.5 },
-    normal_long:  { length_m: 30, arrival_per_min: 120, jitter: 0.25, standBias: 0.5 },
-    peak_short:   { length_m: 12, arrival_per_min: 180, jitter: 0.40, standBias: 0.6 },
-    peak_long:    { length_m: 30, arrival_per_min: 210, jitter: 0.45, standBias: 0.65 },
+  // 場景：長度、行走傾向
+  const scenes = {
+    normal_short: { length_m: 12, walkerProb: 0.6 },
+    normal_long:  { length_m: 40, walkerProb: 0.4 },
+    peak_short:   { length_m: 12, walkerProb: 0.6 },
+    peak_long:    { length_m: 40, walkerProb: 0.4 },
   };
-  // 三種使用習慣
+
+  // 三種模式
   const modes = {
-    left_pass:   { left: 'walk', right: 'stand' },
-    both_stand:  { left: 'stand', right: 'stand' },
-    both_walk:   { left: 'walk', right: 'walk' }
+    left_pass:  { left:'walk', right:'stand' },
+    both_stand: { left:'stand', right:'stand' },
+    both_walk:  { left:'walk', right:'walk' }
   };
 
-  // ===== 幾何：畫布投影 =====
-  function makeProjector(canvas, length_m, angle){
+  // ====== 幾何投影：斜扶梯兩走道 ======
+  function makeProjector(canvas, length_m){
     const ctx = canvas.getContext('2d');
-    const pad = 16;
-    const metersToPx = Math.min(canvas.width, canvas.height) * 0.9 / 20 * Math.pow(length_m/20, 0.8);
+    const pad = 18;
+    const angle = 30 * Math.PI/180;
     const origin = { x: pad + 16, y: canvas.height - pad - 6 };
+    // 非線性縮放，讓長扶梯明顯更長，但仍塞進視窗
+    const metersToPx = Math.min(canvas.width, canvas.height) * 0.9 / 20 * Math.pow(length_m/20, 0.8);
     const ux = Math.cos(angle), uy = -Math.sin(angle);
     const nx = -Math.sin(angle), ny = -Math.cos(angle);
     const laneGapPx = 18;
+
     function toXY(s_m, laneIdx){
       const s = s_m * metersToPx;
       const shift = (laneIdx===0 ? -0.5 : 0.5) * laneGapPx;
       return { x: origin.x + ux*s + nx*shift, y: origin.y + uy*s + ny*shift };
     }
-    return { ctx, toXY, metersToPx };
+    return { ctx, toXY, metersToPx, angle };
   }
 
-  // ===== 個體與走道 =====
-  class Person {
+  // ====== 個體與走道 ======
+  class Person{
     constructor({ lane, walking, color, s0=0, walkMean }){
-      this.lane = lane; this.walking = walking; this.color = color;
-      this.s = s0;
-      // 個體差異（含身形微差影響最小距離）
-      this.body = rand(0.9, 1.1);
-      this.vWalk = walking ? Math.max(0, rand(walkMean-0.2, walkMean+0.2)) : 0;
-      this.reaction = rand(0.05, 0.35); // s
+      this.lane = lane;
+      this.walking = walking;
+      this.color = color;
+      this.s = s0; // 沿坡距離（m）
+      this.body = rand(0.9, 1.1); // 身形因子，影響最小間距與視覺半徑
+      this.vWalk = walking ? Math.max(0, rand(walkMean-0.2, walkMean+0.2)) : 0; // m/s
+      this.reaction = rand(0.05, 0.3);
       this.reactionLeft = this.reaction;
       this.radius = 4.8 + (this.walking?0.5:0) + (this.body-1)*1.2;
-    }
-  }
-  class Lane {
-    constructor(kind){
-      this.kind = kind;               // 'walk' | 'stand'
-      this.people = [];               // 按 s 遞增
-      this.nextArrival = 0;           // 泊松程序：下次到達倒數（秒）
+      this.birth = performance.now();
     }
   }
 
-  // ===== 模擬核心 =====
-  class EscalatorSim {
-    constructor(canvas, metricsEl, modeKey){
-      this.canvas = canvas; this.metricsEl = metricsEl;
-      this.modeKey = modeKey; this.mode = modes[modeKey];
-      this.lastT = performance.now();
+  class Lane{
+    constructor(kind){
+      this.kind = kind; // 'walk' | 'stand'
+      this.people = []; // 依 s 遞增
+      this.nextArrival = 0; // 指數分佈到達時間
+    }
+  }
+
+  // ====== 模擬器 ======
+  class EscalatorSim{
+    constructor(cardEl, metricsEl, modeKey){
+      this.cardEl = cardEl;
+      this.canvas = cardEl.querySelector('canvas');
+      this.metricsEl = metricsEl;
+      this.modeKey = modeKey;
+      this.mode = modes[modeKey];
+
       this.pixelRatio = Math.max(1, window.devicePixelRatio||1);
+      this.lastT = performance.now();
+
       this.resize(); this.reset(); this.tick();
     }
+
     resize(){
       const r = this.pixelRatio;
       const rect = this.canvas.getBoundingClientRect();
+      // 讓 canvas 充滿卡片可用空間
       this.canvas.width = Math.max(480, rect.width*r);
       this.canvas.height = Math.max(180, rect.height*r);
-      const { length_m } = scenarios[state.scenario];
-      this.proj = makeProjector(this.canvas, length_m, state.angle);
+      const { length_m } = scenes[state.scenario];
+      this.proj = makeProjector(this.canvas, length_m);
     }
+
     reset(){
       const { left, right } = this.mode;
-      this.lanes = [new Lane(left), new Lane(right)];
+      this.lanes = [ new Lane(left), new Lane(right) ];
       this.exitedTimes = [];
+      this.travelTimes = [];
+      this.queue = 0;
       this.spawnInit();
+      this.lastT = performance.now();
     }
+
     params(){
-      const sc = scenarios[state.scenario];
+      const sc = scenes[state.scenario];
       return {
         length_m: sc.length_m,
         escSpeed: state.escSpeed,
-        arrival_per_min: sc.arrival_per_min,
-        jitter: sc.jitter,
-        standBias: sc.standBias,
-        // 幾何與最小間隔（以步距 0.4 m 為基礎，加入身形因子）
         step_m: 0.4,
-        minGapStand: 0.8,  // 站立常見至少留一空步
-        minGapWalk: 1.2,   // 行走常見前方留兩空步
-        // 行為參數：服從度與偶發阻擋（兩側站立或混合時）
-        compliance: this.modeKey==='both_stand' ? 0.92 : 0.70,
-        blockProb: this.modeKey==='left_pass' ? 0.05 : (this.modeKey==='both_walk' ? 0.10 : 0.04),
+        // 間距規則（含身形因子再微調）
+        minGapStand: 0.8,
+        minGapWalk: 1.2,
+        // 到達率（合計兩走道）
+        lambda: state.arrivalPerMin / 60,
+        walkerProbShort: sc.walkerProb, // 依長度決定行走傾向
+        // 走道阻擋與違規概率設定
+        // 需求：行走側只有極低機率遇到站立者
+        leakStandInWalkLane: 0.005, // 0.5% 的稀有站立者
+        blockProbWalkLane: 0.004,   // 行李或猶疑造成的微阻擋，極低
+        blockProbBothWalk: 0.010,   // 兩側都走時稍高
       };
     }
+
     spawnInit(){
-      // 依場景到達率，初始化兩走道的泊松到達時鐘
       const p = this.params();
-      const lambda = p.arrival_per_min/60; // 合計（兩走道）
-      // 分配到兩走道
-      const lamLane = lambda/2;
+      const lamLane = p.lambda/2;
       for (const lane of this.lanes){
         lane.nextArrival = this.expSample(1/lamLane);
       }
@@ -242,70 +388,79 @@
 
     maybeSpawn(dt){
       const p = this.params();
-      // 服從度影響：在「兩側站立」時，少數人仍會走；在「走道」時，少數人會站
-      const leakWalk = (laneKind)=> laneKind==='stand' ? (1 - p.compliance) * 0.2 : 0; // 極少違規
-      const leakStand = (laneKind)=> laneKind==='walk' ? (1 - p.compliance) * 0.25 : 0.0;
+      const sc = scenes[state.scenario];
+      const lamLane = p.lambda/2;
 
-      // 尖峰波動，以抖動修飾下一次到達時間
       for (let i=0;i<2;i++){
         const lane = this.lanes[i];
         lane.nextArrival -= dt;
         while (lane.nextArrival <= 0){
-          const kind = lane.kind;
-          const isWalking = kind==='walk'
-            ? (Math.random() > leakStand(kind))
-            : (Math.random() < leakWalk(kind) ? true : false);
+          // 依模式決定行走或站立
+          let isWalking;
+          if (this.modeKey==='left_pass'){
+            isWalking = (i===0) // 左走道
+              ? (Math.random() > p.leakStandInWalkLane) // 幾乎都是行走
+              : false; // 右走道固定站立
+          } else if (this.modeKey==='both_stand'){
+            isWalking = false;
+          } else { // both_walk
+            isWalking = true;
+          }
+
+          // 左走右立模式下，入口人群角色由場景長度決定傾向
+          if (this.modeKey==='left_pass' && i===0){
+            // 左走道若是新到達者，仍以 walkerProb 作微幅校正，以反映長扶梯行走意願較低
+            if (Math.random() > sc.walkerProb) isWalking = false; // 小機率左道也出現站立者
+          }
+
           const color = isWalking ? '#ff6b6b' : '#63e6be';
           const person = new Person({ lane:i, walking:isWalking, color, s0:0, walkMean: state.walkMean });
-          // 入口防碰撞
+
+          // 入口防碰撞：若前方太近則延後
           const people = lane.people;
           if (people.length>0){
             const front = people[0];
-            const minGap = (isWalking ? p.minGapWalk : p.minGapStand) * rand(0.95, 1.05) * person.body;
-            if (front.s < minGap){ 
-              // 人擠在入口，延後少許
+            const baseGap = isWalking ? p.minGapWalk : p.minGapStand;
+            const minGap = baseGap * rand(0.95,1.05) * person.body;
+            if (front.s < minGap){
               lane.nextArrival += this.expSample(0.2);
               break;
             }
           }
           people.unshift(person);
-          // 下一個到達時間（指數分佈），加上尖峰抖動
-          const lamLane = p.arrival_per_min/120; // 每走道
-          lane.nextArrival += this.expSample(1/lamLane) * rand(1 - p.jitter, 1 + p.jitter);
+          lane.nextArrival += this.expSample(1/lamLane) * rand(0.7,1.3);
         }
       }
     }
 
     step(dt){
       const p = this.params();
-      // 生成到達
       this.maybeSpawn(dt);
-      // 更新兩走道
+
       for (let li=0; li<2; li++){
         const lane = this.lanes[li];
         const minGapBase = lane.kind==='walk' ? p.minGapWalk : p.minGapStand;
 
-        // 依 s 排序
+        // s 遞增
         lane.people.sort((a,b)=> a.s - b.s);
 
         for (let i=0; i<lane.people.length; i++){
           const me = lane.people[i];
-          // 基本速度：扶梯速度 + 走路加成
           let v = p.escSpeed + me.vWalk;
 
-          // 反應延遲期間僅被動跟著扶梯
-          if (me.reactionLeft > 0){
+          // 反應延遲期只跟著扶梯
+          if (me.reactionLeft>0){
             const used = Math.min(me.reactionLeft, dt);
             me.reactionLeft -= used;
             v = p.escSpeed;
           }
 
-          // 偶發阻擋：走道上有機率遇到非走者或行李造成有效速度下降
-          if (lane.kind==='walk' && Math.random() < p.blockProb * dt){
-            v = Math.max(p.escSpeed, v - rand(0.2, 0.5));
+          // 偶發阻擋概率（極低），主要影響 walk lane 的理論上限
+          if (lane.kind==='walk' && Math.random() < (this.modeKey==='both_walk' ? p.blockProbBothWalk : p.blockProbWalkLane) * dt){
+            v = Math.max(p.escSpeed, v - rand(0.15, 0.4));
           }
 
-          // 與前方保持安全距離（按身形與隨機因子微調）
+          // 與前方保持距離
           const front = lane.people[i+1];
           const minGap = minGapBase * rand(0.95,1.08) * me.body;
           if (front){
@@ -314,15 +469,17 @@
               v = Math.min(v, Math.max(0, (gap - minGap + 0.02)/dt));
             }
           }
+
           me.s += Math.max(0, v*dt);
         }
 
-        // 出口計數
+        // 到頂出場
         const L = p.length_m;
         while (lane.people.length && lane.people[lane.people.length-1].s >= L){
-          lane.people.pop();
+          const done = lane.people.pop();
           this.exitedTimes.push(performance.now());
-          // 滾動 60 秒窗口
+          this.travelTimes.push((performance.now() - done.birth)/1000);
+          // 清 60 秒窗口
           const cutoff = performance.now() - 60000;
           while (this.exitedTimes.length && this.exitedTimes[0] < cutoff) this.exitedTimes.shift();
         }
@@ -364,13 +521,28 @@
 
       // 指標
       const pm = this.perMin();
-      this.metricsEl.textContent = `通過量≈ ${pm.toFixed(0)} 人/分鐘`;
+      const avg = this.avgTravel();
+      const dens = this.density();
+      this.metricsEl.innerHTML = `通過量 ${pm.toFixed(0)} 人/分<br>平均通行 ${avg.toFixed(1)} s<br>密度 ${dens.toFixed(2)} 人/米`;
     }
+
     perMin(){
       const now = performance.now(), win = 20000;
       let cnt=0; for (let t of this.exitedTimes){ if (t > now-win) cnt++; }
       return cnt * (60000 / win);
     }
+    avgTravel(){
+      if (!this.travelTimes.length) return 0;
+      const n = Math.min(this.travelTimes.length, 200);
+      const slice = this.travelTimes.slice(-n);
+      return slice.reduce((a,b)=>a+b,0)/slice.length;
+    }
+    density(){
+      const p = this.params();
+      const n = this.lanes[0].people.length + this.lanes[1].people.length;
+      return n / p.length_m;
+    }
+
     tick(){
       const now = performance.now();
       let dt = (now - this.lastT)/1000;
@@ -386,41 +558,58 @@
     }
   }
 
-  // ===== 建立三面板 =====
+  // ====== 建立三個面板 ======
   const sims = [];
-  function setup(){
-    document.querySelectorAll('.card').forEach(card=>{
-      const canvas = card.querySelector('canvas');
+  function setupSims(){
+    sims.splice(0, sims.length); // 清空
+    document.querySelectorAll('.card').forEach((card, idx)=>{
       const metrics = card.querySelector('.metrics');
       const modeKey = card.dataset.mode;
-      sims.push(new EscalatorSim(canvas, metrics, modeKey));
+      sims.push(new EscalatorSim(card, metrics, modeKey));
     });
   }
-  setup();
+  setupSims();
 
-  // ===== UI 事件 =====
+  // ====== 自適應大小 ======
   window.addEventListener('resize', ()=> sims.forEach(s=> s.resize()));
 
-  document.getElementById('scenario').addEventListener('change', e=>{
-    state.scenario = e.target.value;
+  // ====== UI 綁定 ======
+  function syncScenario(){
+    state.scenario = document.getElementById('scenario').value;
     sims.forEach(s=>{ s.resize(); s.reset(); });
-  });
+  }
+  document.getElementById('scenario').addEventListener('change', syncScenario);
 
   document.getElementById('speedSeg').addEventListener('change', ()=>{
     state.escSpeed = parseFloat(document.querySelector('input[name="spd"]:checked').value);
   });
-
   document.getElementById('walkSeg').addEventListener('change', ()=>{
     state.walkMean = parseFloat(document.querySelector('input[name="wspd"]:checked').value);
   });
-
+  document.getElementById('rateSeg').addEventListener('change', ()=>{
+    state.arrivalPerMin = parseFloat(document.querySelector('input[name="rt"]:checked').value);
+    sims.forEach(s=> s.reset());
+  });
   document.getElementById('timeSeg').addEventListener('change', ()=>{
     state.timeScale = parseFloat(document.querySelector('input[name="ts"]:checked').value);
   });
 
-  document.getElementById('toggleBtn').addEventListener('click', ()=> state.running = !state.running);
-  document.getElementById('resetBtn').addEventListener('click', ()=> sims.forEach(s=> s.reset()));
+  const pauseBtn = document.getElementById('pauseBtn');
+  pauseBtn.addEventListener('click', ()=>{
+    state.running = !state.running;
+    pauseBtn.textContent = state.running ? '暫停' : '繼續';
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    sims.forEach(s=> s.reset());
+  });
+
+  // 報告彈窗
+  const dlg = document.getElementById('reportDlg');
+  document.getElementById('reportBtn').addEventListener('click', ()=> dlg.showModal());
+  document.getElementById('closeReport').addEventListener('click', ()=> dlg.close());
 })();
 </script>
+
 </body>
 </html>
