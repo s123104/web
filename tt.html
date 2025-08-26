@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>台北捷運電扶梯人流模擬研究報告</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome CDN -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Chart.js CDN (UMD build for global `Chart`) -->
+    <script
+      id="chartjs-script"
+      src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"
+      defer
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: "#eff6ff",
+                100: "#dbeafe",
+                500: "#3b82f6",
+                600: "#2563eb",
+                700: "#1d4ed8",
+                900: "#1e3a8a",
+              },
+              secondary: {
+                50: "#f0f9ff",
+                100: "#e0f2fe",
+                500: "#06b6d4",
+                600: "#0891b2",
+                700: "#0e7490",
+              },
+              neutral: {
+                50: "#f8fafc",
+                100: "#f1f5f9",
+                200: "#e2e8f0",
+                300: "#cbd5e1",
+                400: "#94a3b8",
+                500: "#64748b",
+                600: "#475569",
+                700: "#334155",
+                800: "#1e293b",
+                900: "#0f172a",
+              },
+            },
+            fontFamily: {
+              sans: ["Inter", "Noto Sans TC", "system-ui", "sans-serif"],
+              tc: ["Noto Sans TC", "system-ui", "sans-serif"],
+            },
+            spacing: {
+              18: "4.5rem",
+              88: "22rem",
+              128: "32rem",
+            },
+            animation: {
+              "fade-in-up": "fadeInUp 0.6s ease-out forwards",
+              "fade-in-left": "fadeInLeft 0.8s ease-out forwards",
+              "fade-in-right": "fadeInRight 0.8s ease-out forwards",
+              "pulse-gentle": "pulseGentle 2s ease-in-out infinite",
+              "escalator-move": "escalatorMove 3s ease-in-out infinite",
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      /* 自定義動畫關鍵幀 */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeInLeft {
+        from {
+          opacity: 0;
+          transform: translateX(-30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes fadeInRight {
+        from {
+          opacity: 0;
+          transform: translateX(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes pulseGentle {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.8;
+          transform: scale(1.02);
+        }
+      }
+
+      @keyframes escalatorMove {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-5px);
+        }
+      }
+
+      /* 滾動條樣式 */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      /* 漸變背景效果 */
+      .gradient-bg {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      /* 彩蛋樣式 */
+      .easter-egg {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 1000;
+        opacity: 0.7;
+        transition: all 0.3s ease;
+        animation: pulse-gentle 2s ease-in-out infinite;
+      }
+
+      .easter-egg:hover {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+
+      /* 模態框樣式 */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1001;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+      }
+
+      .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 2rem;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        animation: fadeInUp 0.3s ease-out;
+      }
+
+      /* 卡片陰影效果 */
+      .card-shadow {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+      }
+
+      .card-shadow:hover {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        transform: translateY(-2px);
+      }
+
+      /* 修正圖表容器高度，避免 Canvas 無限延伸 */
+      .chart-container {
+        position: relative;
+        height: 320px;
+        width: 100%;
+      }
+      .chart-container canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+      }
+
+      /* 互動模擬：電扶梯雙道視覺化 */
+      .sim-esc {
+        position: relative;
+        width: 100%;
+        max-width: 900px;
+        height: 380px; /* base; RWD 規劃見下 */
+        margin: 0 auto;
+        background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+      }
+      @media (min-width: 640px) {
+        .sim-esc {
+          height: 420px;
+        }
+      }
+      @media (min-width: 1024px) {
+        .sim-esc {
+          height: 520px;
+        }
+      }
+      .sim-lane {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 50%;
+        border-left: 1px dashed #cbd5e1;
+        border-right: 1px dashed #cbd5e1;
+      }
+      .sim-lane.left {
+        left: 0;
+        background: repeating-linear-gradient(
+          180deg,
+          rgba(59, 130, 246, 0.06) 0 18px,
+          transparent 18px 36px
+        );
+      }
+      .sim-lane.right {
+        right: 0;
+        background: repeating-linear-gradient(
+          180deg,
+          rgba(34, 197, 94, 0.06) 0 18px,
+          transparent 18px 36px
+        );
+      }
+      .sim-person {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-radius: 4px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      /* 行走者：不再顯示藍色點點，改為上箭頭符號 */
+      .sim-person.walk {
+        background: transparent;
+        border: 2px solid #0ea5e9;
+        color: #0ea5e9;
+        border-radius: 9999px;
+        width: 14px;
+        height: 14px;
+        font-size: 10px;
+        line-height: 1;
+        font-weight: 700;
+      }
+      .sim-person.walk::after {
+        content: "▲";
+        transform: translateY(-1px);
+      }
+      .sim-person.stand {
+        background-color: #22c55e;
+      }
+      .sim-person.block {
+        background-color: #f59e0b;
+      }
+    </style>
+  </head>
+  <body class="bg-neutral-50 font-sans">
+    <!-- Header 導航列 -->
+    <header
+      class="bg-white shadow-lg sticky top-0 z-50 transition-all duration-300"
+    >
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-4">
+          <div class="flex items-center space-x-3">
+            <i class="fas fa-subway text-2xl text-primary-600"></i>
+            <h1 class="text-xl sm:text-2xl font-bold text-neutral-800 font-tc">
+              台北捷運研究報告
+            </h1>
+          </div>
+          <!-- 手機版選單按鈕 -->
+          <button
+            id="mobile-menu-btn"
+            class="md:hidden text-neutral-600 hover:text-primary-600 transition-colors duration-200"
+          >
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <!-- 桌面版導航 -->
+          <nav class="hidden md:flex space-x-6">
+            <a
+              href="#overview"
+              class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+              >概述</a
+            >
+            <a
+              href="#analysis"
+              class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+              >策略分析</a
+            >
+            <a
+              href="#visualization"
+              class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+              >數據視覺化</a
+            >
+            <a
+              href="#conclusion"
+              class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+              >結論</a
+            >
+          </nav>
+        </div>
+        <!-- 手機版選單 -->
+        <nav
+          id="mobile-menu"
+          class="md:hidden hidden border-t border-neutral-200 py-4"
+        >
+          <div class="flex flex-col space-y-3">
+            <a
+              href="#overview"
+              class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+              >概述</a
+            >
+            <a
+              href="#analysis"
+              class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+              >策略分析</a
+            >
+            <a
+              href="#visualization"
+              class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+              >數據視覺化</a
+            >
+            <a
+              href="#conclusion"
+              class="text-neutral-600 hover:text-primary-600 transition-colors duration-200 font-medium"
+              >結論</a
+            >
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <!-- 主要內容區域 -->
+    <main>
+      <!-- Hero Section 主標題區域 -->
+      <section class="gradient-bg py-16 sm:py-24">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div class="opacity-0 animate-fade-in-up">
+            <h1
+              class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 font-tc leading-tight"
+            >
+              台北捷運電扶梯<br class="sm:hidden" />人流模擬研究
+            </h1>
+            <p
+              class="text-lg sm:text-xl text-white/90 mb-8 max-w-3xl mx-auto leading-relaxed"
+            >
+              深度分析三種通行策略的效率差異，運用科學數據為都市交通優化提供決策依據
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onclick="scrollToSection('analysis')"
+                class="bg-white text-primary-700 px-8 py-3 rounded-full font-semibold hover:bg-primary-50 transform hover:scale-105 transition duration-200 ease-out shadow-lg"
+              >
+                查看分析報告
+              </button>
+              <button
+                onclick="scrollToSection('visualization')"
+                class="border-2 border-white text-white px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-primary-700 transform hover:scale-105 transition duration-200 ease-out"
+              >
+                數據視覺化
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 概述區域 -->
+      <section id="overview" class="py-16 sm:py-20">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="max-w-4xl mx-auto">
+            <!-- 區域標題 -->
+            <div class="text-center mb-12 opacity-0 fade-in-element">
+              <h2
+                class="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-800 mb-4 font-tc"
+              >
+                研究概述
+              </h2>
+              <p
+                class="text-lg text-neutral-600 max-w-2xl mx-auto leading-relaxed"
+              >
+                探討台北捷運電扶梯提速政策與不同通行策略對運輸效率的實際影響
+              </p>
+            </div>
+
+            <!-- 關鍵數據卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              <div
+                class="bg-white p-6 rounded-2xl card-shadow text-center opacity-0 fade-in-element"
+                style="animation-delay: 0.1s"
+              >
+                <div
+                  class="text-3xl sm:text-4xl font-bold text-primary-600 mb-2"
+                >
+                  47
+                </div>
+                <div class="text-neutral-600 font-medium">座電扶梯提速</div>
+                <div class="text-sm text-neutral-500 mt-1">29個繁忙車站</div>
+              </div>
+              <div
+                class="bg-white p-6 rounded-2xl card-shadow text-center opacity-0 fade-in-element"
+                style="animation-delay: 0.2s"
+              >
+                <div
+                  class="text-3xl sm:text-4xl font-bold text-secondary-600 mb-2"
+                >
+                  0.65
+                </div>
+                <div class="text-neutral-600 font-medium">公尺/秒</div>
+                <div class="text-sm text-neutral-500 mt-1">提速後速度</div>
+              </div>
+              <div
+                class="bg-white p-6 rounded-2xl card-shadow text-center opacity-0 fade-in-element"
+                style="animation-delay: 0.3s"
+              >
+                <div class="text-3xl sm:text-4xl font-bold text-green-600 mb-2">
+                  +22
+                </div>
+                <div class="text-neutral-600 font-medium">人/分鐘</div>
+                <div class="text-sm text-neutral-500 mt-1">運量提升</div>
+              </div>
+            </div>
+
+            <!-- 研究背景 -->
+            <div
+              class="bg-white p-8 rounded-2xl card-shadow opacity-0 fade-in-element"
+            >
+              <h3
+                class="text-xl sm:text-2xl font-semibold text-neutral-800 mb-4 font-tc"
+              >
+                研究背景
+              </h3>
+              <p class="text-neutral-600 leading-relaxed mb-4">
+                台北捷運自2025年4月起針對29個繁忙車站的47座上行電扶梯實施提速措施，從原本每秒0.5公尺提升至0.65公尺，預計在尖峰時段每座電扶梯每分鐘可多運送約22名乘客。
+              </p>
+              <p class="text-neutral-600 leading-relaxed">
+                本研究透過科學化的模擬分析，深入探討三種主要通行策略：左行右立、兩側站立、兩側行走的效率差異，並考量人流密度、從眾行為等實際因素，為交通政策制定提供數據支撐。
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 策略分析區域 -->
+      <section id="analysis" class="py-16 sm:py-20 bg-neutral-100">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="max-w-6xl mx-auto">
+            <!-- 區域標題 -->
+            <div class="text-center mb-12 opacity-0 fade-in-element">
+              <h2
+                class="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-800 mb-4 font-tc"
+              >
+                三種通行策略分析
+              </h2>
+              <p
+                class="text-lg text-neutral-600 max-w-3xl mx-auto leading-relaxed"
+              >
+                比較左行右立、兩側站立、兩側行走三種策略在不同人流密度下的通行效率
+              </p>
+            </div>
+
+            <!-- 策略比較卡片 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+              <!-- 策略1：左行右立 -->
+              <div
+                class="bg-white p-8 rounded-2xl card-shadow opacity-0 fade-in-element"
+                style="animation-delay: 0.1s"
+              >
+                <div class="flex items-center mb-4">
+                  <div
+                    class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-4"
+                  >
+                    <i class="fas fa-walking text-red-600 text-xl"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-neutral-800 font-tc">
+                      左行右立
+                    </h3>
+                    <p class="text-sm text-neutral-500">傳統禮讓策略</p>
+                  </div>
+                </div>
+                <div class="space-y-3 mb-4">
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-600">運量</span>
+                    <span class="font-semibold text-neutral-800">115人/分</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-600">效率</span>
+                    <span
+                      class="px-2 py-1 bg-red-100 text-red-700 rounded text-sm"
+                      >偏低</span
+                    >
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-600">適用場景</span>
+                    <span class="text-sm text-neutral-600">低人流時段</span>
+                  </div>
+                </div>
+                <p class="text-sm text-neutral-600 leading-relaxed">
+                  右側站立，左側行走。在人潮眾多時效率較低，因左側通道利用率不足且行走者密度受限。
+                </p>
+              </div>
+
+              <!-- 策略2：兩側站立 -->
+              <div
+                class="bg-white p-8 rounded-2xl card-shadow opacity-0 fade-in-element"
+                style="animation-delay: 0.2s"
+              >
+                <div class="flex items-center mb-4">
+                  <div
+                    class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4"
+                  >
+                    <i class="fas fa-users text-green-600 text-xl"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-neutral-800 font-tc">
+                      兩側站立
+                    </h3>
+                    <p class="text-sm text-neutral-500">最高效率策略</p>
+                  </div>
+                </div>
+                <div class="space-y-3 mb-4">
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-600">運量</span>
+                    <span class="font-semibold text-neutral-800">151人/分</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-600">效率</span>
+                    <span
+                      class="px-2 py-1 bg-green-100 text-green-700 rounded text-sm"
+                      >最高</span
+                    >
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-600">適用場景</span>
+                    <span class="text-sm text-neutral-600">尖峰時段</span>
+                  </div>
+                </div>
+                <p class="text-sm text-neutral-600 leading-relaxed">
+                  左右兩側都站滿乘客，充分利用每個梯級空間。在高人流時段比單側行走提升約31%效率。
+                </p>
+              </div>
+
+              <!-- 策略3：兩側行走 -->
+              <div
+                class="bg-white p-8 rounded-2xl card-shadow opacity-0 fade-in-element"
+                style="animation-delay: 0.3s"
+              >
+                <div class="flex items-center mb-4">
+                  <div
+                    class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4"
+                  >
+                    <i class="fas fa-running text-blue-600 text-xl"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-neutral-800 font-tc">
+                      兩側行走
+                    </h3>
+                    <p class="text-sm text-neutral-500">理論極端情境</p>
+                  </div>
+                </div>
+                <div class="space-y-3 mb-4">
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-600">運量</span>
+                    <span class="font-semibold text-neutral-800"
+                      >~150人/分</span
+                    >
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-600">效率</span>
+                    <span
+                      class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm"
+                      >理論高</span
+                    >
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-600">適用場景</span>
+                    <span class="text-sm text-neutral-600">特殊情境</span>
+                  </div>
+                </div>
+                <p class="text-sm text-neutral-600 leading-relaxed">
+                  所有人都主動行走。理論容量接近兩側站立，但實際操作困難，可能因步伐不協調產生安全隱患。
+                </p>
+              </div>
+            </div>
+
+            <!-- 人流密度影響分析 -->
+            <div
+              class="bg-white p-8 rounded-2xl card-shadow opacity-0 fade-in-element"
+            >
+              <h3
+                class="text-xl sm:text-2xl font-semibold text-neutral-800 mb-6 font-tc"
+              >
+                人流密度對策略效率的影響
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <h4
+                    class="text-lg font-semibold text-neutral-800 mb-3 font-tc"
+                  >
+                    尖峰時段特性
+                  </h4>
+                  <ul class="space-y-2 text-neutral-600">
+                    <li class="flex items-start">
+                      <i
+                        class="fas fa-chevron-right text-primary-500 text-sm mt-1 mr-2"
+                      ></i>
+                      <span>每分鐘進入人數超過100人，容易形成排隊</span>
+                    </li>
+                    <li class="flex items-start">
+                      <i
+                        class="fas fa-chevron-right text-primary-500 text-sm mt-1 mr-2"
+                      ></i>
+                      <span>乘客傾向緊跟前人，站立間隔約1階/人</span>
+                    </li>
+                    <li class="flex items-start">
+                      <i
+                        class="fas fa-chevron-right text-primary-500 text-sm mt-1 mr-2"
+                      ></i>
+                      <span>兩側站立策略優勢明顯，效率提升31%</span>
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h4
+                    class="text-lg font-semibold text-neutral-800 mb-3 font-tc"
+                  >
+                    離峰時段特性
+                  </h4>
+                  <ul class="space-y-2 text-neutral-600">
+                    <li class="flex items-start">
+                      <i
+                        class="fas fa-chevron-right text-secondary-500 text-sm mt-1 mr-2"
+                      ></i>
+                      <span>每分鐘進入人數低於60人，無排隊壓力</span>
+                    </li>
+                    <li class="flex items-start">
+                      <i
+                        class="fas fa-chevron-right text-secondary-500 text-sm mt-1 mr-2"
+                      ></i>
+                      <span>乘客間隔較大，站立間隔>1階/人</span>
+                    </li>
+                    <li class="flex items-start">
+                      <i
+                        class="fas fa-chevron-right text-secondary-500 text-sm mt-1 mr-2"
+                      ></i>
+                      <span>策略差異縮小，個別通行體驗更重要</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 數據視覺化區域 -->
+      <section id="visualization" class="py-16 sm:py-20">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="max-w-6xl mx-auto">
+            <!-- 區域標題 -->
+            <div class="text-center mb-12 opacity-0 fade-in-element">
+              <h2
+                class="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-800 mb-4 font-tc"
+              >
+                數據視覺化分析
+              </h2>
+              <p
+                class="text-lg text-neutral-600 max-w-3xl mx-auto leading-relaxed"
+              >
+                透過互動式圖表深度解析不同策略的運行效率與適用場景
+              </p>
+            </div>
+
+            <!-- 圖表區域 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+              <!-- 通行效率比較圖 -->
+              <div
+                class="bg-white p-8 rounded-2xl card-shadow opacity-0 fade-in-element"
+              >
+                <h3 class="text-lg font-semibold text-neutral-800 mb-4 font-tc">
+                  通行效率比較
+                </h3>
+                <div class="chart-container">
+                  <canvas id="efficiencyChart"></canvas>
+                </div>
+                <p class="text-sm text-neutral-500 mt-3">單位：人/分鐘</p>
+              </div>
+
+              <!-- 人流密度影響圖 -->
+              <div
+                class="bg-white p-8 rounded-2xl card-shadow opacity-0 fade-in-element"
+              >
+                <h3 class="text-lg font-semibold text-neutral-800 mb-4 font-tc">
+                  人流密度影響分析
+                </h3>
+                <div class="chart-container">
+                  <canvas id="densityChart"></canvas>
+                </div>
+                <p class="text-sm text-neutral-500 mt-3">
+                  橫軸：人流密度，縱軸：通行效率
+                </p>
+              </div>
+            </div>
+
+            <!-- 動態模擬示意圖 -->
+            <div
+              class="bg-white p-8 rounded-2xl card-shadow opacity-0 fade-in-element"
+            >
+              <h3 class="text-lg font-semibold text-neutral-800 mb-6 font-tc">
+                電扶梯動態模擬
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- 左行右立模擬 -->
+                <div class="text-center">
+                  <h4 class="font-medium text-neutral-700 mb-4 font-tc">
+                    左行右立
+                  </h4>
+                  <div
+                    class="relative bg-neutral-100 p-6 rounded-xl mx-auto"
+                    style="width: 120px"
+                  >
+                    <div class="flex space-x-2">
+                      <!-- 右側站立 -->
+                      <div class="flex-1">
+                        <div class="space-y-2">
+                          <div
+                            class="w-6 h-6 bg-blue-500 rounded-full mx-auto animate-escalator-move"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-blue-500 rounded-full mx-auto animate-escalator-move"
+                            style="animation-delay: 0.5s"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-blue-500 rounded-full mx-auto animate-escalator-move"
+                            style="animation-delay: 1s"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-blue-500 rounded-full mx-auto animate-escalator-move"
+                            style="animation-delay: 1.5s"
+                          ></div>
+                        </div>
+                      </div>
+                      <!-- 左側行走 -->
+                      <div class="flex-1">
+                        <div class="space-y-4">
+                          <div
+                            class="w-6 h-6 bg-green-500 rounded-full mx-auto animate-escalator-move"
+                            style="animation-duration: 1.5s"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-transparent rounded-full mx-auto"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-green-500 rounded-full mx-auto animate-escalator-move"
+                            style="
+                              animation-duration: 1.5s;
+                              animation-delay: 0.8s;
+                            "
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-transparent rounded-full mx-auto"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="text-sm text-neutral-600 mt-3">
+                    右側站立，左側行走
+                  </p>
+                </div>
+
+                <!-- 兩側站立模擬 -->
+                <div class="text-center">
+                  <h4 class="font-medium text-neutral-700 mb-4 font-tc">
+                    兩側站立
+                  </h4>
+                  <div
+                    class="relative bg-neutral-100 p-6 rounded-xl mx-auto"
+                    style="width: 120px"
+                  >
+                    <div class="flex space-x-2">
+                      <!-- 左側站立 -->
+                      <div class="flex-1">
+                        <div class="space-y-2">
+                          <div
+                            class="w-6 h-6 bg-purple-500 rounded-full mx-auto animate-escalator-move"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-purple-500 rounded-full mx-auto animate-escalator-move"
+                            style="animation-delay: 0.5s"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-purple-500 rounded-full mx-auto animate-escalator-move"
+                            style="animation-delay: 1s"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-purple-500 rounded-full mx-auto animate-escalator-move"
+                            style="animation-delay: 1.5s"
+                          ></div>
+                        </div>
+                      </div>
+                      <!-- 右側站立 -->
+                      <div class="flex-1">
+                        <div class="space-y-2">
+                          <div
+                            class="w-6 h-6 bg-purple-500 rounded-full mx-auto animate-escalator-move"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-purple-500 rounded-full mx-auto animate-escalator-move"
+                            style="animation-delay: 0.5s"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-purple-500 rounded-full mx-auto animate-escalator-move"
+                            style="animation-delay: 1s"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-purple-500 rounded-full mx-auto animate-escalator-move"
+                            style="animation-delay: 1.5s"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="text-sm text-neutral-600 mt-3">兩側都站滿乘客</p>
+                </div>
+
+                <!-- 兩側行走模擬 -->
+                <div class="text-center">
+                  <h4 class="font-medium text-neutral-700 mb-4 font-tc">
+                    兩側行走
+                  </h4>
+                  <div
+                    class="relative bg-neutral-100 p-6 rounded-xl mx-auto"
+                    style="width: 120px"
+                  >
+                    <div class="flex space-x-2">
+                      <!-- 左側行走 -->
+                      <div class="flex-1">
+                        <div class="space-y-4">
+                          <div
+                            class="w-6 h-6 bg-red-500 rounded-full mx-auto animate-escalator-move"
+                            style="animation-duration: 1.5s"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-transparent rounded-full mx-auto"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-red-500 rounded-full mx-auto animate-escalator-move"
+                            style="
+                              animation-duration: 1.5s;
+                              animation-delay: 0.8s;
+                            "
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-transparent rounded-full mx-auto"
+                          ></div>
+                        </div>
+                      </div>
+                      <!-- 右側行走 -->
+                      <div class="flex-1">
+                        <div class="space-y-4">
+                          <div
+                            class="w-6 h-6 bg-red-500 rounded-full mx-auto animate-escalator-move"
+                            style="
+                              animation-duration: 1.5s;
+                              animation-delay: 0.3s;
+                            "
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-transparent rounded-full mx-auto"
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-red-500 rounded-full mx-auto animate-escalator-move"
+                            style="
+                              animation-duration: 1.5s;
+                              animation-delay: 1.1s;
+                            "
+                          ></div>
+                          <div
+                            class="w-6 h-6 bg-transparent rounded-full mx-auto"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="text-sm text-neutral-600 mt-3">兩側都有人行走</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 互動模擬模型 -->
+      <section id="simulator" class="py-16 sm:py-20 bg-neutral-100">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-10 opacity-0 fade-in-element">
+              <h2
+                class="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-800 mb-3 font-tc"
+              >
+                互動人流模擬模型
+              </h2>
+              <p class="text-neutral-600">
+                隨機多因子代理人模型，直觀呈現雙道電扶梯在不同策略與速度下的人流動態
+              </p>
+            </div>
+
+            <!-- 控制面板（RWD美化） -->
+            <div class="bg-white p-6 rounded-2xl card-shadow mb-8">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-neutral-700 mb-1"
+                    >場景</label
+                  >
+                  <select
+                    id="simScene"
+                    class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="peak">尖峰（高輸入流率）</option>
+                    <option value="offpeak">離峰（低輸入流率）</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-neutral-700 mb-1"
+                    >速度（m/s）</label
+                  >
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      data-v="0.5"
+                      class="speed-btn px-3 py-1 rounded border hover:bg-neutral-100"
+                    >
+                      0.5
+                    </button>
+                    <button
+                      data-v="0.65"
+                      class="speed-btn px-3 py-1 rounded border hover:bg-neutral-100"
+                    >
+                      0.65
+                    </button>
+                    <button
+                      data-v="0.75"
+                      class="speed-btn px-3 py-1 rounded border hover:bg-neutral-100"
+                    >
+                      0.75
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-neutral-700"
+                    >行走比例 p_walk（%）<span
+                      id="simWalkRatioVal"
+                      class="ml-2 text-xs text-neutral-500"
+                    ></span
+                  ></label>
+                  <input
+                    id="simWalkRatio"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    class="w-full"
+                  />
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-neutral-700"
+                      >站立間隔 g_stand
+                      <span
+                        id="simGStandVal"
+                        class="ml-1 text-xs text-neutral-500"
+                      ></span
+                    ></label>
+                    <input
+                      id="simGStand"
+                      type="range"
+                      min="1"
+                      max="2.5"
+                      step="0.1"
+                      class="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-neutral-700"
+                      >行走間隔 g_walk
+                      <span
+                        id="simGWalkVal"
+                        class="ml-1 text-xs text-neutral-500"
+                      ></span
+                    ></label>
+                    <input
+                      id="simGWalk"
+                      type="range"
+                      min="0"
+                      max="2"
+                      step="0.1"
+                      class="w-full"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-neutral-700"
+                    >左側阻擋率 p_block（%）<span
+                      id="simBlockVal"
+                      class="ml-1 text-xs text-neutral-500"
+                    ></span
+                  ></label>
+                  <input
+                    id="simBlock"
+                    type="range"
+                    min="0"
+                    max="30"
+                    step="1"
+                    class="w-full"
+                  />
+                </div>
+                <div class="flex items-end gap-3">
+                  <button
+                    id="simToggle"
+                    class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg"
+                  >
+                    開始
+                  </button>
+                  <button id="simReset" class="border px-3 py-2 rounded-lg">
+                    重置
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 三種策略同時顯示 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="bg-white p-6 rounded-2xl card-shadow">
+                <h4 class="font-semibold text-neutral-800 mb-3 font-tc">
+                  左行右立
+                </h4>
+                <div class="sim-esc" id="simEscA">
+                  <div class="sim-lane left"></div>
+                  <div class="sim-lane right"></div>
+                </div>
+                <div class="mt-3 text-sm text-neutral-700">
+                  <div>
+                    即時通行率：<span data-metric="th-a">0</span> 人/分鐘
+                  </div>
+                  <div>在梯人數：<span data-metric="in-a">0</span> 人</div>
+                </div>
+              </div>
+              <div class="bg-white p-6 rounded-2xl card-shadow">
+                <h4 class="font-semibold text-neutral-800 mb-3 font-tc">
+                  兩側站立
+                </h4>
+                <div class="sim-esc" id="simEscB">
+                  <div class="sim-lane left"></div>
+                  <div class="sim-lane right"></div>
+                </div>
+                <div class="mt-3 text-sm text-neutral-700">
+                  <div>
+                    即時通行率：<span data-metric="th-b">0</span> 人/分鐘
+                  </div>
+                  <div>在梯人數：<span data-metric="in-b">0</span> 人</div>
+                </div>
+              </div>
+              <div class="bg-white p-6 rounded-2xl card-shadow">
+                <h4 class="font-semibold text-neutral-800 mb-3 font-tc">
+                  兩側行走（理論情境）
+                </h4>
+                <div class="sim-esc" id="simEscC">
+                  <div class="sim-lane left"></div>
+                  <div class="sim-lane right"></div>
+                </div>
+                <div class="mt-3 text-sm text-neutral-700">
+                  <div>
+                    即時通行率：<span data-metric="th-c">0</span> 人/分鐘
+                  </div>
+                  <div>在梯人數：<span data-metric="in-c">0</span> 人</div>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-neutral-500">
+              說明：綜合本頁研究參數，代理人隨機產生與互動（行走意願、間距、阻擋事件），以近似呈現不同策略與速度下的人流差異。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 結論區域 -->
+      <section id="conclusion" class="py-16 sm:py-20 bg-neutral-100">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="max-w-4xl mx-auto">
+            <!-- 區域標題 -->
+            <div class="text-center mb-12 opacity-0 fade-in-element">
+              <h2
+                class="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-800 mb-4 font-tc"
+              >
+                研究結論與建議
+              </h2>
+              <p
+                class="text-lg text-neutral-600 max-w-3xl mx-auto leading-relaxed"
+              >
+                基於數據分析提出的政策建議與未來展望
+              </p>
+            </div>
+
+            <!-- 主要結論 -->
+            <div
+              class="bg-white p-8 rounded-2xl card-shadow mb-8 opacity-0 fade-in-element"
+            >
+              <h3
+                class="text-xl sm:text-2xl font-semibold text-neutral-800 mb-6 font-tc"
+              >
+                主要研究發現
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                  <div class="flex items-start">
+                    <div
+                      class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0"
+                    >
+                      <i class="fas fa-check text-green-600 text-sm"></i>
+                    </div>
+                    <div>
+                      <h4 class="font-semibold text-neutral-800 font-tc">
+                        尖峰時段優化策略
+                      </h4>
+                      <p class="text-neutral-600 text-sm">
+                        兩側站立策略在高人流密度下比左行右立提升31%運輸效率
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex items-start">
+                    <div
+                      class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0"
+                    >
+                      <i class="fas fa-chart-line text-blue-600 text-sm"></i>
+                    </div>
+                    <div>
+                      <h4 class="font-semibold text-neutral-800 font-tc">
+                        提速效果顯著
+                      </h4>
+                      <p class="text-neutral-600 text-sm">
+                        電扶梯從0.5m/s提升至0.65m/s，每分鐘增加22人運載量
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="space-y-4">
+                  <div class="flex items-start">
+                    <div
+                      class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0"
+                    >
+                      <i class="fas fa-users text-yellow-600 text-sm"></i>
+                    </div>
+                    <div>
+                      <h4 class="font-semibold text-neutral-800 font-tc">
+                        行為因素重要
+                      </h4>
+                      <p class="text-neutral-600 text-sm">
+                        從眾心理與社會壓力是影響策略執行效果的關鍵因素
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex items-start">
+                    <div
+                      class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0"
+                    >
+                      <i class="fas fa-cog text-purple-600 text-sm"></i>
+                    </div>
+                    <div>
+                      <h4 class="font-semibold text-neutral-800 font-tc">
+                        動態調整策略
+                      </h4>
+                      <p class="text-neutral-600 text-sm">
+                        應根據不同時段人流密度動態選擇最適通行策略
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 政策建議 -->
+            <div
+              class="bg-white p-8 rounded-2xl card-shadow opacity-0 fade-in-element"
+            >
+              <h3
+                class="text-xl sm:text-2xl font-semibold text-neutral-800 mb-6 font-tc"
+              >
+                政策建議
+              </h3>
+              <div class="space-y-6">
+                <div class="border-l-4 border-primary-500 pl-4">
+                  <h4 class="font-semibold text-neutral-800 mb-2 font-tc">
+                    短期措施
+                  </h4>
+                  <p class="text-neutral-600 leading-relaxed">
+                    加強在高人流車站推廣「兩側站立」策略，透過廣播宣導與現場引導，提升乘客遵從度。重點時段包括平日早晚尖峰與假日人潮聚集時間。
+                  </p>
+                </div>
+                <div class="border-l-4 border-secondary-500 pl-4">
+                  <h4 class="font-semibold text-neutral-800 mb-2 font-tc">
+                    中期規劃
+                  </h4>
+                  <p class="text-neutral-600 leading-relaxed">
+                    引入智慧監測系統，即時分析人流密度並動態調整宣導策略。參考名古屋地鐵經驗，運用AI系統進行個別化引導。
+                  </p>
+                </div>
+                <div class="border-l-4 border-green-500 pl-4">
+                  <h4 class="font-semibold text-neutral-800 mb-2 font-tc">
+                    長期願景
+                  </h4>
+                  <p class="text-neutral-600 leading-relaxed">
+                    建構全方位電扶梯安全與效率管理體系，整合硬體改善、軟體優化與行為引導，創造世界級的都市交通環境。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer 頁腳 -->
+    <footer class="bg-neutral-800 text-white py-12">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto text-center">
+          <div class="flex items-center justify-center mb-4">
+            <i class="fas fa-subway text-2xl mr-3"></i>
+            <h3 class="text-xl font-semibold font-tc">台北捷運研究報告</h3>
+          </div>
+          <p class="text-neutral-300 mb-6 leading-relaxed">
+            運用科學方法優化都市交通，提升乘客體驗與運輸效率
+          </p>
+          <div class="flex justify-center space-x-6 mb-6">
+            <a
+              href="#"
+              class="text-neutral-300 hover:text-white transition-colors duration-200"
+            >
+              <i class="fab fa-twitter text-xl"></i>
+            </a>
+            <a
+              href="#"
+              class="text-neutral-300 hover:text-white transition-colors duration-200"
+            >
+              <i class="fab fa-facebook text-xl"></i>
+            </a>
+            <a
+              href="#"
+              class="text-neutral-300 hover:text-white transition-colors duration-200"
+            >
+              <i class="fab fa-linkedin text-xl"></i>
+            </a>
+          </div>
+          <div class="border-t border-neutral-700 pt-6">
+            <p class="text-sm text-neutral-400">
+              © 2025 台北捷運電扶梯人流模擬研究報告. 版權所有.
+            </p>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- 隱藏彩蛋按鈕 -->
+    <div class="easter-egg" onclick="showEasterEgg()">
+      <i class="fas fa-gift text-white text-xl"></i>
+    </div>
+
+    <!-- 彩蛋模態框 -->
+    <div id="easterEggModal" class="modal">
+      <div class="modal-content">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-semibold text-neutral-800 font-tc">
+            🎮 電扶梯小遊戲
+          </h3>
+          <button
+            onclick="closeEasterEgg()"
+            class="text-neutral-500 hover:text-neutral-700 text-xl"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="text-center">
+          <div
+            class="bg-gradient-to-r from-blue-500 to-purple-600 p-6 rounded-xl text-white mb-4"
+          >
+            <h4 class="text-lg font-semibold mb-2 font-tc">電扶梯通行挑戰</h4>
+            <p class="text-sm mb-4">選擇最佳策略，幫助所有乘客順利通行！</p>
+            <div class="flex justify-center space-x-3">
+              <button
+                onclick="playGame('left-right')"
+                class="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition"
+              >
+                左行右立
+              </button>
+              <button
+                onclick="playGame('both-stand')"
+                class="bg-white text-purple-600 px-4 py-2 rounded-lg font-medium hover:bg-purple-50 transition"
+              >
+                兩側站立
+              </button>
+              <button
+                onclick="playGame('both-walk')"
+                class="bg-white text-green-600 px-4 py-2 rounded-lg font-medium hover:bg-green-50 transition"
+              >
+                兩側行走
+              </button>
+            </div>
+          </div>
+          <div id="gameResult" class="text-center hidden">
+            <div class="bg-green-100 p-4 rounded-lg">
+              <i class="fas fa-trophy text-yellow-500 text-2xl mb-2"></i>
+              <p class="font-semibold text-green-800 font-tc">
+                恭喜！你選擇了最優策略！
+              </p>
+              <p class="text-sm text-green-600 mt-1">
+                在尖峰時段，兩側站立能提升31%的通行效率
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // === 頁面載入與動畫控制 ===
+      document.addEventListener("DOMContentLoaded", function () {
+        // 初始化圖表（僅在 Chart.js 成功載入時）
+        maybeInitCharts();
+
+        // 設置滾動監聽器進行動畫觸發
+        setupScrollAnimations();
+
+        // 設置導航功能
+        setupNavigation();
+
+        // 平滑滾動到頂部
+        window.scrollTo(0, 0);
+
+        // 初始化互動模擬
+        setupSimulator();
+      });
+
+      // === 安全初始化 Chart.js（含後備機制） ===
+      function maybeInitCharts() {
+        try {
+          if (window.Chart) {
+            initCharts();
+            return;
+          }
+          const script = document.getElementById("chartjs-script");
+          if (script) {
+            script.addEventListener("load", () => {
+              if (window.Chart) initCharts();
+            });
+            script.addEventListener("error", () => {
+              // 第一次載入失敗，嘗試備援 CDN
+              console.warn("Chart.js 主要 CDN 載入失敗，嘗試備援來源...");
+              const fallback = document.createElement("script");
+              fallback.src =
+                "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+              fallback.defer = true;
+              fallback.crossOrigin = "anonymous";
+              fallback.referrerPolicy = "no-referrer";
+              fallback.addEventListener("load", () => {
+                if (window.Chart) initCharts();
+              });
+              fallback.addEventListener("error", () => {
+                console.error("Chart.js 備援來源也無法載入。圖表將被略過。");
+                // 將圖表區域隱藏或顯示友善訊息
+                const charts = [
+                  document.getElementById("efficiencyChart"),
+                  document.getElementById("densityChart"),
+                ];
+                charts.forEach((c) => {
+                  if (!c) return;
+                  const wrapper = c.parentElement;
+                  if (!wrapper) return;
+                  const msg = document.createElement("div");
+                  msg.className = "text-sm text-red-600";
+                  msg.textContent = "圖表載入失敗（離線或 CDN 無法連線）。";
+                  wrapper.appendChild(msg);
+                });
+              });
+              document.head.appendChild(fallback);
+            });
+          }
+        } catch (e) {
+          console.error("初始化 Chart.js 時發生錯誤：", e);
+        }
+      }
+
+      // === 導航功能 ===
+      function setupNavigation() {
+        const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+        const mobileMenu = document.getElementById("mobile-menu");
+
+        mobileMenuBtn.addEventListener("click", function () {
+          mobileMenu.classList.toggle("hidden");
+        });
+
+        // 點擊導航連結時關閉選單
+        document.querySelectorAll("#mobile-menu a").forEach((link) => {
+          link.addEventListener("click", function () {
+            mobileMenu.classList.add("hidden");
+          });
+        });
+      }
+
+      // === 滾動動畫設置 ===
+      function setupScrollAnimations() {
+        const observerOptions = {
+          threshold: 0.1,
+          rootMargin: "0px 0px -50px 0px",
+        };
+
+        const observer = new IntersectionObserver(function (entries) {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.style.opacity = "1";
+              entry.target.style.animation = "fadeInUp 0.6s ease-out forwards";
+            }
+          });
+        }, observerOptions);
+
+        // 觀察所有需要動畫的元素
+        document.querySelectorAll(".fade-in-element").forEach((element) => {
+          observer.observe(element);
+        });
+      }
+
+      // === 平滑滾動功能 ===
+      function scrollToSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (section) {
+          section.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }
+
+      // === 圖表初始化 ===
+      function initCharts() {
+        // 通行效率比較圖
+        const efficiencyCtx = document
+          .getElementById("efficiencyChart")
+          .getContext("2d");
+        new Chart(efficiencyCtx, {
+          type: "bar",
+          data: {
+            labels: ["左行右立", "兩側站立", "兩側行走"],
+            datasets: [
+              {
+                label: "通行人數 (人/分鐘)",
+                data: [115, 151, 148],
+                backgroundColor: [
+                  "rgba(239, 68, 68, 0.8)",
+                  "rgba(34, 197, 94, 0.8)",
+                  "rgba(59, 130, 246, 0.8)",
+                ],
+                borderColor: [
+                  "rgba(239, 68, 68, 1)",
+                  "rgba(34, 197, 94, 1)",
+                  "rgba(59, 130, 246, 1)",
+                ],
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 180,
+                grid: {
+                  color: "rgba(0, 0, 0, 0.1)",
+                },
+              },
+              x: {
+                grid: {
+                  display: false,
+                },
+              },
+            },
+            animation: {
+              delay: 500,
+              duration: 1000,
+              easing: "easeOutQuart",
+            },
+          },
+        });
+
+        // 人流密度影響圖
+        const densityCtx = document
+          .getElementById("densityChart")
+          .getContext("2d");
+        new Chart(densityCtx, {
+          type: "line",
+          data: {
+            labels: ["40", "60", "80", "100", "120", "140", "160"],
+            datasets: [
+              {
+                label: "左行右立",
+                data: [85, 95, 105, 115, 115, 110, 105],
+                borderColor: "rgba(239, 68, 68, 1)",
+                backgroundColor: "rgba(239, 68, 68, 0.1)",
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+              },
+              {
+                label: "兩側站立",
+                data: [75, 90, 120, 140, 151, 150, 148],
+                borderColor: "rgba(34, 197, 94, 1)",
+                backgroundColor: "rgba(34, 197, 94, 0.1)",
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+              },
+              {
+                label: "兩側行走",
+                data: [80, 100, 125, 142, 148, 146, 144],
+                borderColor: "rgba(59, 130, 246, 1)",
+                backgroundColor: "rgba(59, 130, 246, 0.1)",
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "top",
+                labels: {
+                  usePointStyle: true,
+                  padding: 20,
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 160,
+                title: {
+                  display: true,
+                  text: "通行效率 (人/分鐘)",
+                },
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: "人流密度 (人/分鐘)",
+                },
+              },
+            },
+            interaction: {
+              intersect: false,
+              mode: "index",
+            },
+            animation: {
+              delay: 800,
+              duration: 1200,
+              easing: "easeOutQuart",
+            },
+          },
+        });
+      }
+
+      // === 彩蛋功能 ===
+      function showEasterEgg() {
+        const modal = document.getElementById("easterEggModal");
+        const gameResult = document.getElementById("gameResult");
+        gameResult.classList.add("hidden");
+        modal.style.display = "block";
+
+        // 添加點擊外部關閉功能
+        modal.addEventListener("click", function (e) {
+          if (e.target === modal) {
+            closeEasterEgg();
+          }
+        });
+      }
+
+      function closeEasterEgg() {
+        const modal = document.getElementById("easterEggModal");
+        modal.style.display = "none";
+      }
+
+      function playGame(strategy) {
+        const gameResult = document.getElementById("gameResult");
+        const resultDiv = gameResult.querySelector("div");
+
+        // 根據選擇顯示不同結果
+        if (strategy === "both-stand") {
+          resultDiv.innerHTML = `
+                    <i class="fas fa-trophy text-yellow-500 text-2xl mb-2"></i>
+                    <p class="font-semibold text-green-800 font-tc">🎉 恭喜！你選擇了最優策略！</p>
+                    <p class="text-sm text-green-600 mt-1">在尖峰時段，兩側站立能提升31%的通行效率，是最佳選擇！</p>
+                `;
+          resultDiv.className = "bg-green-100 p-4 rounded-lg";
+        } else if (strategy === "left-right") {
+          resultDiv.innerHTML = `
+                    <i class="fas fa-info-circle text-blue-500 text-2xl mb-2"></i>
+                    <p class="font-semibold text-blue-800 font-tc">不錯的選擇！</p>
+                    <p class="text-sm text-blue-600 mt-1">左行右立適合人流較少的時段，但在尖峰時段效率偏低。</p>
+                `;
+          resultDiv.className = "bg-blue-100 p-4 rounded-lg";
+        } else {
+          resultDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle text-orange-500 text-2xl mb-2"></i>
+                    <p class="font-semibold text-orange-800 font-tc">理論上可行！</p>
+                    <p class="text-sm text-orange-600 mt-1">兩側行走理論效率高，但實際操作困難，可能產生安全隱患。</p>
+                `;
+          resultDiv.className = "bg-orange-100 p-4 rounded-lg";
+        }
+
+        gameResult.classList.remove("hidden");
+      }
+
+      // === 鍵盤快捷鍵 ===
+      document.addEventListener("keydown", function (e) {
+        // 按 ESC 關閉模態框
+        if (e.key === "Escape") {
+          closeEasterEgg();
+        }
+      });
+
+      // === 互動模擬：代理人模型 ===
+      function setupSimulator() {
+        const sceneEl = document.getElementById("simScene");
+        const walkEl = document.getElementById("simWalkRatio");
+        const gStandEl = document.getElementById("simGStand");
+        const gWalkEl = document.getElementById("simGWalk");
+        const blockEl = document.getElementById("simBlock");
+        const walkValEl = document.getElementById("simWalkRatioVal");
+        const gStandValEl = document.getElementById("simGStandVal");
+        const gWalkValEl = document.getElementById("simGWalkVal");
+        const blockValEl = document.getElementById("simBlockVal");
+        const toggleEl = document.getElementById("simToggle");
+        const resetEl = document.getElementById("simReset");
+
+        const cards = [
+          {
+            id: "simEscA",
+            strategy: "left_walk_right_stand",
+            thSel: '[data-metric="th-a"]',
+            inSel: '[data-metric="in-a"]',
+          },
+          {
+            id: "simEscB",
+            strategy: "both_stand",
+            thSel: '[data-metric="th-b"]',
+            inSel: '[data-metric="in-b"]',
+          },
+          {
+            id: "simEscC",
+            strategy: "both_walk",
+            thSel: '[data-metric="th-c"]',
+            inSel: '[data-metric="in-c"]',
+          },
+        ];
+
+        const presets = {
+          peak: { lambda: 120, pWalk: 20, gStand: 1.0, gWalk: 1.0, pBlock: 8 },
+          offpeak: {
+            lambda: 40,
+            pWalk: 40,
+            gStand: 1.6,
+            gWalk: 1.2,
+            pBlock: 3,
+          },
+        };
+
+        let baseV = 0.5; // m/s
+        let running = false;
+
+        function applyPreset() {
+          const p = presets[sceneEl.value];
+          walkEl.value = String(p.pWalk);
+          gStandEl.value = String(p.gStand);
+          gWalkEl.value = String(p.gWalk);
+          blockEl.value = String(p.pBlock);
+          syncLabels();
+        }
+        applyPreset();
+
+        function syncLabels() {
+          if (walkValEl) walkValEl.textContent = `${walkEl.value}%`;
+          if (gStandValEl)
+            gStandValEl.textContent = `${parseFloat(gStandEl.value).toFixed(
+              1
+            )}`;
+          if (gWalkValEl)
+            gWalkValEl.textContent = `${parseFloat(gWalkEl.value).toFixed(1)}`;
+          if (blockValEl) blockValEl.textContent = `${blockEl.value}%`;
+        }
+        [walkEl, gStandEl, gWalkEl, blockEl].forEach((el) => {
+          el.addEventListener("input", syncLabels);
+        });
+
+        Array.from(document.querySelectorAll(".speed-btn")).forEach((btn) => {
+          btn.addEventListener("click", () => {
+            baseV = parseFloat(btn.getAttribute("data-v")) || 0.5;
+            Array.from(document.querySelectorAll(".speed-btn")).forEach((b) =>
+              b.classList.remove("bg-neutral-200")
+            );
+            btn.classList.add("bg-neutral-200");
+          });
+        });
+        document
+          .querySelector('.speed-btn[data-v="0.5"]')
+          .classList.add("bg-neutral-200");
+        sceneEl.addEventListener("change", applyPreset);
+
+        // 建立三個獨立模擬器
+        const sims = cards.map((c) => createSimInstance(c));
+
+        function createSimInstance(cfg) {
+          const escEl = document.getElementById(cfg.id);
+          if (!escEl) return null;
+          const thEl = escEl.parentElement.querySelector(cfg.thSel);
+          const inEl = escEl.parentElement.querySelector(cfg.inSel);
+          const meters = 15;
+          const pxPerMeter = escEl.clientHeight / meters;
+          const laneX = {
+            left: escEl.clientWidth * 0.25,
+            right: escEl.clientWidth * 0.75,
+          };
+          const agents = { left: [], right: [] };
+          const exitTimes = [];
+
+          function createNode(lane, type) {
+            const el = document.createElement("div");
+            el.className = `sim-person ${type}`;
+            el.style.left = `${laneX[lane]}px`;
+            escEl.appendChild(el);
+            return el;
+          }
+
+          function spawn(dt) {
+            const preset = presets[sceneEl.value];
+            const lambdaPerSec = preset.lambda / 60;
+            let expected = lambdaPerSec * dt;
+            while (expected > 0) {
+              if (Math.random() < Math.min(1, expected)) {
+                // assign lane
+                const r = Math.random() < 0.5 ? "left" : "right";
+                let walking = false;
+                if (cfg.strategy === "left_walk_right_stand") {
+                  if (r === "left") {
+                    walking = Math.random() < parseFloat(walkEl.value) / 100;
+                    const pBlock = parseFloat(blockEl.value) / 100;
+                    if (walking && Math.random() < pBlock) walking = false;
+                  } else {
+                    walking = false;
+                  }
+                } else if (cfg.strategy === "both_stand") {
+                  walking = false;
+                } else if (cfg.strategy === "both_walk") {
+                  // 理論情境：預設皆走，可用 p_walk 微調有效行走比例
+                  walking =
+                    Math.random() < (parseFloat(walkEl.value) / 100 || 1);
+                }
+                const type = walking ? "walk" : "stand";
+                const node = createNode(r, type);
+                const agent = {
+                  lane: r,
+                  walking,
+                  y: escEl.clientHeight - 8,
+                  el: node,
+                };
+                agents[r].push(agent);
+              }
+              expected -= 1;
+            }
+          }
+
+          function step(dt) {
+            spawn(dt);
+            const vBasePx = baseV * pxPerMeter;
+            const vWalkPx = 0.6 * pxPerMeter;
+            const gStand = parseFloat(gStandEl.value);
+            const gWalk = parseFloat(gWalkEl.value);
+            const stairPx = 0.4 * pxPerMeter;
+            const minGapStand = Math.max(10, stairPx * gStand);
+            const minGapWalk = Math.max(14, stairPx * (gWalk + 1));
+
+            ["left", "right"].forEach((lane) => {
+              const list = agents[lane];
+              list.sort((a, b) => a.y - b.y);
+              for (let i = 0; i < list.length; i++) {
+                const a = list[i];
+                const ahead = i > 0 ? list[i - 1] : null;
+                let vy = vBasePx + (a.walking ? vWalkPx : 0);
+                if (ahead) {
+                  const gap = a.y - ahead.y;
+                  const minGap = a.walking ? minGapWalk : minGapStand;
+                  if (gap < minGap) {
+                    const aheadVy = vBasePx + (ahead.walking ? vWalkPx : 0);
+                    vy = Math.min(vy, aheadVy * 0.95);
+                  }
+                }
+                a.y -= vy * dt;
+                a.el.style.top = `${a.y}px`;
+                a.el.style.left = `${laneX[lane]}px`;
+              }
+              for (let i = list.length - 1; i >= 0; i--) {
+                if (list[i].y <= 6) {
+                  if (exitTimes.length > 300) exitTimes.shift();
+                  exitTimes.push(performance.now());
+                  list[i].el.remove();
+                  list.splice(i, 1);
+                }
+              }
+            });
+
+            const now = performance.now();
+            while (exitTimes.length && now - exitTimes[0] > 30000)
+              exitTimes.shift();
+            const perMin = (exitTimes.length / 30) * 60;
+            if (thEl) thEl.textContent = Math.round(perMin);
+            if (inEl)
+              inEl.textContent = (
+                agents.left.length + agents.right.length
+              ).toString();
+          }
+
+          function reset() {
+            ["left", "right"].forEach((lane) => {
+              agents[lane].forEach((a) => a.el.remove());
+              agents[lane] = [];
+            });
+            exitTimes.length = 0;
+          }
+
+          return { escEl, step, reset };
+        }
+
+        let lastTime = 0;
+        function loop(t) {
+          if (!running) return;
+          if (!lastTime) lastTime = t;
+          const dt = Math.min(64, t - lastTime) / 1000;
+          lastTime = t;
+          sims.forEach((s) => s && s.step(dt));
+          requestAnimationFrame(loop);
+        }
+
+        toggleEl.addEventListener("click", () => {
+          running = !running;
+          toggleEl.textContent = running ? "暫停" : "開始";
+          if (running) {
+            lastTime = 0;
+            requestAnimationFrame(loop);
+          }
+        });
+        resetEl.addEventListener("click", () => {
+          running = false;
+          toggleEl.textContent = "開始";
+          lastTime = 0;
+          sims.forEach((s) => s && s.reset());
+          applyPreset();
+        });
+      }
+    </script>
+  </body>
+</html>
