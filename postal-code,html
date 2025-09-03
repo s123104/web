@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>台灣郵遞區號速查 | 快速查詢工具</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind Config -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: "#eff6ff",
+                100: "#dbeafe",
+                500: "#3b82f6",
+                600: "#2563eb",
+                700: "#1d4ed8",
+                900: "#1e3a8a",
+              },
+              secondary: {
+                50: "#f0fdf4",
+                100: "#dcfce7",
+                500: "#22c55e",
+                600: "#16a34a",
+              },
+              neutral: {
+                50: "#f9fafb",
+                100: "#f3f4f6",
+                200: "#e5e7eb",
+                300: "#d1d5db",
+                400: "#9ca3af",
+                500: "#6b7280",
+                600: "#4b5563",
+                700: "#374151",
+                800: "#1f2937",
+                900: "#111827",
+              },
+            },
+            fontFamily: {
+              sans: ["Inter", "Noto Sans TC", "system-ui", "sans-serif"],
+            },
+            spacing: {
+              18: "4.5rem",
+              88: "22rem",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+</html>
+    
+    <!-- Custom Styles -->
+    <style>
+        /* 自定義動畫與微互動效果 */
+        .search-card {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        .area-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(0);
+        }
+        
+        .area-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .pulse-ring {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.33);
+            }
+            40%, 50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1.2);
+            }
+        }
+        
+        /* 搜尋結果高亮 */
+        .highlight {
+            background: linear-gradient(120deg, #fbbf24 0%, #f59e0b 100%);
+            color: #92400e;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+        }
+    </style>
+</head><body
+ class="bg-gradient-to-br from-primary-50 via-white to-secondary-50 min-h-screen font-sans">
+    
+    <!-- Header Section -->
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-map-marker-alt text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-neutral-900">郵遞區號速查</h1>
+                        <p class="text-xs text-neutral-500 hidden sm:block">Taiwan Postal Code Finder</p>
+                    </div>
+                </div>
+                
+                <!-- 隱藏彩蛋按鈕 -->
+                <button id="easterEggBtn" class="opacity-0 hover:opacity-100 transition-opacity duration-300 w-8 h-8 rounded-full bg-gradient-to-r from-pink-400 to-purple-500 flex items-center justify-center text-white text-sm">
+                    <i class="fas fa-gift"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Search Section -->
+        <section class="mb-12">
+            <div class="text-center mb-8 fade-in">
+                <h2 class="text-3xl sm:text-4xl font-bold text-neutral-900 mb-4">
+                    快速查詢台灣郵遞區號
+                </h2>
+                <p class="text-lg text-neutral-600 max-w-2xl mx-auto leading-relaxed">
+                    輸入縣市、地區名稱或郵遞區號，即時搜尋對應資訊
+                </p>
+            </div>
+            
+            <!-- Search Card -->
+            <div class="search-card rounded-2xl p-6 sm:p-8 shadow-xl border border-white/20 max-w-2xl mx-auto fade-in">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-neutral-400"></i>
+                    </div>
+                    <input 
+                        type="text" 
+                        id="searchInput"
+                        placeholder="搜尋縣市、地區或郵遞區號..."
+                        class="w-full pl-12 pr-4 py-4 text-lg border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 transition-all duration-200 outline-none bg-white/50"
+                        autocomplete="off"
+                    >
+                </div>
+                
+                <!-- Search Stats -->
+                <div class="flex items-center justify-between mt-4 text-sm text-neutral-500">
+                    <span id="searchStats">共 368 個地區可查詢</span>
+                    <span class="flex items-center space-x-1">
+                        <div class="w-2 h-2 bg-secondary-500 rounded-full pulse-ring"></div>
+                        <span>即時搜尋</span>
+                    </span>
+                </div>
+            </div>
+        </section>        
+
+        <!-- Results Section -->
+        <section id="resultsSection">
+            <!-- Search Results (Hidden by default) -->
+            <div id="searchResults" class="hidden mb-8">
+                <h3 class="text-xl font-semibold text-neutral-900 mb-4 flex items-center">
+                    <i class="fas fa-search-location text-primary-500 mr-2"></i>
+                    搜尋結果
+                </h3>
+                <div id="searchResultsList" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+            </div>
+            
+            <!-- All Areas Grid -->
+            <div id="allAreas">
+                <h3 class="text-xl font-semibold text-neutral-900 mb-6 flex items-center">
+                    <i class="fas fa-map text-primary-500 mr-2"></i>
+                    全台郵遞區號一覽
+                </h3>
+                
+                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" id="areasGrid">
+                    <!-- 區域卡片將由 JavaScript 動態生成 -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-neutral-900 text-white py-12 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <div class="flex items-center justify-center space-x-3 mb-4">
+                    <div class="w-8 h-8 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-map-marker-alt text-white text-sm"></i>
+                    </div>
+                    <span class="text-lg font-semibold">台灣郵遞區號速查</span>
+                </div>
+                <p class="text-neutral-400 mb-4">快速、準確、易用的郵遞區號查詢工具</p>
+                <div class="flex items-center justify-center space-x-6 text-sm text-neutral-500">
+                    <span>© 2024 Taiwan Postal Code Finder</span>
+                    <span>•</span>
+                    <span>Made with ❤️ for Taiwan</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Easter Egg Modal -->
+    <div id="easterEggModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full transform scale-95 transition-transform duration-300">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-gift text-white text-2xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-neutral-900 mb-2">🎉 發現隱藏彩蛋！</h3>
+                <p class="text-neutral-600 mb-6">恭喜你發現了這個小驚喜！你知道嗎？台灣的郵遞區號系統從 1970 年開始使用，至今已經服務超過 50 年了！</p>
+                <button id="closeEasterEgg" class="bg-gradient-to-r from-primary-500 to-secondary-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-200">
+                    太酷了！
+                </button>
+            </div>
+        </div>
+    </div>   
+ 
+    <!-- JavaScript -->
+    <script>
+        // 台灣郵遞區號資料
+        const postalData = [
+            // 台北市
+            { city: '台北市', area: '中正區', code: '100' },
+            { city: '台北市', area: '大同區', code: '103' },
+            { city: '台北市', area: '中山區', code: '104' },
+            { city: '台北市', area: '松山區', code: '105' },
+            { city: '台北市', area: '大安區', code: '106' },
+            { city: '台北市', area: '萬華區', code: '108' },
+            { city: '台北市', area: '信義區', code: '110' },
+            { city: '台北市', area: '士林區', code: '111' },
+            { city: '台北市', area: '北投區', code: '112' },
+            { city: '台北市', area: '內湖區', code: '114' },
+            { city: '台北市', area: '南港區', code: '115' },
+            { city: '台北市', area: '文山區', code: '116' },
+            
+            // 新北市
+            { city: '新北市', area: '板橋區', code: '220' },
+            { city: '新北市', area: '汐止區', code: '221' },
+            { city: '新北市', area: '深坑區', code: '222' },
+            { city: '新北市', area: '石碇區', code: '223' },
+            { city: '新北市', area: '瑞芳區', code: '224' },
+            { city: '新北市', area: '平溪區', code: '226' },
+            { city: '新北市', area: '雙溪區', code: '227' },
+            { city: '新北市', area: '貢寮區', code: '228' },
+            { city: '新北市', area: '新店區', code: '231' },
+            { city: '新北市', area: '坪林區', code: '232' },
+            { city: '新北市', area: '烏來區', code: '233' },
+            { city: '新北市', area: '永和區', code: '234' },
+            { city: '新北市', area: '中和區', code: '235' },
+            { city: '新北市', area: '土城區', code: '236' },
+            { city: '新北市', area: '三峽區', code: '237' },
+            { city: '新北市', area: '樹林區', code: '238' },
+            { city: '新北市', area: '鶯歌區', code: '239' },
+            { city: '新北市', area: '三重區', code: '241' },
+            { city: '新北市', area: '新莊區', code: '242' },
+            { city: '新北市', area: '泰山區', code: '243' },
+            { city: '新北市', area: '林口區', code: '244' },
+            { city: '新北市', area: '蘆洲區', code: '247' },
+            { city: '新北市', area: '五股區', code: '248' },
+            { city: '新北市', area: '八里區', code: '249' },
+            { city: '新北市', area: '淡水區', code: '251' },
+            { city: '新北市', area: '三芝區', code: '252' },
+            { city: '新北市', area: '石門區', code: '253' },
+            
+            // 基隆市
+            { city: '基隆市', area: '仁愛區', code: '200' },
+            { city: '基隆市', area: '信義區', code: '201' },
+            { city: '基隆市', area: '中正區', code: '202' },
+            { city: '基隆市', area: '中山區', code: '203' },
+            { city: '基隆市', area: '安樂區', code: '204' },
+            { city: '基隆市', area: '暖暖區', code: '205' },
+            { city: '基隆市', area: '七堵區', code: '206' },   
+         
+            // 桃園市
+            { city: '桃園市', area: '中壢區', code: '320' },
+            { city: '桃園市', area: '平鎮區', code: '324' },
+            { city: '桃園市', area: '龍潭區', code: '325' },
+            { city: '桃園市', area: '楊梅區', code: '326' },
+            { city: '桃園市', area: '新屋區', code: '327' },
+            { city: '桃園市', area: '觀音區', code: '328' },
+            { city: '桃園市', area: '桃園區', code: '330' },
+            { city: '桃園市', area: '龜山區', code: '333' },
+            { city: '桃園市', area: '八德區', code: '334' },
+            { city: '桃園市', area: '大溪區', code: '335' },
+            { city: '桃園市', area: '復興區', code: '336' },
+            { city: '桃園市', area: '大園區', code: '337' },
+            { city: '桃園市', area: '蘆竹區', code: '338' },
+            
+            // 新竹市
+            { city: '新竹市', area: '東區', code: '300' },
+            { city: '新竹市', area: '北區', code: '300' },
+            { city: '新竹市', area: '香山區', code: '300' },
+            
+            // 新竹縣
+            { city: '新竹縣', area: '竹北市', code: '302' },
+            { city: '新竹縣', area: '湖口鄉', code: '303' },
+            { city: '新竹縣', area: '新豐鄉', code: '304' },
+            { city: '新竹縣', area: '新埔鎮', code: '305' },
+            { city: '新竹縣', area: '關西鎮', code: '306' },
+            { city: '新竹縣', area: '芎林鄉', code: '307' },
+            { city: '新竹縣', area: '寶山鄉', code: '308' },
+            { city: '新竹縣', area: '竹東鎮', code: '310' },
+            { city: '新竹縣', area: '五峰鄉', code: '311' },
+            { city: '新竹縣', area: '橫山鄉', code: '312' },
+            { city: '新竹縣', area: '尖石鄉', code: '313' },
+            { city: '新竹縣', area: '北埔鄉', code: '314' },
+            { city: '新竹縣', area: '峨眉鄉', code: '315' },
+            
+            // 苗栗縣
+            { city: '苗栗縣', area: '竹南鎮', code: '350' },
+            { city: '苗栗縣', area: '頭份市', code: '351' },
+            { city: '苗栗縣', area: '三灣鄉', code: '352' },
+            { city: '苗栗縣', area: '南庄鄉', code: '353' },
+            { city: '苗栗縣', area: '獅潭鄉', code: '354' },
+            { city: '苗栗縣', area: '後龍鎮', code: '356' },
+            { city: '苗栗縣', area: '通霄鎮', code: '357' },
+            { city: '苗栗縣', area: '苑裡鎮', code: '358' },
+            { city: '苗栗縣', area: '苗栗市', code: '360' },
+            { city: '苗栗縣', area: '造橋鄉', code: '361' },
+            { city: '苗栗縣', area: '頭屋鄉', code: '362' },
+            { city: '苗栗縣', area: '公館鄉', code: '363' },
+            { city: '苗栗縣', area: '大湖鄉', code: '364' },
+            { city: '苗栗縣', area: '泰安鄉', code: '365' },
+            { city: '苗栗縣', area: '銅鑼鄉', code: '366' },
+            { city: '苗栗縣', area: '三義鄉', code: '367' },
+            { city: '苗栗縣', area: '西湖鄉', code: '368' },
+            { city: '苗栗縣', area: '卓蘭鎮', code: '369' },    
+        
+            // 台中市
+            { city: '台中市', area: '中區', code: '400' },
+            { city: '台中市', area: '東區', code: '401' },
+            { city: '台中市', area: '南區', code: '402' },
+            { city: '台中市', area: '西區', code: '403' },
+            { city: '台中市', area: '北區', code: '404' },
+            { city: '台中市', area: '北屯區', code: '406' },
+            { city: '台中市', area: '西屯區', code: '407' },
+            { city: '台中市', area: '南屯區', code: '408' },
+            { city: '台中市', area: '太平區', code: '411' },
+            { city: '台中市', area: '大里區', code: '412' },
+            { city: '台中市', area: '霧峰區', code: '413' },
+            { city: '台中市', area: '烏日區', code: '414' },
+            { city: '台中市', area: '豐原區', code: '420' },
+            { city: '台中市', area: '后里區', code: '421' },
+            { city: '台中市', area: '石岡區', code: '422' },
+            { city: '台中市', area: '東勢區', code: '423' },
+            { city: '台中市', area: '和平區', code: '424' },
+            { city: '台中市', area: '新社區', code: '426' },
+            { city: '台中市', area: '潭子區', code: '427' },
+            { city: '台中市', area: '大雅區', code: '428' },
+            { city: '台中市', area: '神岡區', code: '429' },
+            { city: '台中市', area: '大肚區', code: '432' },
+            { city: '台中市', area: '沙鹿區', code: '433' },
+            { city: '台中市', area: '龍井區', code: '434' },
+            { city: '台中市', area: '梧棲區', code: '435' },
+            { city: '台中市', area: '清水區', code: '436' },
+            { city: '台中市', area: '大甲區', code: '437' },
+            { city: '台中市', area: '外埔區', code: '438' },
+            { city: '台中市', area: '大安區', code: '439' },
+            
+            // 彰化縣
+            { city: '彰化縣', area: '彰化市', code: '500' },
+            { city: '彰化縣', area: '芬園鄉', code: '502' },
+            { city: '彰化縣', area: '花壇鄉', code: '503' },
+            { city: '彰化縣', area: '秀水鄉', code: '504' },
+            { city: '彰化縣', area: '鹿港鎮', code: '505' },
+            { city: '彰化縣', area: '福興鄉', code: '506' },
+            { city: '彰化縣', area: '線西鄉', code: '507' },
+            { city: '彰化縣', area: '和美鎮', code: '508' },
+            { city: '彰化縣', area: '伸港鄉', code: '509' },
+            { city: '彰化縣', area: '員林市', code: '510' },
+            { city: '彰化縣', area: '社頭鄉', code: '511' },
+            { city: '彰化縣', area: '永靖鄉', code: '512' },
+            { city: '彰化縣', area: '埔心鄉', code: '513' },
+            { city: '彰化縣', area: '溪湖鎮', code: '514' },
+            { city: '彰化縣', area: '大村鄉', code: '515' },
+            { city: '彰化縣', area: '埔鹽鄉', code: '516' },
+            { city: '彰化縣', area: '田中鎮', code: '520' },
+            { city: '彰化縣', area: '北斗鎮', code: '521' },
+            { city: '彰化縣', area: '田尾鄉', code: '522' },
+            { city: '彰化縣', area: '埤頭鄉', code: '523' },
+            { city: '彰化縣', area: '溪州鄉', code: '524' },
+            { city: '彰化縣', area: '竹塘鄉', code: '525' },
+            { city: '彰化縣', area: '二林鎮', code: '526' },
+            { city: '彰化縣', area: '大城鄉', code: '527' },
+            { city: '彰化縣', area: '芳苑鄉', code: '528' },
+            { city: '彰化縣', area: '二水鄉', code: '530' },     
+       
+            // 南投縣
+            { city: '南投縣', area: '南投市', code: '540' },
+            { city: '南投縣', area: '中寮鄉', code: '541' },
+            { city: '南投縣', area: '草屯鎮', code: '542' },
+            { city: '南投縣', area: '國姓鄉', code: '544' },
+            { city: '南投縣', area: '埔里鎮', code: '545' },
+            { city: '南投縣', area: '仁愛鄉', code: '546' },
+            { city: '南投縣', area: '名間鄉', code: '551' },
+            { city: '南投縣', area: '集集鎮', code: '552' },
+            { city: '南投縣', area: '水里鄉', code: '553' },
+            { city: '南投縣', area: '魚池鄉', code: '555' },
+            { city: '南投縣', area: '信義鄉', code: '556' },
+            { city: '南投縣', area: '竹山鎮', code: '557' },
+            { city: '南投縣', area: '鹿谷鄉', code: '558' },
+            
+            // 雲林縣
+            { city: '雲林縣', area: '斗南鎮', code: '630' },
+            { city: '雲林縣', area: '大埤鄉', code: '631' },
+            { city: '雲林縣', area: '虎尾鎮', code: '632' },
+            { city: '雲林縣', area: '土庫鎮', code: '633' },
+            { city: '雲林縣', area: '褒忠鄉', code: '634' },
+            { city: '雲林縣', area: '東勢鄉', code: '635' },
+            { city: '雲林縣', area: '台西鄉', code: '636' },
+            { city: '雲林縣', area: '崙背鄉', code: '637' },
+            { city: '雲林縣', area: '麥寮鄉', code: '638' },
+            { city: '雲林縣', area: '斗六市', code: '640' },
+            { city: '雲林縣', area: '林內鄉', code: '643' },
+            { city: '雲林縣', area: '古坑鄉', code: '646' },
+            { city: '雲林縣', area: '莿桐鄉', code: '647' },
+            { city: '雲林縣', area: '西螺鎮', code: '648' },
+            { city: '雲林縣', area: '二崙鄉', code: '649' },
+            { city: '雲林縣', area: '北港鎮', code: '651' },
+            { city: '雲林縣', area: '水林鄉', code: '652' },
+            { city: '雲林縣', area: '口湖鄉', code: '653' },
+            { city: '雲林縣', area: '四湖鄉', code: '654' },
+            { city: '雲林縣', area: '元長鄉', code: '655' },
+            
+            // 嘉義市
+            { city: '嘉義市', area: '東區', code: '600' },
+            { city: '嘉義市', area: '西區', code: '600' },
+            
+            // 嘉義縣
+            { city: '嘉義縣', area: '番路鄉', code: '602' },
+            { city: '嘉義縣', area: '梅山鄉', code: '603' },
+            { city: '嘉義縣', area: '竹崎鄉', code: '604' },
+            { city: '嘉義縣', area: '阿里山鄉', code: '605' },
+            { city: '嘉義縣', area: '中埔鄉', code: '606' },
+            { city: '嘉義縣', area: '大埔鄉', code: '607' },
+            { city: '嘉義縣', area: '水上鄉', code: '608' },
+            { city: '嘉義縣', area: '鹿草鄉', code: '611' },
+            { city: '嘉義縣', area: '太保市', code: '612' },
+            { city: '嘉義縣', area: '朴子市', code: '613' },
+            { city: '嘉義縣', area: '東石鄉', code: '614' },
+            { city: '嘉義縣', area: '六腳鄉', code: '615' },
+            { city: '嘉義縣', area: '新港鄉', code: '616' },
+            { city: '嘉義縣', area: '民雄鄉', code: '621' },
+            { city: '嘉義縣', area: '大林鎮', code: '622' },
+            { city: '嘉義縣', area: '溪口鄉', code: '623' },
+            { city: '嘉義縣', area: '義竹鄉', code: '624' },
+            { city: '嘉義縣', area: '布袋鎮', code: '625' },          
+  
+            // 台南市
+            { city: '台南市', area: '中西區', code: '700' },
+            { city: '台南市', area: '東區', code: '701' },
+            { city: '台南市', area: '南區', code: '702' },
+            { city: '台南市', area: '北區', code: '704' },
+            { city: '台南市', area: '安平區', code: '708' },
+            { city: '台南市', area: '安南區', code: '709' },
+            { city: '台南市', area: '永康區', code: '710' },
+            { city: '台南市', area: '歸仁區', code: '711' },
+            { city: '台南市', area: '新化區', code: '712' },
+            { city: '台南市', area: '左鎮區', code: '713' },
+            { city: '台南市', area: '玉井區', code: '714' },
+            { city: '台南市', area: '楠西區', code: '715' },
+            { city: '台南市', area: '南化區', code: '716' },
+            { city: '台南市', area: '仁德區', code: '717' },
+            { city: '台南市', area: '關廟區', code: '718' },
+            { city: '台南市', area: '龍崎區', code: '719' },
+            { city: '台南市', area: '官田區', code: '720' },
+            { city: '台南市', area: '麻豆區', code: '721' },
+            { city: '台南市', area: '佳里區', code: '722' },
+            { city: '台南市', area: '西港區', code: '723' },
+            { city: '台南市', area: '七股區', code: '724' },
+            { city: '台南市', area: '將軍區', code: '725' },
+            { city: '台南市', area: '學甲區', code: '726' },
+            { city: '台南市', area: '北門區', code: '727' },
+            { city: '台南市', area: '新營區', code: '730' },
+            { city: '台南市', area: '後壁區', code: '731' },
+            { city: '台南市', area: '白河區', code: '732' },
+            { city: '台南市', area: '東山區', code: '733' },
+            { city: '台南市', area: '六甲區', code: '734' },
+            { city: '台南市', area: '下營區', code: '735' },
+            { city: '台南市', area: '柳營區', code: '736' },
+            { city: '台南市', area: '鹽水區', code: '737' },
+            { city: '台南市', area: '善化區', code: '741' },
+            { city: '台南市', area: '大內區', code: '742' },
+            { city: '台南市', area: '山上區', code: '743' },
+            { city: '台南市', area: '新市區', code: '744' },
+            { city: '台南市', area: '安定區', code: '745' },
+            
+            // 高雄市
+            { city: '高雄市', area: '新興區', code: '800' },
+            { city: '高雄市', area: '前金區', code: '801' },
+            { city: '高雄市', area: '苓雅區', code: '802' },
+            { city: '高雄市', area: '鹽埕區', code: '803' },
+            { city: '高雄市', area: '鼓山區', code: '804' },
+            { city: '高雄市', area: '旗津區', code: '805' },
+            { city: '高雄市', area: '前鎮區', code: '806' },
+            { city: '高雄市', area: '三民區', code: '807' },
+            { city: '高雄市', area: '楠梓區', code: '811' },
+            { city: '高雄市', area: '小港區', code: '812' },
+            { city: '高雄市', area: '左營區', code: '813' },
+            { city: '高雄市', area: '仁武區', code: '814' },
+            { city: '高雄市', area: '大社區', code: '815' },
+            { city: '高雄市', area: '岡山區', code: '820' },
+            { city: '高雄市', area: '路竹區', code: '821' },
+            { city: '高雄市', area: '阿蓮區', code: '822' },
+            { city: '高雄市', area: '田寮區', code: '823' },
+            { city: '高雄市', area: '燕巢區', code: '824' },
+            { city: '高雄市', area: '橋頭區', code: '825' },
+            { city: '高雄市', area: '梓官區', code: '826' },
+            { city: '高雄市', area: '彌陀區', code: '827' },
+            { city: '高雄市', area: '永安區', code: '828' },
+            { city: '高雄市', area: '湖內區', code: '829' },
+            { city: '高雄市', area: '鳳山區', code: '830' },
+            { city: '高雄市', area: '大寮區', code: '831' },
+            { city: '高雄市', area: '林園區', code: '832' },
+            { city: '高雄市', area: '鳥松區', code: '833' },
+            { city: '高雄市', area: '大樹區', code: '840' },
+            { city: '高雄市', area: '旗山區', code: '842' },
+            { city: '高雄市', area: '美濃區', code: '843' },
+            { city: '高雄市', area: '六龜區', code: '844' },
+            { city: '高雄市', area: '內門區', code: '845' },
+            { city: '高雄市', area: '杉林區', code: '846' },
+            { city: '高雄市', area: '甲仙區', code: '847' },
+            { city: '高雄市', area: '桃源區', code: '848' },
+            { city: '高雄市', area: '那瑪夏區', code: '849' },
+            { city: '高雄市', area: '茂林區', code: '851' },
+            { city: '高雄市', area: '茄萣區', code: '852' },        
+    
+            // 屏東縣
+            { city: '屏東縣', area: '屏東市', code: '900' },
+            { city: '屏東縣', area: '三地門鄉', code: '901' },
+            { city: '屏東縣', area: '霧台鄉', code: '902' },
+            { city: '屏東縣', area: '瑪家鄉', code: '903' },
+            { city: '屏東縣', area: '九如鄉', code: '904' },
+            { city: '屏東縣', area: '里港鄉', code: '905' },
+            { city: '屏東縣', area: '高樹鄉', code: '906' },
+            { city: '屏東縣', area: '鹽埔鄉', code: '907' },
+            { city: '屏東縣', area: '長治鄉', code: '908' },
+            { city: '屏東縣', area: '麟洛鄉', code: '909' },
+            { city: '屏東縣', area: '竹田鄉', code: '911' },
+            { city: '屏東縣', area: '內埔鄉', code: '912' },
+            { city: '屏東縣', area: '萬丹鄉', code: '913' },
+            { city: '屏東縣', area: '潮州鎮', code: '920' },
+            { city: '屏東縣', area: '泰武鄉', code: '921' },
+            { city: '屏東縣', area: '來義鄉', code: '922' },
+            { city: '屏東縣', area: '萬巒鄉', code: '923' },
+            { city: '屏東縣', area: '崁頂鄉', code: '924' },
+            { city: '屏東縣', area: '新埤鄉', code: '925' },
+            { city: '屏東縣', area: '南州鄉', code: '926' },
+            { city: '屏東縣', area: '林邊鄉', code: '927' },
+            { city: '屏東縣', area: '東港鎮', code: '928' },
+            { city: '屏東縣', area: '琉球鄉', code: '929' },
+            { city: '屏東縣', area: '佳冬鄉', code: '931' },
+            { city: '屏東縣', area: '新園鄉', code: '932' },
+            { city: '屏東縣', area: '枋寮鄉', code: '940' },
+            { city: '屏東縣', area: '枋山鄉', code: '941' },
+            { city: '屏東縣', area: '春日鄉', code: '942' },
+            { city: '屏東縣', area: '獅子鄉', code: '943' },
+            { city: '屏東縣', area: '車城鄉', code: '944' },
+            { city: '屏東縣', area: '牡丹鄉', code: '945' },
+            { city: '屏東縣', area: '恆春鎮', code: '946' },
+            { city: '屏東縣', area: '滿州鄉', code: '947' },
+            
+            // 台東縣
+            { city: '台東縣', area: '台東市', code: '950' },
+            { city: '台東縣', area: '綠島鄉', code: '951' },
+            { city: '台東縣', area: '蘭嶼鄉', code: '952' },
+            { city: '台東縣', area: '延平鄉', code: '953' },
+            { city: '台東縣', area: '卑南鄉', code: '954' },
+            { city: '台東縣', area: '鹿野鄉', code: '955' },
+            { city: '台東縣', area: '關山鎮', code: '956' },
+            { city: '台東縣', area: '海端鄉', code: '957' },
+            { city: '台東縣', area: '池上鄉', code: '958' },
+            { city: '台東縣', area: '東河鄉', code: '959' },
+            { city: '台東縣', area: '成功鎮', code: '961' },
+            { city: '台東縣', area: '長濱鄉', code: '962' },
+            { city: '台東縣', area: '太麻里鄉', code: '963' },
+            { city: '台東縣', area: '金峰鄉', code: '964' },
+            { city: '台東縣', area: '大武鄉', code: '965' },
+            { city: '台東縣', area: '達仁鄉', code: '966' },
+            
+            // 花蓮縣
+            { city: '花蓮縣', area: '花蓮市', code: '970' },
+            { city: '花蓮縣', area: '新城鄉', code: '971' },
+            { city: '花蓮縣', area: '秀林鄉', code: '972' },
+            { city: '花蓮縣', area: '吉安鄉', code: '973' },
+            { city: '花蓮縣', area: '壽豐鄉', code: '974' },
+            { city: '花蓮縣', area: '鳳林鎮', code: '975' },
+            { city: '花蓮縣', area: '光復鄉', code: '976' },
+            { city: '花蓮縣', area: '豐濱鄉', code: '977' },
+            { city: '花蓮縣', area: '瑞穗鄉', code: '978' },
+            { city: '花蓮縣', area: '萬榮鄉', code: '979' },
+            { city: '花蓮縣', area: '玉里鎮', code: '981' },
+            { city: '花蓮縣', area: '卓溪鄉', code: '982' },
+            { city: '花蓮縣', area: '富里鄉', code: '983' },    
+        
+            // 澎湖縣
+            { city: '澎湖縣', area: '馬公市', code: '880' },
+            { city: '澎湖縣', area: '西嶼鄉', code: '881' },
+            { city: '澎湖縣', area: '望安鄉', code: '882' },
+            { city: '澎湖縣', area: '七美鄉', code: '883' },
+            { city: '澎湖縣', area: '白沙鄉', code: '884' },
+            { city: '澎湖縣', area: '湖西鄉', code: '885' },
+            
+            // 金門縣
+            { city: '金門縣', area: '金沙鎮', code: '890' },
+            { city: '金門縣', area: '金湖鎮', code: '891' },
+            { city: '金門縣', area: '金寧鄉', code: '892' },
+            { city: '金門縣', area: '金城鎮', code: '893' },
+            { city: '金門縣', area: '烈嶼鄉', code: '894' },
+            { city: '金門縣', area: '烏坵鄉', code: '896' },
+            
+            // 連江縣
+            { city: '連江縣', area: '南竿鄉', code: '209' },
+            { city: '連江縣', area: '北竿鄉', code: '210' },
+            { city: '連江縣', area: '莒光鄉', code: '211' },
+            { city: '連江縣', area: '東引鄉', code: '212' },
+            
+            // 宜蘭縣
+            { city: '宜蘭縣', area: '宜蘭市', code: '260' },
+            { city: '宜蘭縣', area: '頭城鎮', code: '261' },
+            { city: '宜蘭縣', area: '礁溪鄉', code: '262' },
+            { city: '宜蘭縣', area: '壯圍鄉', code: '263' },
+            { city: '宜蘭縣', area: '員山鄉', code: '264' },
+            { city: '宜蘭縣', area: '羅東鎮', code: '265' },
+            { city: '宜蘭縣', area: '三星鄉', code: '266' },
+            { city: '宜蘭縣', area: '大同鄉', code: '267' },
+            { city: '宜蘭縣', area: '五結鄉', code: '268' },
+            { city: '宜蘭縣', area: '冬山鄉', code: '269' },
+            { city: '宜蘭縣', area: '蘇澳鎮', code: '270' },
+            { city: '宜蘭縣', area: '南澳鄉', code: '272' }
+        ];
+
+        // DOM 元素
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        const searchResultsList = document.getElementById('searchResultsList');
+        const allAreas = document.getElementById('allAreas');
+        const areasGrid = document.getElementById('areasGrid');
+        const searchStats = document.getElementById('searchStats');
+        const easterEggBtn = document.getElementById('easterEggBtn');
+        const easterEggModal = document.getElementById('easterEggModal');
+        const closeEasterEgg = document.getElementById('closeEasterEgg');
+
+        // 搜尋功能
+        function searchPostalCodes(query) {
+            if (!query.trim()) {
+                searchResults.classList.add('hidden');
+                allAreas.classList.remove('hidden');
+                searchStats.textContent = `共 ${postalData.length} 個地區可查詢`;
+                return;
+            }
+
+            const results = postalData.filter(item => 
+                item.city.includes(query) || 
+                item.area.includes(query) || 
+                item.code.includes(query)
+            );
+
+            if (results.length > 0) {
+                displaySearchResults(results, query);
+                searchResults.classList.remove('hidden');
+                allAreas.classList.add('hidden');
+                searchStats.textContent = `找到 ${results.length} 個相符結果`;
+            } else {
+                searchResultsList.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <i class="fas fa-search text-4xl text-neutral-300 mb-4"></i>
+                        <p class="text-neutral-500 text-lg">找不到相符的結果</p>
+                        <p class="text-neutral-400 text-sm mt-2">請嘗試其他關鍵字</p>
+                    </div>
+                `;
+                searchResults.classList.remove('hidden');
+                allAreas.classList.add('hidden');
+                searchStats.textContent = '沒有找到相符結果';
+            }
+        }        
+// 顯示搜尋結果
+        function displaySearchResults(results, query) {
+            searchResultsList.innerHTML = results.map(item => {
+                const highlightedCity = highlightText(item.city, query);
+                const highlightedArea = highlightText(item.area, query);
+                const highlightedCode = highlightText(item.code, query);
+                
+                return `
+                    <div class="area-card bg-white rounded-xl p-6 shadow-lg border border-neutral-100 hover:border-primary-200 cursor-pointer">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-primary-500 rounded-full"></div>
+                                <span class="text-lg font-semibold text-neutral-900">${highlightedCity}</span>
+                            </div>
+                            <span class="text-2xl font-bold text-primary-600">${highlightedCode}</span>
+                        </div>
+                        <div class="text-neutral-600">
+                            <span class="text-base">${highlightedArea}</span>
+                        </div>
+                        <div class="mt-4 flex items-center text-sm text-neutral-400">
+                            <i class="fas fa-map-pin mr-1"></i>
+                            <span>點擊複製郵遞區號</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // 添加點擊複製功能
+            document.querySelectorAll('.area-card').forEach((card, index) => {
+                card.addEventListener('click', () => {
+                    const code = results[index].code;
+                    copyToClipboard(code);
+                    showToast(`已複製郵遞區號：${code}`);
+                });
+            });
+        }
+
+        // 高亮搜尋文字
+        function highlightText(text, query) {
+            if (!query) return text;
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        // 顯示所有地區
+        function displayAllAreas() {
+            const cities = [...new Set(postalData.map(item => item.city))];
+            
+            areasGrid.innerHTML = cities.map(city => {
+                const cityAreas = postalData.filter(item => item.city === city);
+                
+                return `
+                    <div class="area-card bg-white rounded-xl p-6 shadow-lg border border-neutral-100 hover:border-primary-200 fade-in">
+                        <div class="mb-4">
+                            <h4 class="text-lg font-bold text-neutral-900 flex items-center">
+                                <div class="w-3 h-3 bg-primary-500 rounded-full mr-2"></div>
+                                ${city}
+                            </h4>
+                            <p class="text-sm text-neutral-500 mt-1">${cityAreas.length} 個地區</p>
+                        </div>
+                        
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            ${cityAreas.map(area => `
+                                <div class="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-neutral-50 cursor-pointer transition-colors duration-150 area-item" 
+                                     data-code="${area.code}" data-city="${area.city}" data-area="${area.area}">
+                                    <span class="text-neutral-700">${area.area}</span>
+                                    <span class="text-primary-600 font-semibold">${area.code}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // 添加點擊複製功能
+            document.querySelectorAll('.area-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const code = item.dataset.code;
+                    const city = item.dataset.city;
+                    const area = item.dataset.area;
+                    copyToClipboard(code);
+                    showToast(`已複製 ${city} ${area}：${code}`);
+                });
+            });
+        }      
+  // 複製到剪貼簿
+        function copyToClipboard(text) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text);
+            } else {
+                // 備用方案
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+        }
+
+        // 顯示提示訊息
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-20 right-4 bg-secondary-500 text-white px-6 py-3 rounded-xl shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+            toast.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-check-circle"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // 動畫進入
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 100);
+            
+            // 自動移除
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
+        // 進場動畫
+        function animateElements() {
+            const elements = document.querySelectorAll('.fade-in');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry, index) => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            entry.target.style.opacity = '1';
+                            entry.target.style.transform = 'translateY(0)';
+                        }, index * 100);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            elements.forEach(el => observer.observe(el));
+        }
+
+        // 彩蛋功能
+        function initEasterEgg() {
+            let clickCount = 0;
+            const header = document.querySelector('header');
+            
+            // 點擊 header 5 次顯示彩蛋按鈕
+            header.addEventListener('click', () => {
+                clickCount++;
+                if (clickCount >= 5) {
+                    easterEggBtn.classList.remove('opacity-0');
+                    easterEggBtn.classList.add('opacity-100');
+                }
+            });
+            
+            // 彩蛋按鈕點擊事件
+            easterEggBtn.addEventListener('click', () => {
+                easterEggModal.classList.remove('hidden');
+                easterEggModal.classList.add('flex');
+                setTimeout(() => {
+                    easterEggModal.querySelector('.bg-white').classList.remove('scale-95');
+                    easterEggModal.querySelector('.bg-white').classList.add('scale-100');
+                }, 100);
+            });
+            
+            // 關閉彩蛋
+            closeEasterEgg.addEventListener('click', closeEasterEggModal);
+            easterEggModal.addEventListener('click', (e) => {
+                if (e.target === easterEggModal) {
+                    closeEasterEggModal();
+                }
+            });
+        }
+
+        function closeEasterEggModal() {
+            easterEggModal.querySelector('.bg-white').classList.remove('scale-100');
+            easterEggModal.querySelector('.bg-white').classList.add('scale-95');
+            setTimeout(() => {
+                easterEggModal.classList.add('hidden');
+                easterEggModal.classList.remove('flex');
+            }, 300);
+        }     
+   // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 搜尋功能
+            searchInput.addEventListener('input', (e) => {
+                searchPostalCodes(e.target.value);
+            });
+            
+            // 顯示所有地區
+            displayAllAreas();
+            
+            // 進場動畫
+            setTimeout(animateElements, 200);
+            
+            // 彩蛋功能
+            initEasterEgg();
+            
+            // 鍵盤快捷鍵
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === '/') {
+                    e.preventDefault();
+                    searchInput.focus();
+                }
+                if (e.key === 'Escape') {
+                    searchInput.value = '';
+                    searchPostalCodes('');
+                    searchInput.blur();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
