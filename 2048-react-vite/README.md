@@ -139,6 +139,261 @@ src/
    - 模組化設計
    - 更好的可維護性和 IDE 支援
 
+## 📐 Clean Code 最佳實踐
+
+本專案嚴格遵循 Clean Code 原則和最佳實踐：
+
+### 🎯 SOLID 原則
+
+#### 1. 單一職責原則 (SRP)
+每個模組、類別和函數只負責一個明確的功能：
+
+```typescript
+// ✅ 好的範例：職責分離
+class GameCore {
+  // 只負責遊戲邏輯
+  move(direction: number): MoveResult { ... }
+}
+
+function useGame() {
+  // 只負責狀態管理
+}
+
+function GameBoard() {
+  // 只負責 UI 渲染
+}
+```
+
+#### 2. 開放封閉原則 (OCP)
+系統對擴展開放，對修改封閉：
+
+```typescript
+// AI 策略可擴展，無需修改現有代碼
+export function findBestMove(state: GameState): number | null { ... }
+export function findMCTSMove(state: GameState): number | null { ... }
+// 新增策略不影響現有實現
+```
+
+#### 3. 依賴反轉原則 (DIP)
+高層模組不依賴低層模組的具體實現：
+
+```typescript
+// 組件依賴抽象的 Props 接口，不依賴具體實現
+interface GameBoardProps {
+  board: Board;
+  mergedTiles?: MergedTile[];
+}
+```
+
+### 🏗 架構設計模式
+
+#### 分層架構
+```
+Presentation Layer (Components)
+        ↓
+Business Logic Layer (Hooks)
+        ↓
+Core Logic Layer (Utils)
+        ↓
+Type System (Types)
+```
+
+**詳細架構說明請參閱：[ARCHITECTURE.md](./ARCHITECTURE.md)**
+
+#### 單向數據流
+```
+用戶操作 → Hooks → Utils → State 更新 → UI 重渲染
+```
+
+### 📝 程式碼品質標準
+
+#### 命名規範
+```typescript
+// Components: PascalCase
+export function GameBoard() {}
+
+// Hooks: camelCase with 'use' prefix
+export function useGame() {}
+
+// Types/Interfaces: PascalCase
+export interface GameState {}
+
+// Constants: UPPER_SNAKE_CASE
+const MAX_VALUE = 2048
+
+// Variables/Functions: camelCase
+const handleMove = () => {}
+```
+
+#### 函數設計原則
+
+1. **單一職責**：每個函數只做一件事
+2. **參數限制**：不超過 3 個參數，複雜情況使用對象
+3. **純函數優先**：無副作用，相同輸入產生相同輸出
+4. **明確返回值**：避免 void，總是返回有意義的值
+
+```typescript
+// ✅ 好的範例
+function calculateScore(mergedValue: number): number {
+  return mergedValue
+}
+
+// ❌ 避免的範例
+function doSomething(a: any, b: any, c: any, d: any): void {
+  // 參數太多，返回值不明確
+}
+```
+
+#### TypeScript 嚴格模式
+
+```json
+{
+  "strict": true,                      // 所有嚴格檢查
+  "noUnusedLocals": true,              // 禁止未使用變量
+  "noUnusedParameters": true,          // 禁止未使用參數
+  "noFallthroughCasesInSwitch": true,  // Switch 完整性
+  "noUncheckedIndexedAccess": true     // 陣列訪問安全
+}
+```
+
+### 🧪 代碼可測試性
+
+#### 依賴注入
+```typescript
+// 使用參數傳遞依賴，而非硬編碼
+function useKeyboard(
+  onMove: (direction: number) => void,
+  enabled: boolean = true
+) { ... }
+```
+
+#### 純函數設計
+```typescript
+// 無副作用，易於測試
+export function evaluateState(state: GameState): number {
+  // 不修改輸入，只返回計算結果
+  return score
+}
+```
+
+### 📊 效能優化
+
+#### React 優化
+```typescript
+// 使用 React.memo 避免不必要的重渲染
+export const GameBoard = React.memo(forwardRef(...))
+
+// 使用 useCallback 穩定函數引用
+const move = useCallback((direction: number) => { ... }, [dependencies])
+
+// 使用 useMemo 緩存計算結果
+const tiles = useMemo(() => board.flatMap(...), [board])
+```
+
+#### CSS 效能
+```css
+/* 使用 transform 代替 position，啟用 GPU 加速 */
+.tile {
+  transform: translate(0, 0);  /* 觸發硬體加速 */
+  transition: transform 0.15s; /* 流暢動畫 */
+}
+```
+
+### 🔒 類型安全
+
+#### 完整的類型覆蓋
+- ✅ 100% 函數有明確返回類型
+- ✅ 100% 組件 Props 有類型定義
+- ✅ 100% 狀態有類型註解
+- ✅ 0 個 `any` 類型
+- ✅ 0 個 `@ts-ignore`
+
+#### 嚴格的 Null 檢查
+```typescript
+// 所有可能為 null 的值都有檢查
+if (!gameCore || gameOver) return false
+
+// 使用可選鏈
+const value = gameCore?.board[row]?.[col]
+
+// 使用 ?? 提供預設值
+const tiles = mergedTiles ?? []
+```
+
+### 📚 文檔規範
+
+#### JSDoc 註釋
+```typescript
+/**
+ * 移動磚塊到指定方向
+ * @param direction - 移動方向：0=上, 1=右, 2=下, 3=左
+ * @returns 移動結果，包含是否成功、合併磚塊等資訊
+ * @throws 當遊戲已結束時不執行移動
+ */
+export function move(direction: number): MoveResult { ... }
+```
+
+#### README 與 ARCHITECTURE
+- ✅ README.md - 使用說明和快速開始
+- ✅ ARCHITECTURE.md - 詳細的架構設計文檔
+- ✅ 程式碼內註釋 - 解釋「為什麼」而非「做什麼」
+
+### 🎨 樣式組織
+
+#### CSS 模組化
+```css
+/* 使用 @layer 組織樣式 */
+@layer base {
+  /* 基礎樣式 */
+}
+
+@layer utilities {
+  /* 自定義工具類 */
+}
+```
+
+#### Tailwind 最佳實踐
+```typescript
+// 使用語義化的 className
+<div className="score-box bg-tile-2 rounded-lg shadow-md">
+
+// 避免過長的 className，考慮使用組件
+// ❌ <div className="flex items-center justify-center bg-white rounded-lg shadow-lg p-4 m-2 ...">
+// ✅ <ScoreBox />
+```
+
+### 🔄 版本控制
+
+#### Git Commit 規範
+```bash
+feat: 新增功能
+fix: 修復問題
+refactor: 重構代碼
+docs: 更新文檔
+style: 程式碼格式調整
+test: 測試相關
+chore: 建置工具或輔助工具變動
+```
+
+#### 分支策略
+- `main` - 穩定版本
+- `claude/*` - 開發分支
+- 使用 Pull Request 進行代碼審查
+
+### ✅ 程式碼審查清單
+
+每次提交前檢查：
+
+- [ ] 所有函數有明確類型
+- [ ] 無 TypeScript 編譯錯誤
+- [ ] 無 console.log 或調試代碼
+- [ ] 變量命名清晰有意義
+- [ ] 複雜邏輯有註釋說明
+- [ ] 組件職責單一
+- [ ] 無重複代碼
+- [ ] 效能優化（memo, callback）
+- [ ] 可訪問性（a11y）考慮
+
 ## 🔷 TypeScript 特性
 
 ### 類型定義
