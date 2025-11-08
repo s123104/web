@@ -8,6 +8,11 @@ import { useGame } from './hooks/useGame';
 import { useKeyboard } from './hooks/useKeyboard';
 import { useTouch } from './hooks/useTouch';
 
+interface ModalContent {
+  title: string;
+  message: string;
+}
+
 /**
  * 主應用組件
  */
@@ -24,16 +29,16 @@ function App() {
     keepPlaying,
   } = useGame();
 
-  const [scoreAddition, setScoreAddition] = useState(0);
-  const [showModal, setShowModal] = useState(false);
-  const [modalContent, setModalContent] = useState({ title: '', message: '' });
-  const [toastMessage, setToastMessage] = useState('');
-  const [showToast, setShowToast] = useState(false);
-  const gameContainerRef = useRef(null);
-  const prevScoreRef = useRef(0);
+  const [scoreAddition, setScoreAddition] = useState<number>(0);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [modalContent, setModalContent] = useState<ModalContent>({ title: '', message: '' });
+  const [toastMessage, setToastMessage] = useState<string>('');
+  const [showToast, setShowToast] = useState<boolean>(false);
+  const gameContainerRef = useRef<HTMLDivElement>(null);
+  const prevScoreRef = useRef<number>(0);
 
   // 處理移動
-  const handleMove = useCallback((direction) => {
+  const handleMove = useCallback((direction: number): void => {
     const prevScore = prevScoreRef.current;
     const moved = move(direction);
 
@@ -55,7 +60,7 @@ function App() {
   useTouch(gameContainerRef, handleMove, !gameOver && !won);
 
   // 重新開始遊戲
-  const handleRestart = useCallback(() => {
+  const handleRestart = useCallback((): void => {
     restart();
     setScoreAddition(0);
     prevScoreRef.current = 0;
@@ -63,7 +68,7 @@ function App() {
   }, [restart]);
 
   // 顯示 AI 說明
-  const handleShowAIHelp = () => {
+  const handleShowAIHelp = (): void => {
     setModalContent({
       title: 'AI 模式說明',
       message: `1. ai=1：簡易模式
@@ -80,7 +85,7 @@ function App() {
   };
 
   // 顯示 Toast 消息
-  const showToastMessage = (message) => {
+  const showToastMessage = (message: string): void => {
     setToastMessage(message);
     setShowToast(true);
   };

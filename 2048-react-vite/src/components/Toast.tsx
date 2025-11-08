@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
 
+interface ToastProps {
+  message: string;
+  duration?: number;
+  show: boolean;
+  onClose?: () => void;
+}
+
 /**
  * Toast 提示組件
  * 顯示臨時通知消息
  */
-export function Toast({ message, duration = 2500, show, onClose }) {
+export function Toast({ message, duration = 2500, show, onClose }: ToastProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {

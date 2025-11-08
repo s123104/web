@@ -1,21 +1,30 @@
+import type { Board, TileInfo, MergedTile, MoveResult, GameState } from '../types';
+
 /**
  * 2048 遊戲核心邏輯類別
  * 處理遊戲狀態、移動、合併等核心功能
  */
 export class GameCore {
+  board: Board;
+  score: number;
+  gameOver: boolean;
+  keepPlaying: boolean;
+  moved: boolean;
+
   constructor() {
-    this.board = Array(4).fill().map(() => Array(4).fill(0));
+    this.board = Array(4).fill(null).map(() => Array(4).fill(0));
     this.score = 0;
     this.gameOver = false;
     this.keepPlaying = false;
+    this.moved = false;
     this.init();
   }
 
   /**
    * 初始化遊戲
    */
-  init() {
-    this.board = Array(4).fill().map(() => Array(4).fill(0));
+  init(): void {
+    this.board = Array(4).fill(null).map(() => Array(4).fill(0));
     this.score = 0;
     this.gameOver = false;
     this.keepPlaying = false;
@@ -25,53 +34,62 @@ export class GameCore {
 
   /**
    * 添加隨機磚塊
-   * @returns {Object|null} 新磚塊的信息
+   * @returns 新磚塊的信息
    */
-  addRandomTile() {
-    const emptyCells = [];
+  addRandomTile(): TileInfo | null {
+    const emptyCells: TileInfo[] = [];
     for (let i = 0; i < 4; i++) {
       for (let j = 0; j < 4; j++) {
-        if (this.board[i][j] === 0) emptyCells.push({ row: i, col: j });
+        if (this.board[i]?.[j] === 0) {
+          emptyCells.push({ row: i, col: j, value: 0 });
+        }
       }
     }
     if (emptyCells.length > 0) {
       const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-      this.board[randomCell.row][randomCell.col] = Math.random() < 0.9 ? 2 : 4;
-      return {
-        row: randomCell.row,
-        col: randomCell.col,
-        value: this.board[randomCell.row][randomCell.col],
-      };
+      if (randomCell && this.board[randomCell.row]) {
+        const value = Math.random() < 0.9 ? 2 : 4;
+        this.board[randomCell.row]![randomCell.col] = value;
+        return {
+          row: randomCell.row,
+          col: randomCell.col,
+          value,
+        };
+      }
     }
     return null;
   }
 
   /**
    * 執行移動操作
-   * @param {number} direction - 0: 上, 1: 右, 2: 下, 3: 左
-   * @returns {Object} 移動結果
+   * @param direction - 0: 上, 1: 右, 2: 下, 3: 左
+   * @returns 移動結果
    */
-  move(direction) {
+  move(direction: number): MoveResult {
     this.moved = false;
-    let mergedTiles = [];
-    let movedTiles = [];
+    const mergedTiles: MergedTile[] = [];
+    const movedTiles: TileInfo[] = [];
 
     switch (direction) {
       case 0: // 上
-        for (let col = 0; col < 4; col++)
+        for (let col = 0; col < 4; col++) {
           this.processCellsUpDown(col, true, mergedTiles, movedTiles);
+        }
         break;
       case 1: // 右
-        for (let row = 0; row < 4; row++)
+        for (let row = 0; row < 4; row++) {
           this.processCellsLeftRight(row, false, mergedTiles, movedTiles);
+        }
         break;
       case 2: // 下
-        for (let col = 0; col < 4; col++)
+        for (let col = 0; col < 4; col++) {
           this.processCellsUpDown(col, false, mergedTiles, movedTiles);
+        }
         break;
       case 3: // 左
-        for (let row = 0; row < 4; row++)
+        for (let row = 0; row < 4; row++) {
           this.processCellsLeftRight(row, true, mergedTiles, movedTiles);
+        }
         break;
     }
 
@@ -90,33 +108,40 @@ export class GameCore {
   /**
    * 處理上下移動的邏輯
    */
-  processCellsUpDown(col, isUp, mergedTiles, movedTiles) {
+  private processCellsUpDown(
+    col: number,
+    isUp: boolean,
+    mergedTiles: MergedTile[],
+    movedTiles: TileInfo[]
+  ): void {
     const start = isUp ? 0 : 3;
     const step = isUp ? 1 : -1;
     let targetPos = start;
 
     for (let pos = start; pos !== (isUp ? 4 : -1); pos += step) {
-      if (this.board[pos][col] !== 0) {
-        let value = this.board[pos][col];
-        this.board[pos][col] = 0;
+      const cellValue = this.board[pos]?.[col];
+      if (cellValue !== undefined && cellValue !== 0) {
+        let value = cellValue;
+        this.board[pos]![col] = 0;
 
-        if (targetPos !== start && this.board[targetPos - step][col] === value) {
-          this.board[targetPos - step][col] *= 2;
-          this.score += this.board[targetPos - step][col];
+        const targetRow = this.board[targetPos - step];
+        if (targetPos !== start && targetRow?.[col] === value) {
+          targetRow[col] *= 2;
+          this.score += targetRow[col]!;
           this.moved = true;
           mergedTiles.push({
             row: targetPos - step,
             col: col,
-            value: this.board[targetPos - step][col],
+            value: targetRow[col]!,
             merged: true,
           });
           movedTiles.push({
             row: targetPos - step,
             col: col,
-            value: this.board[targetPos - step][col],
+            value: targetRow[col]!,
           });
         } else {
-          this.board[targetPos][col] = value;
+          this.board[targetPos]![col] = value;
           if (targetPos !== pos) {
             this.moved = true;
             movedTiles.push({ row: targetPos, col: col, value: value });
@@ -130,33 +155,43 @@ export class GameCore {
   /**
    * 處理左右移動的邏輯
    */
-  processCellsLeftRight(row, isLeft, mergedTiles, movedTiles) {
+  private processCellsLeftRight(
+    row: number,
+    isLeft: boolean,
+    mergedTiles: MergedTile[],
+    movedTiles: TileInfo[]
+  ): void {
     const start = isLeft ? 0 : 3;
     const step = isLeft ? 1 : -1;
     let targetPos = start;
 
     for (let pos = start; pos !== (isLeft ? 4 : -1); pos += step) {
-      if (this.board[row][pos] !== 0) {
-        let value = this.board[row][pos];
-        this.board[row][pos] = 0;
+      const cellValue = this.board[row]?.[pos];
+      if (cellValue !== undefined && cellValue !== 0) {
+        let value = cellValue;
+        this.board[row]![pos] = 0;
 
-        if (targetPos !== start && this.board[row][targetPos - step] === value) {
-          this.board[row][targetPos - step] *= 2;
-          this.score += this.board[row][targetPos - step];
+        const targetCell = this.board[row]?.[targetPos - step];
+        const boardRow = this.board[row];
+        if (targetPos !== start && targetCell === value && boardRow) {
+          const targetIndex = targetPos - step;
+          boardRow[targetIndex] = (boardRow[targetIndex] || 0) * 2;
+          const mergedValue = boardRow[targetIndex]!;
+          this.score += mergedValue;
           this.moved = true;
           mergedTiles.push({
             row: row,
             col: targetPos - step,
-            value: this.board[row][targetPos - step],
+            value: mergedValue,
             merged: true,
           });
           movedTiles.push({
             row: row,
             col: targetPos - step,
-            value: this.board[row][targetPos - step],
+            value: mergedValue,
           });
-        } else {
-          this.board[row][targetPos] = value;
+        } else if (boardRow) {
+          boardRow[targetPos] = value;
           if (targetPos !== pos) {
             this.moved = true;
             movedTiles.push({ row: row, col: targetPos, value: value });
@@ -170,11 +205,11 @@ export class GameCore {
   /**
    * 檢查遊戲狀態
    */
-  checkGameStatus() {
+  private checkGameStatus(): void {
     let hasEmpty = false;
     for (let i = 0; i < 4; i++) {
       for (let j = 0; j < 4; j++) {
-        if (this.board[i][j] === 0) {
+        if (this.board[i]?.[j] === 0) {
           hasEmpty = true;
           break;
         }
@@ -186,7 +221,7 @@ export class GameCore {
       let canMerge = false;
       for (let i = 0; i < 4; i++) {
         for (let j = 0; j < 3; j++) {
-          if (this.board[i][j] === this.board[i][j + 1]) {
+          if (this.board[i]?.[j] === this.board[i]?.[j + 1]) {
             canMerge = true;
             break;
           }
@@ -197,7 +232,7 @@ export class GameCore {
       if (!canMerge) {
         for (let j = 0; j < 4; j++) {
           for (let i = 0; i < 3; i++) {
-            if (this.board[i][j] === this.board[i + 1][j]) {
+            if (this.board[i]?.[j] === this.board[i + 1]?.[j]) {
               canMerge = true;
               break;
             }
@@ -213,23 +248,23 @@ export class GameCore {
   /**
    * 設置繼續遊戲模式
    */
-  setKeepPlaying() {
+  setKeepPlaying(): void {
     this.keepPlaying = true;
   }
 
   /**
    * 獲取當前棋盤
    */
-  getBoard() {
+  getBoard(): Board {
     return this.board;
   }
 
   /**
    * 獲取 AI 使用的狀態
    */
-  getStateForAI() {
+  getStateForAI(): GameState {
     return {
-      board: JSON.parse(JSON.stringify(this.board)),
+      board: JSON.parse(JSON.stringify(this.board)) as Board,
       score: this.score,
       gameOver: this.gameOver,
     };
@@ -238,19 +273,19 @@ export class GameCore {
   /**
    * 從 AI 應用移動
    */
-  applyMoveFromAI(direction) {
+  applyMoveFromAI(direction: number): MoveResult {
     return this.move(direction);
   }
 }
 
 /**
  * 克隆遊戲狀態
- * @param {Object} state - 遊戲狀態
- * @returns {GameCore} 克隆的遊戲核心實例
+ * @param state - 遊戲狀態
+ * @returns 克隆的遊戲核心實例
  */
-export function cloneGameCoreState(state) {
-  let clone = new GameCore();
-  clone.board = JSON.parse(JSON.stringify(state.board));
+export function cloneGameCoreState(state: GameState): GameCore {
+  const clone = new GameCore();
+  clone.board = JSON.parse(JSON.stringify(state.board)) as Board;
   clone.score = state.score;
   clone.gameOver = state.gameOver;
   return clone;

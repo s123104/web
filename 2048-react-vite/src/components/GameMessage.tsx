@@ -1,8 +1,15 @@
+interface GameMessageProps {
+  show: boolean;
+  isWin: boolean;
+  onRestart: () => void;
+  onKeepPlaying: () => void;
+}
+
 /**
  * GameMessage 遊戲消息組件
  * 顯示遊戲結束或獲勝消息
  */
-export function GameMessage({ show, isWin, onRestart, onKeepPlaying }) {
+export function GameMessage({ show, isWin, onRestart, onKeepPlaying }: GameMessageProps) {
   if (!show) return null;
 
   return (

@@ -1,8 +1,16 @@
+interface ModalProps {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  buttonText?: string;
+  onClose: () => void;
+}
+
 /**
  * Modal 模態窗組件
  * 用於顯示通知、確認等信息
  */
-export function Modal({ isOpen, title, message, buttonText = '確定', onClose }) {
+export function Modal({ isOpen, title, message, buttonText = '確定', onClose }: ModalProps) {
   if (!isOpen) return null;
 
   return (

@@ -4,12 +4,15 @@ import { useEffect } from 'react';
  * 鍵盤控制 Hook
  * 監聽方向鍵並觸發移動
  */
-export function useKeyboard(onMove, enabled = true) {
+export function useKeyboard(
+  onMove: (direction: number) => void,
+  enabled: boolean = true
+): void {
   useEffect(() => {
     if (!enabled) return;
 
-    const handleKeyDown = (e) => {
-      let direction;
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      let direction: number | undefined;
 
       switch (e.key) {
         case 'ArrowUp':
@@ -32,7 +35,9 @@ export function useKeyboard(onMove, enabled = true) {
           return;
       }
 
-      onMove(direction);
+      if (direction !== undefined) {
+        onMove(direction);
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);

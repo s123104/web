@@ -1,10 +1,17 @@
+interface TileProps {
+  row: number;
+  col: number;
+  value: number;
+  merged?: boolean;
+}
+
 /**
  * Tile 磚塊組件
  * 顯示單個遊戲磚塊
  */
-export function Tile({ row, col, value, merged = false }) {
-  const getTileColor = (val) => {
-    const colors = {
+export function Tile({ row, col, value, merged = false }: TileProps) {
+  const getTileColor = (val: number): string => {
+    const colors: Record<number, string> = {
       2: 'bg-tile-2 text-text-dark',
       4: 'bg-tile-4 text-text-dark',
       8: 'bg-tile-8 text-text-light',
@@ -20,7 +27,7 @@ export function Tile({ row, col, value, merged = false }) {
     return colors[val] || 'bg-gradient-to-br from-purple-500 to-pink-500 text-text-light';
   };
 
-  const getFontSize = (val) => {
+  const getFontSize = (val: number): string => {
     if (val < 100) return 'text-[40px] max-[520px]:text-[20px] max-[350px]:text-[16px]';
     if (val < 1000) return 'text-[36px] max-[520px]:text-[18px] max-[350px]:text-[16px]';
     if (val < 10000) return 'text-[28px] max-[520px]:text-[16px] max-[350px]:text-[16px]';
@@ -35,7 +42,8 @@ export function Tile({ row, col, value, merged = false }) {
   return (
     <div
       className={`
-        absolute w-[105px] h-[105px] rounded-lg
+        absolute rounded-lg
+        w-[calc((100%-30px)/4)] h-[calc((100%-30px)/4)]
         flex items-center justify-center font-bold
         shadow-tile transition-all duration-150 ease-in-out
         ${getTileColor(value)}
