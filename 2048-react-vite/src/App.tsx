@@ -8,6 +8,7 @@ import { useGame } from './hooks/useGame';
 import { useKeyboard } from './hooks/useKeyboard';
 import { useTouch } from './hooks/useTouch';
 import { useAIMode } from './hooks/useAIMode';
+import { useAIAutoPlay } from './hooks/useAIAutoPlay';
 
 interface ModalContent {
   title: string;
@@ -28,10 +29,21 @@ function App() {
     move,
     restart,
     keepPlaying,
+    getStateForAI,
   } = useGame();
 
   // AI 模式
   const aiMode = useAIMode();
+
+  // AI 自動播放
+  const { speed, setSpeed, runCount, currentMove } = useAIAutoPlay({
+    aiMode,
+    gameOver,
+    won,
+    move,
+    getStateForAI,
+    restart,
+  });
 
   const [scoreAddition, setScoreAddition] = useState<number>(0);
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -57,11 +69,11 @@ function App() {
     prevScoreRef.current = score;
   }, [score]);
 
-  // 鍵盤控制
-  useKeyboard(handleMove, !gameOver && !won);
+  // 鍵盤控制（AI 模式下禁用手動控制）
+  useKeyboard(handleMove, !gameOver && !won && aiMode === 0);
 
-  // 觸控控制
-  useTouch(gameContainerRef, handleMove, !gameOver && !won);
+  // 觸控控制（AI 模式下禁用手動控制）
+  useTouch(gameContainerRef, handleMove, !gameOver && !won && aiMode === 0);
 
   // 重新開始遊戲
   const handleRestart = useCallback((): void => {
@@ -96,17 +108,56 @@ function App() {
 
   return (
     <div className="w-full max-w-[650px] min-h-[90vh] p-6 bg-surface-container rounded-[18px] shadow-game overflow-y-auto overflow-scrollbar-none transition-all duration-300 max-[767px]:p-4">
-      {/* AI 模式指示器 */}
+      {/* AI 模式指示器與控制 */}
       {aiMode > 0 && (
-        <div className="mb-4 p-3 bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-lg text-center">
-          <p className="text-orange-700 font-semibold">
-            🤖 AI 模式已啟用: {
-              aiMode === 1 ? '簡易模式' :
-              aiMode === 2 ? '深度模式' :
-              aiMode === 3 ? '進階模式 (MCTS)' :
-              aiMode === 4 ? 'Reward 模式' : ''
-            }
-          </p>
+        <div className="mb-4 space-y-3">
+          {/* AI 模式標題 */}
+          <div className="p-3 bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-lg text-center">
+            <p className="text-orange-700 font-semibold">
+              🤖 AI 模式已啟用: {
+                aiMode === 1 ? '簡易模式' :
+                aiMode === 2 ? '深度模式' :
+                aiMode === 3 ? '進階模式 (MCTS)' :
+                aiMode === 4 ? 'Reward 模式' : ''
+              }
+            </p>
+          </div>
+
+          {/* AI 控制面板 */}
+          <div className="p-4 bg-white rounded-lg shadow-md">
+            {/* 速度控制 */}
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-text-dark font-semibold">AI 速度控制</label>
+                <span className="text-text-dark font-mono">{speed}ms</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="1000"
+                step="50"
+                value={speed}
+                onChange={(e) => setSpeed(parseInt(e.target.value, 10))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>快 (50ms)</span>
+                <span>慢 (1000ms)</span>
+              </div>
+            </div>
+
+            {/* AI 統計資訊 */}
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="bg-gray-50 p-2 rounded">
+                <div className="text-gray-600">當前移動</div>
+                <div className="text-text-dark font-semibold">{currentMove || '-'}</div>
+              </div>
+              <div className="bg-gray-50 p-2 rounded">
+                <div className="text-gray-600">遊戲輪次</div>
+                <div className="text-text-dark font-semibold">{runCount}</div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
