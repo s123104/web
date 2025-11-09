@@ -91,7 +91,7 @@ function App() {
   };
 
   return (
-    <div className="w-full max-w-[650px] min-h-[90vh] p-6 bg-[#fff6ea] rounded-[18px] shadow-game overflow-y-auto overflow-scrollbar-none transition-all duration-300 max-[767px]:p-4">
+    <div className="w-full max-w-[650px] min-h-[90vh] p-6 bg-surface-container rounded-[18px] shadow-game overflow-y-auto overflow-scrollbar-none transition-all duration-300 max-[767px]:p-4">
       {/* 標題與分數 */}
       <Header score={score} bestScore={bestScore} scoreAddition={scoreAddition} />
 

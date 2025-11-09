@@ -8,24 +8,24 @@ interface TileProps {
 /**
  * Tile 磚塊組件
  * 顯示單個遊戲磚塊
- * 使用與原版一致的定位計算
+ * 使用 Tailwind v4 @theme tokens 實現專業化設計系統
  */
 export function Tile({ row, col, value, merged = false }: TileProps) {
   const getTileColor = (val: number): string => {
     const colors: Record<number, string> = {
-      2: 'bg-tile-2 text-text-dark',
-      4: 'bg-tile-4 text-text-dark',
-      8: 'bg-tile-8 text-text-light',
-      16: 'bg-tile-16 text-text-light',
-      32: 'bg-tile-32 text-text-light',
-      64: 'bg-tile-64 text-text-light',
-      128: 'bg-tile-128 text-text-light',
-      256: 'bg-tile-256 text-text-light',
-      512: 'bg-tile-512 text-text-light',
-      1024: 'bg-tile-1024 text-text-light',
-      2048: 'bg-tile-2048 text-text-light',
+      2: 'bg-tile-2-bg text-tile-2-text',
+      4: 'bg-tile-4-bg text-tile-4-text',
+      8: 'bg-tile-8-bg text-tile-8-text',
+      16: 'bg-tile-16-bg text-tile-16-text',
+      32: 'bg-tile-32-bg text-tile-32-text',
+      64: 'bg-tile-64-bg text-tile-64-text',
+      128: 'bg-tile-128-bg text-tile-128-text',
+      256: 'bg-tile-256-bg text-tile-256-text',
+      512: 'bg-tile-512-bg text-tile-512-text',
+      1024: 'bg-tile-1024-bg text-tile-1024-text',
+      2048: 'bg-tile-2048-bg text-tile-2048-text',
     };
-    return colors[val] || 'bg-gradient-to-br from-purple-500 to-pink-500 text-text-light';
+    return colors[val] || 'bg-gradient-to-br from-purple-500 to-pink-500 text-tile-2048-text';
   };
 
   const getFontSize = (val: number): string => {
@@ -49,15 +49,19 @@ export function Tile({ row, col, value, merged = false }: TileProps) {
         absolute rounded-lg
         w-[calc((100%-30px)/4)] h-[calc((100%-30px)/4)]
         flex items-center justify-center font-bold
-        shadow-tile transition-all duration-150 ease-in-out
+        transition-all duration-150 ease-in-out
         ${getTileColor(value)}
         ${getFontSize(value)}
-        ${merged ? 'animate-tile-merge z-20' : 'animate-tile-appear z-10'}
-        ${value >= 128 ? 'animate-glow' : ''}
-        ${value >= 4096 ? 'animate-super-glow' : ''}
-        ${value >= 16384 ? 'animate-mega-glow' : ''}
+        ${merged ? 'z-20' : 'z-10'}
+        ${value >= 128 ? '[box-shadow:var(--shadow-tile)]' : ''}
       `}
-      style={position}
+      style={{
+        ...position,
+        boxShadow: 'var(--shadow-tile)',
+        animation: merged
+          ? 'var(--animation-tile-merge)'
+          : 'var(--animation-tile-appear)',
+      }}
     >
       {value}
     </div>

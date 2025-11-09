@@ -20,7 +20,7 @@ export const GameBoard = forwardRef<HTMLDivElement, GameBoardProps>(
         cells.push(
           <div
             key={i}
-            className="rounded-lg bg-grid-cell shadow-inner"
+            className="rounded-lg bg-surface-grid-cell shadow-inner"
             style={{ boxShadow: 'inset 0 0 0 2px rgba(255, 255, 255, 0.1)' }}
           />
         );
@@ -56,7 +56,7 @@ export const GameBoard = forwardRef<HTMLDivElement, GameBoardProps>(
     return (
       <div
         ref={ref}
-        className="relative w-[480px] h-[480px] bg-board-bg rounded-xl mx-auto mb-8 p-2.5 shadow-game transition-all duration-300 hover:shadow-2xl max-[520px]:w-[300px] max-[520px]:h-[300px] max-[350px]:w-[280px] max-[350px]:h-[280px]"
+        className="relative w-[480px] h-[480px] bg-surface-board rounded-xl mx-auto mb-8 p-2.5 shadow-game transition-all duration-300 hover:shadow-2xl max-[520px]:w-[300px] max-[520px]:h-[300px] max-[350px]:w-[280px] max-[350px]:h-[280px]"
       >
         {/* 背景網格 */}
         <div className="grid grid-cols-4 grid-rows-4 w-full h-full gap-2.5 rounded-lg">
