@@ -7,6 +7,7 @@ import { Toast } from './components/Toast';
 import { useGame } from './hooks/useGame';
 import { useKeyboard } from './hooks/useKeyboard';
 import { useTouch } from './hooks/useTouch';
+import { useAIMode } from './hooks/useAIMode';
 
 interface ModalContent {
   title: string;
@@ -28,6 +29,9 @@ function App() {
     restart,
     keepPlaying,
   } = useGame();
+
+  // AI 模式
+  const aiMode = useAIMode();
 
   const [scoreAddition, setScoreAddition] = useState<number>(0);
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -92,6 +96,20 @@ function App() {
 
   return (
     <div className="w-full max-w-[650px] min-h-[90vh] p-6 bg-surface-container rounded-[18px] shadow-game overflow-y-auto overflow-scrollbar-none transition-all duration-300 max-[767px]:p-4">
+      {/* AI 模式指示器 */}
+      {aiMode > 0 && (
+        <div className="mb-4 p-3 bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-lg text-center">
+          <p className="text-orange-700 font-semibold">
+            🤖 AI 模式已啟用: {
+              aiMode === 1 ? '簡易模式' :
+              aiMode === 2 ? '深度模式' :
+              aiMode === 3 ? '進階模式 (MCTS)' :
+              aiMode === 4 ? 'Reward 模式' : ''
+            }
+          </p>
+        </div>
+      )}
+
       {/* 標題與分數 */}
       <Header score={score} bestScore={bestScore} scoreAddition={scoreAddition} />
 
