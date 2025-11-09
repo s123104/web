@@ -8,6 +8,7 @@ interface TileProps {
 /**
  * Tile 磚塊組件
  * 顯示單個遊戲磚塊
+ * 使用與原版一致的定位計算
  */
 export function Tile({ row, col, value, merged = false }: TileProps) {
   const getTileColor = (val: number): string => {
@@ -34,9 +35,12 @@ export function Tile({ row, col, value, merged = false }: TileProps) {
     return 'text-[24px] max-[520px]:text-[16px] max-[350px]:text-[16px]';
   };
 
+  // Position calculation matching original CSS grid layout
+  // cell_width = (100% - 3×gap) / 4
+  // position = index × (cell_width + gap) = index × (100% + gap) / 4
   const position = {
-    top: `${row * 115}px`,
-    left: `${col * 115}px`,
+    top: `calc(${row} * (100% + 10px) / 4)`,
+    left: `calc(${col} * (100% + 10px) / 4)`,
   };
 
   return (
